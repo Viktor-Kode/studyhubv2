@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { questionsApi, Question } from '@/lib/api/questions'
 
@@ -46,9 +45,7 @@ export default function QuestionDetailPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto">
           <button
             onClick={() => router.back()}
             className="mb-6 text-primary-600 hover:text-primary-700 flex items-center"
@@ -132,7 +129,6 @@ export default function QuestionDetailPage() {
             </div>
           ) : null}
         </div>
-      </div>
     </ProtectedRoute>
   )
 }

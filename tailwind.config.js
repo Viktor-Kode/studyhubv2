@@ -21,6 +21,45 @@ module.exports = {
           900: '#0c4a6e',
         },
       },
+      animation: {
+        blob: 'blob 7s infinite',
+        gradient: 'gradient 3s ease infinite',
+        backgroundMove: 'backgroundMove 20s linear infinite',
+      },
+      keyframes: {
+        blob: {
+          '0%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+          '33%': {
+            transform: 'translate(30px, -50px) scale(1.1)',
+          },
+          '66%': {
+            transform: 'translate(-20px, 20px) scale(0.9)',
+          },
+          '100%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+        },
+        gradient: {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center',
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center',
+          },
+        },
+        backgroundMove: {
+          '0%': {
+            'background-position': '0 0',
+          },
+          '100%': {
+            'background-position': '60px 60px',
+          },
+        },
+      },
     },
   },
   plugins: [],

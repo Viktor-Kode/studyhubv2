@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
+import Layout from './layout/Layout'
 
 export default function ProtectedRoute({
   children,
@@ -26,5 +27,5 @@ export default function ProtectedRoute({
     )
   }
 
-  return <>{children}</>
+  return <Layout>{children}</Layout>
 }

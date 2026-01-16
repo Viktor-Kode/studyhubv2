@@ -3,7 +3,6 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { questionsApi, Question } from '@/lib/api/questions'
 
@@ -70,10 +69,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
           {/* Question Submission Form */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
@@ -153,8 +149,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
     </ProtectedRoute>
   )
 }

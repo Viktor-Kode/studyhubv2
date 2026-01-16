@@ -16,44 +16,34 @@ export default function Navbar() {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-primary-600">
-              Study Help
-            </Link>
-          </div>
+        <div className="flex justify-between items-center py-6">
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg"></div>
+            <span className="text-2xl font-bold text-gray-800">StudyHelp</span>
+          </Link>
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-700">
-                  {user?.email}
-                </span>
-                <Link
-                  href="/dashboard"
-                  className="text-sm text-gray-700 hover:text-primary-600"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm text-gray-700 hover:text-primary-600"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
+            {!isAuthenticated ? (
               <>
                 <Link
                   href="/login"
-                  className="text-sm text-gray-700 hover:text-primary-600"
+                  className="text-primary-600 hover:text-primary-800 font-medium"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
                 >
                   Sign up
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                >
+                  Go to Dashboard
                 </Link>
               </>
             )}
