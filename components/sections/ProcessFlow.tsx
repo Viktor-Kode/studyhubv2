@@ -9,24 +9,28 @@ const steps = [
   {
     number: 1,
     icon: FaQuestionCircle,
+    iconLabel: 'Question',
     title: 'Submit Question',
     description: 'Post your question with any relevant details, images, or context.',
   },
   {
     number: 2,
     icon: FaUserCheck,
+    iconLabel: 'Match',
     title: 'Get Matched',
     description: 'Our system matches you with the perfect tutor for your subject.',
   },
   {
     number: 3,
     icon: FaGraduationCap,
+    iconLabel: 'Learn',
     title: 'Receive Help',
     description: 'Get detailed, step-by-step explanations tailored to your learning style.',
   },
   {
     number: 4,
     icon: FaCheckCircle,
+    iconLabel: 'Complete',
     title: 'Master Concepts',
     description: 'Understand deeply and apply knowledge with confidence.',
   },
@@ -123,14 +127,18 @@ export default function ProcessFlow() {
                 return (
                   <div key={index} className="relative flex items-start gap-6">
                     {/* Circle Indicator */}
-                    <div className="relative z-10 flex-shrink-0">
+                    <div className="relative z-10 flex-shrink-0 flex flex-col items-center">
                       <div className="process-circle w-16 h-16 bg-white/5 border-2 border-white/20 rounded-full flex items-center justify-center group-hover:border-cyan-400 transition-colors duration-300">
                         <div className="w-12 h-12 bg-cyan-400 rounded-full flex items-center justify-center">
                           <Icon className="text-black text-xl" />
                         </div>
                       </div>
+                      {/* Icon Label */}
+                      <span className="mt-2 text-xs font-semibold text-white/70 text-center max-w-[80px]">
+                        {step.iconLabel}
+                      </span>
                       {index < steps.length - 1 && (
-                        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-0.5 h-12 bg-white/10"></div>
+                        <div className="absolute top-28 left-1/2 transform -translate-x-1/2 w-0.5 h-12 bg-white/10"></div>
                       )}
                     </div>
 

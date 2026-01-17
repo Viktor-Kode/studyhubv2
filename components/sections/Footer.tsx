@@ -5,9 +5,10 @@ import { FaGraduationCap, FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa
 
 const footerLinks = {
   Product: [
-    { label: 'Features', href: '#features' },
+    { label: 'For Teachers', href: '#teacher-features' },
+    { label: 'For Students', href: '#student-features' },
+    { label: 'AI Workflow', href: '#ai-workflow' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'How It Works', href: '#how-it-works' },
   ],
   Company: [
     { label: 'About', href: '#about' },
@@ -97,7 +98,7 @@ export default function Footer() {
               © {new Date().getFullYear()} StudyHelp. All rights reserved.
             </p>
             <p className="text-white/40 text-sm">
-              Built with ❤️ for students everywhere
+              Built for students everywhere
             </p>
           </div>
         </div>
