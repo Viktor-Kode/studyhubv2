@@ -4,6 +4,9 @@ import { persist } from 'zustand/middleware'
 interface User {
   id: string
   email: string
+  role?: 'teacher' | 'student'
+  phone?: string
+  schoolName?: string
 }
 
 interface AuthState {

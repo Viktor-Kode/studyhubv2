@@ -1,12 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://studyhelp-jk5j.onrender.com/api'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout
 })
 
 // Request interceptor to add auth token
@@ -33,16 +34,30 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle 401 errors
+// Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized - redirect to login
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
+        // Only redirect if not already on login/signup page
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
+          window.location.href = '/login'
+        }
       }
     }
+    
+    // Log error for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      })
+    }
+    
     return Promise.reject(error)
   }
 )
