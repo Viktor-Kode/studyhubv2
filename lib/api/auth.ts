@@ -3,6 +3,9 @@ import { apiClient } from './client'
 export interface RegisterData {
   email: string
   password: string
+  role?: 'teacher' | 'student'
+  phone?: string
+  schoolName?: string
 }
 
 export interface LoginData {
