@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { FaGraduationCap, FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa'
+import { FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa'
+import Image from 'next/image'
 
 const footerLinks = {
   Product: [
@@ -43,8 +44,14 @@ export default function Footer() {
             {/* Logo Column */}
             <div className="col-span-2 md:col-span-1">
               <Link href="/" className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center">
-                  <FaGraduationCap className="text-cyan-400 text-lg" />
+                <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/favicon-32x32.png" 
+                    alt="StudyHelp Logo" 
+                    width={32} 
+                    height={32} 
+                    className="object-contain"
+                  />
                 </div>
                 <span className="text-xl font-bold text-white font-mono">StudyHelp</span>
               </Link>

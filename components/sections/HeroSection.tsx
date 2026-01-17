@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { FaGraduationCap, FaArrowRight, FaChalkboardTeacher, FaUserGraduate, FaFileUpload, FaBrain } from 'react-icons/fa'
+import { FaArrowRight, FaChalkboardTeacher, FaUserGraduate, FaFileUpload, FaBrain } from 'react-icons/fa'
 import Link from 'next/link'
+import Image from 'next/image'
 import NeuralNetwork from '@/components/hero/NeuralNetwork'
 import HexGrid from '@/components/hero/HexGrid'
 
@@ -88,8 +89,14 @@ export default function HeroSection() {
       <nav className="relative z-20 container mx-auto px-4 py-6">
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:border-cyan-300 group-hover:shadow-[0_0_20px_rgba(0,255,255,0.5)]">
-              <FaGraduationCap className="text-cyan-400 text-lg" />
+            <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:border-cyan-300 group-hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] overflow-hidden">
+              <Image 
+                src="/favicon-32x32.png" 
+                alt="StudyHelp Logo" 
+                width={32} 
+                height={32} 
+                className="object-contain"
+              />
             </div>
             <span className="text-2xl font-bold text-white font-mono tracking-tight">
               StudyHelp

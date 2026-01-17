@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
-import { FaGraduationCap, FaUser } from 'react-icons/fa'
+import { FaUser } from 'react-icons/fa'
 import { HiOutlineLogout } from 'react-icons/hi'
+import Image from 'next/image'
 
 export default function Header() {
   const router = useRouter()
@@ -23,8 +24,14 @@ export default function Header() {
             href="/dashboard"
             className="flex items-center space-x-3 group"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <FaGraduationCap className="text-white text-lg" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+              <Image 
+                src="/favicon-32x32.png" 
+                alt="StudyHelp Logo" 
+                width={32} 
+                height={32} 
+                className="object-contain"
+              />
             </div>
             <div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
