@@ -60,6 +60,20 @@
   }
 }
 
+/* Text Float Animation for Loading Component */
+@keyframes text-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-text-float {
+  animation: text-float 3s ease-in-out infinite;
+}
+
 /* Glass Morphism */
 .glass-morphism {
   background: rgba(255, 255, 255, 0.05);
@@ -170,4 +184,106 @@ html {
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+}
+
+/* Study Guide Loader Animations */
+
+@keyframes gradient-horizontal {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-horizontal {
+  background-size: 200% 200%;
+  animation: gradient-horizontal 15s ease infinite;
+}
+
+@keyframes shape-fade {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(0);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1) translateY(-20px);
+  }
+}
+
+.animate-shape-fade {
+  animation: shape-fade 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-button {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.animate-pulse-button {
+  animation: pulse-button 2s ease-in-out infinite;
+}
+
+@keyframes checkmark-draw {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.checkmark-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmark-path 0.5s ease-out 0.3s forwards;
+}
+
+@keyframes checkmark-path {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
