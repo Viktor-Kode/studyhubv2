@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { cbtApi, ExamType, CBTQuestion } from '@/lib/api/cbt'
+import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 import { FaCheckCircle, FaTimesCircle, FaArrowRight, FaArrowLeft, FaClock, FaGraduationCap, FaSpinner } from 'react-icons/fa'
 
 interface Question extends CBTQuestion {}
@@ -92,6 +93,11 @@ export default function CBTPage() {
     try {
       setLoading(true)
       setError(null)
+      
+      // Minimum display time for the loader (2 seconds)
+      const minDisplayTime = 2000
+      const startTime = Date.now()
+      
       const response = await cbtApi.getQuestions(selectedExam, selectedYear, selectedSubject, 50)
       
       if (response.questions.length === 0) {
@@ -109,6 +115,11 @@ export default function CBTPage() {
         
         setQuestions(response.questions)
       }
+
+      // Ensure minimum display time
+      const elapsed = Date.now() - startTime
+      const remainingTime = Math.max(0, minDisplayTime - elapsed)
+      await new Promise(resolve => setTimeout(resolve, remainingTime))
 
       // Reset test state
       setCurrentIndex(0)
@@ -216,6 +227,20 @@ export default function CBTPage() {
       }
     }
   }, [questions, selectedExam, showResults, isTimerRunning])
+
+  // Show loader when loading questions
+  if (loading && selectedExam && selectedYear && selectedSubject && questions.length === 0) {
+    return (
+      <ProtectedRoute>
+        <StudyGuideLoader 
+          duration={3}
+          networkSpeed="medium"
+          text="Loading your questions"
+          tooltipText="Preparing your practice test..."
+        />
+      </ProtectedRoute>
+    )
+  }
 
   return (
     <ProtectedRoute>
@@ -523,7 +548,7 @@ export default function CBTPage() {
                 )}
                 <div className="flex gap-3 justify-center">
                   <button
-                    onClick={() => selectedExam && startTest(selectedExam)}
+                    onClick={handleStartTest}
                     className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
                   >
                     Retake Test

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { questionsApi } from '@/lib/api/questions'
+import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 import { 
   FaFilePdf, 
   FaUpload, 
@@ -98,6 +99,10 @@ export default function QuestionGeneratorPage() {
     setError(null)
     setSuccess(false)
 
+    // Minimum display time for the loader (3 seconds)
+    const minDisplayTime = 3000
+    const startTime = Date.now()
+
     try {
       const response = await questionsApi.generateFromPDF(uploadedFile, {
         difficulty: options.difficulty,
@@ -107,6 +112,11 @@ export default function QuestionGeneratorPage() {
         assessmentType: options.assessmentType,
         marksPerQuestion: options.marksPerQuestion,
       })
+
+      // Ensure minimum display time
+      const elapsed = Date.now() - startTime
+      const remainingTime = Math.max(0, minDisplayTime - elapsed)
+      await new Promise(resolve => setTimeout(resolve, remainingTime))
 
       if (response.questions && response.questions.length > 0) {
         // Add marks and assessment type to each question
@@ -144,6 +154,20 @@ export default function QuestionGeneratorPage() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Show the new loader when generating
+  if (generating) {
+    return (
+      <ProtectedRoute allowedRoles={['teacher']}>
+        <StudyGuideLoader 
+          duration={3}
+          networkSpeed="medium"
+          text="Generating your questions"
+          tooltipText="Analyzing your document and creating questions..."
+        />
+      </ProtectedRoute>
+    )
   }
 
   return (

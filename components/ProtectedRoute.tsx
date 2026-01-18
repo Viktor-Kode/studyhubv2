@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useRoleVerification } from '@/hooks/useRoleVerification'
 import Layout from './layout/Layout'
+import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -65,9 +66,12 @@ export default function ProtectedRoute({
 
   if (!isAuthenticated || isChecking || isVerifying) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
+      <StudyGuideLoader 
+        duration={2}
+        networkSpeed="fast"
+        text="Verifying access"
+        tooltipText="Checking authentication..."
+      />
     )
   }
 

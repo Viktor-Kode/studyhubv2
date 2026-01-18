@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { questionsApi, Question } from '@/lib/api/questions'
+import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 
 export default function QuestionDetailPage() {
   const params = useParams()
@@ -43,6 +44,20 @@ export default function QuestionDetailPage() {
     })
   }
 
+  // Show loader when loading
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <StudyGuideLoader 
+          duration={2}
+          networkSpeed="fast"
+          text="Loading question"
+          tooltipText="Fetching question details..."
+        />
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto">
@@ -66,11 +81,7 @@ export default function QuestionDetailPage() {
             Back to Dashboard
           </button>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
             </div>
