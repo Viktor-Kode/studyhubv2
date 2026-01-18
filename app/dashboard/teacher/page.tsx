@@ -9,12 +9,8 @@ import {
   FaUsers,
   FaChartLine,
   FaQuestionCircle,
-  FaCheckCircle,
-  FaClock,
-  FaBook,
   FaArrowRight,
   FaPlus,
-  FaFileExport,
   FaBrain
 } from 'react-icons/fa'
 import Link from 'next/link'
@@ -130,10 +126,10 @@ export default function TeacherDashboardPage() {
 
   const getColorClasses = (color: string) => {
     const colors: Record<string, string> = {
-      blue: 'bg-blue-500 text-blue-500',
-      purple: 'bg-purple-500 text-purple-500',
-      emerald: 'bg-emerald-500 text-emerald-500',
-      cyan: 'bg-cyan-500 text-cyan-500',
+      blue: 'bg-blue-500',
+      purple: 'bg-purple-500',
+      emerald: 'bg-emerald-500',
+      cyan: 'bg-cyan-500',
     }
     return colors[color] || colors.blue
   }
@@ -226,7 +222,7 @@ export default function TeacherDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {quickLinks.map((link) => {
                 const Icon = link.icon
-                const colorClasses = getColorClasses(link.color).split(' ')
+                const bgColor = getColorClasses(link.color)
                 return (
                   <Link
                     key={link.href}
@@ -234,8 +230,8 @@ export default function TeacherDashboardPage() {
                     className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all group"
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 ${colorClasses[0]} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
-                        <Icon className={`${colorClasses[1]} text-xl`} />
+                      <div className={`w-12 h-12 ${bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
+                        <Icon className="text-white text-xl" />
                       </div>
                       <div className="flex-1">
                         <span className="font-semibold text-gray-900 dark:text-white block mb-1">{link.label}</span>
