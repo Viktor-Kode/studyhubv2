@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import StudyReminders from '@/components/dashboard/StudyReminders'
@@ -49,7 +49,7 @@ interface GeneratorSettings {
   daysPerWeek: string[]
 }
 
-export default function TimetablePage() {
+function TimetablePageContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'timetable' | 'reminders'>('timetable')
 
@@ -229,7 +229,7 @@ export default function TimetablePage() {
 
   const generateTimetable = () => {
     const generatedSchedules: ScheduleItem[] = []
-    let scheduleId = Date.now().toString()
+    let scheduleId = Date.now()
 
     generatorSettings.subjects.forEach((subject) => {
       if (!subject.name) return
@@ -782,5 +782,19 @@ export default function TimetablePage() {
         )}
       </div>
     </ProtectedRoute>
+  )
+}
+
+export default function TimetablePage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </ProtectedRoute>
+    }>
+      <TimetablePageContent />
+    </Suspense>
   )
 }

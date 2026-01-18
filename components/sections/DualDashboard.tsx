@@ -28,7 +28,7 @@ export default function DualDashboard() {
 
     const ctx = gsap.context(() => {
       gsap.fromTo('.dashboard-panel',
-        (index) => ({ x: index === 0 ? -100 : 100, opacity: 0 }),
+        (index: number) => ({ x: index === 0 ? -100 : 100, opacity: 0 }),
         {
           scrollTrigger: {
             trigger: sectionRef.current,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
@@ -8,7 +8,7 @@ import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/store/authStore'
 import { FaChalkboardTeacher, FaUserGraduate, FaEye, FaEyeSlash } from 'react-icons/fa'
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setAuth } = useAuthStore()
@@ -421,5 +421,17 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <SignUpPageContent />
+    </Suspense>
   )
 }

@@ -34,6 +34,7 @@ export interface AuthResponse {
   data?: {
     user?: any
     token?: string
+    accessToken?: string
   }
   [key: string]: any
 }
