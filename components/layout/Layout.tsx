@@ -16,11 +16,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
       <Header onMenuClick={toggleMobileMenu} />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={closeMobileMenu} />
-        <main className="flex-1 p-4 md:p-6 w-full lg:w-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>
