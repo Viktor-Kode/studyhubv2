@@ -5,7 +5,6 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FaArrowRight, FaChalkboardTeacher, FaUserGraduate, FaFileUpload, FaBrain } from 'react-icons/fa'
 import Link from 'next/link'
-import Image from 'next/image'
 import NeuralNetwork from '@/components/hero/NeuralNetwork'
 import HexGrid from '@/components/hero/HexGrid'
 
@@ -85,42 +84,8 @@ export default function HeroSection() {
       <HexGrid />
       <NeuralNetwork />
 
-      {/* Navigation */}
-      <nav className="relative z-20 container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:border-cyan-300 group-hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] overflow-hidden">
-              <Image 
-                src="/favicon-32x32.png" 
-                alt="StudyHelp Logo" 
-                width={32} 
-                height={32} 
-                className="object-contain"
-              />
-            </div>
-            <span className="text-2xl font-bold text-white font-mono tracking-tight">
-              StudyHelp
-            </span>
-          </Link>
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/login"
-              className="text-white/60 hover:text-white font-medium transition-colors duration-300 uppercase tracking-wide text-sm"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className="bg-cyan-400 text-black px-6 py-2.5 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold text-sm uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105"
-            >
-              Sign up
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Hero Content */}
-      <div className="relative z-10 container mx-auto px-4 py-20 md:py-32">
+      <div className="relative z-10 container mx-auto px-4 pt-32 md:pt-40 pb-20 md:pb-32">
         <div className="max-w-7xl mx-auto">
           {/* Tagline */}
           <div className="text-center mb-8">

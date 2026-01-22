@@ -1,4 +1,5 @@
 'use client'
+import LandingNavbar from '@/components/LandingNavbar'
 import HeroSection from '@/components/sections/HeroSection'
 import TeacherFeatures from '@/components/sections/TeacherFeatures'
 import StudentFeatures from '@/components/sections/StudentFeatures'
@@ -15,6 +16,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative z-0 overflow-hidden">
+      {/* Navigation Bar */}
+      <LandingNavbar />
+      
       {/* Hero Section */}
       <HeroSection />
 
