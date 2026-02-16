@@ -19,11 +19,13 @@ import {
   FaFilePdf,
   FaQuestionCircle,
   FaTimes,
+  FaHistory,
 } from 'react-icons/fa'
 
 const studentMenuItems = [
   { href: '/dashboard', icon: FaHome, label: 'Dashboard' },
   { href: '/dashboard/question-bank', icon: FaBrain, label: 'Question Bank' },
+  { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/study-timer', icon: FaClock, label: 'Study Timer' },
   { href: '/dashboard/cgpa', icon: FaCalculator, label: 'CGPA Calculator' },
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
@@ -36,6 +38,7 @@ const teacherMenuItems = [
   { href: '/dashboard/teacher', icon: FaHome, label: 'Dashboard' },
   { href: '/dashboard/teacher/question-generator', icon: FaFilePdf, label: 'Question Generator' },
   { href: '/dashboard/teacher/questions', icon: FaQuestionCircle, label: 'Question Bank' },
+  { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/teacher/classes', icon: FaUsers, label: 'Class Management' },
   { href: '/dashboard/teacher/analytics', icon: FaChartBar, label: 'Analytics' },
 ]
@@ -94,11 +97,10 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
               key={item.href}
               href={item.href}
               onClick={onMobileClose}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
                   ? 'bg-blue-500 text-white dark:bg-blue-600'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               <Icon className="text-lg" />
               <span className="font-medium">{item.label}</span>
@@ -127,9 +129,8 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-[60] transform transition-transform duration-300 ease-in-out lg:hidden ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-[60] transform transition-transform duration-300 ease-in-out lg:hidden ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="h-full overflow-y-auto">
           {sidebarContent}
