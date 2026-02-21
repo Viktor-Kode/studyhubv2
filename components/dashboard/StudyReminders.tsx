@@ -1,674 +1,528 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FaBell, FaPlus, FaTrash, FaCalendar, FaEdit, FaWhatsapp, FaCheckCircle, FaTimes, FaLink } from 'react-icons/fa'
+import {
+  FaBell, FaPlus, FaTrash, FaCalendar, FaEdit,
+  FaWhatsapp, FaCheckCircle, FaTimes, FaSearch,
+  FaFilter, FaClock
+} from 'react-icons/fa'
+import { format, isPast, parseISO, compareAsc } from 'date-fns'
+import { useAuthStore } from '@/lib/store/authStore'
 
 interface Reminder {
   id: string
   title: string
   date: string
   time: string
-  type: 'deadline' | 'study' | 'exam'
+  type: 'deadline' | 'study' | 'exam' | 'other'
+  completed: boolean
   whatsappNumber?: string
   sendWhatsApp?: boolean
-  timetableId?: string // Link to timetable item
+  description?: string
+  priority: 'low' | 'medium' | 'high'
 }
 
-interface StudyRemindersProps {
-  className?: string
-  reminders?: Reminder[]
-  setReminders?: React.Dispatch<React.SetStateAction<Reminder[]>>
-}
+export default function StudyReminders() {
+  const { user } = useAuthStore()
+  const userId = user?.id || 'guest'
+  // State
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-export default function StudyReminders({ className = '', reminders: externalReminders, setReminders: externalSetReminders }: StudyRemindersProps) {
-  const [internalReminders, setInternalReminders] = useState<Reminder[]>([
-    {
-      id: '1',
-      title: 'Math Assignment Due',
-      date: '2024-01-15',
-      time: '23:59',
-      type: 'deadline',
-    },
-    {
-      id: '2',
-      title: 'Physics Study Session',
-      date: '2024-01-14',
-      time: '14:00',
-      type: 'study',
-    },
-  ])
+  // Filter & Search State
+  const [filterType, setFilterType] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<'date' | 'priority'>('date')
 
-  // Use external reminders if provided, otherwise use internal state
-  const reminders = externalReminders || internalReminders
-  const setReminders = externalSetReminders || setInternalReminders
-
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  // WhatsApp Config State
   const [whatsappNumber, setWhatsappNumber] = useState('')
-  const [countryCode, setCountryCode] = useState('+234')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [tempCountryCode, setTempCountryCode] = useState('+234')
-  const [tempPhoneNumber, setTempPhoneNumber] = useState('')
   const [isWhatsAppConfirmed, setIsWhatsAppConfirmed] = useState(false)
-  const [showWhatsAppEdit, setShowWhatsAppEdit] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [confirmationCode, setConfirmationCode] = useState('')
-  const [sendingCode, setSendingCode] = useState(false)
-  const [verifyingCode, setVerifyingCode] = useState(false)
+  const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false)
 
-  // Common country codes
-  const countryCodes = [
-    { code: '+234', country: 'Nigeria (NG)' },
-    { code: '+1', country: 'USA/Canada' },
-    { code: '+44', country: 'UK' },
-    { code: '+233', country: 'Ghana (GH)' },
-    { code: '+254', country: 'Kenya (KE)' },
-    { code: '+27', country: 'South Africa (ZA)' },
-    { code: '+255', country: 'Tanzania (TZ)' },
-    { code: '+256', country: 'Uganda (UG)' },
-  ]
-  const [newReminder, setNewReminder] = useState({
+  // Form State
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState<Partial<Reminder>>({
     title: '',
     date: '',
     time: '',
-    type: 'study' as Reminder['type'],
-    whatsappNumber: '',
-    sendWhatsApp: false,
+    type: 'study',
+    priority: 'medium',
+    description: '',
+    sendWhatsApp: false
   })
 
-  // Parse phone number into country code and number
-  const parsePhoneNumber = (fullNumber: string) => {
-    if (!fullNumber) return { code: '+234', number: '' }
-    
-    // Remove all spaces and non-digit characters except +
-    const cleaned = fullNumber.replace(/[^\d+]/g, '')
-    
-    // Try to match known country codes (longest first to avoid partial matches)
-    const sortedCodes = [...countryCodes].sort((a, b) => b.code.length - a.code.length)
-    
-    for (const cc of sortedCodes) {
-      const codeWithoutPlus = cc.code.replace('+', '')
-      if (cleaned.startsWith(cc.code) || cleaned.startsWith(codeWithoutPlus)) {
-        const number = cleaned.substring(cc.code.length).replace(/^0+/, '')
-        return { code: cc.code, number }
-      }
-    }
-    
-    // If starts with + but no match, extract first 1-3 digits as code
-    if (cleaned.startsWith('+')) {
-      const match = cleaned.match(/^\+(\d{1,3})(\d+)$/)
-      if (match) {
-        const code = `+${match[1]}`
-        const number = match[2].replace(/^0+/, '')
-        return { code, number }
-      }
-    }
-    
-    // Default: assume it's just a number, use default country code
-    const number = cleaned.replace(/^0+/, '')
-    return { code: '+234', number }
-  }
-
-  // Combine country code and phone number (simple concatenation)
-  const combinePhoneNumber = (code: string, number: string) => {
-    // Remove any leading zeros and spaces from the number
-    const cleanNumber = number.replace(/^0+/, '').replace(/\s/g, '')
-    return `${code}${cleanNumber}`
-  }
-
-  // Load WhatsApp number and confirmation status from localStorage
+  // Load data on mount
   useEffect(() => {
-    const savedWhatsApp = localStorage.getItem('whatsapp-number')
-    const savedConfirmation = localStorage.getItem('whatsapp-confirmed')
-    
-    if (savedWhatsApp) {
-      const parsed = parsePhoneNumber(savedWhatsApp)
-      setWhatsappNumber(savedWhatsApp)
-      setCountryCode(parsed.code)
-      setPhoneNumber(parsed.number)
-      setNewReminder((prev) => ({ ...prev, whatsappNumber: savedWhatsApp }))
-      setIsWhatsAppConfirmed(savedConfirmation === 'true')
-    } else {
-      // Try to get from auth store (phone number from signup)
-      if (typeof window !== 'undefined') {
-        const authStorage = localStorage.getItem('auth-storage')
-        if (authStorage) {
-          try {
-            const parsed = JSON.parse(authStorage)
-            const userPhone = parsed.state?.user?.phone
-            if (userPhone) {
-              const phoneParts = parsePhoneNumber(userPhone)
-              setWhatsappNumber(userPhone)
-              setCountryCode(phoneParts.code)
-              setPhoneNumber(phoneParts.number)
-              setTempCountryCode(phoneParts.code)
-              setTempPhoneNumber(phoneParts.number)
-              setNewReminder((prev) => ({ ...prev, whatsappNumber: userPhone }))
-            }
-          } catch (error) {
-            console.error('Error parsing auth storage:', error)
-          }
+    const loadData = async () => {
+      try {
+        const match = typeof document !== 'undefined'
+          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+          : null
+        const token = match ? decodeURIComponent(match[2]) : ''
+        const headers = { 'Authorization': `Bearer ${token}` }
+
+        const response = await fetch('/api/reminders', { headers })
+        const { reminders: dbReminders } = await response.json()
+
+        if (dbReminders?.length > 0) {
+          setReminders(dbReminders)
+        } else {
+          // Default demo data if empty - optional, or just start empty
+          setReminders([])
         }
+
+        // WhatsApp number could be in User profile - for now, we'll just use a local state synced to a setting
+        // or a specific settings API.
+      } catch (error) {
+        console.error('Failed to load reminders:', error)
+      } finally {
+        setLoading(false)
       }
     }
+
+    loadData()
   }, [])
 
-  const addReminder = () => {
-    if (newReminder.title && newReminder.date && newReminder.time) {
-      if (editingId) {
-        // Update existing reminder
-        setReminders(
-          reminders.map((r) =>
-            r.id === editingId
-              ? {
-                  ...newReminder,
-                  id: editingId,
-                  whatsappNumber: newReminder.sendWhatsApp ? newReminder.whatsappNumber : undefined,
-                }
-              : r
-          )
-        )
-        setEditingId(null)
-      } else {
-        // Add new reminder
-        setReminders([
-          ...reminders,
-          {
-            id: Date.now().toString(),
-            ...newReminder,
-            whatsappNumber: newReminder.sendWhatsApp ? newReminder.whatsappNumber : undefined,
-          },
-        ])
+  // CRUD Operations
+  const handleSaveReminder = async () => {
+    if (!formData.title || !formData.date || !formData.time) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      const match = typeof document !== 'undefined'
+        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+        : null
+      const token = match ? decodeURIComponent(match[2]) : ''
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
-      setNewReminder({
-        title: '',
-        date: '',
-        time: '',
-        type: 'study',
-        whatsappNumber: whatsappNumber,
-        sendWhatsApp: false,
+
+      const method = editingId ? 'PUT' : 'POST'
+      const body = { ...formData, _id: editingId }
+
+      const response = await fetch('/api/reminders', {
+        method,
+        headers,
+        body: JSON.stringify(body)
       })
-      setShowAddForm(false)
+      const { reminder } = await response.json()
+
+      if (editingId) {
+        setReminders(prev => prev.map(r => r._id === editingId ? reminder : r))
+      } else {
+        setReminders(prev => [...prev, reminder])
+      }
+
+      resetForm()
+    } catch (error) {
+      console.error('Failed to save reminder:', error)
     }
   }
 
-  const editReminder = (reminder: Reminder) => {
-    setNewReminder({
-      title: reminder.title,
-      date: reminder.date,
-      time: reminder.time,
-      type: reminder.type,
-      whatsappNumber: reminder.whatsappNumber || whatsappNumber,
-      sendWhatsApp: !!reminder.whatsappNumber,
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this reminder?')) {
+      try {
+        const match = typeof document !== 'undefined'
+          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+          : null
+        const token = match ? decodeURIComponent(match[2]) : ''
+
+        await fetch(`/api/reminders?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        setReminders(prev => prev.filter(r => r._id !== id))
+      } catch (error) {
+        console.error('Failed to delete reminder:', error)
+      }
+    }
+  }
+
+  const toggleComplete = async (reminder: any) => {
+    try {
+      const match = typeof document !== 'undefined'
+        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+        : null
+      const token = match ? decodeURIComponent(match[2]) : ''
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+
+      const response = await fetch('/api/reminders', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ ...reminder, completed: !reminder.completed })
+      })
+      const { reminder: updated } = await response.json()
+      setReminders(prev => prev.map(r => r._id === updated._id ? updated : r))
+    } catch (error) {
+      console.error('Failed to toggle completion:', error)
+    }
+  }
+
+  const startEdit = (reminder: any) => {
+    setFormData(reminder)
+    setEditingId(reminder._id)
+    setShowAddModal(true)
+  }
+
+  const resetForm = () => {
+    setFormData({
+      title: '', date: '', time: '', type: 'study',
+      priority: 'medium', description: '', sendWhatsApp: false
     })
-    setEditingId(reminder.id)
-    setShowAddForm(true)
+    setEditingId(null)
+    setShowAddModal(false)
   }
 
-  const removeReminder = (id: string) => {
-    setReminders(reminders.filter((r) => r.id !== id))
+  // Helper Functions
+  const getFilteredReminders = () => {
+    let filtered = reminders
+
+    if (filterType !== 'all') {
+      filtered = filtered.filter(r => r.type === filterType)
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(r =>
+        r.title.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+      )
+    }
+
+    return filtered.sort((a, b) => {
+      // Always put completed at bottom
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+
+      if (sortBy === 'date') {
+        const dateA = parseISO(`${a.date}T${a.time}`)
+        const dateB = parseISO(`${b.date}T${b.time}`)
+        return compareAsc(dateA, dateB)
+      } else {
+        const priorityMap = { high: 0, medium: 1, low: 2 }
+        return priorityMap[a.priority] - priorityMap[b.priority]
+      }
+    })
   }
 
-  const sendConfirmationCode = async () => {
-    const fullNumber = combinePhoneNumber(tempCountryCode, tempPhoneNumber)
-    
-    if (!tempPhoneNumber || tempPhoneNumber.length < 8) {
-      alert('Please enter a valid phone number')
-      return
-    }
-
-    setSendingCode(true)
-    try {
-      // Simulate API call to send confirmation code
-      // In production, this would call: await apiClient.post('/reminders/send-whatsapp-code', { phone: fullNumber })
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      setShowConfirmation(true)
-      setSendingCode(false)
-      alert(`Confirmation code sent to ${fullNumber}. In production, this would be sent via WhatsApp.`)
-    } catch (error) {
-      setSendingCode(false)
-      alert('Failed to send confirmation code. Please try again.')
-    }
-  }
-
-  const verifyConfirmationCode = async () => {
-    if (!confirmationCode || confirmationCode.length !== 6) {
-      alert('Please enter a valid 6-digit confirmation code')
-      return
-    }
-
-    const fullNumber = combinePhoneNumber(tempCountryCode, tempPhoneNumber)
-
-    setVerifyingCode(true)
-    try {
-      // Simulate API call to verify confirmation code
-      // In production, this would call: await apiClient.post('/reminders/verify-whatsapp-code', { phone: fullNumber, code: confirmationCode })
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      // For demo purposes, accept any 6-digit code. In production, verify with backend
-      localStorage.setItem('whatsapp-number', fullNumber)
-      localStorage.setItem('whatsapp-confirmed', 'true')
-      setWhatsappNumber(fullNumber)
-      setCountryCode(tempCountryCode)
-      setPhoneNumber(tempPhoneNumber)
-      setIsWhatsAppConfirmed(true)
-      setShowConfirmation(false)
-      setConfirmationCode('')
-      setShowWhatsAppEdit(false)
-      setNewReminder((prev) => ({ ...prev, whatsappNumber: fullNumber }))
-      alert('WhatsApp number confirmed successfully!')
-    } catch (error) {
-      setVerifyingCode(false)
-      alert('Invalid confirmation code. Please try again.')
-    }
-  }
-
-  const resetConfirmation = () => {
-    setShowConfirmation(false)
-    setConfirmationCode('')
-    if (whatsappNumber) {
-      const parsed = parsePhoneNumber(whatsappNumber)
-      setTempCountryCode(parsed.code)
-      setTempPhoneNumber(parsed.number)
-    } else {
-      setTempCountryCode('+234')
-      setTempPhoneNumber('')
-    }
-  }
-
-  const getTypeColor = (type: Reminder['type']) => {
+  const getTypeStyle = (type: string) => {
     switch (type) {
-      case 'deadline':
-        return 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
-      case 'exam':
-        return 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800'
-      default:
-        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+      case 'exam': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800'
+      case 'deadline': return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800'
+      case 'study': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'high': return <span className="text-xs font-bold text-red-500 uppercase tracking-wider">High Priority</span>
+      case 'medium': return <span className="text-xs font-bold text-yellow-500 uppercase tracking-wider">Medium Priority</span>
+      case 'low': return <span className="text-xs font-bold text-green-500 uppercase tracking-wider">Low Priority</span>
+    }
   }
+
+  // --- Render ---
+
+  if (loading) return (
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+    </div>
+  )
+
+  const displayedReminders = getFilteredReminders()
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <FaBell className="text-purple-500 text-xl" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Study Reminders</h3>
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="p-2 text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-        >
-          <FaPlus />
-        </button>
-      </div>
+    <div className="space-y-6">
 
-      {/* WhatsApp Number Setup - Step 1: Enter Number */}
-      {(!whatsappNumber || showWhatsAppEdit) && !showConfirmation && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <FaWhatsapp className="text-green-500" />
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {whatsappNumber ? 'Update' : 'Add'} WhatsApp Number for Reminders
-              </h4>
-            </div>
-            {whatsappNumber && !showWhatsAppEdit && (
-              <button
-                onClick={() => setShowWhatsAppEdit(false)}
-                className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <FaTimes />
-              </button>
-            )}
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-            Get reminders sent directly to your WhatsApp. You'll need to confirm your number.
-          </p>
-          <div className="flex gap-2">
-            <select
-              value={tempCountryCode || countryCode}
-              onChange={(e) => {
-                setTempCountryCode(e.target.value)
-                if (!showWhatsAppEdit) {
-                  setCountryCode(e.target.value)
-                }
-              }}
-              disabled={sendingCode}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 disabled:opacity-50"
-            >
-              {countryCodes.map((cc) => (
-                <option key={cc.code} value={cc.code}>
-                  {cc.code} {cc.country}
-                </option>
-              ))}
-            </select>
-            <input
-              type="tel"
-              placeholder="911 915 438 720"
-              value={tempPhoneNumber || phoneNumber}
-              onChange={(e) => {
-                // Only allow digits, remove everything else
-                const value = e.target.value.replace(/\D/g, '')
-                setTempPhoneNumber(value)
-                if (!showWhatsAppEdit) {
-                  setPhoneNumber(value)
-                }
-              }}
-              disabled={sendingCode}
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 disabled:opacity-50"
-            />
-            <button
-              onClick={sendConfirmationCode}
-              disabled={sendingCode || !tempPhoneNumber || tempPhoneNumber.length < 8}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sendingCode ? 'Sending...' : 'Send Code'}
-            </button>
-          </div>
-          {whatsappNumber && !showWhatsAppEdit && (
-            <button
-              onClick={() => {
-                setShowWhatsAppEdit(false)
-                resetConfirmation()
-              }}
-              className="mt-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      )}
+      {/* Controls Bar */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
+          >
+            <FaPlus /> New Reminder
+          </button>
 
-      {/* WhatsApp Confirmation - Step 2: Verify Code */}
-      {showConfirmation && (
-        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <FaWhatsapp className="text-blue-500" />
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                Confirm WhatsApp Number
-              </h4>
-            </div>
-            <button
-              onClick={resetConfirmation}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              <FaTimes />
-            </button>
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-            Enter the 6-digit code sent to <strong>{combinePhoneNumber(tempCountryCode, tempPhoneNumber)}</strong>
-          </p>
-          <div className="flex gap-2">
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="000000"
-              value={confirmationCode}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '').slice(0, 6)
-                setConfirmationCode(value)
-              }}
-              maxLength={6}
-              disabled={verifyingCode}
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 text-center text-lg tracking-widest disabled:opacity-50"
-            />
-            <button
-              onClick={verifyConfirmationCode}
-              disabled={verifyingCode || confirmationCode.length !== 6}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {verifyingCode ? 'Verifying...' : 'Verify'}
-            </button>
-          </div>
-          <button
-            onClick={sendConfirmationCode}
-            disabled={sendingCode}
-            className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
-          >
-            Resend code
-          </button>
-        </div>
-      )}
-
-      {/* Show WhatsApp Number if confirmed */}
-      {whatsappNumber && isWhatsAppConfirmed && !showWhatsAppEdit && !showConfirmation && (
-        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FaCheckCircle className="text-green-500" />
-            <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                WhatsApp: {whatsappNumber}
-              </span>
-              <span className="ml-2 text-xs text-green-600 dark:text-green-400">(Confirmed)</span>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setShowWhatsAppEdit(true)
-              setTempCountryCode(countryCode)
-              setTempPhoneNumber(phoneNumber)
-            }}
-            className="text-xs text-green-600 dark:text-green-400 hover:underline"
-          >
-            Edit
-          </button>
-        </div>
-      )}
-
-      {/* Show unconfirmed WhatsApp Number */}
-      {whatsappNumber && !isWhatsAppConfirmed && !showWhatsAppEdit && !showConfirmation && (
-        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FaWhatsapp className="text-yellow-600" />
-              <div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  WhatsApp: {whatsappNumber}
-                </span>
-                <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400">(Not confirmed)</span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setShowWhatsAppEdit(true)
-                setTempCountryCode(countryCode)
-                setTempPhoneNumber(phoneNumber)
-              }}
-              className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline"
-            >
-              Confirm Now
-            </button>
-          </div>
-          <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
-            Please confirm your WhatsApp number to receive reminders
-          </p>
-        </div>
-      )}
-
-      {showAddForm && (
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
-          <input
-            type="text"
-            placeholder="Reminder title"
-            value={newReminder.title}
-            onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              value={newReminder.date}
-              onChange={(e) => setNewReminder({ ...newReminder, date: e.target.value })}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-            />
-            <input
-              type="time"
-              value={newReminder.time}
-              onChange={(e) => setNewReminder({ ...newReminder, time: e.target.value })}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-64"
             />
           </div>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0">
           <select
-            value={newReminder.type}
-            onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value as Reminder['type'] })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="study">Study Session</option>
-            <option value="deadline">Deadline</option>
-            <option value="exam">Exam</option>
+            <option value="all">All Types</option>
+            <option value="study">Study Sessions</option>
+            <option value="exam">Exams</option>
+            <option value="deadline">Deadlines</option>
+            <option value="other">Other</option>
           </select>
 
-          {/* WhatsApp Reminder Option */}
-          {whatsappNumber && isWhatsAppConfirmed && (
-            <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <input
-                type="checkbox"
-                id="send-whatsapp"
-                checked={newReminder.sendWhatsApp}
-                onChange={(e) =>
-                  setNewReminder({
-                    ...newReminder,
-                    sendWhatsApp: e.target.checked,
-                    whatsappNumber: e.target.checked ? whatsappNumber : '',
-                  })
-                }
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-              />
-              <label htmlFor="send-whatsapp" className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                <FaWhatsapp className="text-green-500" />
-                <span>Send reminder via WhatsApp to {whatsappNumber}</span>
-              </label>
-            </div>
-          )}
-
-          {whatsappNumber && !isWhatsAppConfirmed && (
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p className="text-xs text-yellow-700 dark:text-yellow-300 flex items-center gap-2">
-                <FaWhatsapp className="text-yellow-600" />
-                <span>Please confirm your WhatsApp number above to receive reminders</span>
-              </p>
-            </div>
-          )}
-
-          {!whatsappNumber && (
-            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Add and confirm your WhatsApp number above to receive reminders
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              onClick={addReminder}
-              className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium"
-            >
-              {editingId ? 'Update Reminder' : 'Add Reminder'}
-            </button>
-            <button
-              onClick={() => {
-                setShowAddForm(false)
-                setEditingId(null)
-                setNewReminder({
-                  title: '',
-                  date: '',
-                  time: '',
-                  type: 'study',
-                  whatsappNumber: whatsappNumber,
-                  sendWhatsApp: false,
-                })
-              }}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
-            >
-              Cancel
-            </button>
-          </div>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as any)}
+            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="date">Sort by Date</option>
+            <option value="priority">Sort by Priority</option>
+          </select>
         </div>
-      )}
+      </div>
 
-      {/* Info about timetable integration */}
-      {reminders.some((r) => r.timetableId) && (
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-xs text-blue-700 dark:text-blue-400 flex items-center gap-2">
-            <FaLink className="text-xs" />
-            <span>Reminders from your timetable are automatically created and synced. Edit them from the Timetable tab.</span>
-          </p>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+          <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{reminders.filter(r => !r.completed && r.type === 'study').length}</div>
+          <div className="text-sm text-blue-600 dark:text-blue-400">Study Sessions</div>
         </div>
-      )}
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800">
+          <div className="text-2xl font-bold text-red-700 dark:text-red-300">{reminders.filter(r => !r.completed && r.type === 'exam').length}</div>
+          <div className="text-sm text-red-600 dark:text-red-400">Upcoming Exams</div>
+        </div>
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800">
+          <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">{reminders.filter(r => !r.completed && r.type === 'deadline').length}</div>
+          <div className="text-sm text-orange-600 dark:text-orange-400">Deadlines</div>
+        </div>
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800">
+          <div className="text-2xl font-bold text-green-700 dark:text-green-300">{reminders.filter(r => r.completed).length}</div>
+          <div className="text-sm text-green-600 dark:text-green-400">Completed</div>
+        </div>
+      </div>
 
-      <div className="space-y-3 max-h-64 overflow-y-auto">
-        {reminders.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <FaCalendar className="mx-auto mb-2 text-3xl" />
-            <p>No reminders yet</p>
-            <p className="text-xs mt-2">Add items to your timetable or create reminders manually</p>
+      {/* Reminder List */}
+      <div className="space-y-4">
+        {displayedReminders.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed">
+            <FaCalendar className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No reminders found</h3>
+            <p className="text-gray-500 dark:text-gray-400">Try adjusting your filters or add a new reminder.</p>
           </div>
         ) : (
-          reminders.map((reminder) => {
-            const isFromTimetable = !!reminder.timetableId
-            return (
-              <div
-                key={reminder.id}
-                className={`p-3 rounded-lg border ${getTypeColor(reminder.type)} flex items-center justify-between ${
-                  isFromTimetable ? 'opacity-90' : ''
+          displayedReminders.map(reminder => (
+            <div
+              key={reminder._id}
+              className={`group relative bg-white dark:bg-gray-800 p-5 rounded-xl border transition-all duration-200 shadow-sm hover:shadow-md ${reminder.completed
+                ? 'opacity-60 border-gray-200 dark:border-gray-700'
+                : 'border-l-4 ' + (reminder.type === 'exam' ? 'border-l-red-500 border-gray-200 dark:border-gray-700' : reminder.type === 'deadline' ? 'border-l-orange-500 border-gray-200 dark:border-gray-700' : 'border-l-blue-500 border-gray-200 dark:border-gray-700')
                 }`}
-              >
+            >
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="font-medium">{reminder.title}</div>
-                    {isFromTimetable && (
-                      <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
-                        <FaLink className="text-xs" />
-                        From Timetable
+                    <span className={`px-2 py-0.5 rounded textxs font-medium text-xs uppercase tracking-wide ${getTypeStyle(reminder.type)}`}>
+                      {reminder.type}
+                    </span>
+                    {getPriorityBadge(reminder.priority)}
+                    {reminder.completed && (
+                      <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                        <FaCheckCircle /> Completed
                       </span>
                     )}
                   </div>
-                  <div className="text-xs opacity-80 mb-1">
-                    {formatDate(reminder.date)} at {reminder.time}
-                  </div>
-                  {reminder.whatsappNumber && (
-                    <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                      <FaWhatsapp />
-                      <span>WhatsApp: {reminder.whatsappNumber}</span>
+
+                  <h3 className={`text-lg font-bold text-gray-900 dark:text-white mb-1 ${reminder.completed ? 'line-through decoration-2 decoration-gray-400' : ''}`}>
+                    {reminder.title}
+                  </h3>
+
+                  {reminder.description && (
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      {reminder.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    <div className="flex items-center gap-1.5">
+                      <FaCalendar className="text-gray-400" />
+                      {format(parseISO(reminder.date), 'EEEE, d MMMM yyyy')}
                     </div>
-                  )}
+                    <div className="flex items-center gap-1.5">
+                      <FaClock className="text-gray-400" />
+                      {reminder.time}
+                    </div>
+                    {reminder.sendWhatsApp && isWhatsAppConfirmed && (
+                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <FaWhatsapp />
+                        Next reminder on WhatsApp
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {!isFromTimetable && (
-                    <>
-                      <button
-                        onClick={() => editReminder(reminder)}
-                        className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-                        title="Edit reminder"
-                      >
-                        <FaEdit className="text-xs" />
-                      </button>
-                      <button
-                        onClick={() => removeReminder(reminder.id)}
-                        className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-                        title="Delete reminder"
-                      >
-                        <FaTrash className="text-xs" />
-                      </button>
-                    </>
-                  )}
-                  {isFromTimetable && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-                      Edit from Timetable
-                    </span>
-                  )}
+
+                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => toggleComplete(reminder)}
+                    className={`p-2 rounded-lg transition-colors ${reminder.completed
+                      ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                      : 'bg-green-100 text-green-600 hover:bg-green-200'
+                      }`}
+                    title={reminder.completed ? "Mark as Incomplete" : "Mark as Complete"}
+                  >
+                    {reminder.completed ? <FaTimes /> : <FaCheckCircle />}
+                  </button>
+                  <button
+                    onClick={() => startEdit(reminder)}
+                    className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                    title="Edit"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(reminder._id)}
+                    className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                    title="Delete"
+                  >
+                    <FaTrash />
+                  </button>
                 </div>
               </div>
-            )
-          })
+            </div>
+          ))
         )}
       </div>
+
+      {/* --- Add/Edit Modal --- */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {editingId ? 'Edit Reminder' : 'New Reminder'}
+              </h3>
+              <button
+                onClick={resetForm}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Physics Midterm Exam"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={formData.time}
+                    onChange={e => setFormData({ ...formData, time: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                  <select
+                    value={formData.type}
+                    onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="study">Study Session</option>
+                    <option value="exam">Exam</option>
+                    <option value="deadline">Deadline</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+                  <select
+                    value={formData.priority}
+                    onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                <textarea
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                  placeholder="Additional details..."
+                />
+              </div>
+
+              {/* WhatsApp Toggle */}
+              {isWhatsAppConfirmed && whatsappNumber && (
+                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <input
+                    type="checkbox"
+                    id="send-whatsapp-modal"
+                    checked={formData.sendWhatsApp}
+                    onChange={e => setFormData({ ...formData, sendWhatsApp: e.target.checked })}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <label htmlFor="send-whatsapp-modal" className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                    <FaWhatsapp className="text-green-500" />
+                    <span>Send WhatsApp notification to {whatsappNumber}</span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-700/50">
+              <button
+                onClick={resetForm}
+                className="px-5 py-2.5 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveReminder}
+                className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-md"
+              >
+                {editingId ? 'Update Reminder' : 'Create Reminder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import QuestionBank from '@/components/dashboard/QuestionBank'
 
@@ -15,7 +16,9 @@ export default function QuestionBankPage() {
             AI-generated practice questions based on your syllabus
           </p>
         </div>
-        <QuestionBank />
+        <Suspense fallback={<div>Loading...</div>}>
+          <QuestionBank />
+        </Suspense>
       </div>
     </ProtectedRoute>
   )

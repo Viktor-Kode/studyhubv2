@@ -1,86 +1,132 @@
 /**
  * Utility to extract text from various file formats.
- * Handles PDF, DOCX, TXT, and MD.
+ * Handles PDF (Client-side and Server-side fallback), DOCX, TXT, and MD.
  */
 
-export const extractTextFromPDF = async (file: File): Promise<string> => {
+/**
+ * Client-side PDF extraction using pdfjs-dist.
+ */
+export const extractTextFromPDFClient = async (file: File): Promise<string> => {
     try {
-        // Lazy load pdfjs-dist
         const pdfjsLib = await import('pdfjs-dist');
 
-        // Use unpkg path for worker logic for better compatibility
-        const PDFJS_VERSION = '3.11.174';
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+        // Use a reliable worker source from CDN to avoid build-time issues
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({
-            data: arrayBuffer,
-            verbosity: 0,
-        }).promise;
+        const typedArray = new Uint8Array(arrayBuffer);
 
+        const loadingTask = pdfjsLib.getDocument({
+            data: typedArray,
+            useWorkerFetch: false,
+            isEvalSupported: false,
+            useSystemFonts: true,
+        });
+
+        const pdf = await loadingTask.promise;
         let fullText = '';
 
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items
-                .map((item: any) => {
-                    if ('str' in item) return item.str;
-                    return '';
-                })
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items
+                .map((item: any) => item.str || '')
                 .join(' ');
-            fullText += pageText + '\n';
+            fullText += pageText + '\n\n';
         }
 
-        if (fullText.trim().length < 100) {
-            throw new Error('PDF contains insufficient text. It may be scanned or image-based.');
+        await pdf.destroy();
+
+        const cleanText = fullText.trim();
+        if (cleanText.length < 50) {
+            throw new Error('PDF appears to be empty or scanned. No readable text found.');
         }
 
-        return fullText.trim();
+        return cleanText;
     } catch (error: any) {
-        console.error('PDF Error:', error);
-
-        if (error.message.includes('insufficient text')) {
-            throw new Error('This PDF appears to be scanned. Please convert to .txt or .docx, or use OCR software first.');
-        }
-
-        throw new Error('Unable to read this PDF. Try using .txt or .docx format instead.');
+        console.error('Client-side PDF extraction error:', error);
+        throw error;
     }
 };
 
+/**
+ * Server-side fallback for PDF extraction via API.
+ */
+export const extractTextFromPDFViaAPI = async (file: File): Promise<string> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/extract-pdf', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error('Server returned an invalid response. Using client-side extraction instead.');
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'PDF extraction failed');
+        }
+
+        return data.text;
+    } catch (error: any) {
+        console.error('PDF API extraction error:', error);
+        throw error;
+    }
+};
+
+/**
+ * DOCX extraction using mammoth.
+ */
 export const extractTextFromDOCX = async (file: File): Promise<string> => {
     try {
         const mammoth = await import('mammoth');
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
+
+        if (!result.value || result.value.trim().length < 50) {
+            throw new Error('DOCX file appears to be empty or contains no readable text');
+        }
+
         return result.value;
-    } catch (error) {
+    } catch (error: any) {
         console.error('DOCX extraction error:', error);
-        throw new Error('Unable to read Word document. Please ensure it\'s a valid .docx file.');
+        throw new Error('Failed to extract text from Word document.');
     }
 };
 
-export const extractTextFromText = async (file: File): Promise<string> => {
-    try {
-        return await file.text();
-    } catch (error) {
-        console.error('Text extraction error:', error);
-        throw new Error('Unable to read file. Please check the file encoding.');
-    }
-};
-
+/**
+ * Main entry point for file extraction.
+ */
 export const extractTextFromFile = async (file: File): Promise<string> => {
     const extension = file.name.split('.').pop()?.toLowerCase();
 
     switch (extension) {
         case 'pdf':
-            return await extractTextFromPDF(file);
+            try {
+                // Try client-side first as it's faster and reduces server load
+                return await extractTextFromPDFClient(file);
+            } catch (err) {
+                console.warn('Client-side extraction failed, falling back to API:', err);
+                return await extractTextFromPDFViaAPI(file);
+            }
         case 'docx':
             return await extractTextFromDOCX(file);
         case 'txt':
         case 'md':
-            return await extractTextFromText(file);
+            try {
+                const text = await file.text();
+                if (text.trim().length < 50) throw new Error('File content is too short');
+                return text;
+            } catch (err) {
+                throw new Error('Unable to read text file');
+            }
         default:
-            throw new Error('Unsupported file format');
+            throw new Error(`Unsupported format (.${extension}). Please use PDF, DOCX, TXT, or MD.`);
     }
 };

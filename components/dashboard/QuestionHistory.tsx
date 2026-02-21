@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import {
-    FaHistory, FaSearch, FaSpinner, FaChevronDown,
-    FaChevronUp, FaFileAlt, FaCheckCircle, FaTrash,
-    FaFilePdf, FaFileWord, FaQuestionCircle, FaBolt
-} from 'react-icons/fa'
+    FiClock, FiSearch, FiLoader, FiChevronDown,
+    FiChevronUp, FiFileText, FiCheckCircle, FiTrash2,
+    FiHelpCircle, FiZap, FiBook
+} from 'react-icons/fi'
 import { getAllQuizSessions, deleteQuizSession, QuizSession } from '@/lib/api/quizApi'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
@@ -57,10 +57,10 @@ export default function QuestionHistory() {
 
     const getTypeIcon = (type: string) => {
         switch (type) {
-            case 'multiple-choice': return <FaQuestionCircle className="text-emerald-500" />
-            case 'theory': return <FaFileAlt className="text-blue-500" />
-            case 'fill-in-the-blank': return <FaBolt className="text-amber-500" />
-            default: return <FaBolt className="text-purple-500" />
+            case 'multiple-choice': return <FiHelpCircle className="text-emerald-500" />
+            case 'theory': return <FiFileText className="text-blue-500" />
+            case 'fill-in-the-blank': return <FiZap className="text-amber-500" />
+            default: return <FiZap className="text-purple-500" />
         }
     }
 
@@ -68,7 +68,7 @@ export default function QuestionHistory() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="relative flex-1">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                     <input
                         type="text"
                         placeholder="Search by title or type..."
@@ -88,12 +88,12 @@ export default function QuestionHistory() {
 
             {loading ? (
                 <div className="flex flex-col items-center py-20 text-gray-400">
-                    <FaSpinner className="animate-spin text-4xl mb-4 text-emerald-500" />
+                    <FiLoader className="animate-spin text-4xl mb-4 text-emerald-500" />
                     <p className="font-medium">Loading your quiz history...</p>
                 </div>
             ) : filteredSessions.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                    <FaHistory className="mx-auto text-4xl text-gray-300 mb-4" />
+                    <FiClock className="mx-auto text-4xl text-gray-300 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400 font-medium font-bold">
                         {searchQuery ? 'No sessions match your search.' : 'No sessions found. Start generating quizzes to build your library!'}
                     </p>
@@ -131,7 +131,7 @@ export default function QuestionHistory() {
                                         className="flex-1 md:flex-none px-4 py-2 bg-gray-50 dark:bg-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                                     >
                                         {expandedSession === session._id ? 'HIDE QUESTIONS' : 'VIEW QUESTIONS'}
-                                        {expandedSession === session._id ? <FaChevronUp /> : <FaChevronDown />}
+                                        {expandedSession === session._id ? <FiChevronUp /> : <FiChevronDown />}
                                     </button>
                                     <button
                                         disabled={deletingId === session._id}
@@ -139,7 +139,7 @@ export default function QuestionHistory() {
                                         className="p-3 bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-all"
                                         title="Delete Quiz"
                                     >
-                                        {deletingId === session._id ? <FaSpinner className="animate-spin" /> : <FaTrash />}
+                                        {deletingId === session._id ? <FiLoader className="animate-spin" /> : <FiTrash2 />}
                                     </button>
                                 </div>
                             </div>
@@ -168,15 +168,18 @@ export default function QuestionHistory() {
 
                                                 <div className="mt-2 pt-3 border-t border-gray-100 dark:border-gray-700">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <FaCheckCircle className="text-emerald-500 text-[10px]" />
+                                                        <FiCheckCircle className="text-emerald-500 text-[10px]" />
                                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Correct Answer</span>
                                                     </div>
                                                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                                         {q.options && q.options.length > 0 ? q.options[Number(q.answer)] : q.answer}
                                                     </p>
-                                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 italic bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                                                        <strong>Explanation:</strong> {q.explanation}
-                                                    </p>
+                                                    <div className="mt-2 p-4 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-xl">
+                                                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1"><FiBook /> Knowledge Deep-Dive</p>
+                                                        <p className="text-sm text-blue-900 dark:text-blue-100 italic leading-relaxed">
+                                                            {q.knowledgeDeepDive}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}

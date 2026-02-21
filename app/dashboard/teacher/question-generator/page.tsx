@@ -4,10 +4,10 @@ import { useState, useRef } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { questionsApi } from '@/lib/api/questions'
 import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
-import { 
-  FaFilePdf, 
-  FaUpload, 
-  FaTimes, 
+import {
+  FaFilePdf,
+  FaUpload,
+  FaTimes,
   FaSpinner,
   FaCheckCircle,
   FaSlidersH,
@@ -33,7 +33,7 @@ export default function QuestionGeneratorPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [options, setOptions] = useState<GenerationOptions>({
     difficulty: 'medium',
     questionType: 'all',
@@ -128,19 +128,6 @@ export default function QuestionGeneratorPage() {
         }))
         setGeneratedQuestions(questionsWithMarks)
         setSuccess(true)
-        
-        // Save to localStorage for question bank
-        const savedQuestions = localStorage.getItem('teacherGeneratedQuestions')
-        const existingQuestions = savedQuestions ? JSON.parse(savedQuestions) : []
-        const newQuestions = questionsWithMarks.map((q: any) => ({
-          ...q,
-          id: `q-${Date.now()}-${Math.random()}`,
-          createdAt: new Date().toISOString(),
-        }))
-        localStorage.setItem(
-          'teacherGeneratedQuestions',
-          JSON.stringify([...newQuestions, ...existingQuestions])
-        )
       } else {
         setError('No questions were generated. Please try again with a different file or options.')
       }
@@ -160,7 +147,7 @@ export default function QuestionGeneratorPage() {
   if (generating) {
     return (
       <ProtectedRoute allowedRoles={['teacher']}>
-        <StudyGuideLoader 
+        <StudyGuideLoader
           duration={3}
           networkSpeed="medium"
           text="Generating your questions"
@@ -204,17 +191,16 @@ export default function QuestionGeneratorPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 Upload Document
               </h2>
-              
+
               {!uploadedFile ? (
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                    isDragging
+                  className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${isDragging
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-                  }`}
+                    }`}
                 >
                   <FaFilePdf className="mx-auto text-4xl text-gray-400 dark:text-gray-500 mb-4" />
                   <p className="text-gray-600 dark:text-gray-400 mb-2">
@@ -265,7 +251,7 @@ export default function QuestionGeneratorPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FaSlidersH /> Generation Options
               </h2>
-              
+
               <div className="space-y-4">
                 {/* Assessment Type */}
                 <div>
@@ -277,17 +263,16 @@ export default function QuestionGeneratorPage() {
                       <button
                         key={type}
                         onClick={() => setOptions({ ...options, assessmentType: type })}
-                        className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                          options.assessmentType === type
+                        className={`px-4 py-3 rounded-lg font-medium transition-colors ${options.assessmentType === type
                             ? type === 'assignment'
                               ? 'bg-blue-500 text-white'
                               : type === 'classwork'
-                              ? 'bg-green-500 text-white'
-                              : type === 'mid-term'
-                              ? 'bg-purple-500 text-white'
-                              : 'bg-orange-500 text-white'
+                                ? 'bg-green-500 text-white'
+                                : type === 'mid-term'
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-orange-500 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                        }`}
+                          }`}
                       >
                         {type === 'assignment' ? 'Assignment' : type === 'classwork' ? 'Classwork' : type === 'mid-term' ? 'Mid-Term Test' : 'Examination'}
                       </button>
@@ -319,15 +304,14 @@ export default function QuestionGeneratorPage() {
                       <button
                         key={level}
                         onClick={() => setOptions({ ...options, difficulty: level })}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                          options.difficulty === level
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${options.difficulty === level
                             ? level === 'easy'
                               ? 'bg-green-500 text-white'
                               : level === 'medium'
-                              ? 'bg-yellow-500 text-white'
-                              : 'bg-red-500 text-white'
+                                ? 'bg-yellow-500 text-white'
+                                : 'bg-red-500 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                        }`}
+                          }`}
                       >
                         {level.charAt(0).toUpperCase() + level.slice(1)}
                       </button>
@@ -430,7 +414,7 @@ export default function QuestionGeneratorPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 Generated Questions
               </h2>
-              
+
               {error && (
                 <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                   <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
@@ -473,13 +457,12 @@ export default function QuestionGeneratorPage() {
                             {options.marksPerQuestion} mark{options.marksPerQuestion > 1 ? 's' : ''}
                           </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          question.difficulty === 'easy'
+                        <span className={`text-xs px-2 py-1 rounded ${question.difficulty === 'easy'
                             ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
                             : question.difficulty === 'medium'
-                            ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400'
-                            : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'
-                        }`}>
+                              ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400'
+                              : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'
+                          }`}>
                           {question.difficulty}
                         </span>
                       </div>

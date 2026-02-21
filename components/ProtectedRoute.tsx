@@ -1,79 +1,123 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
-import { useRoleVerification } from '@/hooks/useRoleVerification'
-import Layout from './layout/Layout'
-import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
+import { FiLoader } from 'react-icons/fi'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles?: ('teacher' | 'student')[]
+  allowedRoles?: ('student' | 'teacher')[]
 }
 
 export default function ProtectedRoute({
   children,
-  allowedRoles,
+  allowedRoles
 }: ProtectedRouteProps) {
   const router = useRouter()
-  const pathname = usePathname()
-  const { isAuthenticated, user } = useAuthStore()
-  const { isVerifying } = useRoleVerification()
+  const { user, isAuthenticated, token, logout, setLoading, login } = useAuthStore()
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    const checkAccess = async () => {
-      if (!isAuthenticated) {
-        router.push('/login')
-        return
-      }
+    checkAuth()
+  }, [])
 
-      // Wait for role verification to complete
-      if (isVerifying) {
-        return
-      }
+  const checkAuth = async () => {
+    try {
+      console.log('[ProtectedRoute] Starting auth check...');
 
-      // If role-based protection is specified
-      if (allowedRoles && allowedRoles.length > 0) {
-        if (!user?.role || !allowedRoles.includes(user.role)) {
-          // Redirect based on user role from backend
-          if (user?.role === 'teacher') {
-            router.push('/dashboard/teacher')
-          } else {
-            router.push('/dashboard')
-          }
-          return
+      // 1. If we already have a user in the store, we're good
+      if (isAuthenticated && user && token) {
+        console.log('[ProtectedRoute] User already authenticated in store:', user.email);
+        if (allowedRoles && !allowedRoles.includes(user.role)) {
+          console.warn('[ProtectedRoute] Role mismatch, redirecting to dashboard');
+          router.push('/dashboard');
+          return;
         }
+        setIsChecking(false);
+        return;
       }
 
-      // Auto-redirect based on role for main dashboard routes
-      if (pathname === '/dashboard' && user?.role === 'teacher') {
-        router.push('/dashboard/teacher')
-        return
+      // 2. Check for token in cookie
+      const cookieMatch = typeof document !== 'undefined'
+        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+        : null;
+      const cookieToken = cookieMatch ? decodeURIComponent(cookieMatch[2]) : null;
+
+      if (!cookieToken) {
+        console.warn('[ProtectedRoute] No auth-token cookie found');
+        throw new Error('No token found');
       }
 
-      if (pathname?.startsWith('/dashboard/teacher') && user?.role === 'student') {
-        router.push('/dashboard')
-        return
+      console.log('[ProtectedRoute] Found cookie token, re-hydrating...');
+
+      // 3. Re-hydrate from backend
+      setLoading(true);
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+      const response = await fetch(`${API_URL}/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${cookieToken}`,
+          'Accept': 'application/json'
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const userData = result.data?.user || result.user;
+
+        if (userData) {
+          console.log('[ProtectedRoute] Successfully re-hydrated user:', userData.email);
+          const normalizedUser = {
+            id: userData._id || userData.id,
+            email: userData.email,
+            name: userData.name,
+            role: userData.role || 'student',
+            isVerified: userData.isVerified ?? true,
+            avatar: userData.avatar,
+            oauthProvider: userData.oauthProvider || null,
+          };
+          login(normalizedUser, cookieToken);
+
+          if (allowedRoles && !allowedRoles.includes(normalizedUser.role)) {
+            console.warn('[ProtectedRoute] Role mismatch post-hydration');
+            router.push('/dashboard');
+            return;
+          }
+          setIsChecking(false);
+          return;
+        }
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.error('[ProtectedRoute] Re-hydration fetch failed:', response.status, errData);
       }
 
-      setIsChecking(false)
+      throw new Error(`Authentication failed (Status: ${response.status})`);
+
+    } catch (error: any) {
+      console.error('[ProtectedRoute] Auth check failed:', error.message);
+      logout();
+      router.push('/auth/login');
+    } finally {
+      setLoading(false);
+      setIsChecking(false);
     }
+  };
 
-    checkAccess()
-  }, [isAuthenticated, user, allowedRoles, router, pathname, isVerifying])
-
-  if (!isAuthenticated || isChecking || isVerifying) {
+  if (isChecking) {
     return (
-      <StudyGuideLoader 
-        duration={2}
-        networkSpeed="fast"
-        text="Verifying access"
-        tooltipText="Checking authentication..."
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <FiLoader className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
     )
   }
 
-  return <Layout>{children}</Layout>
+  if (!isAuthenticated || !user) {
+    return null
+  }
+
+  return <>{children}</>
 }

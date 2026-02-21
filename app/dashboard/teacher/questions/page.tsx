@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { 
-  FaQuestionCircle, 
-  FaSearch, 
+import {
+  FaQuestionCircle,
+  FaSearch,
   FaFilter,
   FaTrash,
   FaEdit,
@@ -43,13 +43,20 @@ export default function TeacherQuestionsPage() {
     filterQuestions()
   }, [questions, searchTerm, filterDifficulty, filterType, filterSubject])
 
-  const loadQuestions = () => {
+  const loadQuestions = async () => {
     try {
-      const savedQuestions = localStorage.getItem('teacherGeneratedQuestions')
-      if (savedQuestions) {
-        const parsed = JSON.parse(savedQuestions)
-        setQuestions(parsed)
-        setFilteredQuestions(parsed)
+      const match = typeof document !== 'undefined'
+        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+        : null
+      const token = match ? decodeURIComponent(match[2]) : ''
+      const headers = { 'Authorization': `Bearer ${token}` }
+
+      const response = await fetch('/api/ai/questions', { headers })
+      const result = await response.json()
+
+      if (result.success) {
+        setQuestions(result.questions)
+        setFilteredQuestions(result.questions)
       }
     } catch (error) {
       console.error('Error loading questions:', error)
@@ -87,11 +94,22 @@ export default function TeacherQuestionsPage() {
     setFilteredQuestions(filtered)
   }
 
-  const deleteQuestion = (id: string) => {
+  const deleteQuestion = async (id: string) => {
     if (confirm('Are you sure you want to delete this question?')) {
-      const updated = questions.filter((q) => q.id !== id)
-      setQuestions(updated)
-      localStorage.setItem('teacherGeneratedQuestions', JSON.stringify(updated))
+      try {
+        const match = typeof document !== 'undefined'
+          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
+          : null
+        const token = match ? decodeURIComponent(match[2]) : ''
+
+        await fetch(`/api/ai/questions/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        setQuestions(prev => prev.filter(q => (q as any)._id !== id && (q as any).id !== id))
+      } catch (error) {
+        console.error('Error deleting question:', error)
+      }
     }
   }
 
@@ -167,7 +185,7 @@ export default function TeacherQuestionsPage() {
             <FaFilter />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
@@ -255,21 +273,20 @@ export default function TeacherQuestionsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredQuestions.map((question) => (
+              {filteredQuestions.map((question: any) => (
                 <div
-                  key={question.id}
+                  key={question._id || question.id}
                   className="p-5 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          question.difficulty === 'easy'
-                            ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
-                            : question.difficulty === 'medium'
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${question.difficulty === 'easy'
+                          ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
+                          : question.difficulty === 'medium'
                             ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400'
                             : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'
-                        }`}>
+                          }`}>
                           {question.difficulty}
                         </span>
                         <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 rounded text-xs font-medium">
@@ -286,14 +303,13 @@ export default function TeacherQuestionsPage() {
                       </p>
                       {question.options && question.options.length > 0 && (
                         <div className="mt-3 space-y-1">
-                          {question.options.map((option, idx) => (
+                          {question.options.map((option: string, idx: number) => (
                             <div
                               key={idx}
-                              className={`text-sm p-2 rounded ${
-                                idx === question.correctAnswer
-                                  ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 font-medium'
-                                  : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300'
-                              }`}
+                              className={`text-sm p-2 rounded ${idx === question.correctAnswer
+                                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 font-medium'
+                                : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                                }`}
                             >
                               {String.fromCharCode(65 + idx)}. {option}
                               {idx === question.correctAnswer && (
@@ -316,7 +332,7 @@ export default function TeacherQuestionsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => deleteQuestion(question.id)}
+                        onClick={() => deleteQuestion(question._id || question.id)}
                         className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         title="Delete question"
                       >
