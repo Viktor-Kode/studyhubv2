@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import officeParser from 'officeparser'
 import { writeFile, unlink } from 'fs/promises'
 import path from 'path'
 import os from 'os'
 
 export async function POST(req: NextRequest) {
     try {
+        let officeParser: any
+        try {
+            // Dynamically import to avoid build-time resolution errors
+            const mod = await import('officeparser')
+            // @ts-ignore accommodate both CJS and ESM default exports
+            officeParser = mod?.default ?? mod
+        } catch (e: any) {
+            return NextResponse.json(
+                { error: 'PPT extraction module is unavailable on this deployment' },
+                { status: 501 }
+            )
+        }
+
         const formData = await req.formData()
         const file = formData.get('file') as File
 
