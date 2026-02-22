@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { getTokenFromCookie } from '@/lib/store/authStore'
 
-const DEFAULT_API = 'https://studyhelp-zyqw.onrender.com/api'
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API
+const PROXY_BASE = '/api/backend'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || PROXY_BASE
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
