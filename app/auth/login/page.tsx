@@ -15,6 +15,7 @@ import { FaGoogle } from 'react-icons/fa'
 export default function LoginPage() {
     const router = useRouter()
     const { login } = useAuthStore()
+    const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) || process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true'
 
     const [formData, setFormData] = useState({
         email: '',
@@ -83,18 +84,20 @@ export default function LoginPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
 
                     {/* OAuth Buttons */}
-                    <div className="space-y-3 mb-6">
-                        <button
-                            onClick={() => handleOAuthSignIn('google')}
-                            className="w-full flex items-center justify-center gap-3 py-3 px-4 
-                         border-2 border-gray-300 dark:border-gray-600 rounded-xl
-                         hover:bg-gray-50 dark:hover:bg-gray-700 transition font-medium
-                         text-gray-700 dark:text-gray-300"
-                        >
-                            <FaGoogle className="text-xl text-red-500" />
-                            Continue with Google
-                        </button>
-                    </div>
+                    {googleEnabled && (
+                        <div className="space-y-3 mb-6">
+                            <button
+                                onClick={() => handleOAuthSignIn('google')}
+                                className="w-full flex items-center justify-center gap-3 py-3 px-4 
+                             border-2 border-gray-300 dark:border-gray-600 rounded-xl
+                             hover:bg-gray-50 dark:hover:bg-gray-700 transition font-medium
+                             text-gray-700 dark:text-gray-300"
+                            >
+                                <FaGoogle className="text-xl text-red-500" />
+                                Continue with Google
+                            </button>
+                        </div>
+                    )}
 
                     {/* Divider */}
                     <div className="relative my-6">

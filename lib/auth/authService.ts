@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/lib/store/authStore'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://studyhelp-zyqw.onrender.com/api'
+// Use internal proxy by default to avoid CORS and cross-site cookies
+const API_URL = '/api/backend'
 
 interface SignupData {
     email: string
