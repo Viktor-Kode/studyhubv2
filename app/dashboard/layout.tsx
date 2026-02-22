@@ -90,7 +90,7 @@ export default function DashboardLayout({
                                     <MdSchool className="text-white text-xl" />
                                 </div>
                                 <span className="font-bold text-xl hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    StudyBuddy
+                                    StudyHelp
                                 </span>
                             </Link>
                         </div>

@@ -15,7 +15,7 @@ import { FaGoogle } from 'react-icons/fa'
 export default function LoginPage() {
     const router = useRouter()
     const { login } = useAuthStore()
-    const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true' || Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+    const googleEnabled = true // Fixed: Always show Google login to match Signup page and user request
 
     const [formData, setFormData] = useState({
         email: '',
@@ -73,10 +73,10 @@ export default function LoginPage() {
                 {/* Logo/Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                        StudyBuddy
+                        StudyHelp
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">
-                        Welcome back! Sign in to continue
+                        Welcome back! Sign in to your account
                     </p>
                 </div>
 

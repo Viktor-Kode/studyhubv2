@@ -40,7 +40,7 @@ export default function SettingsPage() {
 
         setIsLoading(true)
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+            const API_URL = '/api/backend'
             // Get token from cookie (not localStorage)
             const match = typeof document !== 'undefined'
                 ? document.cookie.match(/(^| )auth-token=([^;]+)/)

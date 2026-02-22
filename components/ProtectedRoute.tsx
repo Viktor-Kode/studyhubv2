@@ -51,9 +51,9 @@ export default function ProtectedRoute({
 
       console.log('[ProtectedRoute] Found cookie token, re-hydrating...');
 
-      // 3. Re-hydrate from backend
+      // 3. Re-hydrate from backend via internal proxy to avoid CORS
       setLoading(true);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const API_URL = '/api/backend';
 
       const response = await fetch(`${API_URL}/users/me`, {
         headers: {
