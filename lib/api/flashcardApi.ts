@@ -1,11 +1,8 @@
 import { getTokenFromCookie } from '@/lib/store/authStore'
 
-// Build the base URL for flashcard endpoints
-// NEXT_PUBLIC_API_URL = http://localhost:5000/api (already ends with /api)
-const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-const API_BASE_URL = rawUrl.endsWith('/api')
-    ? `${rawUrl}/flashcards`
-    : `${rawUrl}/api/flashcards`
+// Use the internal Next.js proxy to avoid CORS issues
+// The proxy at /api/backend forwards requests to the Render backend
+const API_BASE_URL = '/api/backend/flashcards'
 
 function getDefaultHeaders(): Record<string, string> {
     const token = getTokenFromCookie()

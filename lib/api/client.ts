@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { getTokenFromCookie } from '@/lib/store/authStore'
 
-const PROXY_BASE = '/api/backend'
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || PROXY_BASE
+// Always use the internal Next.js proxy to forward requests to the backend
+// This avoids CORS issues and keeps auth tokens server-side
+const API_BASE_URL = '/api/backend'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

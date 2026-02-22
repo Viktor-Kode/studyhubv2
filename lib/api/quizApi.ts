@@ -1,10 +1,7 @@
 import { getTokenFromCookie } from '@/lib/store/authStore'
 
-// NEXT_PUBLIC_API_URL = http://localhost:5000/api (already ends with /api)
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-const API_BASE_URL = rawApiUrl.endsWith('/api')
-    ? `${rawApiUrl}/ai`
-    : `${rawApiUrl}/api/ai`
+// Use the internal Next.js proxy to avoid CORS issues
+const API_BASE_URL = '/api/backend/ai'
 
 function authHeaders(): Record<string, string> {
     const token = getTokenFromCookie()

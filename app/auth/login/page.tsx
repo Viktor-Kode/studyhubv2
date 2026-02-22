@@ -15,7 +15,7 @@ import { FaGoogle } from 'react-icons/fa'
 export default function LoginPage() {
     const router = useRouter()
     const { login } = useAuthStore()
-    const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) || process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true'
+    const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true' || Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
 
     const [formData, setFormData] = useState({
         email: '',
