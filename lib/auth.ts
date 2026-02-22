@@ -5,19 +5,24 @@ import { connectDB } from '@/lib/db/mongodb'
 import User from '@/lib/models/User'
 import bcrypt from 'bcryptjs'
 
+const missingGoogle = !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET
 export const authOptions: NextAuthOptions = {
+    trustHost: true,
+    debug: process.env.NODE_ENV !== 'production',
     providers: [
-        GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            authorization: {
-                params: {
-                    prompt: 'consent',
-                    access_type: 'offline',
-                    response_type: 'code'
+        ...(!missingGoogle ? [
+            GoogleProvider({
+                clientId: process.env.GOOGLE_CLIENT_ID!,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+                authorization: {
+                    params: {
+                        prompt: 'consent',
+                        access_type: 'offline',
+                        response_type: 'code'
+                    }
                 }
-            }
-        }),
+            })
+        ] : []),
         CredentialsProvider({
             name: 'Credentials',
             credentials: {
