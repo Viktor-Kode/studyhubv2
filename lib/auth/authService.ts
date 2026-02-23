@@ -1,164 +1,111 @@
-import { useAuthStore } from '@/lib/store/authStore'
+/**
+ * API Service — handles all backend REST calls.
+ * Authentication is now managed entirely by Firebase.
+ * This file only contains non-auth API helpers used by the app features.
+ *
+ * To get the current Firebase ID token for authenticated requests, use:
+ *   import { auth } from '@/lib/firebase'
+ *   const token = await auth.currentUser?.getIdToken()
+ */
 
-// Use internal proxy by default to avoid CORS and cross-site cookies
 const API_URL = '/api/backend'
 
-interface SignupData {
-    email: string
-    password: string
-    name: string
-    role: 'student' | 'teacher'
+/** Get an Authorization header using the current Firebase user's ID token. */
+export async function getAuthHeader(): Promise<Record<string, string>> {
+    try {
+        const { auth } = await import('@/lib/firebase')
+        const token = await auth.currentUser?.getIdToken()
+        return token ? { Authorization: `Bearer ${token}` } : {}
+    } catch {
+        return {}
+    }
 }
 
-interface LoginData {
-    email: string
-    password: string
+/** Generic authenticated GET request to the backend proxy. */
+export async function apiGet<T = any>(path: string): Promise<T> {
+    const headers = await getAuthHeader()
+    const res = await fetch(`${API_URL}${path}`, {
+        headers: { 'Accept': 'application/json', ...headers },
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+/** Generic authenticated POST request to the backend proxy. */
+export async function apiPost<T = any>(path: string, body?: unknown): Promise<T> {
+    const headers = await getAuthHeader()
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...headers },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+/** Generic authenticated PATCH request to the backend proxy. */
+export async function apiPatch<T = any>(path: string, body?: unknown): Promise<T> {
+    const headers = await getAuthHeader()
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...headers },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+/** Generic authenticated DELETE request to the backend proxy. */
+export async function apiDelete<T = any>(path: string): Promise<T> {
+    const headers = await getAuthHeader()
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json', ...headers },
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || err.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
 }
 
 /**
- * Normalizes the backend auth response.
- * Backend returns: { status, token, data: { user } }
- * We normalize to: { user, token }
+ * @deprecated Legacy shim — kept so existing code that imports authService won't break at compile time.
+ * All actual auth is now handled by Firebase in lib/firebase-auth.ts
  */
-function normalizeAuthResponse(result: any): { user: any; token: string } {
-    // Handle backend format: { status, token, data: { user } }
-    if (result.data?.user) {
-        const user = result.data.user
-        return {
-            token: result.token,
-            user: {
-                id: user._id || user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role || 'student',
-                isVerified: user.isVerified ?? true,
-                avatar: user.avatar,
-                oauthProvider: user.oauthProvider || null,
-            }
-        }
-    }
-    // Handle already-normalized format: { user, token }
-    if (result.user) {
-        return {
-            token: result.token,
-            user: {
-                id: result.user._id || result.user.id,
-                email: result.user.email,
-                name: result.user.name,
-                role: result.user.role || 'student',
-                isVerified: result.user.isVerified ?? true,
-                avatar: result.user.avatar,
-                oauthProvider: result.user.oauthProvider || null,
-            }
-        }
-    }
-    throw new Error('Invalid auth response format')
-}
-
 export const authService = {
-    async signup(data: SignupData) {
-        // Backend route: POST /api/users/ (signup)
-        const response = await fetch(`${API_URL}/users`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(data)
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-            throw new Error(result.message || result.error || 'Signup failed')
-        }
-
-        return normalizeAuthResponse(result)
-    },
-
-    async login(data: LoginData) {
-        // Backend route: POST /api/users/login
-        const response = await fetch(`${API_URL}/users/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(data)
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-            throw new Error(result.message || result.error || 'Login failed')
-        }
-
-        return normalizeAuthResponse(result)
-    },
-
+    /** @deprecated Use firebaseSignOut from lib/firebase-auth instead */
     async logout() {
-        try {
-            await fetch(`${API_URL}/users/logout`, {
-                method: 'POST',
-                credentials: 'include'
-            })
-        } catch {
-            // Ignore logout errors - we still clear local state
-        }
+        const { firebaseSignOut } = await import('@/lib/firebase-auth')
+        return firebaseSignOut()
     },
 
+    /** @deprecated No longer needed — Firebase onAuthStateChanged handles session */
     async getCurrentUser() {
-        const response = await fetch('/api/auth/me')
-
-        if (!response.ok) {
-            throw new Error('Not authenticated')
-        }
-
-        const result = await response.json()
-        return result
+        console.warn('[authService.getCurrentUser] Deprecated — use useAuthStore() instead')
+        return null
     },
 
+    /** @deprecated Not used with Firebase auth */
     async forgotPassword(email: string) {
-        const response = await fetch(`${API_URL}/users/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-            throw new Error(result.message || result.error || 'Failed to send reset email')
-        }
-
-        return result
+        const { sendPasswordResetEmail } = await import('firebase/auth')
+        const { auth } = await import('@/lib/firebase')
+        await sendPasswordResetEmail(auth, email)
+        return { message: 'Password reset email sent' }
     },
 
-    async resetPassword(token: string, password: string) {
-        const response = await fetch(`${API_URL}/users/reset-password/${token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-            throw new Error(result.message || result.error || 'Failed to reset password')
-        }
-
-        return result
+    /** @deprecated Not needed with Firebase auth */
+    async completeOAuthProfile(_role: string, _name?: string) {
+        console.warn('[authService.completeOAuthProfile] Deprecated — use saveUserRole from lib/firebase-auth instead')
+        return null
     },
-
-    async completeOAuthProfile(role: 'student' | 'teacher', name?: string) {
-        const response = await fetch('/api/auth/oauth/complete-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role, name })
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to complete profile')
-        }
-
-        return result
-    }
 }

@@ -7,10 +7,10 @@ export async function POST(req: NextRequest) {
     try {
         let officeParser: any
         try {
-            // Dynamically import to avoid build-time resolution errors
-            const mod = await import('officeparser')
-            // @ts-ignore accommodate both CJS and ESM default exports
-            officeParser = mod?.default ?? mod
+            // officeparser is not installed in package.json, so we skip it to prevent build crashes
+            // const mod = await import('officeparser')
+            // officeParser = mod?.default ?? mod
+            throw new Error('officeparser not installed')
         } catch (e: any) {
             return NextResponse.json(
                 { error: 'PPT extraction module is unavailable on this deployment' },

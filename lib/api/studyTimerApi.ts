@@ -1,8 +1,8 @@
 import { apiClient } from './client';
 
-export const getAnalytics = async (userId: string, days: number | string) => {
+export const getAnalytics = async (days: number | string) => {
     try {
-        const response = await apiClient.get('/study/stats', { params: { userId, days } });
+        const response = await apiClient.get('/study/stats', { params: { days } });
         return { analytics: response.data };
     } catch (error) {
         console.error('Error fetching analytics:', error);
@@ -10,13 +10,11 @@ export const getAnalytics = async (userId: string, days: number | string) => {
     }
 };
 
-export const getUserStats = async (userId: string) => {
+export const getUserStats = async () => {
     try {
-        const response = await apiClient.get('/study/stats', { params: { userId } });
-        // Transform or pass through the data as needed by the frontend
-        // backend returns { success, overall, daily }
-        // frontend expects { stats: ... }
-        return { stats: response.data };
+        const response = await apiClient.get('/study/stats');
+        // Backend returns the full stats object
+        return { stats: response.data.stats, ...response.data };
     } catch (error) {
         console.error('Error fetching user stats:', error);
         throw error;

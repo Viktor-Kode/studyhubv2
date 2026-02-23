@@ -4,27 +4,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
-import { authService } from '@/lib/auth/authService'
-import { signIn } from 'next-auth/react'
+import { signInWithGoogle, loginWithEmail, buildAppUser } from '@/lib/firebase-auth'
 import {
     FiMail, FiLock, FiEye, FiEyeOff,
     FiAlertCircle, FiLoader
 } from 'react-icons/fi'
 import { FaGoogle } from 'react-icons/fa'
+import RoleSelectionModal from '@/components/RoleSelectionModal'
+import type { AppUser, AppRole } from '@/lib/types/auth'
 
 export default function LoginPage() {
     const router = useRouter()
-    const { login } = useAuthStore()
-    const googleEnabled = true // Fixed: Always show Google login to match Signup page and user request
+    const { setUser } = useAuthStore()
 
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    })
-
+    const [formData, setFormData] = useState({ email: '', password: '' })
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [googleLoading, setGoogleLoading] = useState(false)
+    const [showRoleModal, setShowRoleModal] = useState(false)
+    const [pendingFirebaseUser, setPendingFirebaseUser] = useState<any>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -33,7 +32,6 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-
         if (!formData.email || !formData.password) {
             setError('Please enter email and password')
             return
@@ -43,31 +41,72 @@ export default function LoginPage() {
         setError('')
 
         try {
-            const result = await authService.login({
-                email: formData.email,
-                password: formData.password
-            })
-
-            login(result.user, result.token)
-            router.push('/dashboard')
-
+            const user = await loginWithEmail(formData.email, formData.password)
+            setUser(user)
+            // Redirect based on role
+            if (user.role === 'teacher') {
+                router.push('/dashboard/teacher')
+            } else {
+                router.push('/dashboard/student')
+            }
         } catch (err: any) {
-            setError(err.message || 'Failed to login')
+            const msg = err?.code === 'auth/invalid-credential'
+                ? 'Invalid email or password'
+                : err?.message || 'Failed to login'
+            setError(msg)
         } finally {
             setIsLoading(false)
         }
     }
 
-    const handleOAuthSignIn = async (provider: 'google') => {
+    const handleGoogleSignIn = async () => {
+        setGoogleLoading(true)
+        setError('')
         try {
-            await signIn(provider, { callbackUrl: '/auth/oauth-complete' })
+            const { appUser, firebaseUser } = await signInWithGoogle()
+
+            if (appUser && appUser.role) {
+                setUser(appUser)
+                if (appUser.role === 'teacher') {
+                    router.push('/dashboard/teacher')
+                } else {
+                    router.push('/dashboard/student')
+                }
+            } else {
+                // New user - show role selection modal
+                setPendingFirebaseUser(firebaseUser)
+                setShowRoleModal(true)
+            }
         } catch (err: any) {
-            setError(`${provider} sign in failed`)
+            if (err?.code !== 'auth/popup-closed-by-user') {
+                setError(err?.message || 'Google sign-in failed')
+            }
+        } finally {
+            setGoogleLoading(false)
+        }
+    }
+
+    const handleRoleCompleted = (role: AppRole) => {
+        if (pendingFirebaseUser) {
+            const appUser = buildAppUser(pendingFirebaseUser, role)
+            setUser(appUser)
+            setShowRoleModal(false)
+            if (role === 'teacher') {
+                router.push('/dashboard/teacher')
+            } else {
+                router.push('/dashboard/student')
+            }
         }
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+            {showRoleModal && pendingFirebaseUser && (
+                <RoleSelectionModal
+                    user={pendingFirebaseUser}
+                    onCompleted={handleRoleCompleted}
+                />
+            )}
             <div className="max-w-md w-full">
 
                 {/* Logo/Header */}
@@ -83,21 +122,24 @@ export default function LoginPage() {
                 {/* Main Form Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
 
-                    {/* OAuth Buttons */}
-                    {googleEnabled && (
-                        <div className="space-y-3 mb-6">
-                            <button
-                                onClick={() => handleOAuthSignIn('google')}
-                                className="w-full flex items-center justify-center gap-3 py-3 px-4 
+                    {/* Google Button */}
+                    <div className="mb-6">
+                        <button
+                            id="google-signin-btn"
+                            onClick={handleGoogleSignIn}
+                            disabled={googleLoading || isLoading}
+                            className="w-full flex items-center justify-center gap-3 py-3 px-4
                              border-2 border-gray-300 dark:border-gray-600 rounded-xl
                              hover:bg-gray-50 dark:hover:bg-gray-700 transition font-medium
-                             text-gray-700 dark:text-gray-300"
-                            >
-                                <FaGoogle className="text-xl text-red-500" />
-                                Continue with Google
-                            </button>
-                        </div>
-                    )}
+                             text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {googleLoading
+                                ? <FiLoader className="animate-spin text-xl" />
+                                : <FaGoogle className="text-xl text-red-500" />
+                            }
+                            Continue with Google
+                        </button>
+                    </div>
 
                     {/* Divider */}
                     <div className="relative my-6">
@@ -130,12 +172,13 @@ export default function LoginPage() {
                             <div className="relative">
                                 <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
+                                    id="login-email"
                                     type="email"
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="you@example.com"
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600
                              rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                              focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     required
@@ -159,12 +202,13 @@ export default function LoginPage() {
                             <div className="relative">
                                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
+                                    id="login-password"
                                     type={showPassword ? 'text' : 'password'}
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="••••••••"
-                                    className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 
+                                    className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600
                              rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                              focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     required
@@ -179,19 +223,20 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {/* Submit Button */}
+                        {/* Submit */}
                         <button
+                            id="login-submit-btn"
                             type="submit"
-                            disabled={isLoading}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 
-                         hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl 
+                            disabled={isLoading || googleLoading}
+                            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600
+                         hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl
                          transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
                          flex items-center justify-center gap-2"
                         >
                             {isLoading ? (
                                 <>
                                     <FiLoader className="animate-spin" />
-                                    Signing in...
+                                    Signing in…
                                 </>
                             ) : (
                                 'Sign In'
@@ -201,7 +246,7 @@ export default function LoginPage() {
 
                     {/* Signup Link */}
                     <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <Link
                             href="/auth/signup"
                             className="text-blue-600 dark:text-blue-400 hover:underline font-medium"

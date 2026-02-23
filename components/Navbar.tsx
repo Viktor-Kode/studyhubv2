@@ -55,7 +55,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center space-x-4">
                 <Link
-                  href="/dashboard"
+                  href={user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'}
                   className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white px-6 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm"
                 >
                   Dashboard

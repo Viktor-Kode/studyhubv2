@@ -15,6 +15,7 @@ import {
   FiX, FiPlus
 } from 'react-icons/fi'
 import { BiBrain, BiTimer, BiChair } from 'react-icons/bi'
+import { getFirebaseToken, useAuthStore } from '@/lib/store/authStore'
 
 type TabMode = 'timer' | 'goals' | 'history'
 
@@ -22,6 +23,19 @@ const GOAL_COLORS = [
   '#3B82F6', '#10B981', '#F59E0B',
   '#EF4444', '#8B5CF6', '#EC4899'
 ]
+
+interface TimerState {
+  isActive: boolean
+  isPaused: boolean
+  startedAt: number | null
+  remainingAtPause: number
+  totalDuration: number
+  sessionType: 'work' | 'break'
+  subject: string
+  pomodoroCount: number
+  breaks: number
+  sessionStartTime: number | null
+}
 
 const PRESETS = [
   { label: 'Pomodoro', minutes: 25, color: 'bg-red-500', icon: <BiTimer className="text-xl" /> },
@@ -46,6 +60,7 @@ export default function StudyTimer() {
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [alarmFiring, setAlarmFiring] = useState(false)
   const [activeTab, setActiveTab] = useState<TabMode>('timer')
+  const [loading, setLoading] = useState(true)
 
   // Goal state
   const [goals, setGoals] = useState<any[]>([])
@@ -63,6 +78,34 @@ export default function StudyTimer() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  const saveTimerState = async (state: TimerState) => {
+    try {
+      const token = await getFirebaseToken()
+      await fetch('/api/backend/study/active-timer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ timer: state })
+      })
+    } catch (error) {
+      console.error('Failed to save timer state:', error)
+    }
+  }
+
+  const clearTimerState = async () => {
+    try {
+      const token = await getFirebaseToken()
+      await fetch('/api/backend/study/active-timer', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    } catch (error) {
+      console.error('Failed to clear timer state:', error)
+    }
+  }
+
   // ============ INIT - Load saved state on mount ============
 
   useEffect(() => {
@@ -76,14 +119,12 @@ export default function StudyTimer() {
 
     const loadData = async () => {
       try {
-        const match = typeof document !== 'undefined'
-          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-          : null
-        const token = match ? decodeURIComponent(match[2]) : ''
-        const headers = { 'Authorization': `Bearer ${token}` }
+        const token = await getFirebaseToken()
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
         // Load active timer from DB
-        const timerRes = await fetch('/api/active-timer', { headers })
+        const timerRes = await fetch('/api/backend/study/active-timer', { headers })
         const { timer } = await timerRes.json()
 
         // Load history from DB
@@ -178,12 +219,9 @@ export default function StudyTimer() {
       }
 
       try {
-        const match = typeof document !== 'undefined'
-          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-          : null
-        const token = match ? decodeURIComponent(match[2]) : ''
+        const token = await getFirebaseToken()
 
-        await fetch('/api/active-timer', {
+        await fetch('/api/backend/study/active-timer', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -208,13 +246,11 @@ export default function StudyTimer() {
       if (document.hidden) return
 
       // Recalculate from DB
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
-      const headers = { 'Authorization': `Bearer ${token}` }
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const timerRes = await fetch('/api/active-timer', { headers })
+      const timerRes = await fetch('/api/backend/study/active-timer', { headers })
       const { timer } = await timerRes.json()
 
       if (!timer) return
@@ -269,10 +305,7 @@ export default function StudyTimer() {
 
     // Save session to MongoDB
     if (type === 'work' && subj) {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
+      const token = await getFirebaseToken()
 
       const durationMinutes = Math.round(duration / 60)
       const res = await fetch('/api/study-sessions', {
@@ -296,11 +329,8 @@ export default function StudyTimer() {
     }
 
     // Clear active timer in DB
-    const match = typeof document !== 'undefined'
-      ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-      : null
-    const token = match ? decodeURIComponent(match[2]) : ''
-    await fetch('/api/active-timer', {
+    const token = await getFirebaseToken()
+    await fetch('/api/backend/study/active-timer', {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -431,10 +461,7 @@ export default function StudyTimer() {
     }
 
     try {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
+      const token = await getFirebaseToken()
 
       const res = await fetch('/api/goals', {
         method: 'POST',
@@ -462,10 +489,7 @@ export default function StudyTimer() {
 
   const handleDeleteGoal = async (id: string) => {
     try {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
+      const token = await getFirebaseToken()
 
       const res = await fetch(`/api/goals?id=${id}`, {
         method: 'DELETE',

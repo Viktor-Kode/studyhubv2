@@ -6,7 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
-import { authService } from '@/lib/auth/authService'
+import { firebaseSignOut } from '@/lib/firebase-auth'
 import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut,
@@ -51,7 +51,7 @@ export default function DashboardLayout({
 
     const handleLogout = async () => {
         try {
-            await authService.logout()
+            await firebaseSignOut()
         } catch (error) {
             // ignore logout errors
         } finally {

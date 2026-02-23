@@ -38,7 +38,7 @@ type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'public' | 'stats'
 export default function FlipCardsPage() {
   // Auth
   const { user } = useAuthStore()
-  const userId = (user as any)?.id || (user as any)?._id || ''
+  const userId = user?.uid || ''
 
   // Data state
   const [cards, setCards] = useState<FlashCard[]>([])
@@ -136,10 +136,10 @@ export default function FlipCardsPage() {
 
     try {
       const [cardsRes, decksRes, statsRes, dueRes] = await Promise.all([
-        getFlashCards(userId),
-        getDecks(userId),
-        getFlashCardStats(userId),
-        getDueCards(userId)
+        getFlashCards(),
+        getDecks(),
+        getFlashCardStats(),
+        getDueCards()
       ])
 
       setCards(cardsRes.flashCards || [])
@@ -354,7 +354,6 @@ export default function FlipCardsPage() {
           // All cards reviewed
           showSuccess(`Session complete! ✅ ${sessionCorrect + (wasCorrect ? 1 : 0)} correct, ❌ ${sessionIncorrect + (!wasCorrect ? 1 : 0)} incorrect`)
           saveStudySession({
-            userId,
             deckId: selectedDeckId !== 'All' ? selectedDeckId : undefined,
             cardsStudied: sessionCorrect + sessionIncorrect + 1,
             correctAnswers: wasCorrect ? sessionCorrect + 1 : sessionCorrect,
@@ -383,7 +382,6 @@ export default function FlipCardsPage() {
     setIsSaving(true)
     try {
       const res = await createDeck({
-        userId,
         ...deckFormData
       })
       setDecks(prev => [res.deck, ...prev])
@@ -417,7 +415,7 @@ export default function FlipCardsPage() {
 
   const handleClone = async (deckId: string) => {
     try {
-      await cloneDeck(deckId, userId)
+      await cloneDeck(deckId)
       showSuccess('Deck cloned successfully!')
       loadData()
       setViewMode('decks')
@@ -491,7 +489,7 @@ export default function FlipCardsPage() {
 
   if (isLoading && !cards.length && !decks.length) {
     return (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['student']}>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <FiLoader className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
@@ -503,7 +501,7 @@ export default function FlipCardsPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['student']}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -533,7 +531,7 @@ export default function FlipCardsPage() {
             </button>
             <button
               onClick={async () => {
-                const blob = await exportFlashCards(userId, { format: 'csv' });
+                const blob = await exportFlashCards({ format: 'csv' });
                 const url = window.URL.createObjectURL(blob as Blob);
                 const a = document.createElement('a');
                 a.href = url;

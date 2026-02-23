@@ -200,7 +200,7 @@ function ActivityHeatmap({ sessions }: { sessions: any[] }) {
 
 export default function ProgressAnalytics() {
   const { user } = useAuthStore() // adjust to match your project
-  const userId = user?.id || ''
+  const userId = user?.uid || ''
 
   const [isLoading, setIsLoading] = useState(true)
   const [dateRange, setDateRange] = useState<DateRange>('30d')
@@ -223,9 +223,9 @@ export default function ProgressAnalytics() {
     try {
       // Backend uses JWT token to identify the user - no need to pass userId
       const [statsRes, analyticsRes, fcStatsRes, historyRes] = await Promise.allSettled([
-        getUserStats(userId || 'me'),
-        getAnalytics(userId || 'me', days),
-        getFlashCardStats(userId || 'me'),
+        getUserStats(),
+        getAnalytics(days),
+        getFlashCardStats(),
         apiClient.get('/study/history')
       ])
 

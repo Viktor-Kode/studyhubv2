@@ -9,8 +9,8 @@ export const userStorage = {
     // Get key with user ID prefix
     getUserKey: (key: string): string => {
         const user = useAuthStore.getState().user
-        if (!user?.id) return key
-        return `${user.id}_${key}`
+        if (!user?.uid) return key
+        return `${user.uid}_${key}`
     },
 
     // Set item for current user
@@ -34,12 +34,12 @@ export const userStorage = {
     // Clear all items for current user
     clearUserData: (): void => {
         const user = useAuthStore.getState().user
-        if (!user?.id) return
+        if (!user?.uid) return
 
         const keysToRemove: string[] = []
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
-            if (key?.startsWith(`${user.id}_`)) {
+            if (key?.startsWith(`${user.uid}_`)) {
                 keysToRemove.push(key)
             }
         }

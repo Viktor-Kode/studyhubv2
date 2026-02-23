@@ -1,28 +1,58 @@
 import { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-this'
+import { adminAuth } from './firebase-admin'
+import { connectDB } from '../db/mongodb'
+import User from '../models/User'
 
 export async function verifyToken(request: NextRequest) {
     try {
-        // Get token from cookie or header
-        const token = request.cookies.get('auth-token')?.value ||
-            request.headers.get('authorization')?.replace('Bearer ', '')
+        let token: string | undefined
 
-        if (!token) {
-            return null
+        // Get token from header
+        const authHeader = request.headers.get('authorization')
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split('Bearer ')[1]
+        } else {
+            // Check cookies
+            token = request.cookies.get('auth-token')?.value
         }
 
-        // Verify token
-        const decoded = jwt.verify(token, JWT_SECRET) as {
-            userId: string
-            email: string
-            role: string
+        if (!token) return null
+
+        // Verify Firebase ID token
+        const decodedToken = await adminAuth.verifyIdToken(token)
+
+        await connectDB()
+
+        // Find user by firebaseUid or email
+        let mongoUser = await User.findOne({ firebaseUid: decodedToken.uid })
+
+        if (!mongoUser && decodedToken.email) {
+            mongoUser = await User.findOne({ email: decodedToken.email.toLowerCase() })
+            if (mongoUser) {
+                // Link them
+                mongoUser.firebaseUid = decodedToken.uid
+                await mongoUser.save()
+            }
         }
 
-        return decoded
+        if (!mongoUser) {
+            // Auto-create user in MongoDB if not found
+            mongoUser = await User.create({
+                firebaseUid: decodedToken.uid,
+                email: decodedToken.email?.toLowerCase(),
+                name: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+                role: (decodedToken as any).role || 'student',
+                isVerified: true
+            })
+        }
+
+        return {
+            userId: mongoUser._id.toString(),
+            email: mongoUser.email,
+            role: mongoUser.role
+        }
     } catch (error) {
-        console.error('Token verification failed:', error)
+        console.error('Firebase/MongoDB token verification failed:', error)
         return null
     }
 }

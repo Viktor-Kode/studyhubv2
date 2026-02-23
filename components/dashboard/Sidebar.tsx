@@ -23,7 +23,7 @@ import {
 } from 'react-icons/fa'
 
 const studentMenuItems = [
-  { href: '/dashboard', icon: FaHome, label: 'Dashboard' },
+  { href: '/dashboard/student', icon: FaHome, label: 'Dashboard' },
   { href: '/dashboard/question-bank', icon: FaBrain, label: 'Question Bank' },
   { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/study-timer', icon: FaClock, label: 'Study Timer' },
@@ -98,8 +98,8 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
               href={item.href}
               onClick={onMobileClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                  ? 'bg-blue-500 text-white dark:bg-blue-600'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-blue-500 text-white dark:bg-blue-600'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               <Icon className="text-lg" />

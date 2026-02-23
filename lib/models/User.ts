@@ -11,6 +11,7 @@ export interface IUser extends mongoose.Document {
     resetPasswordExpires?: Date
     oauthProvider?: 'google' | null
     oauthId?: string
+    firebaseUid?: string
     avatar?: string
     createdAt: Date
     updatedAt: Date
@@ -55,6 +56,11 @@ const UserSchema = new mongoose.Schema<IUser>(
             default: null
         },
         oauthId: String,
+        firebaseUid: {
+            type: String,
+            unique: true,
+            sparse: true
+        },
         avatar: String
     },
     {

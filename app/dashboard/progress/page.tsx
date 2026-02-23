@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import { FiTrendingUp, FiClock, FiBook, FiAward, FiBarChart2, FiCalendar, FiTarget, FiLoader } from 'react-icons/fi'
 import { BiTimer, BiBrain } from 'react-icons/bi'
 
@@ -12,17 +13,11 @@ export default function ProgressPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Get token from cookie
-                const match = typeof document !== 'undefined'
-                    ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-                    : null
-                const token = match ? decodeURIComponent(match[2]) : ''
+                const token = await getFirebaseToken()
+                const headers: Record<string, string> = {}
+                if (token) headers['Authorization'] = `Bearer ${token}`
 
-                const response = await fetch('/api/stats', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
+                const response = await fetch('/api/stats', { headers })
                 const data = await response.json()
                 if (data.stats) {
                     setStats(data.stats)

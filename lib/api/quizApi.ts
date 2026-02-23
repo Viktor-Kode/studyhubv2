@@ -1,10 +1,9 @@
-import { getTokenFromCookie } from '@/lib/store/authStore'
+import { getFirebaseToken } from '@/lib/store/authStore'
 
-// Use the internal Next.js proxy to avoid CORS issues
 const API_BASE_URL = '/api/backend/ai'
 
-function authHeaders(): Record<string, string> {
-    const token = getTokenFromCookie()
+async function authHeaders(): Promise<Record<string, string>> {
+    const token = await getFirebaseToken()
     return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
@@ -59,10 +58,9 @@ export const generateQuiz = async (
 ): Promise<QuizResponse> => {
     const response = await fetch(`${API_BASE_URL}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
         body: JSON.stringify({ text, amount, questionType, fileName, forceNew })
     })
-
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to generate quiz')
@@ -72,7 +70,7 @@ export const generateQuiz = async (
 
 export const getAllQuizSessions = async (): Promise<SessionsListResponse> => {
     const response = await fetch(`${API_BASE_URL}/sessions`, {
-        headers: { ...authHeaders() }
+        headers: { ...await authHeaders() }
     })
     if (!response.ok) throw new Error('Failed to fetch quiz sessions')
     return response.json()
@@ -81,7 +79,7 @@ export const getAllQuizSessions = async (): Promise<SessionsListResponse> => {
 export const deleteQuizSession = async (id: string): Promise<{ success: boolean; message: string }> => {
     const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
         method: 'DELETE',
-        headers: { ...authHeaders() }
+        headers: { ...await authHeaders() }
     })
     if (!response.ok) throw new Error('Failed to delete quiz session')
     return response.json()
@@ -93,10 +91,9 @@ export const generateStudyNotes = async (
 ): Promise<{ success: boolean; notes: string }> => {
     const response = await fetch(`${API_BASE_URL}/notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
         body: JSON.stringify({ text, fileName })
     })
-
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to generate study notes')
@@ -112,10 +109,9 @@ export const saveStudyNote = async (
 ): Promise<{ success: boolean; note: StudyNote }> => {
     const response = await fetch(`${API_BASE_URL}/notes/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
         body: JSON.stringify({ title, content, sourceFileName, tags })
     })
-
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to save study note')
@@ -125,7 +121,7 @@ export const saveStudyNote = async (
 
 export const fetchStudyNotes = async (): Promise<{ success: boolean; notes: StudyNote[] }> => {
     const response = await fetch(`${API_BASE_URL}/notes`, {
-        headers: { ...authHeaders() }
+        headers: { ...await authHeaders() }
     })
     if (!response.ok) throw new Error('Failed to fetch study notes')
     return response.json()
@@ -134,7 +130,7 @@ export const fetchStudyNotes = async (): Promise<{ success: boolean; notes: Stud
 export const deleteStudyNote = async (id: string): Promise<{ success: boolean; message: string }> => {
     const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
         method: 'DELETE',
-        headers: { ...authHeaders() }
+        headers: { ...await authHeaders() }
     })
     if (!response.ok) throw new Error('Failed to delete study note')
     return response.json()
@@ -147,10 +143,9 @@ export const chatWithTutor = async (
 ): Promise<{ success: boolean; reply: string }> => {
     const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
         body: JSON.stringify({ message, context, chatHistory })
     })
-
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Tutor is currently unavailable')

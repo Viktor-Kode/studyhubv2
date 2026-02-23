@@ -15,11 +15,11 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
-  const { user, clearAuth } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const isTeacher = user?.role === 'teacher'
 
   const handleLogout = () => {
-    clearAuth()
+    logout()
     router.push('/')
   }
 
@@ -42,11 +42,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
               className="flex items-center space-x-3 group"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 overflow-hidden">
-                <Image 
-                  src="/favicon-32x32.png" 
-                  alt="StudyHelp Logo" 
-                  width={32} 
-                  height={32} 
+                <Image
+                  src="/favicon-32x32.png"
+                  alt="StudyHelp Logo"
+                  width={32}
+                  height={32}
                   className="object-contain"
                 />
               </div>

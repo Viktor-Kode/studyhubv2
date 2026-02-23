@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import {
   FaQuestionCircle,
   FaSearch,
@@ -45,13 +46,11 @@ export default function TeacherQuestionsPage() {
 
   const loadQuestions = async () => {
     try {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
-      const headers = { 'Authorization': `Bearer ${token}` }
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch('/api/ai/questions', { headers })
+      const response = await fetch('/api/backend/ai/questions', { headers })
       const result = await response.json()
 
       if (result.success) {
@@ -97,14 +96,13 @@ export default function TeacherQuestionsPage() {
   const deleteQuestion = async (id: string) => {
     if (confirm('Are you sure you want to delete this question?')) {
       try {
-        const match = typeof document !== 'undefined'
-          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-          : null
-        const token = match ? decodeURIComponent(match[2]) : ''
+        const token = await getFirebaseToken()
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
-        await fetch(`/api/ai/questions/${id}`, {
+        await fetch(`/api/backend/ai/questions/${id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers
         })
         setQuestions(prev => prev.filter(q => (q as any)._id !== id && (q as any).id !== id))
       } catch (error) {

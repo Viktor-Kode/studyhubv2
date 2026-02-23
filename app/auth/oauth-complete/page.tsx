@@ -2,89 +2,84 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { authService } from '@/lib/auth/authService'
 import { useAuthStore } from '@/lib/store/authStore'
+import { saveUserRole, fetchAppUser } from '@/lib/firebase-auth'
+import type { AppRole } from '@/lib/types/auth'
+import { auth } from '@/lib/firebase'
 import { FiLoader, FiUser, FiAlertCircle } from 'react-icons/fi'
 import { FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa'
 
+/**
+ * OAuthComplete
+ * Shown when a Google user needs to confirm/set their display name and role.
+ * Now powered entirely by Firebase — no NextAuth or backend needed.
+ */
 export default function OAuthCompletePage() {
     const router = useRouter()
-    const { data: session, status } = useSession()
-    const { login } = useAuthStore()
+    const { user, setUser, isLoading } = useAuthStore()
 
-    const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | null>(null)
+    const [selectedRole, setSelectedRole] = useState<AppRole | null>(null)
     const [name, setName] = useState('')
     const [error, setError] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
     const [checkingProfile, setCheckingProfile] = useState(true)
 
     useEffect(() => {
-        if (status === 'unauthenticated') {
-            router.push('/auth/login')
+        // Wait for Firebase auth state to resolve
+        if (isLoading) return
+
+        if (!user) {
+            router.replace('/auth/login')
+            return
         }
 
-        if (status === 'authenticated' && session?.user) {
-            checkExistingProfile()
-        }
-    }, [status, session])
+        checkExistingProfile()
+    }, [isLoading, user])
 
     const checkExistingProfile = async () => {
+        if (!user) return
         try {
-            // Check if user already has a role
-            const result = await authService.getCurrentUser()
-
-            if (result.user && result.user.role) {
-                // User already has profile, redirect to dashboard
-                console.log('[OAuthComplete] Profile exists, logging in with token');
-                login(result.user, result.token || '')
-                router.push('/dashboard')
-            } else {
-                // Need to complete profile
-                setCheckingProfile(false)
-                setName(session?.user?.name || '')
+            // Check if Firestore doc already has a role set
+            const snap = await getDoc(doc(db, 'users', user.uid))
+            if (snap.exists() && snap.data().role) {
+                // Profile already complete — go straight to dashboard
+                router.replace('/dashboard')
+                return
             }
-        } catch (err) {
-            // New user, need to complete profile
-            setCheckingProfile(false)
-            setName(session?.user?.name || '')
+        } catch {
+            // ignore — we'll show the form anyway
         }
+        setName(user.name || '')
+        setCheckingProfile(false)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!selectedRole) { setError('Please select your role'); return }
+        if (!name.trim()) { setError('Please enter your name'); return }
+        if (!user) return
 
-        if (!selectedRole) {
-            setError('Please select your role')
-            return
-        }
-
-        if (!name.trim()) {
-            setError('Please enter your name')
-            return
-        }
-
-        setIsLoading(true)
+        setSubmitting(true)
         setError('')
 
         try {
-            const result = await authService.completeOAuthProfile(selectedRole, name)
-            console.log('[OAuthComplete] Profile saved, logging in with token');
-            login(result.user, result.token || '')
+            await saveUserRole(user.uid, selectedRole, name.trim())
+            // Update local store
+            setUser({ ...user, role: selectedRole, name: name.trim() })
             router.push('/dashboard')
         } catch (err: any) {
-            setError(err.message || 'Failed to complete profile')
+            setError(err?.message || 'Failed to save profile')
         } finally {
-            setIsLoading(false)
+            setSubmitting(false)
         }
     }
 
-    if (checkingProfile) {
+    if (isLoading || checkingProfile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
                 <div className="text-center">
                     <FiLoader className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">Setting up your account...</p>
+                    <p className="text-gray-600 dark:text-gray-400">Setting up your account…</p>
                 </div>
             </div>
         )
@@ -110,7 +105,6 @@ export default function OAuthCompletePage() {
                 {/* Form Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
 
-                    {/* Error Message */}
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
                             <FiAlertCircle className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -120,20 +114,16 @@ export default function OAuthCompletePage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-                        {/* Role Selection - AT TOP */}
+                        {/* Role Selection */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                I am a...
+                                I am a…
                             </label>
                             <div className="grid grid-cols-2 gap-4">
-
-                                {/* Student Card */}
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setSelectedRole('student')
-                                        setError('')
-                                    }}
+                                    id="complete-role-student"
+                                    onClick={() => { setSelectedRole('student'); setError('') }}
                                     className={`p-6 border-2 rounded-xl transition ${selectedRole === 'student'
                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
                                         : 'border-gray-300 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'
@@ -142,19 +132,14 @@ export default function OAuthCompletePage() {
                                     <div className="text-center">
                                         <FaUserGraduate className={`text-3xl mx-auto mb-2 ${selectedRole === 'student' ? 'text-blue-600' : 'text-gray-400'}`} />
                                         <p className="font-bold text-gray-900 dark:text-white mb-1">Student</p>
-                                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                                            Access study tools & resources
-                                        </p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">Access study tools &amp; resources</p>
                                     </div>
                                 </button>
 
-                                {/* Teacher Card */}
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setSelectedRole('teacher')
-                                        setError('')
-                                    }}
+                                    id="complete-role-teacher"
+                                    onClick={() => { setSelectedRole('teacher'); setError('') }}
                                     className={`p-6 border-2 rounded-xl transition ${selectedRole === 'teacher'
                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
                                         : 'border-gray-300 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'
@@ -163,47 +148,44 @@ export default function OAuthCompletePage() {
                                     <div className="text-center">
                                         <FaChalkboardTeacher className={`text-3xl mx-auto mb-2 ${selectedRole === 'teacher' ? 'text-blue-600' : 'text-gray-400'}`} />
                                         <p className="font-bold text-gray-900 dark:text-white mb-1">Teacher</p>
-                                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                                            Manage classes & students
-                                        </p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">Manage classes &amp; students</p>
                                     </div>
                                 </button>
                             </div>
                         </div>
 
-                        {/* Name */}
+                        {/* Display Name */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Your Name
                             </label>
                             <input
+                                id="complete-name"
                                 type="text"
                                 value={name}
-                                onChange={(e) => {
-                                    setName(e.target.value)
-                                    setError('')
-                                }}
+                                onChange={(e) => { setName(e.target.value); setError('') }}
                                 placeholder="John Doe"
-                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600
                            rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             />
                         </div>
 
-                        {/* Submit Button */}
+                        {/* Submit */}
                         <button
+                            id="complete-profile-btn"
                             type="submit"
-                            disabled={isLoading || !selectedRole}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 
-                         hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl 
+                            disabled={submitting || !selectedRole}
+                            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600
+                         hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl
                          transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
                          flex items-center justify-center gap-2"
                         >
-                            {isLoading ? (
+                            {submitting ? (
                                 <>
                                     <FiLoader className="animate-spin" />
-                                    Setting up...
+                                    Setting up…
                                 </>
                             ) : (
                                 'Continue to Dashboard'

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { useAuthStore } from '@/lib/store/authStore'
-import { 
+import { useAuthStore, getFirebaseToken } from '@/lib/store/authStore'
+import {
   FaChalkboardTeacher,
   FaFilePdf,
   FaUsers,
@@ -48,42 +48,45 @@ export default function TeacherDashboardPage() {
     loadDashboardData()
   }, [])
 
-  const loadDashboardData = () => {
-    // Load generated questions from localStorage
-    const savedQuestions = localStorage.getItem('teacherGeneratedQuestions')
-    let questions: GeneratedQuestion[] = []
-    if (savedQuestions) {
-      try {
-        questions = JSON.parse(savedQuestions)
-      } catch (e) {
-        console.error('Error parsing questions:', e)
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      // Load generated questions from backend
+      const response = await fetch('/api/backend/ai/questions', { headers })
+      const result = await response.json()
+
+      let questions: GeneratedQuestion[] = []
+      if (result.success && result.questions) {
+        questions = result.questions.map((q: any) => ({
+          id: q._id || q.id,
+          question: q.question || q.content,
+          type: q.type,
+          difficulty: q.difficulty,
+          subject: q.subject,
+          createdAt: q.createdAt
+        }))
       }
+
+      // Stats for now - classes and students are still mock as they don't exist in backend yet
+      const totalQuestionsGenerated = questions.length
+
+      setStats({
+        totalQuestions: totalQuestionsGenerated,
+        activeClasses: 0, // Mock for now
+        studentsReached: 0, // Mock for now
+        questionsGenerated: totalQuestionsGenerated,
+      })
+      setRecentQuestions(questions.slice(0, 5))
+      setClasses([]) // Mock for now
+    } catch (error) {
+      console.error('Error loading teacher dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
-
-    // Load classes from localStorage
-    const savedClasses = localStorage.getItem('teacherClasses')
-    let teacherClasses: Class[] = []
-    if (savedClasses) {
-      try {
-        teacherClasses = JSON.parse(savedClasses)
-      } catch (e) {
-        console.error('Error parsing classes:', e)
-      }
-    }
-
-    // Calculate stats
-    const totalStudents = teacherClasses.reduce((sum, cls) => sum + cls.studentCount, 0)
-    const totalQuestionsGenerated = questions.length
-
-    setStats({
-      totalQuestions: totalQuestionsGenerated,
-      activeClasses: teacherClasses.length,
-      studentsReached: totalStudents,
-      questionsGenerated: totalQuestionsGenerated,
-    })
-    setRecentQuestions(questions.slice(0, 5))
-    setClasses(teacherClasses.slice(0, 3))
-    setLoading(false)
   }
 
   const getGreeting = () => {
@@ -94,31 +97,31 @@ export default function TeacherDashboardPage() {
   }
 
   const quickLinks = [
-    { 
-      href: '/dashboard/teacher/question-generator', 
-      icon: FaBrain, 
-      label: 'Question Generator', 
+    {
+      href: '/dashboard/teacher/question-generator',
+      icon: FaBrain,
+      label: 'Question Generator',
       color: 'blue',
       description: 'Generate AI questions from PDFs'
     },
-    { 
-      href: '/dashboard/teacher/classes', 
-      icon: FaUsers, 
-      label: 'Class Management', 
+    {
+      href: '/dashboard/teacher/classes',
+      icon: FaUsers,
+      label: 'Class Management',
       color: 'purple',
       description: 'Manage your classes and students'
     },
-    { 
-      href: '/dashboard/teacher/analytics', 
-      icon: FaChartLine, 
-      label: 'Analytics', 
+    {
+      href: '/dashboard/teacher/analytics',
+      icon: FaChartLine,
+      label: 'Analytics',
       color: 'emerald',
       description: 'View student performance data'
     },
-    { 
-      href: '/dashboard/teacher/questions', 
-      icon: FaQuestionCircle, 
-      label: 'Question Bank', 
+    {
+      href: '/dashboard/teacher/questions',
+      icon: FaQuestionCircle,
+      label: 'Question Bank',
       color: 'cyan',
       description: 'View all generated questions'
     },
@@ -286,13 +289,12 @@ export default function TeacherDashboardPage() {
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {question.subject}
                           </span>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            question.difficulty === 'easy' 
-                              ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
-                              : question.difficulty === 'medium'
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${question.difficulty === 'easy'
+                            ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400'
+                            : question.difficulty === 'medium'
                               ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400'
                               : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'
-                          }`}>
+                            }`}>
                             {question.difficulty}
                           </span>
                         </div>

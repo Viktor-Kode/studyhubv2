@@ -7,10 +7,11 @@ import {
   FaFilter, FaClock
 } from 'react-icons/fa'
 import { format, isPast, parseISO, compareAsc } from 'date-fns'
-import { useAuthStore } from '@/lib/store/authStore'
+import { useAuthStore, getFirebaseToken } from '@/lib/store/authStore'
 
 interface Reminder {
-  id: string
+  _id?: string
+  id?: string
   title: string
   date: string
   time: string
@@ -24,7 +25,7 @@ interface Reminder {
 
 export default function StudyReminders() {
   const { user } = useAuthStore()
-  const userId = user?.id || 'guest'
+  const userId = user?.uid || 'guest'
   // State
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
@@ -56,24 +57,18 @@ export default function StudyReminders() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const match = typeof document !== 'undefined'
-          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-          : null
-        const token = match ? decodeURIComponent(match[2]) : ''
-        const headers = { 'Authorization': `Bearer ${token}` }
+        const token = await getFirebaseToken()
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const response = await fetch('/api/reminders', { headers })
+        const response = await fetch('/api/backend/reminders', { headers })
         const { reminders: dbReminders } = await response.json()
 
         if (dbReminders?.length > 0) {
           setReminders(dbReminders)
         } else {
-          // Default demo data if empty - optional, or just start empty
           setReminders([])
         }
-
-        // WhatsApp number could be in User profile - for now, we'll just use a local state synced to a setting
-        // or a specific settings API.
       } catch (error) {
         console.error('Failed to load reminders:', error)
       } finally {
@@ -92,19 +87,17 @@ export default function StudyReminders() {
     }
 
     try {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
-      const headers = {
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       }
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
+      const url = editingId ? `/api/backend/reminders/${editingId}` : '/api/backend/reminders'
       const method = editingId ? 'PUT' : 'POST'
-      const body = { ...formData, _id: editingId }
+      const body = { ...formData }
 
-      const response = await fetch('/api/reminders', {
+      const response = await fetch(url, {
         method,
         headers,
         body: JSON.stringify(body)
@@ -112,7 +105,7 @@ export default function StudyReminders() {
       const { reminder } = await response.json()
 
       if (editingId) {
-        setReminders(prev => prev.map(r => r._id === editingId ? reminder : r))
+        setReminders(prev => prev.map(r => (r._id === editingId || r.id === editingId) ? reminder : r))
       } else {
         setReminders(prev => [...prev, reminder])
       }
@@ -126,16 +119,15 @@ export default function StudyReminders() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this reminder?')) {
       try {
-        const match = typeof document !== 'undefined'
-          ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-          : null
-        const token = match ? decodeURIComponent(match[2]) : ''
+        const token = await getFirebaseToken()
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
-        await fetch(`/api/reminders?id=${id}`, {
+        await fetch(`/api/backend/reminders/${id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers
         })
-        setReminders(prev => prev.filter(r => r._id !== id))
+        setReminders(prev => prev.filter(r => r._id !== id && r.id !== id))
       } catch (error) {
         console.error('Failed to delete reminder:', error)
       }
@@ -144,22 +136,20 @@ export default function StudyReminders() {
 
   const toggleComplete = async (reminder: any) => {
     try {
-      const match = typeof document !== 'undefined'
-        ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-        : null
-      const token = match ? decodeURIComponent(match[2]) : ''
-      const headers = {
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       }
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch('/api/reminders', {
+      const id = reminder._id || reminder.id
+      const response = await fetch(`/api/backend/reminders/${id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ ...reminder, completed: !reminder.completed })
+        body: JSON.stringify({ completed: !reminder.completed })
       })
       const { reminder: updated } = await response.json()
-      setReminders(prev => prev.map(r => r._id === updated._id ? updated : r))
+      setReminders(prev => prev.map(r => (r._id === id || r.id === id) ? updated : r))
     } catch (error) {
       console.error('Failed to toggle completion:', error)
     }
@@ -386,7 +376,7 @@ export default function StudyReminders() {
                     <FaEdit />
                   </button>
                   <button
-                    onClick={() => handleDelete(reminder._id)}
+                    onClick={() => handleDelete(reminder._id!)}
                     className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                     title="Delete"
                   >

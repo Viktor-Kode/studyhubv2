@@ -5,7 +5,8 @@ import { useState } from 'react'
 import { FiSettings, FiUser, FiBell, FiLock, FiMoon, FiGlobe, FiCheckCircle, FiAlertCircle, FiLoader, FiLogOut, FiTrash2 } from 'react-icons/fi'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
-import { authService } from '@/lib/auth/authService'
+import { firebaseSignOut } from '@/lib/firebase-auth'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
@@ -40,34 +41,32 @@ export default function SettingsPage() {
 
         setIsLoading(true)
         try {
-            const API_URL = '/api/backend'
-            // Get token from cookie (not localStorage)
-            const match = typeof document !== 'undefined'
-                ? document.cookie.match(/(^| )auth-token=([^;]+)/)
-                : null
-            const token = match ? decodeURIComponent(match[2]) : ''
+            const { auth } = await import('@/lib/firebase')
+            const { updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth')
 
-            const response = await fetch(`${API_URL}/users/update-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    currentPassword: passwordForm.currentPassword,
-                    newPassword: passwordForm.newPassword
-                })
-            })
+            const user = auth.currentUser
+            if (!user || !user.email) throw new Error('No authenticated user found')
 
-            const result = await response.json()
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to update password')
-            }
+            // Re-authenticate user before updating password (required by Firebase)
+            const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword)
+            await reauthenticateWithCredential(user, credential)
+
+            // Update password
+            await updatePassword(user, passwordForm.newPassword)
 
             setSuccess('Password updated successfully!')
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
         } catch (err: any) {
-            setError(err.message || 'Failed to update password')
+            console.error('Password update error:', err)
+            let msg = 'Failed to update password'
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                msg = 'Incorrect current password'
+            } else if (err.code === 'auth/requires-recent-login') {
+                msg = 'Please sign out and sign in again to change your password'
+            } else {
+                msg = err.message || msg
+            }
+            setError(msg)
         } finally {
             setIsLoading(false)
         }
@@ -75,7 +74,7 @@ export default function SettingsPage() {
 
     const handleLogout = async () => {
         try {
-            await authService.logout()
+            await firebaseSignOut()
         } catch { }
         logout()
         router.push('/auth/login')
@@ -270,10 +269,10 @@ export default function SettingsPage() {
                                 </div>
 
                                 {/* Auth Provider Info */}
-                                {user?.oauthProvider && (
+                                {(user as any)?.oauthProvider && (
                                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
                                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                                            <strong>Note:</strong> Your account is linked via {user.oauthProvider}. Password changes only apply to email/password logins.
+                                            <strong>Note:</strong> Your account is linked via {(user as any).oauthProvider}. Password changes only apply to email/password logins.
                                         </p>
                                     </div>
                                 )}

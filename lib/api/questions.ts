@@ -30,17 +30,17 @@ export interface GenerateQuestionsResponse {
 
 export const questionsApi = {
   getAll: async (): Promise<Question[]> => {
-    const response = await apiClient.get<Question[]>('/questions')
+    const response = await apiClient.get<Question[]>('/ai/questions')
     return response.data
   },
 
   getById: async (id: string): Promise<Question> => {
-    const response = await apiClient.get<Question>(`/questions/${id}`)
+    const response = await apiClient.get<Question>(`/ai/questions/${id}`)
     return response.data
   },
 
   create: async (data: CreateQuestionData): Promise<Question> => {
-    const response = await apiClient.post<Question>('/questions', data)
+    const response = await apiClient.post<Question>('/ai/questions', data)
     return response.data
   },
 
@@ -57,7 +57,7 @@ export const questionsApi = {
   ): Promise<GenerateQuestionsResponse> => {
     const formData = new FormData()
     formData.append('pdf', file)
-    
+
     if (options?.difficulty) {
       formData.append('difficulty', options.difficulty)
     }
@@ -78,7 +78,7 @@ export const questionsApi = {
     }
 
     const response = await apiClient.post<GenerateQuestionsResponse>(
-      '/questions/generate-from-pdf',
+      '/ai/generate-from-pdf',
       formData,
       {
         headers: {
