@@ -1,0 +1,63 @@
+services:
+  # BACKEND SERVICE
+  - type: web
+    name: studyhelp-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    rootContext: studyhelpBackend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: studyhelp-frontend
+          property: host
+      - key: MONGO_URI
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: ALOC_ACCESS_TOKEN
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # FRONTEND SERVICE
+  - type: web
+    name: studyhelp-frontend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    rootContext: studyhelpFrontend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BACKEND_API_URL
+        fromService:
+          type: web
+          name: studyhelp-backend
+          property: host
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: studyhelp-backend
+          property: host
+      - key: ALOC_ACCESS_TOKEN
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+
+
