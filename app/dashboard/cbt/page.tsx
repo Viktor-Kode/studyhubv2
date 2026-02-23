@@ -361,7 +361,7 @@ export default function CBTPage() {
                 </p>
                 <p className="text-sm text-blue-700 dark:text-blue-400 mt-0.5">
                   Questions are sourced from ALOC Questions API with real WAEC, JAMB, NECO past questions.
-                  Make sure your ALOC_ACCESS_TOKEN is set in .env.local
+                  Ensure your ALOC_ACCESS_TOKEN is configured in your environment settings.
                 </p>
               </div>
             </div>
@@ -460,13 +460,13 @@ export default function CBTPage() {
                         </a>
                       </li>
                       <li>Copy your AccessToken from the dashboard</li>
-                      <li>Add to <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">.env.local</code>:
+                      <li>Add to your environment variables:
                         <br />
                         <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-green-600 dark:text-green-400">
                           ALOC_ACCESS_TOKEN=ALOC-yourtoken
                         </code>
                       </li>
-                      <li>Restart the dev server</li>
+                      <li>Redeploy your application</li>
                       <li>
                         Test connection:{' '}
                         <a

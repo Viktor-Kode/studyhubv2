@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
-    const token = process.env.ALOC_ACCESS_TOKEN || 'NOT SET'
+    const rawToken = process.env.ALOC_ACCESS_TOKEN;
+    const token = rawToken && rawToken !== 'undefined' ? rawToken : 'NOT SET';
+
     const tokenPreview = token !== 'NOT SET'
         ? token.substring(0, 8) + '...'
         : 'NOT SET'
@@ -13,8 +17,9 @@ export async function GET(request: NextRequest) {
         const response = await fetch(testUrl, {
             headers: {
                 'Accept': 'application/json',
-                'AccessToken': process.env.ALOC_ACCESS_TOKEN || '',
-            }
+                'AccessToken': token !== 'NOT SET' ? token.trim() : '',
+            },
+            cache: 'no-store'
         })
 
         const responseText = await response.text()
@@ -40,7 +45,8 @@ export async function GET(request: NextRequest) {
             tokenSet: token !== 'NOT SET',
             tokenPreview,
             error: error.message,
-            hint: 'Check if ALOC_ACCESS_TOKEN is set in .env.local'
+            hint: 'Ensure ALOC_ACCESS_TOKEN is correctly set in your environment variables.'
         })
     }
 }
+

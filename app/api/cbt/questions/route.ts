@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic';
+
 const ALOC_BASE = 'https://questions.aloc.com.ng/api/v2'
+
 export async function GET(request: NextRequest) {
     // Read token INSIDE the function to ensure it's picked up from the runtime environment
-    const ALOC_TOKEN = process.env.ALOC_ACCESS_TOKEN;
+    // Use trim() and check for "undefined" string which sometimes happens on some CI/CD
+    const rawToken = process.env.ALOC_ACCESS_TOKEN;
+    const ALOC_TOKEN = rawToken && rawToken !== 'undefined' ? rawToken.trim() : null;
 
     if (!ALOC_TOKEN) {
-        console.error('ALOC_ACCESS_TOKEN is missing in the current environment.');
+        console.error('ALOC_ACCESS_TOKEN is missing or empty in the current environment.');
         return NextResponse.json(
-            { error: 'API Configuration Error: Access Token missing. Please check Render Environment Variables.' },
+            {
+                error: 'API Configuration Error: Access Token missing.',
+                details: 'The ALOC_ACCESS_TOKEN is not correctly configured in the production environment variables.',
+                tip: 'Please ensure ALOC_ACCESS_TOKEN is set in your Render dashboard Environment variables.'
+            },
             { status: 500 }
         );
     }
@@ -28,23 +37,23 @@ export async function GET(request: NextRequest) {
             alocUrl += `&year=${year}`
         }
 
-        console.log('Fetching ALOC Questions...');
+        console.log(`Fetching ALOC Questions for ${subject}...`);
 
         const response = await fetch(alocUrl, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json, text/plain, */*', // More permissive Accept header
-                'AccessToken': ALOC_TOKEN.trim(),    // Trim whitespace
+                'Accept': 'application/json',
+                'AccessToken': ALOC_TOKEN,
                 'Content-Type': 'application/json'
             },
-            next: { revalidate: 3600 }
+            cache: 'no-store' // Ensure no stale data
         })
 
         if (response.status === 406) {
             return NextResponse.json(
                 {
                     error: 'ALOC API returned 406 Not Acceptable.',
-                    details: 'This often means the AccessToken is invalid or not recognized by their server. Please check your token on questions.aloc.com.ng dashboard.'
+                    details: 'The AccessToken may be invalid or expired. Check questions.aloc.com.ng.'
                 },
                 { status: 406 }
             );
@@ -75,8 +84,6 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // ALOC returns { status: true, message: "...", data: [...] }
-        // OR sometimes { status: true, token: "...", data: [...] }
         return NextResponse.json(data)
 
     } catch (error: any) {
@@ -87,3 +94,4 @@ export async function GET(request: NextRequest) {
         )
     }
 }
+
