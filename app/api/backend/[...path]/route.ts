@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server'
 
+export const dynamic = 'force-dynamic';
+
 const BACKEND_BASE = process.env.BACKEND_API_URL || 'https://studyhelp-zyqw.onrender.com/api'
+
 
 async function forward(req: NextRequest, params: { path?: string[] }) {
   const path = params.path?.join('/') || ''
