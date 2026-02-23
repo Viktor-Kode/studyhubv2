@@ -2,26 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic';
 
-const ALOC_BASE = 'https://questions.aloc.com.ng/api/v2'
+// Use backend proxy for CBT questions to centralize token management
+const BACKEND_BASE = process.env.BACKEND_API_URL || 'https://studyhelp-zyqw.onrender.com/api'
 
 export async function GET(request: NextRequest) {
-    // Read token INSIDE the function to ensure it's picked up from the runtime environment
-    // Use trim() and check for "undefined" string which sometimes happens on some CI/CD
-    const rawToken = process.env.ALOC_ACCESS_TOKEN;
-    const ALOC_TOKEN = rawToken && rawToken !== 'undefined' ? rawToken.trim() : null;
-
-    if (!ALOC_TOKEN) {
-        console.error('ALOC_ACCESS_TOKEN is missing or empty in the current environment.');
-        return NextResponse.json(
-            {
-                error: 'API Configuration Error: Access Token missing.',
-                details: 'The ALOC_ACCESS_TOKEN is not correctly configured in the production environment variables.',
-                tip: 'Please ensure ALOC_ACCESS_TOKEN is set in your Render dashboard Environment variables.'
-            },
-            { status: 500 }
-        );
-    }
-
     try {
         const { searchParams } = new URL(request.url)
         const subject = searchParams.get('subject') || 'english'
@@ -29,69 +13,38 @@ export async function GET(request: NextRequest) {
         const type = searchParams.get('type') || 'utme'
         const amount = searchParams.get('amount') || '20'
 
-        // CORRECT ALOC URL FORMAT: amount is in the path /q/{amount}
-        let alocUrl = `${ALOC_BASE}/m/${amount}?subject=${subject}&type=${type}`
+        // Centralized URL for the backend proxy
+        const backendUrl = `${BACKEND_BASE}/cbt/questions?subject=${subject}&type=${type}&year=${year}&amount=${amount}`
 
-        // Year is optional
-        if (year) {
-            alocUrl += `&year=${year}`
-        }
+        console.log(`Delegating CBT Fetch to backend: ${subject}...`);
 
-        console.log(`Fetching ALOC Questions for ${subject}...`);
-
-        const response = await fetch(alocUrl, {
+        const response = await fetch(backendUrl, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'AccessToken': ALOC_TOKEN,
-                'Content-Type': 'application/json'
+                // Authorization will be handled if the backend proxy requires it (it does)
+                // But the frontend api route running server-side won't have the user token 
+                // unless we forward it from the incoming request.
+                'Authorization': request.headers.get('Authorization') || '',
             },
-            cache: 'no-store' // Ensure no stale data
+            cache: 'no-store'
         })
 
-        if (response.status === 406) {
-            return NextResponse.json(
-                {
-                    error: 'ALOC API returned 406 Not Acceptable.',
-                    details: 'The AccessToken may be invalid or expired. Check questions.aloc.com.ng.'
-                },
-                { status: 406 }
-            );
-        }
-
-        const responseText = await response.text()
-
-        let data
-        try {
-            data = JSON.parse(responseText)
-        } catch {
-            console.error('Failed to parse ALOC response:', responseText)
-            return NextResponse.json(
-                {
-                    error: 'Invalid response from questions API',
-                    status: response.status,
-                    raw: responseText.substring(0, 200)
-                },
-                { status: 500 }
-            )
-        }
+        const data = await response.json()
 
         if (!response.ok) {
-            console.error('ALOC error status:', response.status, data)
-            return NextResponse.json(
-                { error: `API error: ${response.status}`, details: data },
-                { status: response.status }
-            )
+            return NextResponse.json(data, { status: response.status })
         }
 
         return NextResponse.json(data)
 
     } catch (error: any) {
-        console.error('CBT proxy error:', error)
+        console.error('Frontend CBT proxy error:', error)
         return NextResponse.json(
-            { error: error.message || 'Failed to fetch questions' },
+            { error: error.message || 'Failed to fetch questions via backend proxy' },
             { status: 500 }
         )
     }
 }
+
 
