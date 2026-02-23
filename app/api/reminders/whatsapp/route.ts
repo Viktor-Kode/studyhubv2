@@ -2,34 +2,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID
-const authToken = process.env.TWILIO_AUTH_TOKEN
-const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886'
-
-let twilioClient: any = null
-
-// Only initialize if credentials exist
-if (accountSid && authToken) {
-    try {
-        twilioClient = twilio(accountSid, authToken)
-    } catch (error) {
-        console.error('Failed to initialize Twilio client:', error)
-    }
-}
-
 export async function POST(request: NextRequest) {
+    // Read variables inside the handler
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886';
+
     try {
         const { phoneNumber, message, reminderTitle, forceText } = await request.json()
 
-        if (!twilioClient) {
+        // Validate configurations inside the handler
+        if (!accountSid || !authToken) {
+            console.error('Twilio credentials missing in Render environment.');
             return NextResponse.json(
                 {
-                    error: 'WhatsApp notifications not configured. Please add Twilio credentials to .env.local',
+                    error: 'Twilio Configuration Error: Missing SID or Token in production environment.',
                     setupRequired: true
                 },
                 { status: 503 }
             )
         }
+
+        // Initialize client on the fly (or you can use a global cached version if you prefer)
+        const twilioClient = twilio(accountSid, authToken);
 
         // Validate phone number format
         if (!phoneNumber || !phoneNumber.startsWith('whatsapp:')) {

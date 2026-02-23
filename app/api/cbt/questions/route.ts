@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const ALOC_BASE = 'https://questions.aloc.com.ng/api/v2'
-const ALOC_TOKEN = process.env.ALOC_ACCESS_TOKEN || ''
-
 export async function GET(request: NextRequest) {
+    // Read token INSIDE the function to ensure it's picked up from the runtime environment
+    const ALOC_TOKEN = process.env.ALOC_ACCESS_TOKEN;
+
+    if (!ALOC_TOKEN) {
+        console.error('ALOC_ACCESS_TOKEN is missing in the current environment.');
+        return NextResponse.json(
+            { error: 'API Configuration Error: Access Token missing. Please check Render Environment Variables.' },
+            { status: 500 }
+        );
+    }
+
     try {
         const { searchParams } = new URL(request.url)
         const subject = searchParams.get('subject') || 'english'
@@ -19,7 +28,7 @@ export async function GET(request: NextRequest) {
             alocUrl += `&year=${year}`
         }
 
-        console.log('Fetching ALOC:', alocUrl)
+        console.log('Fetching ALOC Questions...');
 
         const response = await fetch(alocUrl, {
             method: 'GET',
