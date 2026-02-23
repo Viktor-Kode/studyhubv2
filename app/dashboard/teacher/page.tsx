@@ -14,6 +14,7 @@ import {
   FaBrain
 } from 'react-icons/fa'
 import Link from 'next/link'
+import { classService } from '@/lib/services/classService'
 
 interface GeneratedQuestion {
   id: string
@@ -51,6 +52,7 @@ export default function TeacherDashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      if (!user?.uid) return
       const token = await getFirebaseToken()
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
@@ -71,17 +73,19 @@ export default function TeacherDashboardPage() {
         }))
       }
 
-      // Stats for now - classes and students are still mock as they don't exist in backend yet
+      // Real Stats from Firestore
+      const teacherClasses = await classService.getTeacherClasses(user.uid)
       const totalQuestionsGenerated = questions.length
+      const totalStudents = teacherClasses.reduce((acc, cls) => acc + (cls.studentCount || 0), 0)
 
       setStats({
         totalQuestions: totalQuestionsGenerated,
-        activeClasses: 0, // Mock for now
-        studentsReached: 0, // Mock for now
+        activeClasses: teacherClasses.length,
+        studentsReached: totalStudents,
         questionsGenerated: totalQuestionsGenerated,
       })
       setRecentQuestions(questions.slice(0, 5))
-      setClasses([]) // Mock for now
+      setClasses(teacherClasses as any)
     } catch (error) {
       console.error('Error loading teacher dashboard data:', error)
     } finally {
@@ -149,7 +153,7 @@ export default function TeacherDashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {getGreeting()}, {user?.email?.split('@')[0] || 'Teacher'}!
+                  {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Teacher'}!
                 </h1>
                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-full">
                   TEACHER DASHBOARD

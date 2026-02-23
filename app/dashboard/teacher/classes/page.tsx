@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Link from 'next/link'
-import { 
-  FaUsers, 
-  FaPlus, 
-  FaEdit, 
+import {
+  FaUsers,
+  FaPlus,
+  FaEdit,
   FaTrash,
   FaSearch,
   FaQuestionCircle,
@@ -22,6 +22,9 @@ import {
   FaClock,
   FaGraduationCap
 } from 'react-icons/fa'
+import { classService, Class as FirestoreClass, StudentInClass } from '@/lib/services/classService'
+import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
+import { useAuthStore } from '@/lib/store/authStore'
 
 interface Student {
   id: string
@@ -47,22 +50,9 @@ interface Announcement {
   createdAt: string
 }
 
-interface Class {
-  id: string
-  name: string
-  subject: string
-  studentCount: number
-  questionsGenerated: number
-  description?: string
-  createdAt: string
-  students?: Student[]
-  schedule?: {
-    day: string
-    time: string
-    location?: string
-  }[]
-  assignments?: Assignment[]
-  announcements?: Announcement[]
+interface Class extends FirestoreClass {
+  students?: StudentInClass[]
+  schedule?: TimetableSlot[]
 }
 
 export default function ClassManagementPage() {
@@ -86,22 +76,25 @@ export default function ClassManagementPage() {
   const [newAssignment, setNewAssignment] = useState({ title: '', type: 'assignment' as const, dueDate: '', totalMarks: 0 })
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' })
 
+  const { user } = useAuthStore()
+
   useEffect(() => {
-    loadClasses()
-  }, [])
+    if (user?.uid) {
+      loadClasses()
+    }
+  }, [user?.uid])
 
   useEffect(() => {
     filterClasses()
   }, [classes, searchTerm])
 
-  const loadClasses = () => {
+  const loadClasses = async () => {
     try {
-      const savedClasses = localStorage.getItem('teacherClasses')
-      if (savedClasses) {
-        const parsed = JSON.parse(savedClasses)
-        setClasses(parsed)
-        setFilteredClasses(parsed)
-      }
+      setLoading(true)
+      if (!user?.uid) return
+      const fetchedClasses = await classService.getTeacherClasses(user.uid)
+      setClasses(fetchedClasses as Class[])
+      setFilteredClasses(fetchedClasses as Class[])
     } catch (error) {
       console.error('Error loading classes:', error)
     } finally {
@@ -154,136 +147,149 @@ export default function ClassManagementPage() {
     })
   }
 
-  const saveClass = () => {
-    if (!formData.name || !formData.subject) {
+  const saveClass = async () => {
+    if (!formData.name || !formData.subject || !user?.uid) {
       alert('Please fill in all required fields')
       return
     }
 
-    if (editingClass) {
-      // Update existing class
-      const updated = classes.map((cls) =>
-        cls.id === editingClass.id
-          ? {
-              ...cls,
-              ...formData,
-            }
-          : cls
-      )
-      setClasses(updated)
-      localStorage.setItem('teacherClasses', JSON.stringify(updated))
-    } else {
-      // Create new class
-      const newClass: Class = {
-        id: `class-${Date.now()}`,
-        ...formData,
-        questionsGenerated: 0,
-        createdAt: new Date().toISOString(),
+    try {
+      if (editingClass) {
+        // Update class Service doesn't exist yet but I can add it or use Firestore directly
+        const { doc, updateDoc } = await import('firebase/firestore')
+        const { db } = await import('@/lib/firebase')
+        await updateDoc(doc(db, 'classes', editingClass.id), {
+          name: formData.name,
+          subject: formData.subject,
+          description: formData.description
+        })
+      } else {
+        await classService.createClass(user.uid, {
+          name: formData.name,
+          subject: formData.subject,
+          description: formData.description
+        })
       }
-      const updated = [...classes, newClass]
-      setClasses(updated)
-      localStorage.setItem('teacherClasses', JSON.stringify(updated))
+      loadClasses()
+      closeModal()
+    } catch (error) {
+      console.error('Error saving class:', error)
+      alert('Failed to save class')
     }
-
-    closeModal()
   }
 
-  const deleteClass = (id: string) => {
+  const deleteClass = async (id: string) => {
     if (confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
-      const updated = classes.filter((cls) => cls.id !== id)
-      setClasses(updated)
-      localStorage.setItem('teacherClasses', JSON.stringify(updated))
+      try {
+        const { doc, deleteDoc } = await import('firebase/firestore')
+        const { db } = await import('@/lib/firebase')
+        await deleteDoc(doc(db, 'classes', id))
+        loadClasses()
+      } catch (error) {
+        console.error('Error deleting class:', error)
+      }
     }
   }
 
-  const openClassDetails = (cls: Class) => {
+  const openClassDetails = async (cls: Class) => {
     setSelectedClass(cls)
     setShowClassDetails(true)
     setActiveTab('students')
+
+    // Fetch students and schedule slots
+    try {
+      const [students, schedule] = await Promise.all([
+        classService.getClassStudents(cls.id),
+        timetableService.getClassTimetable(cls.id)
+      ])
+
+      const updatedCls = {
+        ...cls,
+        students: students as any,
+        schedule: schedule as any
+      }
+
+      setSelectedClass(updatedCls)
+      // Also update in main list if needed, but for now just details
+    } catch (error) {
+      console.error('Error fetching class details:', error)
+    }
   }
 
   const closeClassDetails = () => {
     setShowClassDetails(false)
     setSelectedClass(null)
+    loadClasses() // Refresh main list student counts
   }
 
-  const addStudent = () => {
-    if (!selectedClass || !newStudent.name) {
-      alert('Please enter student name')
+  const addStudent = async () => {
+    if (!selectedClass || !newStudent.name || !newStudent.email) {
+      alert('Please enter student name and email')
       return
     }
-    const student: Student = {
-      id: `student-${Date.now()}`,
-      name: newStudent.name,
-      email: newStudent.email || undefined,
-      studentId: newStudent.studentId || undefined,
-      addedAt: new Date().toISOString(),
+
+    try {
+      // For now, we use email as a way to link students. 
+      // If we had a search-by-email we'd use that ID. 
+      // For simplicity, we just enrol with the info provided.
+      await classService.enrolStudent(
+        selectedClass.id,
+        `ext-${Date.now()}`, // Placeholder ID if they aren't a user yet
+        newStudent.name,
+        newStudent.email
+      )
+
+      // Refresh details
+      openClassDetails(selectedClass)
+      setNewStudent({ name: '', email: '', studentId: '' })
+    } catch (error) {
+      console.error('Error adding student:', error)
     }
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-            ...cls,
-            students: [...(cls.students || []), student],
-            studentCount: (cls.students?.length || 0) + 1,
-          }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
-    setNewStudent({ name: '', email: '', studentId: '' })
   }
 
-  const removeStudent = (studentId: string) => {
+  const removeStudent = async (studentId: string) => {
     if (!selectedClass) return
     if (confirm('Remove this student from the class?')) {
-      const updated = classes.map((cls) =>
-        cls.id === selectedClass.id
-          ? {
-              ...cls,
-              students: (cls.students || []).filter((s) => s.id !== studentId),
-              studentCount: Math.max(0, (cls.students?.length || 0) - 1),
-            }
-          : cls
-      )
-      setClasses(updated)
-      setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-      localStorage.setItem('teacherClasses', JSON.stringify(updated))
+      try {
+        await classService.removeStudent(selectedClass.id, studentId)
+        openClassDetails(selectedClass)
+      } catch (error) {
+        console.error('Error removing student:', error)
+      }
     }
   }
 
-  const addSchedule = () => {
+  const addSchedule = async () => {
     if (!selectedClass || !newSchedule.day || !newSchedule.time) {
       alert('Please fill in day and time')
       return
     }
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-            ...cls,
-            schedule: [...(cls.schedule || []), { ...newSchedule }],
-          }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
-    setNewSchedule({ day: '', time: '', location: '' })
+
+    try {
+      await timetableService.addSlot(selectedClass.id, {
+        day: newSchedule.day as any,
+        startTime: newSchedule.time,
+        endTime: newSchedule.time, // Same for now or +1h
+        subject: selectedClass.subject,
+        teacherName: user?.displayName || user?.email || 'Teacher',
+        location: newSchedule.location,
+      })
+
+      openClassDetails(selectedClass)
+      setNewSchedule({ day: '', time: '', location: '' })
+    } catch (error) {
+      console.error('Error adding schedule:', error)
+    }
   }
 
-  const removeSchedule = (index: number) => {
+  const removeSchedule = async (slotId: string) => {
     if (!selectedClass) return
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-            ...cls,
-            schedule: (cls.schedule || []).filter((_, i) => i !== index),
-          }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
+    try {
+      await timetableService.deleteSlot(selectedClass.id, slotId)
+      openClassDetails(selectedClass)
+    } catch (error) {
+      console.error('Error removing schedule:', error)
+    }
   }
 
   const addAssignment = () => {
@@ -299,9 +305,9 @@ export default function ClassManagementPage() {
     const updated = classes.map((cls) =>
       cls.id === selectedClass.id
         ? {
-            ...cls,
-            assignments: [...(cls.assignments || []), assignment],
-          }
+          ...cls,
+          assignments: [...(cls.assignments || []), assignment],
+        }
         : cls
     )
     setClasses(updated)
@@ -315,9 +321,9 @@ export default function ClassManagementPage() {
     const updated = classes.map((cls) =>
       cls.id === selectedClass.id
         ? {
-            ...cls,
-            assignments: (cls.assignments || []).filter((a) => a.id !== assignmentId),
-          }
+          ...cls,
+          assignments: (cls.assignments || []).filter((a) => a.id !== assignmentId),
+        }
         : cls
     )
     setClasses(updated)
@@ -338,9 +344,9 @@ export default function ClassManagementPage() {
     const updated = classes.map((cls) =>
       cls.id === selectedClass.id
         ? {
-            ...cls,
-            announcements: [...(cls.announcements || []), announcement],
-          }
+          ...cls,
+          announcements: [...(cls.announcements || []), announcement],
+        }
         : cls
     )
     setClasses(updated)
@@ -354,9 +360,9 @@ export default function ClassManagementPage() {
     const updated = classes.map((cls) =>
       cls.id === selectedClass.id
         ? {
-            ...cls,
-            announcements: (cls.announcements || []).filter((a) => a.id !== announcementId),
-          }
+          ...cls,
+          announcements: (cls.announcements || []).filter((a) => a.id !== announcementId),
+        }
         : cls
     )
     setClasses(updated)
@@ -661,11 +667,10 @@ export default function ClassManagementPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`px-4 py-3 flex items-center gap-2 border-b-2 transition-colors ${
-                        activeTab === tab.id
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400 font-semibold'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
+                      className={`px-4 py-3 flex items-center gap-2 border-b-2 transition-colors ${activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400 font-semibold'
+                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
                     >
                       <Icon />
                       {tab.label}
@@ -730,18 +735,17 @@ export default function ClassManagementPage() {
                       {selectedClass.students && selectedClass.students.length > 0 ? (
                         selectedClass.students.map((student) => (
                           <div
-                            key={student.id}
+                            key={student.uid}
                             className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
                           >
                             <div>
                               <p className="font-medium text-gray-900 dark:text-white">{student.name}</p>
                               <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {student.email && <span>{student.email}</span>}
-                                {student.studentId && <span>ID: {student.studentId}</span>}
                               </div>
                             </div>
                             <button
-                              onClick={() => removeStudent(student.id)}
+                              onClick={() => removeStudent(student.uid)}
                               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                             >
                               <FaTrash />
@@ -809,9 +813,9 @@ export default function ClassManagementPage() {
                     {/* Schedule List */}
                     <div className="space-y-2">
                       {selectedClass.schedule && selectedClass.schedule.length > 0 ? (
-                        selectedClass.schedule.map((schedule, index) => (
+                        selectedClass.schedule.map((schedule) => (
                           <div
-                            key={index}
+                            key={schedule.id}
                             className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
                           >
                             <div className="flex items-center gap-4">
@@ -820,13 +824,13 @@ export default function ClassManagementPage() {
                                 <p className="font-medium text-gray-900 dark:text-white">{schedule.day}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                   <FaClock className="inline mr-1" />
-                                  {schedule.time}
+                                  {schedule.startTime}
                                   {schedule.location && ` • ${schedule.location}`}
                                 </p>
                               </div>
                             </div>
                             <button
-                              onClick={() => removeSchedule(index)}
+                              onClick={() => removeSchedule(schedule.id)}
                               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                             >
                               <FaTrash />
@@ -910,12 +914,11 @@ export default function ClassManagementPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h4 className="font-semibold text-gray-900 dark:text-white">{assignment.title}</h4>
-                                  <span className={`px-2 py-1 rounded text-xs ${
-                                    assignment.type === 'assignment' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400' :
+                                  <span className={`px-2 py-1 rounded text-xs ${assignment.type === 'assignment' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400' :
                                     assignment.type === 'classwork' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' :
-                                    assignment.type === 'mid-term' ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400' :
-                                    'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-400'
-                                  }`}>
+                                      assignment.type === 'mid-term' ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400' :
+                                        'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-400'
+                                    }`}>
                                     {assignment.type === 'assignment' ? 'Assignment' : assignment.type === 'classwork' ? 'Classwork' : assignment.type === 'mid-term' ? 'Mid-Term' : 'Examination'}
                                   </span>
                                 </div>

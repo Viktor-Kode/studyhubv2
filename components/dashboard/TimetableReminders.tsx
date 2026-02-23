@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi'
 import { MdWhatsapp } from 'react-icons/md'
 import WhatsAppNumberInput from '@/components/WhatsAppNumberInput'
+import { useAuthStore } from '@/lib/store/authStore'
 
 type TabMode = 'calendar' | 'list' | 'settings'
 type FilterType = 'all' | 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
@@ -21,6 +22,8 @@ export default function TimetableReminders() {
     const [activeTab, setActiveTab] = useState<TabMode>('calendar')
     const [filterType, setFilterType] = useState<FilterType>('all')
     const [searchQuery, setSearchQuery] = useState('')
+    const { user } = useAuthStore()
+    const [loading, setLoading] = useState(true)
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
@@ -47,22 +50,30 @@ export default function TimetableReminders() {
     })
 
     useEffect(() => {
-        loadReminders()
-        loadWhatsAppNumber()
-        reminderService.requestNotificationPermission()
-        reminderService.init() // Reschedule any pending notifications
-    }, [])
+        if (user?.uid) {
+            loadReminders()
+            loadWhatsAppNumber()
+            reminderService.requestNotificationPermission()
+            reminderService.init()
+        }
+    }, [user?.uid])
 
     useEffect(() => {
         filterReminders()
     }, [reminders, filterType, searchQuery, selectedDate])
 
-    const loadReminders = () => {
-        const all = reminderService.getAll()
-        setReminders(all)
+    const loadReminders = async () => {
+        if (!user?.uid) return
+        try {
+            setLoading(true)
+            const all = await reminderService.getAll(user.uid)
+            setReminders(all)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const loadWhatsAppNumber = () => {
+    const loadWhatsAppNumber = async () => {
         const saved = reminderService.getWhatsAppNumber()
         if (saved) {
             setWhatsappNumber(saved)
@@ -105,27 +116,34 @@ export default function TimetableReminders() {
         setFilteredReminders(filtered)
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!user?.uid) return
 
         const reminderData = {
             ...formData,
             whatsappNumber: formData.whatsappEnabled ? whatsappNumber : undefined
         }
 
-        if (editingId) {
-            reminderService.update(editingId, reminderData)
-        } else {
-            reminderService.add(reminderData)
-        }
+        try {
+            if (editingId) {
+                await reminderService.update(user.uid, editingId, reminderData)
+            } else {
+                await reminderService.add(user.uid, reminderData)
+            }
 
-        loadReminders()
-        resetForm()
+            loadReminders()
+            resetForm()
+        } catch (error) {
+            console.error('Failed to save reminder:', error)
+            alert('Error saving reminder')
+        }
     }
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
+        if (!user?.uid) return
         if (confirm('Delete this reminder?')) {
-            reminderService.delete(id)
+            await reminderService.delete(user.uid, id)
             loadReminders()
         }
     }
@@ -149,8 +167,9 @@ export default function TimetableReminders() {
         setShowAddForm(true)
     }
 
-    const handleMarkComplete = (id: string) => {
-        reminderService.markCompleted(id)
+    const handleMarkComplete = async (id: string) => {
+        if (!user?.uid) return
+        await reminderService.markCompleted(user.uid, id)
         loadReminders()
     }
 
@@ -247,7 +266,15 @@ export default function TimetableReminders() {
     }
 
     const todayReminders = reminders.filter(r => r.date === new Date().toISOString().split('T')[0] && !r.completed)
-    const upcomingReminders = reminderService.getUpcoming(7)
+    const [upcomingRemindersCount, setUpcomingRemindersCount] = useState(0)
+
+    useEffect(() => {
+        if (user?.uid) {
+            reminderService.getUpcoming(user.uid, 7).then(upcoming => {
+                setUpcomingRemindersCount(upcoming.length)
+            })
+        }
+    }, [reminders, user?.uid])
 
     return (
         <div className="space-y-6">
@@ -305,7 +332,7 @@ export default function TimetableReminders() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-orange-700 dark:text-orange-300 mb-1">Next 7 Days</p>
-                                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{upcomingReminders.length}</p>
+                                <p className="text-2xl font-bold text-orange-900 dark:text-blue-100">{upcomingRemindersCount}</p>
                             </div>
                             <FiBell className="text-3xl text-orange-500" />
                         </div>

@@ -13,9 +13,12 @@ import {
   FiCheckCircle, FiArrowRight, FiZap, FiBell,
   FiTarget, FiLoader
 } from 'react-icons/fi'
-import { MdQuiz, MdSchool } from 'react-icons/md'
+import { MdQuiz, MdSchool, MdClass } from 'react-icons/md'
 import { BiCard, BiTimer, BiBrain } from 'react-icons/bi'
 import Link from 'next/link'
+import { classService, Class } from '@/lib/services/classService'
+import { reminderService, Reminder } from '@/lib/services/reminderService'
+import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore()
@@ -31,66 +34,56 @@ export default function StudentDashboardPage() {
     upcomingReminders: 0,
   })
   const [activities, setActivities] = useState<any[]>([])
+  const [enrolledClasses, setEnrolledClasses] = useState<Class[]>([])
+  const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
+  const [nextClass, setNextClass] = useState<TimetableSlot | null>(null)
+  const [nextClassId, setNextClassId] = useState<string | null>(null)
+
+  const loadDashboardData = async () => {
+    try {
+      if (user?.uid) {
+        const [classes, reminders] = await Promise.all([
+          classService.getStudentClasses(user.uid),
+          reminderService.getUpcoming(user.uid, 7)
+        ])
+        setEnrolledClasses(classes)
+        setUpcomingReminders(reminders)
+
+        // Find next class from enrolled classes
+        if (classes.length > 0) {
+          const allSlots: TimetableSlot[] = []
+          for (const cls of classes) {
+            const slots = await timetableService.getClassTimetable(cls.id)
+            allSlots.push(...slots)
+          }
+
+          if (allSlots.length > 0) {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+            const now = new Date()
+            const nowTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+
+            const upcomingSlots = allSlots.filter(s => {
+              if (s.day !== today) return false
+              return s.startTime > nowTime
+            }).sort((a, b) => a.startTime.localeCompare(b.startTime))
+
+            if (upcomingSlots.length > 0) {
+              setNextClass(upcomingSlots[0])
+              setNextClassId(upcomingSlots[0].classId)
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to load dashboard:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     loadDashboardData()
-  }, [])
-
-  const loadDashboardData = async () => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
-
-    try {
-      const token = await getFirebaseToken()
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      // Fetch all data from backend via proxy with timeout
-      const [statsRes, historyRes] = await Promise.all([
-        fetch('/api/backend/study/stats', { headers, signal: controller.signal }).then(r => r.json()),
-        fetch('/api/backend/study/history', { headers, signal: controller.signal }).then(r => r.json())
-      ])
-
-      clearTimeout(timeoutId)
-
-      if (statsRes.stats) {
-        const s = statsRes.stats
-        setStats({
-          totalQuestions: s.questionCount || 0,
-          quizSessions: s.totalSessions || 0,
-          studyHours: Math.round((s.totalDuration || 0) / 60),
-          studyStreak: s.studyStreak || 0,
-          completedSessions: s.totalSessions || 0,
-          totalFlashcards: s.flashcardCount || 0,
-          masteredCards: s.masteredCards || 0,
-          upcomingReminders: 0
-        })
-      }
-
-      // Process Activities from history
-      if (historyRes.sessions) {
-        const historyActivities = historyRes.sessions.map((s: any) => ({
-          id: s._id,
-          type: s.type || 'study',
-          title: s.title || 'Focus Session',
-          subtitle: `${s.duration} minutes of focus`,
-          date: s.startTime || s.createdAt,
-          icon: s.type === 'quiz' ? MdQuiz : FiClock,
-          color: s.type === 'quiz' ? 'emerald' : 'blue'
-        }))
-        setActivities(historyActivities.slice(0, 5))
-      }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.error('Dashboard load timed out after 15s')
-      } else {
-        console.error('Failed to load dashboard:', err)
-      }
-    } finally {
-      setLoading(false)
-      clearTimeout(timeoutId)
-    }
-  }
+  }, [user?.uid])
 
   const quickLinks = [
     {
@@ -172,12 +165,24 @@ export default function StudentDashboardPage() {
           <div className="flex items-center gap-3 mb-2">
             <MdSchool className="text-3xl text-blue-500" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {getGreeting()}, {user?.name || 'Student'}!
+              {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Student'}!
             </h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Here's your learning overview and progress
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Have a productive learning session today
           </p>
+          {nextClass && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 flex items-center gap-4 animate-pulse">
+              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white">
+                <FiClock className="text-2xl" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Next Class Coming Up</p>
+                <p className="font-bold text-gray-900 dark:text-white">{nextClass.subject} at {nextClass.startTime}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{nextClass.room || 'Online Session'}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -241,38 +246,127 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        {/* Quick Links Grid */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <FiGrid className="text-blue-500" />
-            Quick Access
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickLinks.map((link) => {
-              const Icon = link.icon
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all group"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${getColorClasses(link.color)} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <Icon className="text-white text-xl" />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Classes & Quick Links */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Enrolled Classes */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <MdClass className="text-blue-500" />
+                My Enrolled Classes
+              </h2>
+              {enrolledClasses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {enrolledClasses.map((cls) => (
+                    <div key={cls.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                          <FiBook className="text-blue-600" />
+                        </div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{cls.subject}</p>
+                      <Link href={`/dashboard/timetable?classId=${cls.id}`} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                        View Timetable <FiArrowRight />
+                      </Link>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                        {link.label}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {link.description}
-                      </p>
-                    </div>
-                    <FiArrowRight className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center">
+                  <p className="text-gray-500">Not enrolled in any classes yet.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Access */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <FiGrid className="text-blue-500" />
+                Quick Access
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {quickLinks.slice(0, 4).map((link) => {
+                  const Icon = link.icon
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all group"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 bg-gradient-to-br ${getColorClasses(link.color)} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                          <Icon className="text-white text-xl" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                            {link.label}
+                          </h3>
+                        </div>
+                        <FiArrowRight className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Upcoming Reminders & Actions */}
+          <div className="space-y-8">
+            {/* Upcoming Reminders */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <FiBell className="text-orange-500" />
+                Upcoming Reminders
+              </h2>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {upcomingReminders.length > 0 ? (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {upcomingReminders.slice(0, 5).map((reminder) => (
+                      <div key={reminder.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-white">{reminder.title}</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${new Date(`${reminder.date}T${reminder.time}`) < new Date()
+                            ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                            {reminder.time}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">{new Date(reminder.date).toLocaleDateString()}</p>
+                      </div>
+                    ))}
                   </div>
-                </Link>
-              )
-            })}
+                ) : (
+                  <div className="p-8 text-center text-gray-500 text-sm">
+                    No upcoming reminders.
+                  </div>
+                )}
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700">
+                  <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline flex items-center justify-center gap-1">
+                    Manage Reminders <FiArrowRight />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* DeepSeek AI Chat Quick Access */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <BiBrain className="text-2xl" />
+                </div>
+                <div>
+                  <h3 className="font-bold">AI Assistant</h3>
+                  <p className="text-xs text-blue-100">Powered by DeepSeek</p>
+                </div>
+              </div>
+              <p className="text-sm mb-4 text-blue-50">Ask anything about your studies, questions, or concepts.</p>
+              <Link href="/dashboard/chat" className="block w-full py-2 bg-white text-blue-600 rounded-xl font-bold text-center text-sm hover:bg-blue-50 transition-colors">
+                Start Chatting
+              </Link>
+            </div>
           </div>
         </div>
 
