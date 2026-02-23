@@ -33,15 +33,24 @@ export async function GET(request: NextRequest) {
         const response = await fetch(alocUrl, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'AccessToken': ALOC_TOKEN,    // MUST be "AccessToken" exactly
+                'Accept': 'application/json, text/plain, */*', // More permissive Accept header
+                'AccessToken': ALOC_TOKEN.trim(),    // Trim whitespace
                 'Content-Type': 'application/json'
             },
             next: { revalidate: 3600 }
         })
 
+        if (response.status === 406) {
+            return NextResponse.json(
+                {
+                    error: 'ALOC API returned 406 Not Acceptable.',
+                    details: 'This often means the AccessToken is invalid or not recognized by their server. Please check your token on questions.aloc.com.ng dashboard.'
+                },
+                { status: 406 }
+            );
+        }
+
         const responseText = await response.text()
-        // console.log('ALOC Raw Response:', responseText.substring(0, 200))
 
         let data
         try {
@@ -49,7 +58,11 @@ export async function GET(request: NextRequest) {
         } catch {
             console.error('Failed to parse ALOC response:', responseText)
             return NextResponse.json(
-                { error: 'Invalid response from questions API', raw: responseText.substring(0, 100) },
+                {
+                    error: 'Invalid response from questions API',
+                    status: response.status,
+                    raw: responseText.substring(0, 200)
+                },
                 { status: 500 }
             )
         }
