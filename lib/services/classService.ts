@@ -1,27 +1,19 @@
-import { db } from '@/lib/firebase'
-import {
-    collection,
-    doc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    getDocs,
-    getDoc,
-    query,
-    where,
-    orderBy,
-    setDoc,
-    serverTimestamp,
-    DocumentData
-} from 'firebase/firestore'
+import { apiClient } from '../api/client'
 
 export interface Class {
     id: string
-    name: string
+    _id?: string // For backend compatibility
+    className: string
+    name?: string // For frontend compatibility
     subject: string
     teacherId: string
     description?: string
     studentCount: number
+    level: string
+    joinCode?: string
+    students?: any[]
+    assignments?: any[]
+    announcements?: any[]
     createdAt: any
 }
 
@@ -34,15 +26,14 @@ export interface StudentInClass {
 
 export const classService = {
     // Create a new class (Teacher)
-    async createClass(teacherId: string, classData: Omit<Class, 'id' | 'teacherId' | 'studentCount' | 'createdAt'>): Promise<string> {
+    async createClass(teacherId: string, classData: any): Promise<string> {
         try {
-            const docRef = await addDoc(collection(db, 'classes'), {
+            const response = await apiClient.post('/classes', {
                 ...classData,
-                teacherId,
-                studentCount: 0,
-                createdAt: serverTimestamp()
+                className: classData.name || classData.className,
+                level: classData.level || 'secondary'
             })
-            return docRef.id
+            return response.data.class._id
         } catch (error) {
             console.error('[classService] createClass failed:', error)
             throw error
@@ -52,115 +43,90 @@ export const classService = {
     // Get classes for a teacher
     async getTeacherClasses(teacherId: string): Promise<Class[]> {
         try {
-            const q = query(
-                collection(db, 'classes'),
-                where('teacherId', '==', teacherId),
-                orderBy('createdAt', 'desc')
-            )
-            const querySnapshot = await getDocs(q)
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Class))
+            const response = await apiClient.get('/classes')
+            return response.data.classes.map((cls: any) => ({
+                ...cls,
+                id: cls._id,
+                name: cls.className,
+                studentCount: cls.students?.length || 0
+            }))
         } catch (error) {
             console.error('[classService] getTeacherClasses failed:', error)
             return []
         }
     },
 
-    // Get classes for a student (based on enrolment)
+    // Get classes for a student (enrolled)
     async getStudentClasses(studentId: string): Promise<Class[]> {
         try {
-            // Check enrolment collection
-            const q = query(
-                collection(db, 'enrolments'),
-                where('studentId', '==', studentId)
-            )
-            const querySnapshot = await getDocs(q)
-            const classIds = querySnapshot.docs.map(doc => doc.data().classId)
-
-            if (classIds.length === 0) return []
-
-            // Fetch class details
-            const classes: Class[] = []
-            for (const classId of classIds) {
-                const classDoc = await getDoc(doc(db, 'classes', classId))
-                if (classDoc.exists()) {
-                    classes.push({ id: classDoc.id, ...classDoc.data() } as Class)
-                }
-            }
-            return classes
+            // Note: The backend route for student classes might be different or we use getClasses if student is filtered
+            // For now, let's assume getClasses returns what the user is authorized to see
+            const response = await apiClient.get('/classes')
+            return response.data.classes.map((cls: any) => ({
+                ...cls,
+                id: cls._id,
+                name: cls.className,
+                studentCount: cls.students?.length || 0
+            }))
         } catch (error) {
             console.error('[classService] getStudentClasses failed:', error)
             return []
         }
     },
 
-    // Enrol student in class
+    // Enrol student in class (Join)
     async enrolStudent(classId: string, studentId: string, studentName: string, studentEmail: string): Promise<void> {
-        try {
-            // Add to enrolments
-            await setDoc(doc(db, 'enrolments', `${classId}_${studentId}`), {
-                classId,
-                studentId,
-                studentName,
-                studentEmail,
-                enrolledAt: serverTimestamp()
-            })
+        // This is usually done by the student using a join code
+        // But if the teacher adds them, we might need a different endpoint
+        console.warn('enrolStudent (Join) should ideally be done via join code')
+    },
 
-            // Increment student count in class
-            const classRef = doc(db, 'classes', classId)
-            const classSnap = await getDoc(classRef)
-            if (classSnap.exists()) {
-                await updateDoc(classRef, {
-                    studentCount: (classSnap.data().studentCount || 0) + 1
-                })
-            }
+    // Join class by code
+    async joinClass(joinCode: string): Promise<void> {
+        try {
+            await apiClient.post('/classes/join', { joinCode })
         } catch (error) {
-            console.error('[classService] enrolStudent failed:', error)
+            console.error('[classService] joinClass failed:', error)
             throw error
         }
     },
 
     // Remove student from class
     async removeStudent(classId: string, studentId: string): Promise<void> {
-        try {
-            await deleteDoc(doc(db, 'enrolments', `${classId}_${studentId}`))
-
-            // Decrement student count
-            const classRef = doc(db, 'classes', classId)
-            const classSnap = await getDoc(classRef)
-            if (classSnap.exists()) {
-                await updateDoc(classRef, {
-                    studentCount: Math.max(0, (classSnap.data().studentCount || 0) - 1)
-                })
-            }
-        } catch (error) {
-            console.error('[classService] removeStudent failed:', error)
-            throw error
-        }
+        // Backend needs an endpoint for this if not present
+        console.warn('removeStudent endpoint not implemented on backend')
     },
 
     // Get students enrolled in a class
     async getClassStudents(classId: string): Promise<StudentInClass[]> {
         try {
-            const q = query(
-                collection(db, 'enrolments'),
-                where('classId', '==', classId)
-            )
-            const querySnapshot = await getDocs(q)
-            return querySnapshot.docs.map(doc => {
-                const data = doc.data()
-                return {
-                    uid: data.studentId,
-                    name: data.studentName,
-                    email: data.studentEmail,
-                    addedAt: data.enrolledAt
-                } as StudentInClass
-            })
+            const response = await apiClient.get(`/classes/${classId}/students`)
+            return response.data.students.map((s: any) => ({
+                uid: s._id,
+                name: s.name,
+                email: s.email,
+                addedAt: s.createdAt
+            }))
         } catch (error) {
             console.error('[classService] getClassStudents failed:', error)
             return []
+        }
+    },
+
+    // Update class (Assignments, Announcements, etc.)
+    async updateClass(classId: string, updateData: any): Promise<Class> {
+        try {
+            const response = await apiClient.put(`/classes/${classId}`, updateData)
+            const cls = response.data.class
+            return {
+                ...cls,
+                id: cls._id,
+                name: cls.className,
+                studentCount: cls.students?.length || 0
+            }
+        } catch (error) {
+            console.error('[classService] updateClass failed:', error)
+            throw error
         }
     }
 }

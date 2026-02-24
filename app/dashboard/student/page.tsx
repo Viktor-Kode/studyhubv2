@@ -42,12 +42,41 @@ export default function StudentDashboardPage() {
   const loadDashboardData = async () => {
     try {
       if (user?.uid) {
-        const [classes, reminders] = await Promise.all([
+        setLoading(true)
+        const [classes, reminders, flashStats, studyStats] = await Promise.all([
           classService.getStudentClasses(user.uid),
-          reminderService.getUpcoming(user.uid, 7)
+          reminderService.getUpcoming(user.uid, 7),
+          getFlashCardStats(),
+          apiClient.get('/study/stats').then(res => res.data.stats).catch(() => null)
         ])
+
         setEnrolledClasses(classes)
         setUpcomingReminders(reminders)
+
+        if (flashStats?.stats || studyStats) {
+          setStats({
+            totalQuestions: studyStats?.totalQuestions || 0,
+            quizSessions: studyStats?.quizSessions || 0,
+            studyHours: Math.round((studyStats?.totalStudyTime || 0) / 3600),
+            studyStreak: studyStats?.streak || 0,
+            completedSessions: studyStats?.sessionCount || 0,
+            totalFlashcards: flashStats?.stats?.totalCards || 0,
+            masteredCards: flashStats?.stats?.masteredCards || 0,
+            upcomingReminders: reminders.length,
+          })
+        }
+
+        // Fetch recent activities
+        const historyRes = await apiClient.get('/study/history').catch(() => ({ data: { history: [] } }));
+        const history = historyRes.data.history || [];
+        setActivities(history.map((h: any) => ({
+          id: h._id,
+          title: h.subject || 'Study Session',
+          subtitle: `${Math.round(h.duration / 60)} minutes`,
+          date: h.createdAt,
+          icon: FiClock,
+          color: 'blue'
+        })));
 
         // Find next class from enrolled classes
         if (classes.length > 0) {

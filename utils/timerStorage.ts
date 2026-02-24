@@ -1,9 +1,14 @@
+/**
+ * @deprecated Timer state is now managed via backend API at /api/backend/study/active-timer
+ * This file is kept for backward compatibility but should not be used for new code.
+ */
+
 export interface TimerState {
     isActive: boolean
     isPaused: boolean
-    startedAt: number | null       // timestamp when timer last started/resumed
-    remainingAtPause: number       // seconds remaining when paused
-    totalDuration: number          // total duration in seconds
+    startedAt: number | null
+    remainingAtPause: number
+    totalDuration: number
     sessionType: 'work' | 'break'
     subject: string
     pomodoroCount: number
@@ -11,30 +16,18 @@ export interface TimerState {
     sessionStartTime: number | null
 }
 
-const STORAGE_KEY = 'studyTimerState'
-
 export const saveTimerState = (state: TimerState) => {
-    if (typeof window === 'undefined') return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    // No-op: handled in StudyTimer component via API
 }
 
 export const loadTimerState = (): TimerState | null => {
-    if (typeof window === 'undefined') return null
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        if (!saved) return null
-        return JSON.parse(saved)
-    } catch {
-        return null
-    }
+    return null // Must be loaded async in component
 }
 
 export const clearTimerState = () => {
-    if (typeof window === 'undefined') return
-    localStorage.removeItem(STORAGE_KEY)
+    // No-op
 }
 
-// Calculate current remaining time based on saved state
 export const calculateRemainingTime = (state: TimerState): number => {
     if (!state.isActive || state.isPaused) {
         return state.remainingAtPause

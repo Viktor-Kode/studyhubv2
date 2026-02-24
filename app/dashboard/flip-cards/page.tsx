@@ -177,12 +177,24 @@ export default function FlipCardsPage() {
     }
   }
 
-  useEffect(() => {
-    if (viewMode === 'public' && bookQuery.trim() === '') {
-      // Default search for educational books
-      searchBooks('education science technology')
+  const loadPublicDecks = useCallback(async () => {
+    try {
+      const res = await getPublicDecks()
+      setPublicDecks(res.decks || [])
+    } catch (err) {
+      console.error('Public decks load error:', err)
     }
-  }, [viewMode])
+  }, [])
+
+  useEffect(() => {
+    if (viewMode === 'public') {
+      loadPublicDecks()
+      if (bookQuery.trim() === '') {
+        // Default search for educational books
+        searchBooks('education science technology')
+      }
+    }
+  }, [viewMode, loadPublicDecks])
 
   // =================== FILTERING ===================
 
@@ -1025,26 +1037,75 @@ export default function FlipCardsPage() {
         {/* ========== PUBLIC LIBRARY VIEW ========== */}
         {viewMode === 'public' && (
           <div className="space-y-8">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="flex gap-4">
-                <div className="flex-1 relative">
-                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    value={bookQuery}
-                    onChange={e => setBookQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && searchBooks(bookQuery)}
-                    placeholder="Search for books, textbooks, or authors..."
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none font-bold"
-                  />
+            {/* Discovery Section: Public Decks */}
+            {publicDecks.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl flex items-center justify-center">
+                    <FiLayers />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight">Community Collections</h2>
                 </div>
-                <button
-                  onClick={() => searchBooks(bookQuery)}
-                  className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center gap-2"
-                >
-                  {isSearchingBooks ? <FiLoader className="animate-spin" /> : <FiSearch />}
-                  SEARCH
-                </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {publicDecks.map(deck => (
+                    <div key={deck._id} className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all flex flex-col">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                          style={{ backgroundColor: deck.color + '20', color: deck.color }}
+                        >
+                          {getDeckIcon(deck.icon || 'book')}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-gray-900 dark:text-white leading-tight">{deck.name}</h3>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            {deck.cardCount || 0} CARDS • {deck.category}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-6 line-clamp-2">
+                        {deck.description || 'No description provided.'}
+                      </p>
+                      <button
+                        onClick={() => handleClone(deck._id!)}
+                        className="w-full py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                      >
+                        <FiDownload /> ADD TO MY LIBRARY
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-8 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl flex items-center justify-center">
+                  <FiBook />
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tight">Textbook Search</h2>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={bookQuery}
+                      onChange={e => setBookQuery(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && searchBooks(bookQuery)}
+                      placeholder="Search for books, textbooks, or authors..."
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none font-bold"
+                    />
+                  </div>
+                  <button
+                    onClick={() => searchBooks(bookQuery)}
+                    className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center gap-2"
+                  >
+                    {isSearchingBooks ? <FiLoader className="animate-spin" /> : <FiSearch />}
+                    SEARCH
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1109,95 +1170,95 @@ export default function FlipCardsPage() {
             )}
           </div>
         )}
-
-        {/* AI Generator Modal */}
-        {showAIModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isGenerating && setShowAIModal(false)}></div>
-            <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl border border-white/10">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center">
-                    <FiZap size={24} />
-                  </div>
-                  <h2 className="text-3xl font-black uppercase tracking-tight">AI Generator</h2>
-                </div>
-                <button onClick={() => setShowAIModal(false)} className="text-gray-400"><FiX /></button>
-              </div>
-
-              <div className="space-y-6">
-                <p className="text-gray-500 font-medium bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl text-sm border-l-4 border-purple-500">
-                  Paste your notes or some study text below. Our AI will automatically generate clear, professional flashcards for you.
-                </p>
-                <textarea
-                  value={aiText}
-                  onChange={(e) => setAiText(e.target.value)}
-                  placeholder="Paste your lecture notes, textbook text, or concepts here... (Min 50 characters)"
-                  className="w-full h-80 p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-[2rem] outline-none transition-all font-medium text-lg placeholder:text-gray-400"
-                />
-                <div className="flex gap-4">
-                  <button
-                    disabled={isGenerating || aiText.length < 50}
-                    onClick={handleGenerateAI}
-                    className="flex-1 py-5 bg-purple-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-4"
-                  >
-                    {isGenerating ? <FiLoader className="animate-spin" /> : <FiZap />}
-                    {isGenerating ? 'GENERATING...' : 'GENERATE CARDS'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Deck Form Modal */}
-        {showDeckForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeckForm(false)}></div>
-            <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
-              <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Create Deck</h2>
-              <form onSubmit={handleCreateDeck} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-black uppercase text-gray-400 mb-2">Collection Name</label>
-                  <input
-                    required placeholder="e.g. Advanced Microbiology"
-                    value={deckFormData.name} onChange={(e) => setDeckFormData({ ...deckFormData, name: e.target.value })}
-                    className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black uppercase text-gray-400 mb-2">Category</label>
-                  <select
-                    value={deckFormData.category}
-                    onChange={e => setDeckFormData({ ...deckFormData, category: e.target.value })}
-                    className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
-                  >
-                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-black uppercase text-gray-400 mb-3">System Icon</label>
-                  <div className="flex gap-3 flex-wrap">
-                    {deckIcons.map(icon => (
-                      <button
-                        key={icon} type="button"
-                        onClick={() => setDeckFormData({ ...deckFormData, icon })}
-                        className={`text-2xl w-12 h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
-                          }`}
-                      >
-                        {getDeckIcon(icon)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button type="submit" disabled={isSaving} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
-                  {isSaving ? 'CREATING...' : 'CREATE COLLECTION'}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* AI Generator Modal */}
+      {showAIModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isGenerating && setShowAIModal(false)}></div>
+          <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl border border-white/10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center">
+                  <FiZap size={24} />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tight">AI Generator</h2>
+              </div>
+              <button onClick={() => setShowAIModal(false)} className="text-gray-400"><FiX /></button>
+            </div>
+
+            <div className="space-y-6">
+              <p className="text-gray-500 font-medium bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl text-sm border-l-4 border-purple-500">
+                Paste your notes or some study text below. Our AI will automatically generate clear, professional flashcards for you.
+              </p>
+              <textarea
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                placeholder="Paste your lecture notes, textbook text, or concepts here... (Min 50 characters)"
+                className="w-full h-80 p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-[2rem] outline-none transition-all font-medium text-lg placeholder:text-gray-400"
+              />
+              <div className="flex gap-4">
+                <button
+                  disabled={isGenerating || aiText.length < 50}
+                  onClick={handleGenerateAI}
+                  className="flex-1 py-5 bg-purple-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-4"
+                >
+                  {isGenerating ? <FiLoader className="animate-spin" /> : <FiZap />}
+                  {isGenerating ? 'GENERATING...' : 'GENERATE CARDS'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deck Form Modal */}
+      {showDeckForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeckForm(false)}></div>
+          <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
+            <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Create Deck</h2>
+            <form onSubmit={handleCreateDeck} className="space-y-6">
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-400 mb-2">Collection Name</label>
+                <input
+                  required placeholder="e.g. Advanced Microbiology"
+                  value={deckFormData.name} onChange={(e) => setDeckFormData({ ...deckFormData, name: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-400 mb-2">Category</label>
+                <select
+                  value={deckFormData.category}
+                  onChange={e => setDeckFormData({ ...deckFormData, category: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
+                >
+                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-400 mb-3">System Icon</label>
+                <div className="flex gap-3 flex-wrap">
+                  {deckIcons.map(icon => (
+                    <button
+                      key={icon} type="button"
+                      onClick={() => setDeckFormData({ ...deckFormData, icon })}
+                      className={`text-2xl w-12 h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
+                        }`}
+                    >
+                      {getDeckIcon(icon)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" disabled={isSaving} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
+                {isSaving ? 'CREATING...' : 'CREATE COLLECTION'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   )
 }

@@ -1,5 +1,6 @@
 let alarmInterval: NodeJS.Timeout | null = null
 let audioContext: AudioContext | null = null
+let localAlarmActive = false
 
 // Create beep sound using Web Audio API (works without audio files)
 const createBeep = (frequency = 800, duration = 600, volume = 0.8) => {
@@ -51,9 +52,7 @@ export const startAlarm = () => {
         playAlarmPattern()
     }, 5000)
 
-    // Store alarm state in localStorage so we know alarm is active
-    localStorage.setItem('alarmActive', 'true')
-    localStorage.setItem('alarmStartedAt', Date.now().toString())
+    localAlarmActive = true
 }
 
 export const stopAlarm = () => {
@@ -63,13 +62,11 @@ export const stopAlarm = () => {
         clearInterval(alarmInterval)
         alarmInterval = null
     }
-    localStorage.removeItem('alarmActive')
-    localStorage.removeItem('alarmStartedAt')
+    localAlarmActive = false
 }
 
 export const isAlarmActive = (): boolean => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('alarmActive') === 'true'
+    return localAlarmActive
 }
 
 // Show browser notification when user is away from page

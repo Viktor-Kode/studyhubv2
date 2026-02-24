@@ -239,7 +239,7 @@ export default function ProgressAnalytics() {
         setFlashCardStats(fcStatsRes.value.stats || fcStatsRes.value)
       }
       if (historyRes.status === 'fulfilled') {
-        const sessions = historyRes.value.data?.data || historyRes.value.data || []
+        const sessions = historyRes.value.data?.history || historyRes.value.data || []
         // Transform backend sessions to match expected format
         const transformed = sessions.map((s: any) => ({
           id: s._id,

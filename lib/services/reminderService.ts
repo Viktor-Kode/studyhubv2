@@ -1,53 +1,37 @@
-import { db } from '@/lib/firebase'
-import {
-    collection,
-    doc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    getDocs,
-    query,
-    where,
-    orderBy,
-    Timestamp,
-    setDoc,
-    serverTimestamp
-} from 'firebase/firestore'
+import { apiClient } from '../api/client'
 
 export interface Reminder {
     id: string
+    _id?: string
     title: string
     description?: string
     date: string // YYYY-MM-DD
     time: string // HH:MM
-    type: 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
+    type: 'study' | 'exam' | 'deadline' | 'other' | 'assignment' | 'class'
     subject?: string
     location?: string
-    whatsappEnabled: boolean
-    whatsappNumber?: string
-    emailEnabled: boolean
-    notifyBefore: number // minutes before
-    recurring?: 'none' | 'daily' | 'weekly' | 'monthly'
+    priority?: 'low' | 'medium' | 'high'
     completed: boolean
-    createdAt: any
-    userId: string
+    sendWhatsApp: boolean // backend model name
+    whatsappEnabled?: boolean // frontend used this too
+    whatsappNumber?: string
+    emailEnabled?: boolean
+    notifyBefore?: number
+    recurring?: 'none' | 'daily' | 'weekly' | 'monthly'
+    recurringDays?: number[]
+    createdAt?: any
+    userId?: string
 }
 
 export const reminderService = {
-    // Get all reminders for a specific user from Firestore
+    // Get all reminders for a specific user from Backend
     async getAll(userId: string): Promise<Reminder[]> {
-        if (!userId) return []
         try {
-            const q = query(
-                collection(db, 'reminders', userId, 'items'),
-                orderBy('date', 'asc'),
-                orderBy('time', 'asc')
-            )
-            const querySnapshot = await getDocs(q)
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Reminder))
+            const response = await apiClient.get('/reminders')
+            return (response.data.reminders || []).map((r: any) => ({
+                ...r,
+                id: r._id
+            }))
         } catch (error) {
             console.error('[reminderService] getAll failed:', error)
             return []
@@ -67,40 +51,31 @@ export const reminderService = {
             })
     },
 
-    // Add new reminder to Firestore
-    async add(userId: string, reminder: Omit<Reminder, 'id' | 'createdAt' | 'completed' | 'userId'>): Promise<string> {
+    // Add new reminder to Backend
+    async add(userId: string, reminder: Omit<Reminder, 'id' | 'completed'>): Promise<string> {
         try {
-            const docRef = await addDoc(collection(db, 'reminders', userId, 'items'), {
-                ...reminder,
-                userId,
-                completed: false,
-                createdAt: serverTimestamp()
-            })
-            return docRef.id
+            const response = await apiClient.post('/reminders', reminder)
+            return response.data.reminder._id
         } catch (error) {
             console.error('[reminderService] add failed:', error)
             throw error
         }
     },
 
-    // Update reminder in Firestore
+    // Update reminder in Backend
     async update(userId: string, id: string, updates: Partial<Reminder>): Promise<void> {
         try {
-            const docRef = doc(db, 'reminders', userId, 'items', id)
-            await updateDoc(docRef, {
-                ...updates,
-                updatedAt: serverTimestamp()
-            })
+            await apiClient.patch(`/reminders/${id}`, updates)
         } catch (error) {
             console.error('[reminderService] update failed:', error)
             throw error
         }
     },
 
-    // Delete reminder from Firestore
+    // Delete reminder from Backend
     async delete(userId: string, id: string): Promise<void> {
         try {
-            await deleteDoc(doc(db, 'reminders', userId, 'items', id))
+            await apiClient.delete(`/reminders/${id}`)
         } catch (error) {
             console.error('[reminderService] delete failed:', error)
             throw error
@@ -112,26 +87,18 @@ export const reminderService = {
         return this.update(userId, id, { completed: true })
     },
 
-    // Forward WhatsApp notification (requires backend API)
-    async sendWhatsAppNotification(reminder: Reminder, forceText = false): Promise<{ success: boolean; error?: string }> {
-        if (!reminder.whatsappEnabled || !reminder.whatsappNumber) {
+    // Forward WhatsApp notification
+    async sendWhatsAppNotification(reminder: Reminder): Promise<{ success: boolean; error?: string }> {
+        if (!reminder.sendWhatsApp || !reminder.whatsappNumber) {
             return { success: false, error: 'WhatsApp not enabled' }
         }
 
         try {
-            const response = await fetch('/api/reminders/whatsapp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    phoneNumber: reminder.whatsappNumber,
-                    message: this.formatWhatsAppMessage(reminder),
-                    reminderTitle: reminder.title,
-                    forceText
-                })
+            const response = await apiClient.post('/reminders/whatsapp', {
+                phoneNumber: reminder.whatsappNumber,
+                message: this.formatWhatsAppMessage(reminder)
             })
-
-            const data = await response.json()
-            return { success: response.ok, error: data.error }
+            return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message }
         }
@@ -144,25 +111,24 @@ export const reminderService = {
 
     // Browser Notification Permission
     async requestNotificationPermission() {
-        if (!('Notification' in window)) return false
+        if (typeof window === 'undefined' || !('Notification' in window)) return false
         if (Notification.permission === 'granted') return true
         const permission = await Notification.requestPermission()
         return permission === 'granted'
     },
 
-    // Local Storage helpers for user preferences (for now)
-    getWhatsAppNumber(): string | null {
-        if (typeof window === 'undefined') return null
-        return localStorage.getItem('user_whatsapp_number')
-    },
-
-    saveWhatsAppNumber(number: string) {
-        if (typeof window === 'undefined') return
-        localStorage.setItem('user_whatsapp_number', number)
-    },
-
-    // Initialize/Reschedule local notifications (stub for future implementation)
+    // Legacy support for TimetableReminders
     init() {
-        console.log('[reminderService] Initializing...')
+        console.log('[reminderService] initialized')
+    },
+
+    getWhatsAppNumber(): string {
+        if (typeof window === 'undefined') return ''
+        return localStorage.getItem('user_whatsapp_number') || ''
+    },
+
+    saveWhatsAppNumber(num: string) {
+        if (typeof window === 'undefined') return
+        localStorage.setItem('user_whatsapp_number', num)
     }
 }

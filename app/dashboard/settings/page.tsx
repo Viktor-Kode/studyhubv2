@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
@@ -80,6 +81,30 @@ export default function SettingsPage() {
         router.push('/auth/login')
     }
 
+    const [profileForm, setProfileForm] = useState({
+        name: user?.name || '',
+        phone: (user as any)?.phone || ''
+    })
+
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError('')
+        setSuccess('')
+        setIsLoading(true)
+
+        try {
+            const response = await apiClient.put('/settings', { profile: profileForm })
+            if (response.data.success) {
+                setSuccess('Profile updated successfully!')
+                // Update local auth state if needed, but AuthSync should handle it
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to update profile')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
         <ProtectedRoute>
             <div className="max-w-4xl mx-auto">
@@ -120,8 +145,21 @@ export default function SettingsPage() {
                     {/* Content */}
                     <div className="flex-1 p-8">
                         {activeTab === 'profile' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <form onSubmit={handleProfileUpdate} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Profile Settings</h2>
+
+                                {error && (
+                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+                                        <FiAlertCircle className="text-red-500 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                                    </div>
+                                )}
+                                {success && (
+                                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-2">
+                                        <FiCheckCircle className="text-green-500 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+                                    </div>
+                                )}
 
                                 <div className="flex items-center gap-6 mb-8">
                                     <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-3xl font-bold text-blue-600 dark:text-blue-400">
@@ -141,7 +179,18 @@ export default function SettingsPage() {
                                         <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Display Name</label>
                                         <input
                                             type="text"
-                                            defaultValue={user?.name || ''}
+                                            value={profileForm.name}
+                                            onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">WhatsApp Number</label>
+                                        <input
+                                            type="text"
+                                            value={profileForm.phone}
+                                            onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                                            placeholder="+234..."
                                             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
                                         />
                                     </div>
@@ -158,11 +207,16 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div className="pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                                    <button className="px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold uppercase tracking-wide text-xs hover:opacity-90 transition">
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold uppercase tracking-wide text-xs hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {isLoading && <FiLoader className="animate-spin" />}
                                         Save Changes
                                     </button>
                                 </div>
-                            </div>
+                            </form>
                         )}
 
                         {activeTab === 'notifications' && (

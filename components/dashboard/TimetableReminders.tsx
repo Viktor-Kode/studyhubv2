@@ -12,6 +12,7 @@ import {
 import { MdWhatsapp } from 'react-icons/md'
 import WhatsAppNumberInput from '@/components/WhatsAppNumberInput'
 import { useAuthStore } from '@/lib/store/authStore'
+import { apiClient } from '@/lib/api/client'
 
 type TabMode = 'calendar' | 'list' | 'settings'
 type FilterType = 'all' | 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
@@ -74,10 +75,14 @@ export default function TimetableReminders() {
     }
 
     const loadWhatsAppNumber = async () => {
-        const saved = reminderService.getWhatsAppNumber()
-        if (saved) {
-            setWhatsappNumber(saved)
-            setWhatsappSetupDone(true)
+        try {
+            const response = await apiClient.get('/settings')
+            if (response.data.profile?.phone) {
+                setWhatsappNumber(response.data.profile.phone)
+                setWhatsappSetupDone(true)
+            }
+        } catch (error) {
+            console.error('Failed to load WhatsApp number from backend:', error)
         }
     }
 
@@ -122,6 +127,7 @@ export default function TimetableReminders() {
 
         const reminderData = {
             ...formData,
+            sendWhatsApp: formData.whatsappEnabled,
             whatsappNumber: formData.whatsappEnabled ? whatsappNumber : undefined
         }
 
@@ -157,9 +163,9 @@ export default function TimetableReminders() {
             type: reminder.type,
             subject: reminder.subject || '',
             location: reminder.location || '',
-            whatsappEnabled: reminder.whatsappEnabled,
-            emailEnabled: reminder.emailEnabled,
-            notifyBefore: reminder.notifyBefore,
+            whatsappEnabled: !!reminder.sendWhatsApp,
+            emailEnabled: reminder.emailEnabled || false,
+            notifyBefore: reminder.notifyBefore || 15,
             recurring: reminder.recurring || 'none',
             recurringDays: reminder.recurringDays || []
         })
@@ -192,14 +198,19 @@ export default function TimetableReminders() {
         setShowAddForm(false)
     }
 
-    const handleSaveWhatsApp = () => {
+    const handleSaveWhatsApp = async () => {
         if (!whatsappNumber.trim()) {
             alert('Please enter your WhatsApp number')
             return
         }
-        reminderService.saveWhatsAppNumber(whatsappNumber)
-        setWhatsappSetupDone(true)
-        alert(`WhatsApp number saved: ${whatsappNumber}\nYou can now enable WhatsApp notifications for your reminders.`)
+        try {
+            await apiClient.put('/settings', { profile: { phone: whatsappNumber } })
+            setWhatsappSetupDone(true)
+            alert(`WhatsApp number saved: ${whatsappNumber}\nYou can now enable WhatsApp notifications for your reminders.`)
+        } catch (error) {
+            console.error('Failed to save WhatsApp number:', error)
+            alert('Failed to save WhatsApp number to backend')
+        }
     }
 
     const handleTestWhatsApp = async (forceText = true) => {
@@ -221,6 +232,7 @@ export default function TimetableReminders() {
                 date: new Date().toISOString().split('T')[0],
                 time: new Date().toTimeString().slice(0, 5),
                 type: 'study',
+                sendWhatsApp: true,
                 whatsappEnabled: true,
                 whatsappNumber: whatsappNumber,
                 emailEnabled: false,
@@ -229,7 +241,7 @@ export default function TimetableReminders() {
                 createdAt: Date.now()
             }
 
-            const result = await reminderService.sendWhatsAppNotification(testReminder, forceText)
+            const result = await reminderService.sendWhatsAppNotification(testReminder)
 
             if (result.success) {
                 setSendSuccess(true)
@@ -254,13 +266,14 @@ export default function TimetableReminders() {
         { value: 'class', label: 'Class', color: 'green', icon: '🏫' }
     ]
 
-    const getTypeColor = (type: Reminder['type']) => {
-        const colorMap = {
+    const getTypeColor = (type: string) => {
+        const colorMap: Record<string, string> = {
             study: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700',
             exam: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700',
             deadline: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700',
             assignment: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700',
-            class: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+            class: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700',
+            other: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700'
         }
         return colorMap[type] || colorMap.study
     }

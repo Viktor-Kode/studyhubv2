@@ -155,11 +155,8 @@ export default function ClassManagementPage() {
 
     try {
       if (editingClass) {
-        // Update class Service doesn't exist yet but I can add it or use Firestore directly
-        const { doc, updateDoc } = await import('firebase/firestore')
-        const { db } = await import('@/lib/firebase')
-        await updateDoc(doc(db, 'classes', editingClass.id), {
-          name: formData.name,
+        await classService.updateClass(editingClass.id, {
+          className: formData.name,
           subject: formData.subject,
           description: formData.description
         })
@@ -181,9 +178,8 @@ export default function ClassManagementPage() {
   const deleteClass = async (id: string) => {
     if (confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
       try {
-        const { doc, deleteDoc } = await import('firebase/firestore')
-        const { db } = await import('@/lib/firebase')
-        await deleteDoc(doc(db, 'classes', id))
+        const { apiClient } = await import('@/lib/api/client')
+        await apiClient.delete(`/classes/${id}`)
         loadClasses()
       } catch (error) {
         console.error('Error deleting class:', error)
@@ -292,7 +288,7 @@ export default function ClassManagementPage() {
     }
   }
 
-  const addAssignment = () => {
+  const addAssignment = async () => {
     if (!selectedClass || !newAssignment.title || !newAssignment.dueDate) {
       alert('Please fill in all required fields')
       return
@@ -302,36 +298,35 @@ export default function ClassManagementPage() {
       ...newAssignment,
       createdAt: new Date().toISOString(),
     }
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-          ...cls,
-          assignments: [...(cls.assignments || []), assignment],
-        }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
-    setNewAssignment({ title: '', type: 'assignment', dueDate: '', totalMarks: 0 })
+
+    try {
+      const updatedAssignments = [...(selectedClass.assignments || []), assignment]
+      await classService.updateClass(selectedClass.id, { assignments: updatedAssignments })
+
+      const updatedClass = { ...selectedClass, assignments: updatedAssignments }
+      setSelectedClass(updatedClass)
+      setClasses(classes.map(c => c.id === selectedClass.id ? updatedClass : c))
+      setNewAssignment({ title: '', type: 'assignment', dueDate: '', totalMarks: 0 })
+    } catch (error) {
+      console.error('Error adding assignment:', error)
+    }
   }
 
-  const removeAssignment = (assignmentId: string) => {
+  const removeAssignment = async (assignmentId: string) => {
     if (!selectedClass) return
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-          ...cls,
-          assignments: (cls.assignments || []).filter((a) => a.id !== assignmentId),
-        }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
+    try {
+      const updatedAssignments = (selectedClass.assignments || []).filter((a) => a.id !== assignmentId)
+      await classService.updateClass(selectedClass.id, { assignments: updatedAssignments })
+
+      const updatedClass = { ...selectedClass, assignments: updatedAssignments }
+      setSelectedClass(updatedClass)
+      setClasses(classes.map(c => c.id === selectedClass.id ? updatedClass : c))
+    } catch (error) {
+      console.error('Error removing assignment:', error)
+    }
   }
 
-  const addAnnouncement = () => {
+  const addAnnouncement = async () => {
     if (!selectedClass || !newAnnouncement.title || !newAnnouncement.message) {
       alert('Please fill in all fields')
       return
@@ -341,33 +336,32 @@ export default function ClassManagementPage() {
       ...newAnnouncement,
       createdAt: new Date().toISOString(),
     }
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-          ...cls,
-          announcements: [...(cls.announcements || []), announcement],
-        }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
-    setNewAnnouncement({ title: '', message: '' })
+
+    try {
+      const updatedAnnouncements = [...(selectedClass.announcements || []), announcement]
+      await classService.updateClass(selectedClass.id, { announcements: updatedAnnouncements })
+
+      const updatedClass = { ...selectedClass, announcements: updatedAnnouncements }
+      setSelectedClass(updatedClass)
+      setClasses(classes.map(c => c.id === selectedClass.id ? updatedClass : c))
+      setNewAnnouncement({ title: '', message: '' })
+    } catch (error) {
+      console.error('Error adding announcement:', error)
+    }
   }
 
-  const removeAnnouncement = (announcementId: string) => {
+  const removeAnnouncement = async (announcementId: string) => {
     if (!selectedClass) return
-    const updated = classes.map((cls) =>
-      cls.id === selectedClass.id
-        ? {
-          ...cls,
-          announcements: (cls.announcements || []).filter((a) => a.id !== announcementId),
-        }
-        : cls
-    )
-    setClasses(updated)
-    setSelectedClass(updated.find((c) => c.id === selectedClass.id) || null)
-    localStorage.setItem('teacherClasses', JSON.stringify(updated))
+    try {
+      const updatedAnnouncements = (selectedClass.announcements || []).filter((a) => a.id !== announcementId)
+      await classService.updateClass(selectedClass.id, { announcements: updatedAnnouncements })
+
+      const updatedClass = { ...selectedClass, announcements: updatedAnnouncements }
+      setSelectedClass(updatedClass)
+      setClasses(classes.map(c => c.id === selectedClass.id ? updatedClass : c))
+    } catch (error) {
+      console.error('Error removing announcement:', error)
+    }
   }
 
   const exportClassData = (cls: Class) => {
