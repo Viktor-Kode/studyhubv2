@@ -39,14 +39,37 @@ export type { AppUser, AppRole }
 // ─── Firebase Token Helpers ───────────────────────────────────────────────────
 
 /**
+ * Wait for Firebase to finish loading the initial auth state.
+ * Returns the current user if authenticated, or null if not.
+ */
+export async function waitForAuth(): Promise<any> {
+  const { auth } = await import('@/lib/firebase')
+
+  // 1. If already initialized, return immediately
+  if (auth.currentUser) return auth.currentUser
+
+  // 2. Wait for onAuthStateChanged to fire at least once
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe()
+      resolve(user)
+    })
+  })
+}
+
+/**
  * Async helper — get the current Firebase user's ID token.
  * Use this in API calls that need an Authorization header.
  */
-export async function getFirebaseToken(): Promise<string | null> {
+export async function getFirebaseToken(forceRefresh = false): Promise<string | null> {
   try {
-    const { auth } = await import('@/lib/firebase')
-    return (await auth.currentUser?.getIdToken()) ?? null
-  } catch {
+    const user = await waitForAuth()
+    if (!user) return null
+
+    // Fetch a fresh token, forcing a refresh if requested
+    return await user.getIdToken(forceRefresh)
+  } catch (err) {
+    console.error('[getFirebaseToken] Failed:', err)
     return null
   }
 }

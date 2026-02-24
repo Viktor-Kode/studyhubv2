@@ -26,10 +26,30 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.error('[apiClient] 401 Unauthorized:', error.config?.url)
+  async (error) => {
+    const originalRequest = error.config
+
+    // If 401 error and not already retrying
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      console.warn('[apiClient] 401 detected. Attempting token refresh...')
+
+      try {
+        // Force refresh the token
+        const newToken = await getFirebaseToken(true)
+        if (newToken) {
+          console.log('[apiClient] Token refreshed. Retrying request...')
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return apiClient(originalRequest)
+        }
+      } catch (refreshErr) {
+        console.error('[apiClient] Token refresh failed:', refreshErr)
+      }
+
+      // If refresh failed or still 401, redirect to login (client side only)
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
+        console.error('[apiClient] Authentication failed permanently. Redirecting to login.')
         window.location.href = '/auth/login'
       }
     }
