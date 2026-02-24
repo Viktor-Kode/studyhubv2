@@ -210,6 +210,41 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
   }
 }
 
+// ─── ALOC year range ─────────────────────────────────────────────────────────
+// ALOC only has data from 2001 to 2020. Years 2021–2025 DO NOT exist.
+// Requesting a missing year causes ALOC to return an HTML 404 page, which
+// then crashes JSON.parse with "Unexpected token '<', <!DOCTYPE..."
+const ALOC_MIN_YEAR = 2001
+const ALOC_MAX_YEAR = 2020
+
+// ─── Defensive fetch helper ───────────────────────────────────────────────────
+// Reads response as raw TEXT first, then parses JSON.
+// If ALOC returns an HTML error page this gives a clean error instead of
+// the cryptic "Unexpected token '<'" crash.
+async function safeJson(res: Response): Promise<any> {
+  const text = await res.text()
+  const snippet = text.trim().substring(0, 150)
+
+  if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+    console.error(
+      `[CBT] ALOC returned HTML instead of JSON (HTTP ${res.status}).\n` +
+      `URL: ${res.url}\nSnippet: ${snippet}`
+    )
+    throw new Error(
+      `ALOC API returned an HTML page (HTTP ${res.status}). ` +
+      `This means the year/subject combination does not exist, ` +
+      `or the Access Token is invalid. Snippet: ${snippet}`
+    )
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    console.error(`[CBT] Failed to parse JSON. Raw response:\n${snippet}`)
+    throw new Error(`ALOC returned non-JSON response (HTTP ${res.status}). Snippet: ${snippet}`)
+  }
+}
+
 export const cbtApi = {
   /**
    * Get questions from ALOC API via internal proxy
@@ -254,41 +289,55 @@ export const cbtApi = {
       return []
     }
 
-    // ATTEMPT 1: Fetch with year filter
-    try {
-      const params = new URLSearchParams({
-        subject: subjectSlug,
-        type: examSlug,
-        amount: String(Math.min(amount, 50)),
-        year: year
-      })
+    // ── Validate year before sending to ALOC ──────────────────────────────
+    const yearNum = parseInt(year, 10)
+    const isYearValid = !isNaN(yearNum) && yearNum >= ALOC_MIN_YEAR && yearNum <= ALOC_MAX_YEAR
 
-      console.log('CBT Attempt 1 - with year:', params.toString())
-      const res = await fetch(`/api/cbt/questions?${params}`)
-      const data = await res.json()
-
-      const questions = processData(data)
-      if (questions.length > 0) {
-        console.log(`Loaded ${questions.length} questions with year filter`)
-        return { questions }
-      }
-      errors.push(`Attempt 1 (with year ${year}): ${data.error || 'No valid questions returned'}`)
-    } catch (err: any) {
-      errors.push(`Attempt 1 failed: ${err.message}`)
-      console.error('Attempt 1 error:', err)
+    if (!isYearValid) {
+      console.warn(
+        `[CBT] Year "${year}" is outside ALOC range (${ALOC_MIN_YEAR}–${ALOC_MAX_YEAR}). ` +
+        `Skipping year-filtered attempt.`
+      )
+      errors.push(`Year "${year}" is not in ALOC database (valid: ${ALOC_MIN_YEAR}–${ALOC_MAX_YEAR})`)
     }
+
+    // ATTEMPT 1: Fetch with year filter (only if year is in valid range)
+    if (isYearValid) {
+      try {
+        const params = new URLSearchParams({
+          subject: subjectSlug,
+          type: examSlug,
+          amount: String(Math.min(amount, 40)),
+          year: year
+        })
+
+        console.log('CBT Attempt 1 - with year:', params.toString())
+        const res = await fetch(`/api/cbt/questions?${params}`)
+        const data = await safeJson(res)
+
+        const questions = processData(data)
+        if (questions.length > 0) {
+          console.log(`Loaded ${questions.length} questions with year filter`)
+          return { questions }
+        }
+        errors.push(`Attempt 1 (with year ${year}): ${data.error || data.message || 'No valid questions returned'}`)
+      } catch (err: any) {
+        errors.push(`Attempt 1 failed: ${err.message}`)
+        console.error('Attempt 1 error:', err)
+      }
+    } // end isYearValid block
 
     // ATTEMPT 2: Fetch WITHOUT year filter
     try {
       const params = new URLSearchParams({
         subject: subjectSlug,
         type: examSlug,
-        amount: String(Math.min(amount, 50))
+        amount: String(Math.min(amount, 40))
       })
 
       console.log('CBT Attempt 2 - without year:', params.toString())
       const res = await fetch(`/api/cbt/questions?${params}`)
-      const data = await res.json()
+      const data = await safeJson(res)
 
       const questions = processData(data)
       if (questions.length > 0) {
@@ -301,7 +350,7 @@ export const cbtApi = {
       console.error('Attempt 2 error:', err)
     }
 
-    // ATTEMPT 3: Try with english as fallback subject
+    // ATTEMPT 3: Try with english as fallback subject (to test API connectivity)
     if (subjectSlug !== 'english') {
       try {
         const params = new URLSearchParams({
@@ -312,7 +361,7 @@ export const cbtApi = {
 
         console.log('CBT Attempt 3 - english fallback')
         const res = await fetch(`/api/cbt/questions?${params}`)
-        const data = await res.json()
+        const data = await safeJson(res)
 
         // We check if data exists but don't return it as "success" for the original subject request
         // This is just to verify API connectivity
@@ -338,10 +387,10 @@ export const cbtApi = {
    * Returns range 2000-2024
    */
   getAvailableYears: async (examType: ExamType): Promise<AvailableYearsResponse> => {
-    const currentYear = new Date().getFullYear()
     const years: string[] = []
-    // ALOC supports from ~2001 to recent
-    for (let i = currentYear - 1; i >= 2001; i--) {
+    // ALOC ONLY has questions for 2001–2020.
+    // DO NOT include 2021+ — those years return HTML error pages, causing JSON.parse to crash.
+    for (let i = ALOC_MAX_YEAR; i >= ALOC_MIN_YEAR; i--) {
       years.push(i.toString())
     }
     return { years }
