@@ -9,11 +9,13 @@ import {
   requestNotificationPermission
 } from '@/utils/alarmManager'
 import {
-  FiPlay, FiPause, FiRotateCcw, FiCheckCircle, FiTrash2,
-  FiTarget, FiClipboard, FiClock, FiCoffee, FiSettings,
-  FiBell, FiBellOff, FiZap, FiCalendar, FiBookOpen,
-  FiX, FiPlus
+  FiPlus, FiTrash2, FiClock, FiCalendar, FiX, FiCheck, FiAlertCircle, FiStar, FiFilter,
+  FiSearch, FiCheckCircle, FiSettings, FiEdit2, FiInfo, FiBell, FiBellOff,
+  FiPlay, FiPause, FiRotateCcw, FiSave, FiTarget, FiCoffee, FiMoon, FiSun,
+  FiMoreVertical, FiEdit3, FiAward, FiClipboard, FiBookOpen, FiZap
 } from 'react-icons/fi'
+import { MdWhatsapp } from 'react-icons/md'
+import { toast } from 'react-hot-toast'
 import { BiBrain, BiTimer, BiChair } from 'react-icons/bi'
 import { getFirebaseToken, useAuthStore } from '@/lib/store/authStore'
 
@@ -359,7 +361,7 @@ export default function StudyTimer() {
 
   const handleStart = () => {
     if (!subject.trim() && sessionType === 'work') {
-      alert('Please enter what you are studying')
+      toast.error('Please enter what you are studying')
       return
     }
 
@@ -456,7 +458,7 @@ export default function StudyTimer() {
 
   const handleAddGoal = async () => {
     if (!goalForm.title.trim()) {
-      alert('Please enter a goal title')
+      toast.error('Please enter a goal title')
       return
     }
 

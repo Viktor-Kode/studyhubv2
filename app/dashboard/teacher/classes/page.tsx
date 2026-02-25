@@ -4,24 +4,25 @@ import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Link from 'next/link'
 import {
-  FaUsers,
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaSearch,
-  FaQuestionCircle,
-  FaArrowLeft,
-  FaTimes,
-  FaCheck,
-  FaUserPlus,
-  FaCalendar,
-  FaClipboardList,
-  FaBullhorn,
-  FaFileExport,
-  FaEye,
-  FaClock,
-  FaGraduationCap
-} from 'react-icons/fa'
+  FiUsers,
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiSearch,
+  FiHelpCircle,
+  FiArrowLeft,
+  FiX,
+  FiCheck,
+  FiUserPlus,
+  FiCalendar,
+  FiClipboard,
+  FiBell,
+  FiFileText,
+  FiEye,
+  FiClock,
+  FiAward
+} from 'react-icons/fi'
+import { toast } from 'react-hot-toast'
 import { classService, Class as FirestoreClass, StudentInClass } from '@/lib/services/classService'
 import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -149,7 +150,7 @@ export default function ClassManagementPage() {
 
   const saveClass = async () => {
     if (!formData.name || !formData.subject || !user?.uid) {
-      alert('Please fill in all required fields')
+      toast.error('Please fill in all required fields')
       return
     }
 
@@ -171,7 +172,7 @@ export default function ClassManagementPage() {
       closeModal()
     } catch (error) {
       console.error('Error saving class:', error)
-      alert('Failed to save class')
+      toast.error('Failed to save class')
     }
   }
 
@@ -220,7 +221,7 @@ export default function ClassManagementPage() {
 
   const addStudent = async () => {
     if (!selectedClass || !newStudent.name || !newStudent.email) {
-      alert('Please enter student name and email')
+      toast.error('Please enter student name and email')
       return
     }
 
@@ -257,7 +258,7 @@ export default function ClassManagementPage() {
 
   const addSchedule = async () => {
     if (!selectedClass || !newSchedule.day || !newSchedule.time) {
-      alert('Please fill in day and time')
+      toast.error('Please fill in day and time')
       return
     }
 
@@ -290,7 +291,7 @@ export default function ClassManagementPage() {
 
   const addAssignment = async () => {
     if (!selectedClass || !newAssignment.title || !newAssignment.dueDate) {
-      alert('Please fill in all required fields')
+      toast.error('Please fill in all required fields')
       return
     }
     const assignment: Assignment = {
@@ -328,7 +329,7 @@ export default function ClassManagementPage() {
 
   const addAnnouncement = async () => {
     if (!selectedClass || !newAnnouncement.title || !newAnnouncement.message) {
-      alert('Please fill in all fields')
+      toast.error('Please fill in all fields')
       return
     }
     const announcement: Announcement = {
@@ -401,7 +402,7 @@ export default function ClassManagementPage() {
                 href="/dashboard/teacher"
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <FaArrowLeft />
+                <FiArrowLeft />
               </Link>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Class Management
@@ -418,7 +419,7 @@ export default function ClassManagementPage() {
             onClick={() => openModal()}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
           >
-            <FaPlus /> Create Class
+            <FiPlus /> Create Class
           </button>
         </div>
 
@@ -445,7 +446,7 @@ export default function ClassManagementPage() {
         {/* Search */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search classes by name or subject..."
@@ -464,7 +465,7 @@ export default function ClassManagementPage() {
             </div>
           ) : filteredClasses.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <FaUsers className="mx-auto mb-2 text-3xl" />
+              <FiUsers className="mx-auto mb-2 text-3xl" />
               <p className="mb-2">No classes found</p>
               <button
                 onClick={() => openModal()}
@@ -500,25 +501,25 @@ export default function ClassManagementPage() {
                         className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Edit class"
                       >
-                        <FaEdit />
+                        <FiEdit2 />
                       </button>
                       <button
                         onClick={() => deleteClass(cls.id)}
                         className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         title="Delete class"
                       >
-                        <FaTrash />
+                        <FiTrash2 />
                       </button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-4 text-sm">
                       <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <FaUsers className="text-xs" />
+                        <FiUsers className="text-xs" />
                         {cls.studentCount} students
                       </span>
                       <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <FaQuestionCircle className="text-xs" />
+                        <FiHelpCircle className="text-xs" />
                         {cls.questionsGenerated} questions
                       </span>
                     </div>
@@ -541,7 +542,7 @@ export default function ClassManagementPage() {
                   onClick={closeModal}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 >
-                  <FaTimes />
+                  <FiX />
                 </button>
               </div>
 
@@ -610,7 +611,7 @@ export default function ClassManagementPage() {
                   onClick={saveClass}
                   className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
                 >
-                  <FaCheck /> {editingClass ? 'Update' : 'Create'}
+                  <FiCheck /> {editingClass ? 'Update' : 'Create'}
                 </button>
               </div>
             </div>
@@ -637,13 +638,13 @@ export default function ClassManagementPage() {
                     className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                     title="Export class data"
                   >
-                    <FaFileExport />
+                    <FiFileText />
                   </button>
                   <button
                     onClick={closeClassDetails}
                     className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
-                    <FaTimes />
+                    <FiX />
                   </button>
                 </div>
               </div>
@@ -686,7 +687,7 @@ export default function ClassManagementPage() {
                         onClick={addStudent}
                         className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
                       >
-                        <FaUserPlus /> Add Student
+                        <FiUserPlus /> Add Student
                       </button>
                     </div>
 
@@ -742,7 +743,7 @@ export default function ClassManagementPage() {
                               onClick={() => removeStudent(student.uid)}
                               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                             >
-                              <FaTrash />
+                              <FiTrash2 />
                             </button>
                           </div>
                         ))
@@ -764,7 +765,7 @@ export default function ClassManagementPage() {
                         onClick={addSchedule}
                         className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
                       >
-                        <FaPlus /> Add Schedule
+                        <FiPlus /> Add Schedule
                       </button>
                     </div>
 
@@ -813,11 +814,11 @@ export default function ClassManagementPage() {
                             className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
                           >
                             <div className="flex items-center gap-4">
-                              <FaCalendar className="text-blue-500" />
+                              <FiCalendar className="text-blue-500" />
                               <div>
                                 <p className="font-medium text-gray-900 dark:text-white">{schedule.day}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  <FaClock className="inline mr-1" />
+                                  <FiClock className="inline mr-1" />
                                   {schedule.startTime}
                                   {schedule.location && ` • ${schedule.location}`}
                                 </p>
@@ -827,7 +828,7 @@ export default function ClassManagementPage() {
                               onClick={() => removeSchedule(schedule.id)}
                               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                             >
-                              <FaTrash />
+                              <FiTrash2 />
                             </button>
                           </div>
                         ))
@@ -849,7 +850,7 @@ export default function ClassManagementPage() {
                         onClick={addAssignment}
                         className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
                       >
-                        <FaPlus /> Add Assignment
+                        <FiPlus /> Add Assignment
                       </button>
                     </div>
 
@@ -917,15 +918,15 @@ export default function ClassManagementPage() {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                                  <span><FaClock className="inline mr-1" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
-                                  <span><FaGraduationCap className="inline mr-1" /> {assignment.totalMarks} marks</span>
+                                  <span><FiClock className="inline mr-1" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                                  <span><FiAward className="inline mr-1" /> {assignment.totalMarks} marks</span>
                                 </div>
                               </div>
                               <button
                                 onClick={() => removeAssignment(assignment.id)}
                                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                               >
-                                <FaTrash />
+                                <FiTrash2 />
                               </button>
                             </div>
                           </div>
@@ -948,7 +949,7 @@ export default function ClassManagementPage() {
                         onClick={addAnnouncement}
                         className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
                       >
-                        <FaPlus /> Add Announcement
+                        <FiPlus /> Add Announcement
                       </button>
                     </div>
 
@@ -991,7 +992,7 @@ export default function ClassManagementPage() {
                                 onClick={() => removeAnnouncement(announcement.id)}
                                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                               >
-                                <FaTrash />
+                                <FiTrash2 />
                               </button>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{announcement.message}</p>

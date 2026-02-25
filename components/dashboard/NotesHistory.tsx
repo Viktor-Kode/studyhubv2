@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import { fetchStudyNotes, deleteStudyNote, StudyNote } from '@/lib/api/quizApi'
+import { toast } from 'react-hot-toast'
 
 export default function NotesHistory() {
     const [notes, setNotes] = useState<StudyNote[]>([])
@@ -46,7 +47,7 @@ export default function NotesHistory() {
                 if (selectedNote?._id === id) setSelectedNote(null)
             }
         } catch (err: any) {
-            alert(err.message || 'Failed to delete note')
+            toast.error(err.message || 'Failed to delete note')
         } finally {
             setDeleting(null)
         }

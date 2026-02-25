@@ -18,6 +18,8 @@ import { MdOutlineQuiz, MdCalculate } from 'react-icons/md'
 import { BiTimer, BiStats, BiUserCircle } from 'react-icons/bi'
 import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
+import UpgradeModal from '@/components/UpgradeModal'
+import { toast } from 'react-hot-toast'
 
 interface Question extends CBTQuestion { }
 
@@ -167,6 +169,8 @@ export default function CBTPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStage, setLoadingStage] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState("")
 
   const currentExamConfig = examTypes.find(e => e.value === selectedExam)
 
@@ -271,7 +275,13 @@ export default function CBTPage() {
       setViewMode('instructions')
 
     } catch (err: any) {
-      setError(err.message || 'Failed to load questions. Please check your ALOC API token.')
+      if (err.response?.data?.upgradeRequired || err.message?.includes('Upgrade to access')) {
+        setUpgradeMessage(err.response?.data?.message || "Please upgrade your plan to access this subject.")
+        setShowUpgradeModal(true)
+      } else {
+        setError(err.message || 'Failed to load questions. Please check your internet connection.')
+        toast.error(err.message || 'Failed to load questions')
+      }
     } finally {
       setLoading(false)
       setLoadingStage('')
@@ -457,19 +467,7 @@ export default function CBTPage() {
         {viewMode === 'exam-select' && (
           <div className="space-y-6">
 
-            {/* Info banner */}
-            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-              <FiInfo className="text-blue-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                  Real Past Questions
-                </p>
-                <p className="text-sm text-blue-700 dark:text-blue-400 mt-0.5">
-                  Questions are sourced from ALOC Questions API with real WAEC, JAMB, NECO past questions.
-                  Ensure your ALOC_ACCESS_TOKEN is configured in your environment settings.
-                </p>
-              </div>
-            </div>
+
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
@@ -548,43 +546,7 @@ export default function CBTPage() {
                     <FiAlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" />
                     <p className="text-sm font-medium text-red-700 dark:text-red-300">{error}</p>
                   </div>
-                  <div className="ml-6 p-3 bg-white dark:bg-gray-800 rounded-lg border border-red-100 dark:border-red-900">
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Troubleshooting:
-                    </p>
-                    <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal ml-4">
-                      <li>
-                        Register FREE at{' '}
-                        <a
-                          href="https://questions.aloc.com.ng/secure/signup"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 underline"
-                        >
-                          questions.aloc.com.ng
-                        </a>
-                      </li>
-                      <li>Copy your AccessToken from the dashboard</li>
-                      <li>Add to your environment variables:
-                        <br />
-                        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-green-600 dark:text-green-400">
-                          ALOC_ACCESS_TOKEN=ALOC-yourtoken
-                        </code>
-                      </li>
-                      <li>Redeploy your application</li>
-                      <li>
-                        Test connection:{' '}
-                        <a
-                          href="/api/cbt/test"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 underline"
-                        >
-                          /api/cbt/test
-                        </a>
-                      </li>
-                    </ol>
-                  </div>
+
                 </div>
               )}
 
@@ -877,7 +839,7 @@ export default function CBTPage() {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('Exit test? Your progress will be lost.')) resetAll()
+                          if (window.confirm('Exit test? Your progress will be lost.')) resetAll()
                         }}
                         className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold"
                       >
@@ -1068,7 +1030,7 @@ export default function CBTPage() {
                         onClick={() => {
                           const unanswered = questions.length - answeredCount
                           if (unanswered > 0) {
-                            if (!confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
+                            if (!window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
                           }
                           handleSubmitTest()
                         }}
@@ -1273,6 +1235,11 @@ export default function CBTPage() {
           </div>
         )}
       </div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </ProtectedRoute >
   )
 }

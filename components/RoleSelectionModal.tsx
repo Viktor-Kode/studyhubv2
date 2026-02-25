@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa'
-import { FiLoader, FiCheckCircle } from 'react-icons/fi'
+import { FiUser, FiBookOpen, FiLoader, FiCheckCircle } from 'react-icons/fi'
 import { saveUserRole } from '@/lib/firebase-auth'
 import type { AppRole, AppUser } from '@/lib/types/auth'
+import { toast } from 'react-hot-toast'
 
 interface RoleSelectionModalProps {
     user: any // Firebase User
@@ -28,7 +28,7 @@ export default function RoleSelectionModal({ user, onCompleted }: RoleSelectionM
             onCompleted(selectedRole)
         } catch (error: any) {
             console.error('Error saving role:', error)
-            alert(`Failed to save role: ${error.message || 'Unknown error'}. Please try again.`)
+            toast.error(`Failed to save role: ${error.message || 'Unknown error'}. Please try again.`)
         } finally {
             setIsSubmitting(false)
         }
@@ -57,7 +57,7 @@ export default function RoleSelectionModal({ user, onCompleted }: RoleSelectionM
                             }`}
                     >
                         <div className={`p-4 rounded-xl transition-colors ${selectedRole === 'student' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-                            <FaUserGraduate className="text-2xl" />
+                            <FiUser className="text-2xl" />
                         </div>
                         <span className={`font-bold ${selectedRole === 'student' ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>
                             Student
@@ -73,7 +73,7 @@ export default function RoleSelectionModal({ user, onCompleted }: RoleSelectionM
                             }`}
                     >
                         <div className={`p-4 rounded-xl transition-colors ${selectedRole === 'teacher' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-                            <FaChalkboardTeacher className="text-2xl" />
+                            <FiBookOpen className="text-2xl" />
                         </div>
                         <span className={`font-bold ${selectedRole === 'teacher' ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>
                             Teacher

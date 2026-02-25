@@ -89,8 +89,8 @@ export default function WhatsAppNumberInput({
     }, [displayValue, selectedCountryCode])
 
     const validateNumber = (number: string) => {
-        // Remove all non-digits
-        const cleaned = number.replace(/\D/g, '')
+        // Remove all non-digits and strip leading zero if present
+        const cleaned = number.replace(/\D/g, '').replace(/^0/, '')
 
         // Check if number is valid length (typically 7-15 digits)
         if (cleaned.length < 7) {

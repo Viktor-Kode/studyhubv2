@@ -13,6 +13,7 @@ import { MdWhatsapp } from 'react-icons/md'
 import WhatsAppNumberInput from '@/components/WhatsAppNumberInput'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
+import { toast } from 'react-hot-toast'
 
 type TabMode = 'calendar' | 'list' | 'settings'
 type FilterType = 'all' | 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
@@ -142,7 +143,7 @@ export default function TimetableReminders() {
             resetForm()
         } catch (error) {
             console.error('Failed to save reminder:', error)
-            alert('Error saving reminder')
+            toast.error('Error saving reminder')
         }
     }
 
@@ -200,16 +201,16 @@ export default function TimetableReminders() {
 
     const handleSaveWhatsApp = async () => {
         if (!whatsappNumber.trim()) {
-            alert('Please enter your WhatsApp number')
+            toast.error('Please enter your WhatsApp number')
             return
         }
         try {
             await apiClient.put('/settings', { profile: { phone: whatsappNumber } })
             setWhatsappSetupDone(true)
-            alert(`WhatsApp number saved: ${whatsappNumber}\nYou can now enable WhatsApp notifications for your reminders.`)
+            toast.success(`WhatsApp number saved: ${whatsappNumber}. You can now enable WhatsApp notifications for your reminders.`)
         } catch (error) {
             console.error('Failed to save WhatsApp number:', error)
-            alert('Failed to save WhatsApp number to backend')
+            toast.error('Failed to save WhatsApp number to backend')
         }
     }
 

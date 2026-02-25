@@ -9,6 +9,7 @@ import {
 import { getAllQuizSessions, deleteQuizSession, QuizSession } from '@/lib/api/quizApi'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import { toast } from 'react-hot-toast'
 
 export default function QuestionHistory() {
     const [sessions, setSessions] = useState<QuizSession[]>([])
@@ -43,7 +44,7 @@ export default function QuestionHistory() {
             await deleteQuizSession(sessionId)
             setSessions(sessions.filter(s => s._id !== sessionId))
         } catch (error) {
-            alert('Failed to delete session')
+            toast.error('Failed to delete session')
             console.error(error)
         } finally {
             setDeletingId(null)

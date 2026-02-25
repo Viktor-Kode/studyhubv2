@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import {
-  FaBell, FaPlus, FaTrash, FaCalendar, FaEdit,
-  FaWhatsapp, FaCheckCircle, FaTimes, FaSearch,
-  FaFilter, FaClock
-} from 'react-icons/fa'
+  FiPlus, FiTrash2, FiClock, FiCalendar, FiX, FiCheck, FiAlertCircle, FiStar, FiFilter,
+  FiSearch, FiCheckCircle, FiSettings, FiEdit2, FiInfo, FiBell, FiArrowRight
+} from 'react-icons/fi'
+import { MdWhatsapp } from 'react-icons/md'
+import { toast } from 'react-hot-toast'
 import { format, parseISO, compareAsc } from 'date-fns'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
@@ -73,7 +74,7 @@ export default function StudyReminders() {
   // CRUD Operations
   const handleSaveReminder = async () => {
     if (!formData.title || !formData.date || !formData.time) {
-      alert('Please fill in all required fields')
+      toast.error('Please fill in all required fields')
       return
     }
 
@@ -204,10 +205,10 @@ export default function StudyReminders() {
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
           >
-            <FaPlus /> New Reminder
+            <FiPlus /> New Reminder
           </button>
           <div className="relative">
-            <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            <FiSearch className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               placeholder="Search..."
@@ -257,7 +258,7 @@ export default function StudyReminders() {
       <div className="space-y-4">
         {displayedReminders.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed">
-            <FaCalendar className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-3" />
+            <FiCalendar className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-3" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">No reminders found</h3>
           </div>
         ) : (
@@ -275,7 +276,7 @@ export default function StudyReminders() {
                     {getPriorityBadge(reminder.priority)}
                     {reminder.completed && (
                       <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-                        <FaCheckCircle /> Completed
+                        <FiCheckCircle /> Completed
                       </span>
                     )}
                   </div>
@@ -284,21 +285,21 @@ export default function StudyReminders() {
                   </h3>
                   {reminder.description && <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">{reminder.description}</p>}
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <div className="flex items-center gap-1.5"><FaCalendar /> {format(parseISO(reminder.date), 'EEEE, d MMMM yyyy')}</div>
-                    <div className="flex items-center gap-1.5"><FaClock /> {reminder.time}</div>
+                    <div className="flex items-center gap-1.5"><FiCalendar /> {format(parseISO(reminder.date), 'EEEE, d MMMM yyyy')}</div>
+                    <div className="flex items-center gap-1.5"><FiClock /> {reminder.time}</div>
                     {reminder.sendWhatsApp && isWhatsAppConfirmed && (
                       <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 px-2 py-0.5 rounded-full text-xs font-medium">
-                        <FaWhatsapp /> WhatsApp Enabled
+                        <MdWhatsapp /> WhatsApp Enabled
                       </div>
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 transition-opacity">
                   <button onClick={() => toggleComplete(reminder)} className="p-2 rounded-lg bg-green-100 text-green-600 hover:bg-green-200">
-                    {reminder.completed ? <FaTimes /> : <FaCheckCircle />}
+                    {reminder.completed ? <FiX /> : <FiCheckCircle />}
                   </button>
-                  <button onClick={() => startEdit(reminder)} className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"><FaEdit /></button>
-                  <button onClick={() => handleDelete((reminder._id || reminder.id) as string)} className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"><FaTrash /></button>
+                  <button onClick={() => startEdit(reminder)} className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"><FiEdit2 /></button>
+                  <button onClick={() => handleDelete((reminder._id || reminder.id) as string)} className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"><FiTrash2 /></button>
                 </div>
               </div>
             </div>
@@ -311,7 +312,7 @@ export default function StudyReminders() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
             <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingId ? 'Edit Reminder' : 'New Reminder'}</h3>
-              <button onClick={resetForm}><FaTimes /></button>
+              <button onClick={resetForm}><FiX /></button>
             </div>
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
@@ -355,7 +356,7 @@ export default function StudyReminders() {
                 <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   <input type="checkbox" id="whatsapp" checked={formData.sendWhatsApp} onChange={e => setFormData({ ...formData, sendWhatsApp: e.target.checked })} />
                   <label htmlFor="whatsapp" className="flex items-center gap-2 text-sm cursor-pointer">
-                    <FaWhatsapp className="text-green-500" /> Send WhatsApp to {whatsappNumber}
+                    <MdWhatsapp className="text-green-500" /> Send WhatsApp to {whatsappNumber}
                   </label>
                 </div>
               )}
