@@ -18,6 +18,7 @@ import { HiOutlineAcademicCap, HiOutlineLightBulb } from 'react-icons/hi'
 // Import your API services
 import { getAnalytics, getUserStats } from '@/lib/api/studyTimerApi'
 import { getFlashCardStats } from '@/lib/api/flashcardApi'
+import { cbtApi } from '@/lib/api/cbt'
 import { apiClient } from '@/lib/api/client'
 
 // Import auth hook
@@ -211,6 +212,8 @@ export default function ProgressAnalytics() {
   const [studyAnalytics, setStudyAnalytics] = useState<any>(null)
   const [flashCardStats, setFlashCardStats] = useState<any>(null)
   const [localSessions, setLocalSessions] = useState<any[]>([])
+  const [cbtSummary, setCbtSummary] = useState<any>(null)
+  const [cbtResults, setCbtResults] = useState<any[]>([])
 
   const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90
 
@@ -222,11 +225,13 @@ export default function ProgressAnalytics() {
     setIsLoading(true)
     try {
       // Backend uses JWT token to identify the user - no need to pass userId
-      const [statsRes, analyticsRes, fcStatsRes, historyRes] = await Promise.allSettled([
+      const [statsRes, analyticsRes, fcStatsRes, historyRes, cbtSummaryRes, cbtResultsRes] = await Promise.allSettled([
         getUserStats(),
         getAnalytics(days),
         getFlashCardStats(),
-        apiClient.get('/study/history')
+        apiClient.get('/study/history'),
+        cbtApi.getResultsSummary(),
+        cbtApi.getAllResults()
       ])
 
       if (statsRes.status === 'fulfilled') {
@@ -250,6 +255,12 @@ export default function ProgressAnalytics() {
           sessionType: s.type || 'study'
         }))
         setLocalSessions(transformed)
+      }
+      if (cbtSummaryRes.status === 'fulfilled') {
+        setCbtSummary(cbtSummaryRes.value)
+      }
+      if (cbtResultsRes.status === 'fulfilled') {
+        setCbtResults(cbtResultsRes.value)
       }
     } catch (error) {
       console.error('Failed to load analytics:', error)
@@ -367,7 +378,7 @@ export default function ProgressAnalytics() {
           { id: 'overview', label: 'Overview', icon: <FiBarChart2 /> },
           { id: 'study', label: 'Study Timer', icon: <BiTimer /> },
           { id: 'flashcards', label: 'Flashcards', icon: <BiCard /> },
-          { id: 'quiz', label: 'Quiz Bank', icon: <MdOutlineQuiz /> }
+          { id: 'quiz', label: 'CBT Practice', icon: <MdOutlineQuiz /> }
         ].map(({ id, label, icon }) => (
           <button
             key={id}
@@ -411,9 +422,9 @@ export default function ProgressAnalytics() {
               color="green"
             />
             <StatCard
-              title="Quiz Accuracy"
-              value={`${flashCardStats?.accuracy || 0}%`}
-              subtitle={`${flashCardStats?.totalReviews || 0} reviews`}
+              title="CBT Accuracy"
+              value={`${cbtSummary?.overallAccuracy || 0}%`}
+              subtitle={`${cbtSummary?.examsTaken || 0} exams taken`}
               icon={<FiTarget />}
               color="purple"
             />
@@ -803,22 +814,101 @@ export default function ProgressAnalytics() {
       {/* ======== QUIZ SECTION ======== */}
       {activeSection === 'quiz' && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700">
-            <MdOutlineQuiz className="text-5xl text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              Quiz Analytics Coming Soon
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              Quiz performance tracking will appear here once you start generating and taking quizzes from the Question Bank.
-            </p>
-            <button
-              onClick={() => window.location.href = '/dashboard/question-bank'} // Updated href
-              className="mt-6 flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition mx-auto"
-            >
-              <MdOutlineQuiz />
-              Go to Question Bank
-            </button>
-          </div>
+          {!cbtSummary || cbtSummary.examsTaken === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700">
+              <MdOutlineQuiz className="text-5xl text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                No CBT Practice Data
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                Start practicing with JAMB, WAEC, or NECO past questions to see your performance metrics here.
+              </p>
+              <button
+                onClick={() => window.location.href = '/dashboard/cbt'}
+                className="mt-6 flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition mx-auto"
+              >
+                <MdOutlineQuiz />
+                Go to CBT Practice
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="Exams Taken"
+                  value={cbtSummary.examsTaken}
+                  subtitle="Total attempts"
+                  icon={<FiBookOpen />}
+                  color="blue"
+                />
+                <StatCard
+                  title="Overall Accuracy"
+                  value={`${cbtSummary.overallAccuracy}%`}
+                  subtitle="Average score"
+                  icon={<FiTarget />}
+                  color="green"
+                />
+                <StatCard
+                  title="Best Subject"
+                  value={cbtSummary.bestSubject}
+                  subtitle="Highest average"
+                  icon={<FiAward />}
+                  color="orange"
+                />
+                <StatCard
+                  title="Weakest Subject"
+                  value={cbtSummary.weakestSubject}
+                  subtitle="Needs focus"
+                  icon={<FiTrendingDown />}
+                  color="red"
+                />
+              </div>
+
+              {/* Recent Results History */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FiCalendar className="text-blue-500" />
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                      Recent Exam Results
+                    </h3>
+                  </div>
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {cbtResults.slice(0, 10).map((result, idx) => (
+                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${result.accuracy >= 70
+                            ? 'bg-green-100 text-green-600'
+                            : result.accuracy >= 50
+                              ? 'bg-yellow-100 text-yellow-600'
+                              : 'bg-red-100 text-red-600'
+                          }`}>
+                          {result.accuracy}%
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {result.subject} ({result.examType} {result.year})
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {result.correctAnswers} Correct • {result.wrongAnswers} Wrong • {result.skipped} Skipped
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400">
+                          {new Date(result.takenAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-[10px] text-gray-400 uppercase font-black">
+                          {Math.floor(result.timeTaken / 60)}m {result.timeTaken % 60}s taken
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

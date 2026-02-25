@@ -1,6 +1,7 @@
-import axios from 'axios'
 import { examSyllabi, getSyllabus, getSubjectsForExam, ExamType as SyllabusExamType } from '../data/examSyllabi'
 import { getFirebaseToken } from '../store/authStore'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 export type ExamType = 'WAEC' | 'JAMB' | 'POST_UTME' | 'NECO' | 'BECE'
 
@@ -209,6 +210,66 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     category,
     instruction
   }
+}
+
+// ─── Math & HTML Rendering ───────────────────────────────────────────────────
+export const renderQuestion = (text: string): string => {
+  if (!text) return ''
+
+  // 1. Unescape HTML entities first
+  let rendered = text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+
+  // 2. Handle <sup> and <sub> by converting to LaTeX
+  rendered = rendered
+    .replace(/<sup>(.*?)<\/sup>/g, '^{$1}')
+    .replace(/<sub>(.*?)<\/sub>/g, '_{$1}')
+
+  // 3. Handle common math symbols
+  rendered = rendered
+    .replace(/√/g, '\\sqrt')
+    .replace(/π/g, '\\pi')
+    .replace(/²/g, '^{2}')
+    .replace(/³/g, '^{3}')
+    .replace(/±/g, '\\pm')
+    .replace(/×/g, '\\times')
+    .replace(/÷/g, '\\div')
+
+  // 4. Custom heuristic: if the string contains LaTeX-like characters 
+  // but NO $ delimiters, we try to wrap common patterns
+  if (!rendered.includes('$')) {
+    // Find sequences like x^2, (y+1)_3, etc.
+    // Also catch anything with \sqrt, \pi, etc.
+    const mathRegex = /([a-zA-Z0-9]\^\{?\.?\}?|[a-zA-Z0-9]_\{?\.?\}?|\\sqrt|\\pi|\\times|\\div|\\pm)/
+    if (mathRegex.test(rendered)) {
+      // For simplicity, if it looks like it has math, we try to render it.
+      // But we use 'throwOnError: false' so it falls back to raw text if it fails.
+      try {
+        return katex.renderToString(rendered, {
+          throwOnError: false,
+          displayMode: false,
+          trust: true
+        })
+      } catch {
+        return rendered
+      }
+    }
+  }
+
+  // 5. Traditional $...$ delimiter support
+  rendered = rendered.replace(/\$([^$]+)\$/g, (_, latex) => {
+    try {
+      return katex.renderToString(latex, { throwOnError: false })
+    } catch {
+      return latex
+    }
+  })
+
+  return rendered
 }
 
 // ─── ALOC year range ─────────────────────────────────────────────────────────
@@ -448,5 +509,66 @@ export const cbtApi = {
       'History'
     ]
     return { subjects }
+  },
+
+  /**
+   * Save CBT Session result
+   */
+  saveResult: async (resultData: any): Promise<any> => {
+    try {
+      const res = await fetchWithAuth('/api/cbt/results', {
+        method: 'POST',
+        body: JSON.stringify(resultData)
+      });
+      return await safeJson(res);
+    } catch (err: any) {
+      console.error('[CBT API] Failed to save result:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Get CBT Results summary for a student
+   */
+  getResultsSummary: async (studentId?: string): Promise<any> => {
+    try {
+      const url = studentId ? `/api/cbt/results/summary?studentId=${studentId}` : '/api/cbt/results/summary';
+      const res = await fetchWithAuth(url);
+      return await safeJson(res);
+    } catch (err: any) {
+      console.error('[CBT API] Failed to fetch summary:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Get all CBT results for the current student
+   */
+  getAllResults: async (): Promise<any> => {
+    try {
+      const res = await fetchWithAuth('/api/cbt/results');
+      const data = await safeJson(res);
+      return data.data || [];
+    } catch (err: any) {
+      console.error('[CBT API] Failed to fetch all results:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Generate explanation for a question via AI
+   */
+  getExplanation: async (question: string, correctAnswer: string, options: string[]): Promise<string> => {
+    try {
+      const res = await fetchWithAuth('/api/cbt/explain', {
+        method: 'POST',
+        body: JSON.stringify({ question, correctAnswer, options })
+      });
+      const data = await safeJson(res);
+      return data.explanation;
+    } catch (err: any) {
+      console.error('[CBT API] Failed to get explanation:', err);
+      return 'Could not generate explanation at this time.';
+    }
   }
 }

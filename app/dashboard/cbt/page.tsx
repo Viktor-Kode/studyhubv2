@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { cbtApi, ExamType, CBTQuestion } from '@/lib/api/cbt'
+import { cbtApi, ExamType, CBTQuestion, renderQuestion } from '@/lib/api/cbt'
 import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 import {
   FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft,
@@ -79,7 +79,60 @@ const examTypes = [
   }
 ]
 
-type ViewMode = 'exam-select' | 'configure' | 'test' | 'results'
+const subjectInstructions: Record<string, string> = {
+  'english': `
+    📘 English Language Instructions
+    • Read each passage carefully before answering (Note: some passages are omitted).
+    • Questions may be based on comprehension, grammar, or vocabulary.
+    • Choose the option that best answers each question.
+    • Each question carries 1 mark. No negative marking.
+    • Time allowed: 45 minutes for 60 questions.
+  `,
+  'mathematics': `
+    📐 Mathematics Instructions
+    • All working must be done mentally or on rough paper.
+    • Use of calculator is allowed for this practice.
+    • Each question carries 1 mark.
+    • Carefully check all calculations before selecting your answer.
+    • Time allowed: 1 hour 30 minutes for 60 questions.
+  `,
+  'physics': `
+    ⚡ Physics Instructions
+    • Read each question carefully.
+    • Pay attention to units and significant figures.
+    • Use the provided calculator for complex calculations.
+    • Constants (g, c, etc.) should be used as specified in the questions.
+    • Time allowed: 1 hour for 40 questions.
+  `,
+  'chemistry': `
+    🧪 Chemistry Instructions
+    • Periodic table references may be required for some questions.
+    • Balancing equations and stoichiometry are common topics.
+    • Each question carries 1 mark.
+    • Time allowed: 1 hour for 40 questions.
+  `,
+  'biology': `
+    🧬 Biology Instructions
+    • Questions cover various biological concepts from cells to ecosystems.
+    • Carefully read each option before selecting.
+    • Diagrams may be referenced in some questions.
+    • Time allowed: 1 hour for 40 questions.
+  `,
+  'government': `
+    🏛️ Government Instructions
+    • Questions cover constitution, arms of government, and politics.
+    • Choose the most appropriate answer based on political science principles.
+    • Time allowed: 1 hour for 50 questions.
+  `,
+  'economics': `
+    📈 Economics Instructions
+    • Questions include both theoretical concepts and basic calculations.
+    • Graphs and tables may be present in some questions.
+    • Time allowed: 1 hour for 50 questions.
+  `
+}
+
+type ViewMode = 'exam-select' | 'configure' | 'instructions' | 'test' | 'results'
 
 export default function CBTPage() {
   // Navigation state
@@ -101,6 +154,9 @@ export default function CBTPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set())
   const [showCalculator, setShowCalculator] = useState(false)
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
+  const [isExplaining, setIsExplaining] = useState<string | null>(null)
+  const [summary, setSummary] = useState<any>(null)
   const { user } = useAuthStore()
   const [showResults, setShowResults] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(0)
@@ -212,12 +268,7 @@ export default function CBTPage() {
       setSelectedAnswers({})
       setFlaggedQuestions(new Set())
       setShowResults(false)
-
-      // Start timer
-      const duration = (currentExamConfig?.duration || 120) * 60
-      setTimeRemaining(duration)
-      setIsTimerRunning(true)
-      setViewMode('test')
+      setViewMode('instructions')
 
     } catch (err: any) {
       setError(err.message || 'Failed to load questions. Please check your ALOC API token.')
@@ -225,6 +276,13 @@ export default function CBTPage() {
       setLoading(false)
       setLoadingStage('')
     }
+  }
+
+  const startActualTest = () => {
+    const duration = (currentExamConfig?.duration || 120) * 60
+    setTimeRemaining(duration)
+    setIsTimerRunning(true)
+    setViewMode('test')
   }
 
   const handleAnswerSelect = (optionIndex: number) => {
@@ -261,10 +319,57 @@ export default function CBTPage() {
     setFlaggedQuestions(newFlagged)
   }
 
-  const handleSubmitTest = () => {
+  const handleSubmitTest = async () => {
     setIsTimerRunning(false)
     setShowResults(true)
+
+    // Calculate final score
+    const finalScore = getScore()
+
+    // Save to DB
+    try {
+      const results = questions.map(q => ({
+        questionId: q.id,
+        question: q.question,
+        selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped',
+        correctAnswer: q.options[q.correctAnswer],
+        explanation: q.explanation || '',
+        isCorrect: selectedAnswers[q.id] === q.correctAnswer
+      }))
+
+      const resultData = {
+        subject: selectedSubject,
+        examType: selectedExam,
+        year: selectedYear,
+        totalQuestions: questions.length,
+        correctAnswers: finalScore.correct,
+        wrongAnswers: finalScore.attempted - finalScore.correct,
+        skipped: finalScore.total - finalScore.attempted,
+        accuracy: finalScore.percentage,
+        timeTaken: (currentExamConfig?.duration || 120) * 60 - timeRemaining,
+        answers: results
+      }
+
+      await cbtApi.saveResult(resultData)
+    } catch (err) {
+      console.error('Failed to save CBT result:', err)
+    }
+
     setViewMode('results')
+  }
+
+  const handleGetAiExplanation = async (q: Question) => {
+    if (aiExplanations[q.id] || isExplaining === q.id) return
+
+    setIsExplaining(q.id)
+    try {
+      const explanation = await cbtApi.getExplanation(q.question, q.options[q.correctAnswer], q.options)
+      setAiExplanations(prev => ({ ...prev, [q.id]: explanation }))
+    } catch (err) {
+      console.error('Failed to get AI explanation:', err)
+    } finally {
+      setIsExplaining(null)
+    }
   }
 
   const getScore = () => {
@@ -639,298 +744,352 @@ export default function CBTPage() {
           </div>
         )}
 
-        {/* ====== TEST VIEW ====== */}
-        {viewMode === 'test' && currentQuestion && (
-          <div className="flex flex-col lg:flex-row gap-6">
-
-            {/* Candidate Profile Sidebar (Simulated) */}
-            <div className="hidden lg:block w-64 flex-shrink-0 space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-                <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-b border-gray-100 dark:border-gray-700">
-                  {user?.profilePicture ? (
-                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <BiUserCircle className="text-6xl text-gray-300 dark:text-gray-600" />
-                  )}
+        {/* ====== INSTRUCTIONS VIEW ====== */}
+        {viewMode === 'instructions' && selectedSubject && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">
+                  <FiInfo className="text-2xl text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Candidate Name</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.name || 'GUEST CANDIDATE'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Registration ID</p>
-                    <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 tracking-tighter">
-                      STH/{new Date().getFullYear()}/{Math.floor(100000 + Math.random() * 900000)}
-                    </p>
-                  </div>
-                  <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Active Exam</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{currentExamConfig?.label}</p>
-                    <p className="text-xs text-gray-500">{selectedSubject}</p>
-                  </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Exam Instructions</h2>
+                  <p className="text-gray-500 dark:text-gray-400">{selectedSubject} — {selectedYear}</p>
                 </div>
               </div>
 
-              {/* Status Mini Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                  <p className="text-xl font-bold text-blue-600">{answeredCount}</p>
-                  <p className="text-[9px] font-black uppercase text-gray-400">Answered</p>
+              <div className="prose dark:prose-invert max-w-none mb-8">
+                <div className="p-5 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <pre className="whitespace-pre-wrap font-sans text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                    {subjectInstructions[selectedSubject.toLowerCase()] || `
+                      📘 General Instructions
+                      • This is a practice exam for ${selectedSubject}.
+                      • Total number of questions: ${questionCount}.
+                      • Duration: ${currentExamConfig?.duration} minutes.
+                      • Read each question carefully before choosing an option.
+                      • You can navigate between questions using the numbers at the top.
+                    `}
+                  </pre>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                  <p className="text-xl font-bold text-gray-400">{questions.length - answeredCount}</p>
-                  <p className="text-[9px] font-black uppercase text-gray-400">Left</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/50 text-center">
+                    <p className="text-xs font-black uppercase text-blue-400 tracking-widest mb-1">Time</p>
+                    <p className="font-bold text-blue-900 dark:text-blue-100">{currentExamConfig?.duration} min</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-900/50 text-center">
+                    <p className="text-xs font-black uppercase text-purple-400 tracking-widest mb-1">Items</p>
+                    <p className="font-bold text-purple-900 dark:text-purple-100">{questions.length} Questions</p>
+                  </div>
                 </div>
+
+                <button
+                  onClick={startActualTest}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition shadow-xl shadow-blue-500/20"
+                >
+                  Confirm & Start Exam
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="flex-1 space-y-4">
+        {/* ====== TEST VIEW ====== */}
+        {viewMode === 'test' && currentQuestion && (
+          <div className="cbt-container">
+            <div className="flex flex-col lg:flex-row gap-6">
 
-              {/* Top Bar */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">
-                      {currentExamConfig?.label} — {selectedSubject} {selectedYear}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {answeredCount} of {questions.length} answered
-                      {flaggedQuestions.size > 0 && ` • ${flaggedQuestions.size} flagged`}
-                    </p>
+              {/* Candidate Profile Sidebar (Simulated) */}
+              <div className="hidden lg:block w-64 flex-shrink-0 space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-b border-gray-100 dark:border-gray-700">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <BiUserCircle className="text-6xl text-gray-300 dark:text-gray-600" />
+                    )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-1.5 font-mono font-bold text-lg ${getTimerColor()}`}>
-                      <FiClock className="text-base" />
-                      {formatTime(timeRemaining)}
+                  <div className="p-4 space-y-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Candidate Name</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.name || 'GUEST CANDIDATE'}</p>
                     </div>
-                    <button
-                      onClick={() => setShowCalculator(true)}
-                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                      title="Open Calculator"
-                    >
-                      <MdCalculate className="text-lg" />
-                    </button>
-                    <button
-                      onClick={() => setShowQuestionPanel(!showQuestionPanel)}
-                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                    >
-                      <FiGrid className="text-sm" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('Exit test? Your progress will be lost.')) resetAll()
-                      }}
-                      className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold"
-                    >
-                      End Exam
-                    </button>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Registration ID</p>
+                      <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 tracking-tighter">
+                        STH/{new Date().getFullYear()}/{Math.floor(100000 + Math.random() * 900000)}
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Active Exam</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{currentExamConfig?.label}</p>
+                      <p className="text-xs text-gray-500">{selectedSubject}</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all"
-                    style={{ width: `${(answeredCount / questions.length) * 100}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>Q{currentIndex + 1}/{questions.length}</span>
-                  <span>{Math.round((answeredCount / questions.length) * 100)}% answered</span>
+                {/* Status Mini Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
+                    <p className="text-xl font-bold text-blue-600">{answeredCount}</p>
+                    <p className="text-[9px] font-black uppercase text-gray-400">Answered</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
+                    <p className="text-xl font-bold text-gray-400">{questions.length - answeredCount}</p>
+                    <p className="text-[9px] font-black uppercase text-gray-400">Left</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Question Grid Panel */}
-              {showQuestionPanel && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex-1 space-y-4 question-card">
+
+                {/* Top Bar */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-md">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm">
-                      Question Navigator
-                    </h3>
+                    <div>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">
+                        {currentExamConfig?.label} — {selectedSubject} {selectedYear}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {answeredCount} of {questions.length} answered
+                        {flaggedQuestions.size > 0 && ` • ${flaggedQuestions.size} flagged`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-1.5 font-mono font-bold text-lg ${getTimerColor()}`}>
+                        <FiClock className="text-base" />
+                        {formatTime(timeRemaining)}
+                      </div>
+                      <button
+                        onClick={() => setShowCalculator(true)}
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                        title="Open Calculator"
+                      >
+                        <MdCalculate className="text-lg" />
+                      </button>
+                      <button
+                        onClick={() => setShowQuestionPanel(!showQuestionPanel)}
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                      >
+                        <FiGrid className="text-sm" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Exit test? Your progress will be lost.')) resetAll()
+                        }}
+                        className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold"
+                      >
+                        End Exam
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all"
+                      style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Q{currentIndex + 1}/{questions.length}</span>
+                    <span>{Math.round((answeredCount / questions.length) * 100)}% answered</span>
+                  </div>
+                </div>
+
+                {/* Question Grid Panel */}
+                {showQuestionPanel && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                        Question Navigator
+                      </h3>
+                      <button
+                        onClick={() => setShowQuestionPanel(false)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                    <div className="question-navigator">
+                      {questions.map((_, idx) => {
+                        const isAnswered = selectedAnswers[questions[idx].id] !== undefined
+                        const isFlagged = flaggedQuestions.has(idx)
+                        const isCurrent = idx === currentIndex
+
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleJumpToQuestion(idx)}
+                            className={`aspect-square rounded-lg text-xs font-bold transition flex items-center justify-center ${isCurrent
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                              : isFlagged
+                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-400'
+                                : isAnswered
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                          >
+                            {idx + 1}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-green-200 dark:bg-green-900 rounded" />
+                        Answered
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-900 rounded" />
+                        Flagged
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 rounded" />
+                        Unanswered
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Question Card */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Question {currentIndex + 1}
+                    </span>
                     <button
-                      onClick={() => setShowQuestionPanel(false)}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      onClick={handleFlagQuestion}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg transition ${flaggedQuestions.has(currentIndex)
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                        }`}
                     >
-                      <FiX />
+                      <FiTarget className="text-xs" />
+                      {flaggedQuestions.has(currentIndex) ? 'Flagged' : 'Flag'}
                     </button>
                   </div>
-                  <div className="grid grid-cols-8 gap-1.5">
-                    {questions.map((_, idx) => {
-                      const isAnswered = selectedAnswers[questions[idx].id] !== undefined
-                      const isFlagged = flaggedQuestions.has(idx)
-                      const isCurrent = idx === currentIndex
+
+                  {/* ── INSTRUCTION BANNER ─────────────────────────── */}
+                  {currentQuestion.instruction && (
+                    <div className="flex items-start gap-2 mb-4 p-3 
+                              bg-amber-50 dark:bg-amber-900/20 
+                              border border-amber-200 dark:border-amber-700 
+                              rounded-lg">
+                      <FiInfo className="text-amber-500 flex-shrink-0 mt-0.5 text-sm" />
+                      <p className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
+                        {currentQuestion.instruction}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ── QUESTION CATEGORY BADGE ─────────────────────── */}
+                  {currentQuestion.category && currentQuestion.category !== 'general' && (
+                    <div className="mb-3">
+                      <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${currentQuestion.category === 'vocabulary'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        : currentQuestion.category === 'grammar'
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                          : currentQuestion.category === 'oral_english'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : currentQuestion.category === 'idiom_proverb'
+                              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                              : currentQuestion.category === 'sentence_completion'
+                                ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}>
+                        {currentQuestion.category === 'vocabulary' ? 'Vocabulary & Lexis'
+                          : currentQuestion.category === 'grammar' ? 'Grammar & Usage'
+                            : currentQuestion.category === 'oral_english' ? 'Oral English'
+                              : currentQuestion.category === 'idiom_proverb' ? 'Idioms & Proverbs'
+                                : currentQuestion.category === 'sentence_completion' ? 'Sentence Completion'
+                                  : currentQuestion.category}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ── QUESTION TEXT ───────────────────────────────── */}
+                  <h2
+                    className="text-lg font-semibold text-gray-900 dark:text-white mb-6 leading-relaxed question-text"
+                    dangerouslySetInnerHTML={{ __html: renderQuestion(currentQuestion.question) }}
+                  />
+
+                  {/* ── OPTIONS ─────────────────────────────────────── */}
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, index) => {
+                      const isSelected = selectedAnswers[currentQuestion.id] === index
+                      const optionLetters = ['A', 'B', 'C', 'D', 'E']
 
                       return (
                         <button
-                          key={idx}
-                          onClick={() => handleJumpToQuestion(idx)}
-                          className={`w-full aspect-square rounded-lg text-xs font-bold transition flex items-center justify-center ${isCurrent
-                            ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                            : isFlagged
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-400'
-                              : isAnswered
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          key={index}
+                          onClick={() => handleAnswerSelect(index)}
+                          className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                             }`}
                         >
-                          {idx + 1}
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold transition ${isSelected
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                              }`}>
+                              {optionLetters[index]}
+                            </div>
+                            <span
+                              className={`${isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-gray-800 dark:text-gray-200'}`}
+                              dangerouslySetInnerHTML={{ __html: renderQuestion(option) }}
+                            />
+                          </div>
                         </button>
                       )
                     })}
                   </div>
-                  <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 bg-green-200 dark:bg-green-900 rounded" />
-                      Answered
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-900 rounded" />
-                      Flagged
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 rounded" />
-                      Unanswered
-                    </span>
-                  </div>
                 </div>
-              )}
 
-              {/* Question Card */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-start justify-between mb-4">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Question {currentIndex + 1}
-                  </span>
+                {/* Navigation */}
+                <div className="flex items-center justify-between">
                   <button
-                    onClick={handleFlagQuestion}
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg transition ${flaggedQuestions.has(currentIndex)
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                      }`}
-                  >
-                    <FiTarget className="text-xs" />
-                    {flaggedQuestions.has(currentIndex) ? 'Flagged' : 'Flag'}
-                  </button>
-                </div>
-
-                {/* ── INSTRUCTION BANNER ─────────────────────────── */}
-                {currentQuestion.instruction && (
-                  <div className="flex items-start gap-2 mb-4 p-3 
-                              bg-amber-50 dark:bg-amber-900/20 
-                              border border-amber-200 dark:border-amber-700 
-                              rounded-lg">
-                    <FiInfo className="text-amber-500 flex-shrink-0 mt-0.5 text-sm" />
-                    <p className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
-                      {currentQuestion.instruction}
-                    </p>
-                  </div>
-                )}
-
-                {/* ── QUESTION CATEGORY BADGE ─────────────────────── */}
-                {currentQuestion.category && currentQuestion.category !== 'general' && (
-                  <div className="mb-3">
-                    <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${currentQuestion.category === 'vocabulary'
-                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : currentQuestion.category === 'grammar'
-                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                        : currentQuestion.category === 'oral_english'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                          : currentQuestion.category === 'idiom_proverb'
-                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
-                            : currentQuestion.category === 'sentence_completion'
-                              ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                      {currentQuestion.category === 'vocabulary' ? 'Vocabulary & Lexis'
-                        : currentQuestion.category === 'grammar' ? 'Grammar & Usage'
-                          : currentQuestion.category === 'oral_english' ? 'Oral English'
-                            : currentQuestion.category === 'idiom_proverb' ? 'Idioms & Proverbs'
-                              : currentQuestion.category === 'sentence_completion' ? 'Sentence Completion'
-                                : currentQuestion.category}
-                    </span>
-                  </div>
-                )}
-
-                {/* ── QUESTION TEXT ───────────────────────────────── */}
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 leading-relaxed">
-                  {currentQuestion.question}
-                </h2>
-
-                {/* ── OPTIONS ─────────────────────────────────────── */}
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option, index) => {
-                    const isSelected = selectedAnswers[currentQuestion.id] === index
-                    const optionLetters = ['A', 'B', 'C', 'D', 'E']
-
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleAnswerSelect(index)}
-                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold transition ${isSelected
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                            }`}>
-                            {optionLetters[index]}
-                          </div>
-                          <span className={`${isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-gray-800 dark:text-gray-200'}`}>
-                            {option}
-                          </span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={handlePrevious}
-                  disabled={currentIndex === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 dark:bg-gray-700 
+                    onClick={handlePrevious}
+                    disabled={currentIndex === 0}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 dark:bg-gray-700 
                            text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 
                            dark:hover:bg-gray-600 transition disabled:opacity-40 
                            disabled:cursor-not-allowed font-medium"
-                >
-                  <FiArrowLeft /> Previous
-                </button>
+                  >
+                    <FiArrowLeft /> Previous
+                  </button>
 
-                <div className="flex items-center gap-2">
-                  {currentIndex === questions.length - 1 ? (
-                    <button
-                      onClick={() => {
-                        const unanswered = questions.length - answeredCount
-                        if (unanswered > 0) {
-                          if (!confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
-                        }
-                        handleSubmitTest()
-                      }}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 
-                               text-white rounded-xl transition font-bold shadow-md"
-                    >
-                      <FiCheckCircle /> Submit Test
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleNext}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 
-                               text-white rounded-xl transition font-medium shadow-md"
-                    >
-                      Next <FiArrowRight />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2 cbt-nav-buttons">
+                    {currentIndex === questions.length - 1 ? (
+                      <button
+                        onClick={() => {
+                          const unanswered = questions.length - answeredCount
+                          if (unanswered > 0) {
+                            if (!confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
+                          }
+                          handleSubmitTest()
+                        }}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition font-black uppercase tracking-widest shadow-lg shadow-green-500/20"
+                      >
+                        <FiCheckCircle /> Submit Test
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleNext}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition font-bold shadow-md"
+                      >
+                        Next <FiArrowRight />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+              {/* Calculator Component */}
+              {showCalculator && <CBTCalculator onClose={() => setShowCalculator(false)} />}
             </div>
-            {/* Calculator Component */}
-            {showCalculator && <CBTCalculator onClose={() => setShowCalculator(false)} />}
           </div>
         )}
 
@@ -1046,9 +1205,10 @@ export default function CBTPage() {
                               {q.instruction}
                             </p>
                           )}
-                          <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                            {q.question}
-                          </p>
+                          <p
+                            className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
+                          />
                         </div>
                       </div>
 
@@ -1071,7 +1231,7 @@ export default function CBTPage() {
                               }`}>
                               {optionLetters[optIdx]}
                             </span>
-                            {opt}
+                            <span dangerouslySetInnerHTML={{ __html: renderQuestion(opt) }} />
                             {optIdx === q.correctAnswer && (
                               <FiCheckCircle className="text-green-500 ml-auto flex-shrink-0 text-xs" />
                             )}
@@ -1079,15 +1239,31 @@ export default function CBTPage() {
                         ))}
                       </div>
 
-                      {q.explanation && (
-                        <div className="ml-10 mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      {(q.explanation || aiExplanations[q.id]) ? (
+                        <div className="ml-10 mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
                           <div className="flex items-start gap-2">
-                            <HiOutlineLightBulb className="text-blue-500 flex-shrink-0 mt-0.5 text-sm" />
-                            <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                              {q.explanation}
-                            </p>
+                            <HiOutlineLightBulb className="text-blue-500 flex-shrink-0 mt-0.5 text-lg" />
+                            <div>
+                              <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Explanation</p>
+                              <p
+                                className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed"
+                                dangerouslySetInnerHTML={{ __html: renderQuestion(q.explanation || aiExplanations[q.id] || '') }}
+                              />
+                            </div>
                           </div>
                         </div>
+                      ) : !isCorrect && (
+                        <button
+                          onClick={() => handleGetAiExplanation(q)}
+                          disabled={isExplaining === q.id}
+                          className="ml-10 mt-3 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition"
+                        >
+                          {isExplaining === q.id ? (
+                            <><FiLoader className="animate-spin" /> Generating Explanation...</>
+                          ) : (
+                            <><HiOutlineLightBulb /> Why is this correct? Get AI Explanation</>
+                          )}
+                        </button>
                       )}
                     </div>
                   )
@@ -1097,6 +1273,6 @@ export default function CBTPage() {
           </div>
         )}
       </div>
-    </ProtectedRoute>
+    </ProtectedRoute >
   )
 }

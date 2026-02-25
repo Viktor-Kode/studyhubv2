@@ -7,6 +7,7 @@ import { getFirebaseToken } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { getAllQuizSessions } from '@/lib/api/quizApi'
 import { getFlashCardStats } from '@/lib/api/flashcardApi'
+import { cbtApi } from '@/lib/api/cbt'
 import {
   FiBook, FiClock, FiCreditCard, FiBarChart2,
   FiCalendar, FiGrid, FiTrendingUp, FiAward,
@@ -32,6 +33,9 @@ export default function StudentDashboardPage() {
     totalFlashcards: 0,
     masteredCards: 0,
     upcomingReminders: 0,
+    cbtExamsTaken: 0,
+    cbtAccuracy: 0,
+    bestCBTSubject: 'N/A'
   })
   const [activities, setActivities] = useState<any[]>([])
   const [enrolledClasses, setEnrolledClasses] = useState<Class[]>([])
@@ -43,11 +47,12 @@ export default function StudentDashboardPage() {
     try {
       if (user?.uid) {
         setLoading(true)
-        const [classes, reminders, flashStats, studyStats] = await Promise.all([
+        const [classes, reminders, flashStats, studyStats, cbtSummary] = await Promise.all([
           classService.getStudentClasses(user.uid),
           reminderService.getUpcoming(user.uid, 7),
           getFlashCardStats(),
-          apiClient.get('/study/stats').then(res => res.data.stats).catch(() => null)
+          apiClient.get('/study/stats').then(res => res.data.stats).catch(() => null),
+          cbtApi.getResultsSummary().catch(() => null)
         ])
 
         setEnrolledClasses(classes)
@@ -63,6 +68,9 @@ export default function StudentDashboardPage() {
             totalFlashcards: flashStats?.stats?.totalCards || 0,
             masteredCards: flashStats?.stats?.masteredCards || 0,
             upcomingReminders: reminders.length,
+            cbtExamsTaken: cbtSummary?.examsTaken || 0,
+            cbtAccuracy: cbtSummary?.overallAccuracy || 0,
+            bestCBTSubject: cbtSummary?.bestSubject || 'N/A'
           })
         }
 
@@ -250,12 +258,12 @@ export default function StudentDashboardPage() {
             <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-emerald-100 mb-1">Quiz Questions</p>
-                  <p className="text-3xl font-bold">{stats.totalQuestions}</p>
-                  <p className="text-xs text-emerald-100 mt-1">{stats.quizSessions} quiz sessions</p>
+                  <p className="text-sm text-emerald-100 mb-1">CBT Accuracy</p>
+                  <p className="text-3xl font-bold">{stats.cbtAccuracy}%</p>
+                  <p className="text-xs text-emerald-100 mt-1">{stats.cbtExamsTaken} exams taken</p>
                 </div>
                 <div className="bg-white/20 rounded-full p-3">
-                  <FiBook className="text-3xl" />
+                  <FiTarget className="text-3xl" />
                 </div>
               </div>
             </div>
