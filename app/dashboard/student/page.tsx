@@ -487,6 +487,18 @@ export default function StudentDashboardPage() {
                 </div>
               )}
 
+              {stats.bestCBTSubject !== 'N/A' && (
+                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
+                    <FiAward className="text-xl" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-600">Best Subject</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{stats.bestCBTSubject}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-2">
                 <Link href="/dashboard/analytics" className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group">
                   View full progress <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
