@@ -336,133 +336,51 @@ export const cbtApi = {
     const examSlug = EXAM_TYPE_MAP[examType]
     const subjectSlug = SUBJECT_SLUG_MAP[subject] || subject.toLowerCase().replace(/ /g, '-')
 
-    const errors: string[] = []
-    let finalQuestions: CBTQuestion[] = []
-
-    // Helper to process response data
-    const processData = (data: any): CBTQuestion[] => {
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const allQuestions = data.data
-          .filter((q: any) => q.question && (q.option || q.options))
-          .map((q: any) => parseALOCQuestion(q, examType))
-          .filter((q: CBTQuestion) => q.options.length >= 2)
-
-        if (allQuestions.length === 0) return []
-
-        // For English Language: filter out comprehension questions
-        // that reference a missing passage since ALOC doesn't include passages
-        const isEnglish = subjectSlug === 'english' || subject.toLowerCase().includes('english')
-
-        const questions = isEnglish
-          ? allQuestions.filter((q: CBTQuestion) => q.category !== 'comprehension')
-          : allQuestions
-
-        // If filtering removed too many, warn but still return what we have
-        // Or if we have very few filtered questions, maybe returning purely general/grammar ones is better thanbroken comprehension ones
-        if (isEnglish && allQuestions.length > 0 && questions.length < 3) {
-          console.warn('English filter removed most questions. Returning allow-list only if possible.')
-          return questions
-        }
-
-        return questions
-      }
-      return []
-    }
-
-    // ── Validate year before sending to ALOC ──────────────────────────────
-    const yearNum = parseInt(year, 10)
-    const isYearValid = !isNaN(yearNum) && yearNum >= ALOC_MIN_YEAR && yearNum <= ALOC_MAX_YEAR
-
-    if (!isYearValid) {
-      console.warn(
-        `[CBT] Year "${year}" is outside ALOC range (${ALOC_MIN_YEAR}–${ALOC_MAX_YEAR}). ` +
-        `Skipping year-filtered attempt.`
-      )
-      errors.push(`Year "${year}" is not in ALOC database (valid: ${ALOC_MIN_YEAR}–${ALOC_MAX_YEAR})`)
-    }
-
-    // ATTEMPT 1: Fetch with year filter (only if year is in valid range)
-    if (isYearValid) {
-      try {
-        const params = new URLSearchParams({
-          subject: subjectSlug,
-          type: examSlug,
-          amount: String(Math.min(amount, 40)),
-          year: year
-        })
-
-        console.log('CBT Attempt 1 - with year:', params.toString())
-        const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
-        const data = await safeJson(res)
-
-        const questions = processData(data)
-        if (questions.length > 0) {
-          console.log(`Loaded ${questions.length} questions with year filter`)
-          return { questions }
-        }
-        errors.push(`Attempt 1 (with year ${year}): ${data.error || data.message || 'No valid questions returned'}`)
-      } catch (err: any) {
-        errors.push(`Attempt 1 failed: ${err.message}`)
-        console.error('Attempt 1 error:', err)
-      }
-    } // end isYearValid block
-
-    // ATTEMPT 2: Fetch WITHOUT year filter
     try {
       const params = new URLSearchParams({
         subject: subjectSlug,
         type: examSlug,
-        amount: String(Math.min(amount, 40))
+        amount: String(Math.min(amount, 40)),
+        year: year
       })
 
-      console.log('CBT Attempt 2 - without year:', params.toString())
+      console.log('[CBT] Fetching from proxy:', params.toString())
       const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
-      const data = await safeJson(res)
 
-      const questions = processData(data)
-      if (questions.length > 0) {
-        console.log(`Loaded ${questions.length} questions without year filter`)
-        return { questions }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.error || `Server returned ${res.status}`)
       }
-      errors.push(`Attempt 2 (no year): ${data.error || 'No valid questions returned'}`)
-    } catch (err: any) {
-      errors.push(`Attempt 2 failed: ${err.message}`)
-      console.error('Attempt 2 error:', err)
-    }
 
-    // ATTEMPT 3: Try with english as fallback subject (to test API connectivity)
-    if (subjectSlug !== 'english') {
-      try {
-        const params = new URLSearchParams({
-          subject: 'english',
-          type: examSlug,
-          amount: '20'
-        })
+      const data = await res.json()
 
-        console.log('CBT Attempt 3 - english fallback')
-        const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
-        const data = await safeJson(res)
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        let allQuestions = data.data
+          .filter((q: any) => q.question && (q.option || q.options))
+          .map((q: any) => parseALOCQuestion(q, examType))
+          .filter((q: CBTQuestion) => q.options.length >= 2)
 
-        // We check if data exists but don't return it as "success" for the original subject request
-        // This is just to verify API connectivity
-        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-          console.log('English fallback worked - API is connected but subject is missing')
+        // For English Language: filter out comprehension questions
+        const isEnglish = subjectSlug === 'english' || subject.toLowerCase().includes('english')
+        const questions = isEnglish
+          ? allQuestions.filter((q: CBTQuestion) => q.category !== 'comprehension')
+          : allQuestions
+
+        if (questions.length === 0 && allQuestions.length > 0) {
+          // If we filtered out EVERYTHING (likely all were comprehension), just return the original set
+          // better than an empty screen.
+          return { questions: allQuestions.slice(0, amount) }
         }
-        errors.push(`Attempt 3 (english fallback): API responded but no ${subject} questions`)
-      } catch (err: any) {
-        errors.push(`Attempt 3 failed: ${err.message}`)
+
+        return { questions: questions.slice(0, amount) }
       }
+
+      throw new Error(`No questions found for ${subject}.`)
+
+    } catch (err: any) {
+      console.error('[CBT API] Error:', err.message)
+      throw new Error(err.message)
     }
-
-    console.error('All CBT attempts failed:', errors)
-
-    // Choose the most descriptive error to show the user
-    const displayError = errors.find(e => e.includes('Attempt 1')) || errors[0]
-
-    throw new Error(
-      `No questions found for ${subject} (${examType} ${year}). ` +
-      `Details: ${displayError}`
-    )
   },
 
   /**
