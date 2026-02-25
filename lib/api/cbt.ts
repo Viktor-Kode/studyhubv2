@@ -126,9 +126,9 @@ export interface AvailableSubjectsResponse {
 const EXAM_TYPE_MAP: Record<string, string> = {
   'JAMB': 'utme',
   'WAEC': 'wassce',
-  'NECO': 'neco',
+  'NECO': 'wassce',
   'POST_UTME': 'post-utme',
-  'BECE': 'bece' // Fallback, BECE support varies
+  'BECE': 'wassce' // Fallback for junior exams to secondary level if needed
 }
 
 // Subject Slug Map to match ALOC expected slugs

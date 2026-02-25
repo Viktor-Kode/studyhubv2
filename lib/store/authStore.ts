@@ -9,6 +9,7 @@ interface AuthState {
   setUser: (user: AppUser | null) => void
   logout: () => void
   setLoading: (loading: boolean) => void
+  refreshUser: () => Promise<void>
 
   /** @deprecated Legacy compatibility shim — use setUser instead */
   login: (user: AppUser) => void
@@ -28,6 +29,18 @@ export const useAuthStore = create<AuthState>()((set) => ({
       localStorage.clear()
     }
     set({ user: null, isAuthenticated: false, isLoading: false })
+  },
+
+  refreshUser: async () => {
+    try {
+      const { apiClient } = await import('@/lib/api/client')
+      const response = await apiClient.get('/users/me')
+      if (response.data?.data?.user) {
+        set({ user: response.data.data.user, isAuthenticated: true })
+      }
+    } catch (err) {
+      console.error('[refreshUser] Failed:', err)
+    }
   },
 
   setLoading: (isLoading) => set({ isLoading }),

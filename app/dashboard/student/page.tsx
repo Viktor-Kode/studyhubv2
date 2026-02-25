@@ -12,7 +12,7 @@ import {
   FiBook, FiClock, FiCreditCard, FiBarChart2,
   FiCalendar, FiGrid, FiTrendingUp, FiAward,
   FiCheckCircle, FiArrowRight, FiZap, FiBell,
-  FiTarget, FiLoader
+  FiTarget, FiLoader, FiStar
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool, MdClass } from 'react-icons/md'
 import { BiCard, BiTimer, BiBrain } from 'react-icons/bi'
@@ -352,6 +352,69 @@ export default function StudentDashboardPage() {
 
           {/* Right Column - Upcoming Reminders & Actions */}
           <div className="space-y-8">
+            {/* Subscription Usage Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <FiZap className="text-8xl transform rotate-12" />
+              </div>
+
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Your Plan</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-black text-gray-900 dark:text-white capitalize">
+                      {user?.plan?.type || 'Free'}
+                    </span>
+                    <FiStar className="text-yellow-500 fill-yellow-500 text-sm" />
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/pricing"
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Upgrade
+                </Link>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">Tests: {user?.plan?.testsUsed || 0} / {user?.plan?.testsAllowed || 1}</span>
+                    <span className="text-[10px] font-black text-blue-600">
+                      {Math.round(((user?.plan?.testsUsed || 0) / (user?.plan?.testsAllowed || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all duration-1000"
+                      style={{ width: `${Math.min(((user?.plan?.testsUsed || 0) / (user?.plan?.testsAllowed || 1)) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">AI Explanations: {user?.plan?.aiExplanationsUsed || 0} / {user?.plan?.aiExplanationsAllowed || 5}</span>
+                    <span className="text-[10px] font-black text-purple-600">
+                      {Math.round(((user?.plan?.aiExplanationsUsed || 0) / (user?.plan?.aiExplanationsAllowed || 5)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 transition-all duration-1000"
+                      style={{ width: `${Math.min(((user?.plan?.aiExplanationsUsed || 0) / (user?.plan?.aiExplanationsAllowed || 5)) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {user?.plan?.expiresAt && (
+                  <p className="text-[10px] text-gray-400 font-medium italic">
+                    Expires: {new Date(user.plan.expiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Upcoming Reminders */}
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
