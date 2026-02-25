@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { examSyllabi, getSyllabus, getSubjectsForExam, ExamType as SyllabusExamType } from '../data/examSyllabi'
+import { getFirebaseToken } from '../store/authStore'
 
 export type ExamType = 'WAEC' | 'JAMB' | 'POST_UTME' | 'NECO' | 'BECE'
 
@@ -245,6 +246,22 @@ async function safeJson(res: Response): Promise<any> {
   }
 }
 
+// Internal helper for authorized backend calls
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getFirebaseToken();
+  const headers = {
+    ...options.headers,
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  } as Record<string, string>;
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return fetch(url, { ...options, headers });
+}
+
 export const cbtApi = {
   /**
    * Get questions from ALOC API via internal proxy
@@ -312,7 +329,7 @@ export const cbtApi = {
         })
 
         console.log('CBT Attempt 1 - with year:', params.toString())
-        const res = await fetch(`/api/cbt/questions?${params}`)
+        const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
         const data = await safeJson(res)
 
         const questions = processData(data)
@@ -336,7 +353,7 @@ export const cbtApi = {
       })
 
       console.log('CBT Attempt 2 - without year:', params.toString())
-      const res = await fetch(`/api/cbt/questions?${params}`)
+      const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
       const data = await safeJson(res)
 
       const questions = processData(data)
@@ -360,7 +377,7 @@ export const cbtApi = {
         })
 
         console.log('CBT Attempt 3 - english fallback')
-        const res = await fetch(`/api/cbt/questions?${params}`)
+        const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
         const data = await safeJson(res)
 
         // We check if data exists but don't return it as "success" for the original subject request
