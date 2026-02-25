@@ -286,6 +286,8 @@ export const cbtApi = {
           .map((q: any) => parseALOCQuestion(q, examType))
           .filter((q: CBTQuestion) => q.options.length >= 2)
 
+        if (allQuestions.length === 0) return []
+
         // For English Language: filter out comprehension questions
         // that reference a missing passage since ALOC doesn't include passages
         const isEnglish = subjectSlug === 'english' || subject.toLowerCase().includes('english')
@@ -392,10 +394,13 @@ export const cbtApi = {
     }
 
     console.error('All CBT attempts failed:', errors)
+
+    // Choose the most descriptive error to show the user
+    const displayError = errors.find(e => e.includes('Attempt 1')) || errors[0]
+
     throw new Error(
       `No questions found for ${subject} (${examType} ${year}). ` +
-      `filtered due to missing context? ` +
-      `Debug: ${errors[0]}`
+      `Details: ${displayError}`
     )
   },
 
