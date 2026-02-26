@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { usePathname, useRouter } from 'next/navigation'
@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool } from 'react-icons/md'
 import { BiCard } from 'react-icons/bi'
+import { useTimerStore } from '@/lib/store/timerStore'
 
 interface NavItem {
     href: string
@@ -60,10 +61,30 @@ export default function DashboardLayout({
         }
     }
 
+    const store = useTimerStore()
+
+    // Initialize Global Timer State
+    useEffect(() => {
+        if (user) {
+            store.init()
+        }
+    }, [user])
+
+    // Global Timer TICK to run anywhere in dashboard
+    useEffect(() => {
+        let interval: NodeJS.Timeout
+        if (store.isActive && !store.isPaused) {
+            interval = setInterval(() => {
+                store.tick()
+            }, 1000)
+        }
+        return () => clearInterval(interval)
+    }, [store.isActive, store.isPaused, store])
+
     // Filter nav items based on user role
     const filteredNavItems = navItems.filter(item => {
         if (!item.roles) return true
-        return user?.role && item.roles.includes(user.role)
+        return user?.role && item.roles.includes(user.role as 'student' | 'teacher')
     })
 
     const isDark = theme === 'dark'

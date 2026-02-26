@@ -575,7 +575,7 @@ export default function FlipCardsPage() {
         )}
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-8 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-fit overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 mb-8 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth">
           {[
             { id: 'decks', label: 'My Decks', icon: FiLayers },
             { id: 'study', label: 'Study', icon: FiBookOpen },
@@ -606,7 +606,7 @@ export default function FlipCardsPage() {
         {showAddForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={resetForm}></div>
-            <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl border border-white/10">
+            <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 shadow-2xl border border-white/10">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
                   {editingId ? 'Update Card' : 'New Flashcard'}
@@ -804,34 +804,34 @@ export default function FlipCardsPage() {
                       }`}
                   >
                     {/* Front Side */}
-                    <div className="absolute inset-0 w-full h-full backface-hidden bg-white dark:bg-gray-800 rounded-[3rem] p-12 border-2 border-gray-100 dark:border-gray-700 shadow-2xl flex flex-col items-center justify-center text-center">
-                      <span className="absolute top-10 text-xs font-black uppercase tracking-[0.3em] text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-6 py-2 rounded-full">
+                    <div className="absolute inset-0 w-full h-full backface-hidden bg-white dark:bg-gray-800 rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 border-2 border-gray-100 dark:border-gray-700 shadow-2xl flex flex-col items-center justify-center text-center">
+                      <span className="absolute top-6 md:top-10 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-4 md:px-6 py-1 md:py-2 rounded-full">
                         Question
                       </span>
-                      <h2 className="text-4xl font-black leading-tight text-gray-900 dark:text-white max-w-lg">
+                      <h2 className="text-2xl md:text-4xl font-black leading-tight text-gray-900 dark:text-white max-w-lg px-2">
                         {filteredCards[currentIndex].front}
                       </h2>
-                      <p className="absolute bottom-10 text-xs font-black text-gray-400 uppercase tracking-widest">
+                      <p className="absolute bottom-6 md:bottom-10 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest">
                         Tap to reveal answer
                       </p>
                     </div>
 
                     {/* Back Side */}
-                    <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[3rem] p-12 shadow-2xl flex flex-col items-center justify-center text-center rotate-y-180 overflow-hidden">
+                    <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 shadow-2xl flex flex-col items-center justify-center text-center rotate-y-180 overflow-hidden">
                       {/* Feedback Overlay */}
                       {reviewFeedback && (
-                        <div className={`absolute inset-0 flex items-center justify-center rounded-[3rem] z-10 transition-all duration-300 ${reviewFeedback === 'correct'
+                        <div className={`absolute inset-0 flex items-center justify-center rounded-[2rem] md:rounded-[3rem] z-10 transition-all duration-300 ${reviewFeedback === 'correct'
                           ? 'bg-green-500/90'
                           : 'bg-red-500/90'
                           }`}>
-                          <div className="text-center text-white p-8">
-                            <div className="text-7xl mb-4 animate-bounce">
+                          <div className="text-center text-white p-4 md:p-8">
+                            <div className="text-5xl md:text-7xl mb-4 animate-bounce">
                               {reviewFeedback === 'correct' ? <FiCheckCircle /> : <FiActivity />}
                             </div>
-                            <p className="text-3xl font-black uppercase tracking-tight">
+                            <p className="text-2xl md:text-3xl font-black uppercase tracking-tight">
                               {reviewFeedback === 'correct' ? 'Got it!' : 'Keep Going!'}
                             </p>
-                            <p className="text-sm mt-2 opacity-90 font-bold uppercase tracking-widest">
+                            <p className="text-xs md:text-sm mt-2 opacity-90 font-bold uppercase tracking-widest px-2">
                               {reviewFeedback === 'correct'
                                 ? 'Mastery increased! Moving to next card...'
                                 : 'Scheduled for sooner review. Moving on...'}
@@ -840,26 +840,26 @@ export default function FlipCardsPage() {
                         </div>
                       )}
 
-                      <span className="absolute top-10 text-xs font-black uppercase tracking-[0.3em] text-blue-100 bg-white/10 px-6 py-2 rounded-full">
+                      <span className="absolute top-6 md:top-10 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-blue-100 bg-white/10 px-4 md:px-6 py-1 md:py-2 rounded-full">
                         Resolution
                       </span>
-                      <p className="text-3xl text-white font-bold leading-relaxed max-w-lg mb-8">
+                      <p className="text-xl md:text-3xl text-white font-bold leading-relaxed max-w-lg mb-4 md:mb-8 px-2">
                         {filteredCards[currentIndex].back}
                       </p>
 
-                      <div className="flex justify-center gap-4 mt-4 w-full px-6">
+                      <div className="flex justify-center gap-4 mt-4 w-full px-2 md:px-6">
                         <button
                           onClick={e => {
                             e.stopPropagation()
                             if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(false)
                           }}
                           disabled={isReviewing}
-                          className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all ${isReviewing
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
                             ? 'bg-gray-400 cursor-not-allowed opacity-50'
                             : 'bg-red-500 hover:bg-red-600 hover:scale-105 active:scale-95'
                             }`}
                         >
-                          <FiX /> Still Learning
+                          Still Learning
                         </button>
                         <button
                           onClick={e => {
@@ -867,12 +867,12 @@ export default function FlipCardsPage() {
                             if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(true)
                           }}
                           disabled={isReviewing}
-                          className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all ${isReviewing
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
                             ? 'bg-gray-400 cursor-not-allowed opacity-50'
                             : 'bg-green-500 hover:bg-green-600 hover:scale-105 active:scale-95'
                             }`}
                         >
-                          <FiCheck /> I Got This!
+                          I Got This!
                         </button>
                       </div>
                     </div>
@@ -1176,8 +1176,8 @@ export default function FlipCardsPage() {
       {showAIModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isGenerating && setShowAIModal(false)}></div>
-          <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl border border-white/10">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between mb-6 md:mb-8 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center">
                   <FiZap size={24} />
@@ -1187,7 +1187,7 @@ export default function FlipCardsPage() {
               <button onClick={() => setShowAIModal(false)} className="text-gray-400"><FiX /></button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
               <p className="text-gray-500 font-medium bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl text-sm border-l-4 border-purple-500">
                 Paste your notes or some study text below. Our AI will automatically generate clear, professional flashcards for you.
               </p>
@@ -1195,13 +1195,13 @@ export default function FlipCardsPage() {
                 value={aiText}
                 onChange={(e) => setAiText(e.target.value)}
                 placeholder="Paste your lecture notes, textbook text, or concepts here... (Min 50 characters)"
-                className="w-full h-80 p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-[2rem] outline-none transition-all font-medium text-lg placeholder:text-gray-400"
+                className="w-full h-48 md:h-80 p-5 md:p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-2xl md:rounded-[2rem] outline-none transition-all font-medium text-base md:text-lg placeholder:text-gray-400"
               />
               <div className="flex gap-4">
                 <button
                   disabled={isGenerating || aiText.length < 50}
                   onClick={handleGenerateAI}
-                  className="flex-1 py-5 bg-purple-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-4"
+                  className="flex-1 py-4 md:py-5 bg-purple-600 text-white rounded-2xl md:rounded-[1.5rem] font-black text-lg md:text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2 md:gap-4 shrink-0"
                 >
                   {isGenerating ? <FiLoader className="animate-spin" /> : <FiZap />}
                   {isGenerating ? 'GENERATING...' : 'GENERATE CARDS'}
@@ -1216,15 +1216,15 @@ export default function FlipCardsPage() {
       {showDeckForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeckForm(false)}></div>
-          <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
-            <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Create Deck</h2>
-            <form onSubmit={handleCreateDeck} className="space-y-6">
+          <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[90vh]">
+            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-6 md:mb-8 shrink-0">Create Deck</h2>
+            <form onSubmit={handleCreateDeck} className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
               <div>
                 <label className="block text-xs font-black uppercase text-gray-400 mb-2">Collection Name</label>
                 <input
                   required placeholder="e.g. Advanced Microbiology"
                   value={deckFormData.name} onChange={(e) => setDeckFormData({ ...deckFormData, name: e.target.value })}
-                  className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
+                  className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
                 />
               </div>
               <div>
@@ -1232,19 +1232,19 @@ export default function FlipCardsPage() {
                 <select
                   value={deckFormData.category}
                   onChange={e => setDeckFormData({ ...deckFormData, category: e.target.value })}
-                  className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none font-bold"
+                  className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
                 >
                   {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-black uppercase text-gray-400 mb-3">System Icon</label>
-                <div className="flex gap-3 flex-wrap">
+                <div className="flex gap-2 md:gap-3 flex-wrap">
                   {deckIcons.map(icon => (
                     <button
                       key={icon} type="button"
                       onClick={() => setDeckFormData({ ...deckFormData, icon })}
-                      className={`text-2xl w-12 h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
+                      className={`text-xl md:text-2xl w-10 md:w-12 h-10 md:h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
                         }`}
                     >
                       {getDeckIcon(icon)}
@@ -1252,7 +1252,7 @@ export default function FlipCardsPage() {
                   ))}
                 </div>
               </div>
-              <button type="submit" disabled={isSaving} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
+              <button type="submit" disabled={isSaving} className="w-full py-4 md:py-5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 shrink-0 text-sm md:text-base">
                 {isSaving ? 'CREATING...' : 'CREATE COLLECTION'}
               </button>
             </form>
