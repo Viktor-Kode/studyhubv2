@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
+import { usePWA } from '@/hooks/usePWA'
 import {
   FaHome,
   FaBrain,
@@ -51,6 +52,7 @@ interface SidebarProps {
 export default function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const { isInstallable, isInstalled, installApp } = usePWA()
   const isTeacher = user?.role === 'teacher'
   const menuItems = isTeacher ? teacherMenuItems : studentMenuItems
 
@@ -108,6 +110,27 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
           )
         })}
       </nav>
+
+      {/* Download App Button */}
+      {isInstallable && !isInstalled && (
+        <div className="mt-8 px-4">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <FaLaptop className="text-3xl mb-2 opacity-90" />
+              <h3 className="font-bold text-sm mb-1">Get the Desktop App</h3>
+              <p className="text-xs text-blue-100 mb-3">Install StudyHelp for a better faster experience.</p>
+              <button
+                onClick={installApp}
+                className="w-full py-2 bg-white text-blue-600 text-xs font-bold rounded-lg shadow hover:bg-blue-50 transition-colors"
+                aria-label="Install App"
+              >
+                Install Now
+              </button>
+            </div>
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+          </div>
+        </div>
+      )}
     </div>
   )
 

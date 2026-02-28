@@ -43,6 +43,21 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         return () => clearInterval(checkTimer);
     }, []);
 
+    useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').then(
+                    function (registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    },
+                    function (err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    }
+                );
+            });
+        }
+    }, []);
+
     const playAlarm = (type: string) => {
         const audio = new Audio(
             type === 'final'
