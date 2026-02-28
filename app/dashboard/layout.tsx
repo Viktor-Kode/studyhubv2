@@ -11,11 +11,12 @@ import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
-    FiGrid, FiFileText
+    FiGrid, FiFileText, FiCpu
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool } from 'react-icons/md'
 import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
+import { usePWA } from '@/hooks/usePWA'
 
 interface NavItem {
     href: string
@@ -25,16 +26,26 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+    // Shared
     { href: '/dashboard', label: 'Dashboard', icon: FiHome },
-    { href: '/dashboard/question-bank', label: 'Question Bank', icon: FiBook },
-    { href: '/dashboard/question-history', label: 'Question History', icon: FiFileText },
-    { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock },
-    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard },
-    { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar },
-    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student'] },
-    { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz },
-    { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2 },
     { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
+
+    // Student Only
+    { href: '/dashboard/question-bank', label: 'Question Bank', icon: FiBook, roles: ['student'] },
+    { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student'] },
+    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student'] },
+    { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student'] },
+    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student'] },
+    { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student'] },
+    { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
+
+    // Teacher Only
+    { href: '/dashboard/teacher/question-generator', label: 'Question Generator', icon: FiFileText, roles: ['teacher'] },
+    { href: '/dashboard/teacher/questions', label: 'Question Bank', icon: FiBook, roles: ['teacher'] },
+    { href: '/dashboard/teacher/classes', label: 'Class Management', icon: FiGrid, roles: ['teacher'] },
+
+    // Shared (but logically separates history by role maybe, both can use it)
+    { href: '/dashboard/question-history', label: 'Quiz History', icon: FiFileText },
 ]
 
 export default function DashboardLayout({
@@ -46,6 +57,7 @@ export default function DashboardLayout({
     const router = useRouter()
     const { user, logout } = useAuthStore()
     const { theme, toggleTheme } = useThemeStore()
+    const { isInstallable, isInstalled, installApp } = usePWA()
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
@@ -220,6 +232,27 @@ export default function DashboardLayout({
                                 )
                             })}
                         </nav>
+
+                        {/* Download App Button */}
+                        {isInstallable && !isInstalled && (
+                            <div className="mt-8 px-4 pb-4">
+                                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
+                                    <div className="relative z-10 flex flex-col items-center text-center">
+                                        <FiCpu className="text-3xl mb-2 opacity-90" />
+                                        <h3 className="font-bold text-sm mb-1">Get the Desktop App</h3>
+                                        <p className="text-xs text-blue-100 mb-3">Install StudyHelp for a better faster experience.</p>
+                                        <button
+                                            onClick={installApp}
+                                            className="w-full py-2 bg-white text-blue-600 text-xs font-bold rounded-lg shadow hover:bg-blue-50 transition-colors"
+                                            aria-label="Install App"
+                                        >
+                                            Install Now
+                                        </button>
+                                    </div>
+                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </aside>
 
