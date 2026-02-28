@@ -27,8 +27,10 @@ export default function StudentDashboardPage() {
   const [stats, setStats] = useState({
     totalQuestions: 0,
     quizSessions: 0,
-    studyHours: 0,
+    studyHours: '0m',
+    studyHoursToday: '0m',
     studyStreak: 0,
+    longestStreak: 0,
     completedSessions: 0,
     totalFlashcards: 0,
     masteredCards: 0,
@@ -47,44 +49,44 @@ export default function StudentDashboardPage() {
     try {
       if (user?.uid) {
         setLoading(true)
-        const [classes, reminders, flashStats, studyStats, cbtSummary] = await Promise.all([
+        const [classes, reminders, summaryRes] = await Promise.all([
           classService.getStudentClasses(user.uid),
           reminderService.getUpcoming(user.uid, 7),
-          getFlashCardStats(),
-          apiClient.get('/study/stats').then(res => res.data.stats).catch(() => null),
-          cbtApi.getResultsSummary().catch(() => null)
+          apiClient.get('/dashboard/summary').catch(() => null)
         ])
 
         setEnrolledClasses(classes)
         setUpcomingReminders(reminders)
 
-        if (flashStats?.stats || studyStats) {
+        if (summaryRes?.data?.data) {
+          const sumData = summaryRes.data.data;
           setStats({
-            totalQuestions: studyStats?.totalQuestions || 0,
-            quizSessions: studyStats?.quizSessions || 0,
-            studyHours: Math.round((studyStats?.totalStudyTime || 0) / 3600),
-            studyStreak: studyStats?.streak || 0,
-            completedSessions: studyStats?.sessionCount || 0,
-            totalFlashcards: flashStats?.stats?.totalCards || 0,
-            masteredCards: flashStats?.stats?.masteredCards || 0,
+            totalQuestions: sumData.cbt.totalQuestions || 0,
+            quizSessions: sumData.studyTimer.totalSessions || 0,
+            studyHours: sumData.studyTimer.totalTime || '0m', // Now a string via formatTime
+            studyHoursToday: sumData.studyTimer.todayTime || '0m',
+            studyStreak: sumData.streak.current || 0,
+            longestStreak: sumData.streak.longest || 0,
+            completedSessions: sumData.studyTimer.totalSessions || 0,
+            totalFlashcards: sumData.flashcards.cardsSeen || 0,
+            masteredCards: sumData.flashcards.cardsMastered || 0,
             upcomingReminders: reminders.length,
-            cbtExamsTaken: cbtSummary?.examsTaken || 0,
-            cbtAccuracy: cbtSummary?.overallAccuracy || 0,
-            bestCBTSubject: cbtSummary?.bestSubject || 'N/A'
+            cbtExamsTaken: sumData.cbt.examsTaken || 0,
+            cbtAccuracy: parseInt(sumData.cbt.overallAccuracy) || 0,
+            bestCBTSubject: sumData.cbt.bestSubject || 'N/A'
           })
-        }
 
-        // Fetch recent activities
-        const historyRes = await apiClient.get('/study/history').catch(() => ({ data: { history: [] } }));
-        const history = historyRes.data.history || [];
-        setActivities(history.map((h: any) => ({
-          id: h._id,
-          title: h.subject || 'Study Session',
-          subtitle: `${Math.round(h.duration / 60)} minutes`,
-          date: h.createdAt,
-          icon: FiClock,
-          color: 'blue'
-        })));
+          // Transform recent sessions for the activity timeline
+          const history = sumData.studyTimer.recentSessions || [];
+          setActivities(history.map((h: any, i: number) => ({
+            id: i,
+            title: h.subject || 'Study Session',
+            subtitle: h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} minutes` : 'Just started',
+            date: h.date,
+            icon: FiClock,
+            color: 'blue'
+          })));
+        }
 
         // Find next class from enrolled classes
         if (classes.length > 0) {
@@ -198,15 +200,21 @@ export default function StudentDashboardPage() {
       <div className="space-y-8">
 
         {/* Welcome Section */}
-        <div className="mb-8">
+        <div className="mb-4">
           <div className="flex items-center gap-3 mb-2">
             <MdSchool className="text-3xl text-blue-500" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Student'}!
             </h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Have a productive learning session today
+          <p className="text-gray-600 dark:text-gray-400 mt-1 mb-4">
+            Have a productive learning session today.
+            {!loading && stats.studyStreak >= 1 && (
+              <span className="ml-2 font-bold text-orange-500">🔥 {stats.studyStreak} Day Streak {stats.studyStreak >= 3 ? '— keep it up!' : ''}</span>
+            )}
+            {!loading && stats.studyStreak === 0 && (
+              <span className="ml-2 font-medium text-blue-500">Study today to start your streak!</span>
+            )}
           </p>
           {nextClass && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 flex items-center gap-4 animate-pulse">
@@ -224,8 +232,19 @@ export default function StudentDashboardPage() {
 
         {/* Stats Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <FiLoader className="animate-spin text-3xl text-blue-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg h-32 flex flex-col justify-between border border-gray-100 dark:border-gray-700">
+                <div className="flex justify-between items-start">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-4"></div>
+                  <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                </div>
+                <div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
