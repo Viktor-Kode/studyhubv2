@@ -198,7 +198,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
             // Save session history
             try {
                 const token = await getFirebaseToken()
-                await fetch('/api/study-sessions', {
+                await fetch('/api/backend/study/log', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

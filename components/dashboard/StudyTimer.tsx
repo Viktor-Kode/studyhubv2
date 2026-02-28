@@ -69,8 +69,8 @@ export default function StudyTimer() {
 
         // Load history and goals
         const [historyRes, goalsRes] = await Promise.all([
-          fetch('/api/study-sessions', { headers }),
-          fetch('/api/goals', { headers })
+          fetch('/api/backend/study/history', { headers }),
+          fetch('/api/backend/study/goals', { headers })
         ])
 
         const historyData = await historyRes.json()
@@ -136,7 +136,7 @@ export default function StudyTimer() {
     }
     try {
       const token = await getFirebaseToken()
-      const res = await fetch('/api/goals', {
+      const res = await fetch('/api/backend/study/goals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ export default function StudyTimer() {
   const handleDeleteGoal = async (id: string) => {
     try {
       const token = await getFirebaseToken()
-      const res = await fetch(`/api/goals?id=${id}`, {
+      const res = await fetch(`/api/backend/study/goals?id=${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
