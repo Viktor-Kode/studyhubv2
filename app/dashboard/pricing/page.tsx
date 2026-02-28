@@ -90,15 +90,41 @@ export default function PricingPage() {
 
         try {
             setLoadingPlan(planType)
+            // Step 1: Initialize payment on backend
             const data = await paymentApi.initializePayment(planType)
-            if (data.authorizationUrl) {
-                window.location.href = data.authorizationUrl
-            } else {
-                toast.error("Could not initialize payment")
-            }
+
+            // Step 2: Open Paystack popup
+            const handler = (window as any).PaystackPop.setup({
+                key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_xxxxxxxxxxxxxxxxxx",
+                email: user?.email,
+                amount: data.amount,
+                ref: data.reference,
+                currency: 'NGN',
+                metadata: { planType, userId: (user as any)?._id || (user as any)?.uid },
+                onSuccess: async (transaction: any) => {
+                    // Step 3: Verify payment on backend
+                    try {
+                        const verify = await paymentApi.verifyPayment(transaction.reference)
+                        if (verify.success) {
+                            toast.success('🎉 Plan upgraded successfully!')
+                            window.location.reload()
+                        }
+                    } catch (err) {
+                        console.error('Verification error:', err)
+                        toast.error('Payment verification failed.')
+                    }
+                },
+                onCancel: () => {
+                    console.log('Payment cancelled')
+                    toast.error('Payment cancelled')
+                }
+            })
+
+            handler.openIframe()
+
         } catch (err: any) {
-            console.error(err)
-            toast.error(err.response?.data?.error || "Payment failed")
+            console.error('Payment error:', err)
+            toast.error('Payment failed. Please try again.')
         } finally {
             setLoadingPlan(null)
         }
@@ -123,8 +149,8 @@ export default function PricingPage() {
                             <div
                                 key={plan.type}
                                 className={`flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl border-2 transition-all duration-300 hover:scale-105 ${plan.highlight
-                                        ? 'border-emerald-500 ring-4 ring-emerald-500/10 scale-105 z-10'
-                                        : 'border-transparent hover:border-blue-500/50'
+                                    ? 'border-emerald-500 ring-4 ring-emerald-500/10 scale-105 z-10'
+                                    : 'border-transparent hover:border-blue-500/50'
                                     }`}
                             >
                                 {plan.highlight && (
@@ -154,10 +180,10 @@ export default function PricingPage() {
                                         onClick={() => plan.price !== '₦0' && handleSubscribe(plan.type)}
                                         disabled={plan.price === '₦0' || (user?.plan?.type === plan.type) || loadingPlan !== null}
                                         className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${user?.plan?.type === plan.type
-                                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                                                : plan.highlight
-                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
+                                            : plan.highlight
+                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
                                             } disabled:opacity-50`}
                                     >
                                         {loadingPlan === plan.type ? (

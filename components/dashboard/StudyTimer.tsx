@@ -201,13 +201,7 @@ export default function StudyTimer() {
     return { goal, completedMinutes, percentage, isCompleted: percentage >= 100 }
   })
 
-  if (loading || store.isLoading) {
-    return (
-      <div className="flex items-center justify-center p-20">
-        <FiZap className="animate-pulse text-4xl text-blue-500" />
-      </div>
-    )
-  }
+  // Do not block UI for history/goals
 
   return (
     <div className="space-y-6">

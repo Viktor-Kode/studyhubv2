@@ -560,3 +560,81 @@ html {
     font-size: 14px;
   }
 }
+
+/* Flashcard container */
+.flashcard-hub {
+  padding: 16px;
+  overflow-x: hidden;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Flashcard grid — 1 col mobile, 2 col tablet, 3 col desktop */
+.flashcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+/* Individual flashcard */
+.flashcard {
+  width: 100%;
+  min-height: 200px;
+  border-radius: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+  cursor: pointer;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Flip animation */
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}
+
+.flashcard.flipped .flashcard-inner {
+  transform: rotateY(180deg);
+}
+
+/* Controls row */
+.flashcard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.flashcard-controls select,
+.flashcard-controls button {
+  flex: 1;
+  min-width: 120px;
+  height: 44px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .flashcard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flashcard {
+    min-height: 160px;
+    padding: 16px;
+  }
+
+  .flashcard-controls {
+    flex-direction: column;
+  }
+
+  .flashcard-controls select,
+  .flashcard-controls button {
+    width: 100%;
+  }
+}

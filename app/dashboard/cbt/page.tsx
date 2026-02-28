@@ -190,6 +190,25 @@ export default function CBTPage() {
 
   // Timer
   useEffect(() => {
+    // Resume timer if active in localStorage
+    const resumeTimerIfActive = () => {
+      const endTimeStr = localStorage.getItem('examEndTime');
+      const examActive = localStorage.getItem('examActive');
+      if (!examActive || !endTimeStr) return;
+      const endTime = parseInt(endTimeStr);
+      const remaining = Math.floor((endTime - Date.now()) / 1000);
+      if (remaining > 0 && !isTimerRunning && !showResults) {
+        setTimeRemaining(remaining);
+        setIsTimerRunning(true);
+        setViewMode('test');
+      } else if (remaining <= 0 && examActive) {
+        localStorage.removeItem('examEndTime');
+        localStorage.removeItem('examActive');
+        localStorage.removeItem('examId');
+      }
+    };
+    resumeTimerIfActive();
+
     if (isTimerRunning && timeRemaining > 0 && !showResults) {
       const interval = setInterval(() => {
         setTimeRemaining(prev => {
@@ -293,6 +312,12 @@ export default function CBTPage() {
     setTimeRemaining(duration)
     setIsTimerRunning(true)
     setViewMode('test')
+
+    // Save timer state to localStorage every second (start time)
+    const endTime = Date.now() + duration * 1000;
+    localStorage.setItem('examEndTime', endTime.toString());
+    localStorage.setItem('examActive', 'true');
+    localStorage.setItem('examId', currentExamConfig?.value || 'exam');
   }
 
   const handleAnswerSelect = (optionIndex: number) => {
@@ -332,6 +357,11 @@ export default function CBTPage() {
   const handleSubmitTest = async () => {
     setIsTimerRunning(false)
     setShowResults(true)
+
+    // Clear the timer
+    localStorage.removeItem('examEndTime');
+    localStorage.removeItem('examActive');
+    localStorage.removeItem('examId');
 
     // Calculate final score
     const finalScore = getScore()
