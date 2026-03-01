@@ -11,7 +11,7 @@ import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
-    FiGrid, FiFileText, FiCpu
+    FiGrid, FiFileText, FiCpu, FiBookOpen
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool } from 'react-icons/md'
 import { BiCard } from 'react-icons/bi'
@@ -31,6 +31,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
 
     // Student Only
+    { href: '/dashboard/library', label: 'Learning Library', icon: FiBookOpen, roles: ['student'] },
     { href: '/dashboard/question-bank', label: 'Question Bank', icon: FiBook, roles: ['student'] },
     { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student'] },
     { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student'] },

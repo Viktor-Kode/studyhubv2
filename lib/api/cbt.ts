@@ -488,5 +488,19 @@ export const cbtApi = {
       console.error('[CBT API] Failed to get explanation:', err);
       return 'Could not generate explanation at this time.';
     }
+  },
+
+  /**
+   * Get Library Guide Recommendations for a CBT Result
+   */
+  getRecommendations: async (resultId: string): Promise<any> => {
+    try {
+      const res = await fetchWithAuth(`/api/cbt/results/${resultId}/recommendations`);
+      const data = await safeJson(res);
+      return data;
+    } catch (err: any) {
+      console.error('[CBT API] Failed to fetch recommendations:', err);
+      return { success: false, guides: [] };
+    }
   }
 }

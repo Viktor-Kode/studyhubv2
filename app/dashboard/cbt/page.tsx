@@ -11,6 +11,7 @@ import {
   FiChevronRight, FiList, FiGrid, FiInfo,
   FiTrendingUp, FiCheck, FiX, FiFilter
 } from 'react-icons/fi'
+import Link from 'next/link'
 import {
   HiOutlineAcademicCap, HiOutlineLightBulb
 } from 'react-icons/hi'
@@ -164,6 +165,8 @@ export default function CBTPage() {
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [showQuestionPanel, setShowQuestionPanel] = useState(false)
+  const [recommendedGuides, setRecommendedGuides] = useState<any[]>([])
+  const [isGeneratingGuides, setIsGeneratingGuides] = useState(false)
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -390,7 +393,20 @@ export default function CBTPage() {
         answers: results
       }
 
-      await cbtApi.saveResult(resultData)
+      const savedRes = await cbtApi.saveResult(resultData)
+      if (savedRes?.data?._id) {
+        setIsGeneratingGuides(true)
+        try {
+          const rec = await cbtApi.getRecommendations(savedRes.data._id)
+          if (rec && rec.success && rec.guides) {
+            setRecommendedGuides(rec.guides)
+          }
+        } catch (e) {
+          console.error("Failed to fetch recommendations", e)
+        } finally {
+          setIsGeneratingGuides(false)
+        }
+      }
     } catch (err) {
       console.error('Failed to save CBT result:', err)
     }
@@ -453,6 +469,8 @@ export default function CBTPage() {
     setTimeRemaining(0)
     setIsTimerRunning(false)
     setError(null)
+    setRecommendedGuides([])
+    setIsGeneratingGuides(false)
     setViewMode('exam-select')
   }
 
@@ -1157,6 +1175,37 @@ export default function CBTPage() {
                 </button>
               </div>
             </div>
+
+            {/* Recommended Guides CTA */}
+            {(isGeneratingGuides || recommendedGuides.length > 0) && (
+              <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-6 border border-amber-200 dark:border-amber-800 shadow-sm">
+                <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
+                  <FiBookOpen className="text-amber-600" /> Based on your results, study these:
+                </h3>
+                {isGeneratingGuides ? (
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                    <FiLoader className="animate-spin" /> Fetching tailored study guides...
+                  </div>
+                ) : (
+                  <div className="space-y-3 mt-4">
+                    {recommendedGuides.map((guide: any) => (
+                      <div key={guide._id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border border-amber-100 dark:border-gray-700 shadow-sm">
+                        <div className="mb-3 sm:mb-0">
+                          <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            {guide.title}
+                          </p>
+                          <p className="text-sm text-gray-500 ml-4 mt-1">{guide.summary}</p>
+                        </div>
+                        <Link href={`/dashboard/library/${guide._id}`} className="shrink-0 text-sm font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 px-4 py-2 rounded-lg transition-colors text-center">
+                          Read Guide →
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Review Questions */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">

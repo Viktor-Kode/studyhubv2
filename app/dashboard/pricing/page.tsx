@@ -46,7 +46,7 @@ const PLANS = [
     {
         type: 'growth',
         name: 'Growth',
-        price: '₦1,500',
+        price: '₦2,000',
         duration: '1 month',
         description: 'The most popular choice',
         features: [
