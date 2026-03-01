@@ -55,6 +55,29 @@ export default function StudyTimer() {
   // History
   const [sessions, setSessions] = useState<any[]>([])
 
+  const fetchHistoryAndGoals = async () => {
+    try {
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const [historyRes, goalsRes] = await Promise.all([
+        fetch('/api/backend/study/history', { headers, cache: 'no-store' }),
+        fetch('/api/backend/study/goals', { headers, cache: 'no-store' })
+      ])
+
+      const historyData = await historyRes.json()
+      const goalsData = await goalsRes.json()
+
+      if (historyData.sessions) setSessions(historyData.sessions)
+      if (goalsData.goals) setGoals(goalsData.goals)
+    } catch (err) {
+      console.error('Failed to load history/goals:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // ============ INIT ============
   useEffect(() => {
     requestNotificationPermission()
@@ -62,32 +85,18 @@ export default function StudyTimer() {
     const initData = async () => {
       await store.init()
       setLocalSubject(store.subject || '')
-
-      try {
-        const token = await getFirebaseToken()
-        const headers: Record<string, string> = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-
-        // Load history and goals
-        const [historyRes, goalsRes] = await Promise.all([
-          fetch('/api/backend/study/history', { headers }),
-          fetch('/api/backend/study/goals', { headers })
-        ])
-
-        const historyData = await historyRes.json()
-        const goalsData = await goalsRes.json()
-
-        if (historyData.sessions) setSessions(historyData.sessions)
-        if (goalsData.goals) setGoals(goalsData.goals)
-      } catch (err) {
-        console.error('Failed to load history/goals:', err)
-      } finally {
-        setLoading(false)
-      }
+      await fetchHistoryAndGoals()
     }
 
     initData()
   }, [])
+
+  useEffect(() => {
+    // Whenever a complete event increments the pomodoroCount, refetch history and goals
+    if (store.pomodoroCount > 0) {
+      fetchHistoryAndGoals()
+    }
+  }, [store.pomodoroCount])
 
   // ============ TIMER TICK ============
   useEffect(() => {

@@ -7,7 +7,8 @@ const BACKEND_BASE = process.env.BACKEND_API_URL || 'https://studyhelp-zyqw.onre
 
 async function forward(req: NextRequest, params: { path?: string[] }) {
   const path = params.path?.join('/') || ''
-  const url = `${BACKEND_BASE}/${path}`
+  const query = req.nextUrl.searchParams.toString()
+  const url = `${BACKEND_BASE}/${path}${query ? `?${query}` : ''}`
 
   const headers: Record<string, string> = {
     'content-type': req.headers.get('content-type') || 'application/json',
