@@ -39,8 +39,8 @@ interface TimerStore extends TimerState {
 export const useTimerStore = create<TimerStore>((set, get) => ({
     isActive: false,
     isPaused: false,
-    timeLeft: 25 * 60,
-    totalDuration: 25 * 60,
+    timeLeft: 0,
+    totalDuration: 0,
     sessionType: 'work',
     subject: '',
     pomodoroCount: 0,
@@ -72,8 +72,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
                 set({
                     isActive: timer.isActive && remaining > 0 && !timer.isPaused,
                     isPaused: timer.isPaused,
-                    timeLeft: remaining,
-                    totalDuration: timer.totalDuration,
+                    timeLeft: isNaN(remaining) ? 0 : remaining,
+                    totalDuration: timer.totalDuration || 0,
                     sessionType: timer.sessionType,
                     subject: timer.subject,
                     pomodoroCount: timer.pomodoroCount || 0,
@@ -167,8 +167,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         } else {
             set({
                 sessionType: 'work',
-                timeLeft: 25 * 60,
-                totalDuration: 25 * 60,
+                timeLeft: 0,
+                totalDuration: 0,
                 isActive: false
             })
         }
@@ -205,7 +205,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        title: subject,
+                        title: `${subject || 'Study Session'} - Completed`,
                         duration: Math.round(totalDuration / 60),
                         type: 'study',
                         startTime: sessionStartTime ? new Date(sessionStartTime) : new Date()

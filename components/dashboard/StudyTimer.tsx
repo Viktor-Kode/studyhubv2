@@ -6,7 +6,7 @@ import {
   requestNotificationPermission
 } from '@/utils/alarmManager'
 import {
-  FiPlus, FiTrash2, FiClock, FiCalendar, FiX, FiCheck, FiCheckCircle, FiSettings,
+  FiPlus, FiTrash2, FiEdit2, FiClock, FiCalendar, FiX, FiCheck, FiCheckCircle, FiSettings,
   FiBell, FiBellOff, FiPlay, FiPause, FiRotateCcw, FiTarget, FiCoffee,
   FiClipboard, FiBookOpen, FiZap
 } from 'react-icons/fi'
@@ -50,6 +50,7 @@ export default function StudyTimer() {
     subject: '',
     color: GOAL_COLORS[0]
   })
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
 
   // History
   const [sessions, setSessions] = useState<any[]>([])
@@ -136,8 +137,13 @@ export default function StudyTimer() {
     }
     try {
       const token = await getFirebaseToken()
-      const res = await fetch('/api/backend/study/goals', {
-        method: 'POST',
+      const url = editingGoalId
+        ? `/api/backend/study/goals?id=${editingGoalId}`
+        : '/api/backend/study/goals'
+      const method = editingGoalId ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -147,10 +153,11 @@ export default function StudyTimer() {
       const { goals: newGoals } = await res.json()
       if (newGoals) setGoals(newGoals)
       setGoalForm({ title: '', targetMinutes: 60, period: 'daily', subject: '', color: GOAL_COLORS[0] })
+      setEditingGoalId(null)
       setShowGoalForm(false)
-      toast.success('Goal added!')
+      toast.success(editingGoalId ? 'Goal updated!' : 'Goal added!')
     } catch (error) {
-      toast.error('Failed to add goal')
+      toast.error(editingGoalId ? 'Failed to update goal' : 'Failed to add goal')
     }
   }
 
@@ -344,11 +351,15 @@ export default function StudyTimer() {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-gray-600 dark:text-gray-400 text-sm">{goals.length} active goal{goals.length !== 1 ? 's' : ''}</p>
-            <button onClick={() => setShowGoalForm(!showGoalForm)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">{showGoalForm ? <><FiX /> Cancel</> : <><FiPlus /> Add Goal</>}</button>
+            <button onClick={() => {
+              setEditingGoalId(null)
+              setGoalForm({ title: '', targetMinutes: 60, period: 'daily', subject: '', color: GOAL_COLORS[0] })
+              setShowGoalForm(!showGoalForm)
+            }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">{showGoalForm ? <><FiX /> Cancel</> : <><FiPlus /> Add Goal</>}</button>
           </div>
           {showGoalForm && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiTarget className="text-blue-500" /> Create Study Goal</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiTarget className="text-blue-500" /> {editingGoalId ? 'Edit Study Goal' : 'Create Study Goal'}</h3>
               <div className="space-y-4">
                 <input type="text" value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="Goal Title *" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 <div className="grid grid-cols-2 gap-4">
@@ -362,7 +373,7 @@ export default function StudyTimer() {
                 <div className="flex gap-2">
                   {GOAL_COLORS.map(c => <button key={c} onClick={() => setGoalForm({ ...goalForm, color: c })} style={{ backgroundColor: c }} className={`w-8 h-8 rounded-full border-4 ${goalForm.color === c ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'}`} />)}
                 </div>
-                <button onClick={handleAddGoal} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Create Goal</button>
+                <button onClick={handleAddGoal} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">{editingGoalId ? 'Update Goal' : 'Create Goal'}</button>
               </div>
             </div>
           )}
@@ -377,7 +388,20 @@ export default function StudyTimer() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">{goal.period} {goal.subject && ` • ${goal.subject}`}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleDeleteGoal(goal._id)} className="text-gray-400 hover:text-red-500 p-1"><FiTrash2 /></button>
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      setGoalForm({
+                        title: goal.title,
+                        targetMinutes: goal.targetMinutes,
+                        period: goal.period,
+                        subject: goal.subject || '',
+                        color: goal.color
+                      })
+                      setEditingGoalId(goal._id)
+                      setShowGoalForm(true)
+                    }} className="text-gray-400 hover:text-blue-500 p-1"><FiEdit2 /></button>
+                    <button onClick={() => handleDeleteGoal(goal._id)} className="text-gray-400 hover:text-red-500 p-1"><FiTrash2 /></button>
+                  </div>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                   <div className="h-3 rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: goal.color }} />

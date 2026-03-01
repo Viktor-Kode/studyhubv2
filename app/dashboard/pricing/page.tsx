@@ -29,6 +29,7 @@ const PLANS = [
         type: 'starter',
         name: 'Starter',
         price: '₦500',
+        duration: '1 week',
         description: 'Boost your exam prep',
         features: [
             { text: '5 CBT Practice Tests', included: true },
@@ -46,6 +47,7 @@ const PLANS = [
         type: 'growth',
         name: 'Growth',
         price: '₦1,500',
+        duration: '1 month',
         description: 'The most popular choice',
         features: [
             { text: '20 CBT Practice Tests', included: true },
@@ -59,23 +61,7 @@ const PLANS = [
         highlight: true,
         color: 'emerald'
     },
-    {
-        type: 'premium',
-        name: 'Premium',
-        price: '₦3,000',
-        description: 'For serious high-achievers',
-        features: [
-            { text: '60 CBT Practice Tests', included: true },
-            { text: '200 AI Explanations', included: true },
-            { text: 'All Subjects + Early Access', included: true },
-            { text: 'Full Performance Reports', included: true },
-            { text: 'Personal Study Planner', included: true },
-            { text: '24/7 Premium Support', included: true },
-        ],
-        buttonText: 'Get Premium',
-        highlight: false,
-        color: 'purple'
-    }
+
 ]
 
 export default function PricingPage() {
@@ -169,7 +155,7 @@ export default function PricingPage() {
 
                                     <div className="mb-6">
                                         <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
-                                        <span className="text-gray-500 ml-1">/ month</span>
+                                        <span className="text-gray-500 ml-1">/ {plan.duration}</span>
                                     </div>
 
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 min-h-[40px]">
