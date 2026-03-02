@@ -103,7 +103,7 @@ export default function StudyTimer() {
     let interval: NodeJS.Timeout
     if (store.isActive && !store.isPaused) {
       interval = setInterval(() => {
-        store.tick()
+        handleTickStep()
       }, 1000)
     }
     return () => clearInterval(interval)
@@ -111,11 +111,29 @@ export default function StudyTimer() {
 
   // ============ CONTROLS ============
   const handleStart = () => {
-    if (store.sessionType === 'work' && !localSubject.trim()) {
-      toast.error('Please enter what you are studying')
+    if (store.sessionType === 'work' && !localSubject.trim() && !store.selectedGoalId) {
+      toast.error('Please enter what you are studying or select a goal')
       return
     }
     store.start(localSubject, store.totalDuration, store.sessionType)
+  }
+
+  const handleSessionComplete = (result: any) => {
+    if (result?.goalCompleted) {
+      toast.success(`🎉 Goal Completed: ${result.goalTitle}!`, {
+        duration: 6000,
+        icon: '🏆',
+      })
+      // If we had a confetti function, we'd call it here
+    }
+  }
+
+  const handleTickStep = () => {
+    if (store.timeLeft <= 1 && store.isActive) {
+      store.handleComplete(handleSessionComplete)
+    } else {
+      store.tick()
+    }
   }
 
   const applyPreset = (minutes: number, type: 'work' | 'break') => {
@@ -266,6 +284,69 @@ export default function StudyTimer() {
 
       {activeTab === 'timer' && (
         <div className="space-y-6">
+          {/* GOAL SELECTION BAR */}
+          {goals.length > 0 && !store.isActive && !store.isPaused && store.sessionType === 'work' && (
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 transition-all">
+              <div className="flex items-center gap-3 whitespace-nowrap">
+                <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600">
+                  <FiTarget className="text-xl" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Goal Linking</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Study for a specific goal?</p>
+                </div>
+              </div>
+
+              <select
+                value={store.selectedGoalId || ''}
+                onChange={(e) => {
+                  const goalId = e.target.value;
+                  const goal = goals.find(g => g._id === goalId);
+                  useTimerStore.setState({ selectedGoalId: goalId || null });
+                  if (goal) {
+                    setLocalSubject(goal.title);
+                  }
+                  store.syncWithDB();
+                }}
+                className="flex-1 w-full sm:w-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+              >
+                <option value="">None (Free Study)</option>
+                {goals.map(g => (
+                  <option key={g._id} value={g._id}>
+                    {g.title} ({Math.round((g.completedMinutes / g.targetMinutes) * 100)}% complete)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* ACTIVE GOAL PREVIEW */}
+          {store.selectedGoalId && goals.find(g => g._id === store.selectedGoalId) && (
+            <div className={`p-4 rounded-2xl border transition-all ${store.isActive ? 'bg-blue-600 text-white border-transparent' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm'}`}>
+              {(() => {
+                const goal = goals.find(g => g._id === store.selectedGoalId);
+                if (!goal) return null;
+                const pct = Math.min(100, Math.round((goal.completedMinutes / goal.targetMinutes) * 100));
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm font-bold">
+                      <span className="flex items-center gap-2">
+                        <FiTarget className={store.isActive ? 'text-blue-100' : 'text-blue-600'} />
+                        {goal.title}
+                      </span>
+                      <span className={store.isActive ? 'text-blue-100' : 'text-gray-500'}>{pct}%</span>
+                    </div>
+                    <div className={`w-full h-1.5 rounded-full overflow-hidden ${store.isActive ? 'bg-blue-400' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                      <div
+                        className={`h-full transition-all duration-500 ${store.isActive ? 'bg-white' : 'bg-blue-600'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
             <div className="text-center mb-6">
               <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${store.sessionType === 'work'

@@ -17,6 +17,7 @@ interface TimerState {
     breaks: number
     sessionStartTime: number | null
     startedAt: number | null // Use for calculating elapsed time on refresh
+    selectedGoalId: string | null
 }
 
 interface TimerStore extends TimerState {
@@ -33,7 +34,7 @@ interface TimerStore extends TimerState {
     tick: () => void
     syncWithDB: () => Promise<void>
     clearDB: () => Promise<void>
-    handleComplete: () => Promise<void>
+    handleComplete: (onComplete?: (result: any) => void) => Promise<void>
 }
 
 export const useTimerStore = create<TimerStore>((set, get) => ({
@@ -49,6 +50,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     startedAt: null,
     isLoading: true,
     alarmFiring: false,
+    selectedGoalId: null,
 
     init: async () => {
         try {
@@ -80,6 +82,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
                     breaks: timer.breaks || 0,
                     sessionStartTime: timer.sessionStartTime ? new Date(timer.sessionStartTime).getTime() : null,
                     startedAt: startedAt,
+                    selectedGoalId: timer.selectedGoalId || null,
                     isLoading: false
                 })
 
@@ -108,7 +111,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
             sessionType: type,
             startedAt: now,
             sessionStartTime: sessionStart,
-            alarmFiring: false
+            alarmFiring: false,
+            // selectedGoalId is already set by UI selector
         }
 
         set(newState)
@@ -175,8 +179,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         }
     },
 
-    handleComplete: async () => {
-        const { subject, sessionType, totalDuration, sessionStartTime, pomodoroCount } = get()
+    handleComplete: async (onComplete) => {
+        const { subject, sessionType, totalDuration, sessionStartTime, pomodoroCount, selectedGoalId } = get()
 
         set({ isActive: false, alarmFiring: true })
         playAlarm()
@@ -187,7 +191,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
             // Save session history
             try {
                 const token = await getFirebaseToken()
-                await fetch('/api/backend/study/log', {
+                const response = await fetch('/api/backend/study/log', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -197,9 +201,13 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
                         title: `${subject || 'Study Session'} - Completed`,
                         duration: Math.round(totalDuration / 60),
                         type: 'study',
-                        startTime: sessionStartTime ? new Date(sessionStartTime) : new Date()
+                        startTime: sessionStartTime ? new Date(sessionStartTime) : new Date(),
+                        goalId: selectedGoalId
                     })
                 })
+                const result = await response.json()
+                if (onComplete) onComplete(result)
+
                 set({ pomodoroCount: pomodoroCount + 1 })
             } catch (err) {
                 console.error('Failed to save session:', err)
@@ -232,7 +240,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
                         subject: state.subject,
                         pomodoroCount: state.pomodoroCount,
                         breaks: state.breaks,
-                        sessionStartTime: state.sessionStartTime ? new Date(state.sessionStartTime) : null
+                        sessionStartTime: state.sessionStartTime ? new Date(state.sessionStartTime) : null,
+                        selectedGoalId: state.selectedGoalId
                     }
                 })
             })
