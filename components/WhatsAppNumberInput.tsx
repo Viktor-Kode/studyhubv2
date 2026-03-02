@@ -39,49 +39,24 @@ export default function WhatsAppNumberInput({
     // Parse initial value
     useEffect(() => {
         if (value) {
-            // Extract the number part from whatsapp:+1234567890
-            const match = value.match(/whatsapp:(\+\d+)/)
-            if (match) {
-                let fullNumber = match[1]
-                // Check if it starts with a known country code
-                // We need to sort by length desc to match +234 before +23 etc if overlaps existed, 
-                // but here +1 is short. Let's find the specific match.
+            // Strip whatsapp: prefix if present (legacy format)
+            let rawValue = value.replace(/^whatsapp:/i, '')
 
-                let detected = false
-                for (const country of COUNTRY_CODES) {
-                    if (fullNumber.startsWith(country.code)) {
-                        setSelectedCountryCode(country.code)
-                        setDisplayValue(fullNumber.substring(country.code.length))
-                        detected = true
-                        break
-                    }
-                }
-
-                if (!detected) {
-                    // retain + symbol if no code matched, or just strip it? 
-                    // The component logic expects displayValue to be the local part usually.
-                    // If we can't map it, we might have an issue displaying it "nicely" with the selector.
-                    // But let's assume standard behavior.
-                    // If it starts with + but no code match, maybe just set code to empty? 
-                    // Or default to +234 and put the whole thing? 
-                    // Let's just try to strip the + and let the user fix it if it's weird.
-                    setDisplayValue(fullNumber.replace(/^\+/, ''))
+            let detected = false
+            for (const country of COUNTRY_CODES) {
+                if (rawValue.startsWith(country.code)) {
+                    setSelectedCountryCode(country.code)
+                    setDisplayValue(rawValue.substring(country.code.length))
+                    detected = true
+                    break
                 }
             }
+
+            if (!detected) {
+                setDisplayValue(rawValue.replace(/^\+/, ''))
+            }
         }
-    }, [value]) // Dependency on value to update internal state if external changes? 
-    // careful of loops. The user code had [] dependency. 
-    // If I use [], it only sets on mount. That's probably safer for an controlled input loop.
-    // Converting the user's Effect to one with empty dependency array as requested in the prompt code.
-    // Wait, the prompt code says:
-    /*
-    useEffect(() => {
-      if (value) {
-        // ...
-      }
     }, [])
-    */
-    // I will stick to that to be safe, although strictly controlled inputs usually sync.
 
     // Validate and format number
     useEffect(() => {
@@ -113,8 +88,8 @@ export default function WhatsAppNumberInput({
             return
         }
 
-        // Format as whatsapp:+countrycode+number
-        const formatted = `whatsapp:${selectedCountryCode}${cleaned}`
+        // Format as plain E.164: +countrycode+number (no whatsapp: prefix — that was Twilio only)
+        const formatted = `${selectedCountryCode}${cleaned}`
         setError('')
         setIsValid(true)
         onValidChange?.(true)
@@ -201,7 +176,7 @@ export default function WhatsAppNumberInput({
                         <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Preview:</p>
                             <p className="font-mono text-sm text-gray-900 dark:text-white">
-                                whatsapp:{selectedCountryCode}{displayValue.replace(/\D/g, '')}
+                                {selectedCountryCode}{displayValue.replace(/\D/g, '')}
                             </p>
                         </div>
                         {isValid && (

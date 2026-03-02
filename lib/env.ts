@@ -14,11 +14,9 @@ export const getEnv = (key: string, defaultValue?: string): string => {
 };
 
 export const config = {
-    twilio: {
-        accountSid: () => getEnv('TWILIO_ACCOUNT_SID'),
-        authToken: () => getEnv('TWILIO_AUTH_TOKEN'),
-        whatsappNumber: () => getEnv('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886'),
-        contentSid: () => getEnv('TWILIO_CONTENT_SID'),
+    ycloud: {
+        apiKey: () => getEnv('YCLOUD_API_KEY'),
+        whatsappNumber: () => getEnv('YCLOUD_WHATSAPP_NUMBER'),
     },
     aloc: {
         accessToken: () => getEnv('ALOC_ACCESS_TOKEN'),
