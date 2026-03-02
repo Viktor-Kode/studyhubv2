@@ -56,10 +56,33 @@ export default function LibraryPage() {
             const guidesRes = await fetch(`/api/backend/library/guides?subject=${subject}${searchParam}`, { headers });
             const guidesData = await guidesRes.json();
             if (guidesData.success) {
-                setGuides(guidesData.guides || []);
+                // Support both data.guides and data.data if API changes
+                setGuides(guidesData.guides || guidesData.data || []);
             }
         } catch (err) {
             console.error('Error fetching library guides:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSeedGuides = async () => {
+        try {
+            setLoading(true);
+            const token = await getFirebaseToken();
+            const res = await fetch('/api/backend/library/admin/guides/seed-starter', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('✅ Starter guides generated successfully!');
+                fetchGuides();
+            } else {
+                alert('❌ Error seeding guides: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Seed error:', err);
         } finally {
             setLoading(false);
         }
@@ -123,7 +146,15 @@ export default function LibraryPage() {
                             <GuideCard key={guide._id} guide={guide} />
                         ))
                     ) : (
-                        <p className="text-gray-500 py-8">No guides found. Try a different search.</p>
+                        <div className="col-span-full py-12 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                            <p className="text-gray-500 mb-4">📚 No guides found for this subject yet.</p>
+                            <button
+                                onClick={handleSeedGuides}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                            >
+                                + Generate Starter Guides (Admin)
+                            </button>
+                        </div>
                     )}
                 </div>
             )}
