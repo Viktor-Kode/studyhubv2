@@ -351,7 +351,7 @@ export default function FlipCardsPage() {
             duration: Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000),
             sessionType: viewMode === 'review' ? 'review' : 'study'
           })
-          setViewMode('stats')
+          setViewMode('mastered')
           loadData()
         }
       }, 1000)
@@ -559,6 +559,10 @@ export default function FlipCardsPage() {
                 setSessionStartTime(new Date())
                 setSessionCorrect(0)
                 setSessionIncorrect(0)
+                if (tab.id === 'mastered') {
+                  setSelectedCategory('All')
+                  setSelectedDeckId('All')
+                }
               }}
               className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all whitespace-nowrap ${viewMode === tab.id
                 ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm font-bold'

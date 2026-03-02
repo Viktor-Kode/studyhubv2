@@ -295,19 +295,6 @@ export default function StudentDashboardPage() {
                   <p className="text-sm text-purple-100 mb-1">Flashcards Created</p>
                   <p className="text-3xl font-bold">{stats.totalFlashcards}</p>
                   <p className="text-xs text-purple-100 mt-1">{stats.masteredCards} mastered</p>
-
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-purple-100">
-                      <span>Concept Mastery</span>
-                      <span>{stats.masteryRate}</span>
-                    </div>
-                    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-white transition-all duration-1000"
-                        style={{ width: stats.masteryRate }}
-                      />
-                    </div>
-                  </div>
                 </div>
                 <div className="bg-white/20 rounded-full p-3 ml-4">
                   <BiCard className="text-3xl" />
@@ -606,6 +593,6 @@ export default function StudentDashboardPage() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </ProtectedRoute >
   )
 }
