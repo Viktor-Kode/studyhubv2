@@ -17,7 +17,7 @@ export default function NotesHistoryPage() {
                             </h1>
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 max-w-2xl font-medium">
-                            Your personalized library of AI-generated study materials. Deepen your understanding and review key concepts anytime.
+                            Your personalized collection of AI-generated study materials. Deepen your understanding and review key concepts anytime.
                         </p>
                     </div>
                 </div>

@@ -96,7 +96,7 @@ export default function QuestionHistory() {
                 <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
                     <FiClock className="mx-auto text-4xl text-gray-300 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400 font-medium font-bold">
-                        {searchQuery ? 'No sessions match your search.' : 'No sessions found. Start generating quizzes to build your library!'}
+                        {searchQuery ? 'No sessions match your search.' : 'No sessions found. Start generating quizzes to build your collection!'}
                     </p>
                 </div>
             ) : (

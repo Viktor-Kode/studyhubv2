@@ -111,10 +111,6 @@ export default function StudyTimer() {
 
   // ============ CONTROLS ============
   const handleStart = () => {
-    if (store.sessionType === 'work' && !localSubject.trim() && !store.selectedGoalId) {
-      toast.error('Please enter what you are studying or select a goal')
-      return
-    }
     store.start(localSubject, store.totalDuration, store.sessionType)
   }
 
@@ -353,7 +349,7 @@ export default function StudyTimer() {
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                 : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'}`}>
                 {store.sessionType === 'work' ? <FiBookOpen /> : <FiCoffee />}
-                {store.sessionType === 'work' ? 'Focus Session' : 'Break Time'}
+                {store.sessionType === 'work' ? 'Study Time' : 'Break Time'}
               </span>
             </div>
 
@@ -383,7 +379,7 @@ export default function StudyTimer() {
                   type="text"
                   value={localSubject}
                   onChange={e => setLocalSubject(e.target.value)}
-                  placeholder="What are you studying? (required)"
+                  placeholder="What are you studying? (optional)"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-center"
                 />
               </div>

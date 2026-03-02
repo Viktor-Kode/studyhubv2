@@ -27,6 +27,7 @@ export interface FlashCard {
     nextReviewDate?: Date
     masteryLevel?: number
     isFavorite?: boolean
+    status?: 'unseen' | 'learning' | 'reviewing' | 'mastered'
     deckId?: string | any
 }
 

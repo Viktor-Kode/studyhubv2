@@ -26,14 +26,12 @@ import {
   deleteDeck,
   saveStudySession,
   generateAIFlashCards,
-  getPublicDecks,
-  cloneDeck,
   exportFlashCards,
   FlashCard,
   FlashCardDeck
 } from '@/lib/api/flashcardApi'
 
-type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'public' | 'stats'
+type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'stats'
 
 export default function FlipCardsPage() {
   // Auth
@@ -46,7 +44,6 @@ export default function FlipCardsPage() {
   const [decks, setDecks] = useState<FlashCardDeck[]>([])
   const [stats, setStats] = useState<any>(null)
   const [dueCards, setDueCards] = useState<FlashCard[]>([])
-  const [publicDecks, setPublicDecks] = useState<FlashCardDeck[]>([])
 
   // UI state
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -158,43 +155,6 @@ export default function FlipCardsPage() {
     loadData()
   }, [loadData])
 
-  const [bookQuery, setBookQuery] = useState('')
-  const [books, setBooks] = useState<any[]>([])
-  const [isSearchingBooks, setIsSearchingBooks] = useState(false)
-
-  const searchBooks = async (query: string) => {
-    if (!query.trim()) return
-    setIsSearchingBooks(true)
-    try {
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=12`)
-      const data = await response.json()
-      setBooks(data.docs || [])
-    } catch (err) {
-      console.error('Book search error:', err)
-      setError('Failed to fetch books')
-    } finally {
-      setIsSearchingBooks(false)
-    }
-  }
-
-  const loadPublicDecks = useCallback(async () => {
-    try {
-      const res = await getPublicDecks()
-      setPublicDecks(res.decks || [])
-    } catch (err) {
-      console.error('Public decks load error:', err)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (viewMode === 'public') {
-      loadPublicDecks()
-      if (bookQuery.trim() === '') {
-        // Default search for educational books
-        searchBooks('education science technology')
-      }
-    }
-  }, [viewMode, loadPublicDecks])
 
   // =================== FILTERING ===================
 
@@ -430,16 +390,6 @@ export default function FlipCardsPage() {
     }
   }
 
-  const handleClone = async (deckId: string) => {
-    try {
-      await cloneDeck(deckId)
-      showSuccess('Deck cloned successfully!')
-      loadData()
-      setViewMode('decks')
-    } catch (error) {
-      setError('Failed to clone deck')
-    }
-  }
 
   // =================== AI GENERATION ===================
 
@@ -588,7 +538,6 @@ export default function FlipCardsPage() {
             { id: 'study', label: 'Study', icon: FiBookOpen },
             { id: 'review', label: `Review (${dueCards.length})`, icon: FiRefreshCw },
             { id: 'list', label: 'All Cards', icon: FiFilter },
-            { id: 'public', label: 'Library', icon: FiGlobe },
             { id: 'stats', label: 'Analytics', icon: FiBarChart2 }
           ].map(tab => (
             <button
@@ -961,9 +910,25 @@ export default function FlipCardsPage() {
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{card.front}</h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">{card.back}</p>
-                  <div className="flex items-center justify-between text-[10px] font-black uppercase text-gray-400">
-                    <span>{getMasteryLabel(card.masteryLevel)}</span>
-                    <span className="flex items-center gap-1"><FiRefreshCw /> {card.reviewCount || 0}</span>
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50 dark:border-gray-700/50">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${card.status === 'mastered' ? 'bg-green-100 text-green-700' :
+                        card.status === 'reviewing' ? 'bg-blue-100 text-blue-700' :
+                          card.status === 'learning' ? 'bg-orange-100 text-orange-700' :
+                            'bg-gray-100 text-gray-500'
+                        }`}>
+                        {card.status || 'unseen'}
+                      </span>
+                      {card.nextReviewDate && (
+                        <span className="text-[9px] font-bold text-gray-400">
+                          Next: {new Date(card.nextReviewDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <FiRefreshCw className="text-xs" />
+                      <span className="text-[10px] font-black">{card.reviewCount || 0}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1035,232 +1000,99 @@ export default function FlipCardsPage() {
             </div>
           </div>
         )}
+      </div >
 
-        {/* ========== PUBLIC LIBRARY VIEW ========== */}
-        {viewMode === 'public' && (
-          <div className="space-y-8">
-            {/* Discovery Section: Public Decks */}
-            {publicDecks.length > 0 && (
-              <div className="space-y-6">
+      {/* AI Generator Modal */}
+      {
+        showAIModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isGenerating && setShowAIModal(false)}></div>
+            <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between mb-6 md:mb-8 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl flex items-center justify-center">
-                    <FiLayers />
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center">
+                    <FiZap size={24} />
                   </div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight">Community Collections</h2>
+                  <h2 className="text-3xl font-black uppercase tracking-tight">AI Generator</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {publicDecks.map(deck => (
-                    <div key={deck._id} className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all flex flex-col">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                          style={{ backgroundColor: deck.color + '20', color: deck.color }}
-                        >
-                          {getDeckIcon(deck.icon || 'book')}
-                        </div>
-                        <div>
-                          <h3 className="font-black text-gray-900 dark:text-white leading-tight">{deck.name}</h3>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                            {deck.cardCount || 0} CARDS • {deck.category}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-6 line-clamp-2">
-                        {deck.description || 'No description provided.'}
-                      </p>
-                      <button
-                        onClick={() => handleClone(deck._id!)}
-                        className="w-full py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
-                      >
-                        <FiDownload /> ADD TO MY LIBRARY
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <button onClick={() => setShowAIModal(false)} className="text-gray-400"><FiX /></button>
               </div>
-            )}
 
-            <div className="pt-8 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl flex items-center justify-center">
-                  <FiBook />
-                </div>
-                <h2 className="text-2xl font-black uppercase tracking-tight">Textbook Search</h2>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+              <div className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
+                <p className="text-gray-500 font-medium bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl text-sm border-l-4 border-purple-500">
+                  Paste your notes or some study text below. Our AI will automatically generate clear, professional flashcards for you.
+                </p>
+                <textarea
+                  value={aiText}
+                  onChange={(e) => setAiText(e.target.value)}
+                  placeholder="Paste your lecture notes, textbook text, or concepts here... (Min 50 characters)"
+                  className="w-full h-48 md:h-80 p-5 md:p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-2xl md:rounded-[2rem] outline-none transition-all font-medium text-base md:text-lg placeholder:text-gray-400"
+                />
                 <div className="flex gap-4">
-                  <div className="flex-1 relative">
-                    <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      value={bookQuery}
-                      onChange={e => setBookQuery(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && searchBooks(bookQuery)}
-                      placeholder="Search for books, textbooks, or authors..."
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none font-bold"
-                    />
-                  </div>
                   <button
-                    onClick={() => searchBooks(bookQuery)}
-                    className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center gap-2"
+                    disabled={isGenerating || aiText.length < 50}
+                    onClick={handleGenerateAI}
+                    className="flex-1 py-4 md:py-5 bg-purple-600 text-white rounded-2xl md:rounded-[1.5rem] font-black text-lg md:text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2 md:gap-4 shrink-0"
                   >
-                    {isSearchingBooks ? <FiLoader className="animate-spin" /> : <FiSearch />}
-                    SEARCH
+                    {isGenerating ? <FiLoader className="animate-spin" /> : <FiZap />}
+                    {isGenerating ? 'GENERATING...' : 'GENERATE CARDS'}
                   </button>
                 </div>
               </div>
             </div>
-
-            {isSearchingBooks ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <FiLoader className="animate-spin text-4xl text-blue-500 mb-4" />
-                <p className="text-gray-500 font-bold uppercase tracking-widest">Searching library...</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {books.map((book, idx) => (
-                  <div
-                    key={`${book.key}-${idx}`}
-                    className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all flex flex-col h-full overflow-hidden"
-                  >
-                    <div className="h-48 mb-6 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center overflow-hidden">
-                      {book.cover_i ? (
-                        <img
-                          src={`https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`}
-                          alt={book.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <FiBook size={48} className="text-gray-300" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-black mb-1 line-clamp-2 leading-tight">{book.title}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-4 line-clamp-1">
-                        By {book.author_name ? book.author_name.join(', ') : 'Unknown Author'}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {book.first_publish_year && (
-                          <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md text-gray-500">
-                            {book.first_publish_year}
-                          </span>
-                        )}
-                        {book.language && book.language[0] && (
-                          <span className="text-[10px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md text-blue-500">
-                            {book.language[0].toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <a
-                      href={`https://openlibrary.org${book.key}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-center text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all mt-auto"
-                    >
-                      View Details
-                    </a>
-                  </div>
-                ))}
-                {books.length === 0 && !isSearchingBooks && (
-                  <div className="col-span-full py-20 text-center">
-                    <FiSearch size={48} className="text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 font-bold uppercase tracking-widest">No books found matching your search.</p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        )}
-      </div>
-
-      {/* AI Generator Modal */}
-      {showAIModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isGenerating && setShowAIModal(false)}></div>
-          <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between mb-6 md:mb-8 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center">
-                  <FiZap size={24} />
-                </div>
-                <h2 className="text-3xl font-black uppercase tracking-tight">AI Generator</h2>
-              </div>
-              <button onClick={() => setShowAIModal(false)} className="text-gray-400"><FiX /></button>
-            </div>
-
-            <div className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
-              <p className="text-gray-500 font-medium bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl text-sm border-l-4 border-purple-500">
-                Paste your notes or some study text below. Our AI will automatically generate clear, professional flashcards for you.
-              </p>
-              <textarea
-                value={aiText}
-                onChange={(e) => setAiText(e.target.value)}
-                placeholder="Paste your lecture notes, textbook text, or concepts here... (Min 50 characters)"
-                className="w-full h-48 md:h-80 p-5 md:p-6 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-purple-500 rounded-2xl md:rounded-[2rem] outline-none transition-all font-medium text-base md:text-lg placeholder:text-gray-400"
-              />
-              <div className="flex gap-4">
-                <button
-                  disabled={isGenerating || aiText.length < 50}
-                  onClick={handleGenerateAI}
-                  className="flex-1 py-4 md:py-5 bg-purple-600 text-white rounded-2xl md:rounded-[1.5rem] font-black text-lg md:text-xl hover:bg-purple-700 transition-all disabled:opacity-30 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2 md:gap-4 shrink-0"
-                >
-                  {isGenerating ? <FiLoader className="animate-spin" /> : <FiZap />}
-                  {isGenerating ? 'GENERATING...' : 'GENERATE CARDS'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Deck Form Modal */}
-      {showDeckForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeckForm(false)}></div>
-          <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[90vh]">
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-6 md:mb-8 shrink-0">Create Deck</h2>
-            <form onSubmit={handleCreateDeck} className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
-              <div>
-                <label className="block text-xs font-black uppercase text-gray-400 mb-2">Collection Name</label>
-                <input
-                  required placeholder="e.g. Advanced Microbiology"
-                  value={deckFormData.name} onChange={(e) => setDeckFormData({ ...deckFormData, name: e.target.value })}
-                  className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-black uppercase text-gray-400 mb-2">Category</label>
-                <select
-                  value={deckFormData.category}
-                  onChange={e => setDeckFormData({ ...deckFormData, category: e.target.value })}
-                  className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
-                >
-                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-black uppercase text-gray-400 mb-3">System Icon</label>
-                <div className="flex gap-2 md:gap-3 flex-wrap">
-                  {deckIcons.map(icon => (
-                    <button
-                      key={icon} type="button"
-                      onClick={() => setDeckFormData({ ...deckFormData, icon })}
-                      className={`text-xl md:text-2xl w-10 md:w-12 h-10 md:h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
-                        }`}
-                    >
-                      {getDeckIcon(icon)}
-                    </button>
-                  ))}
+      {
+        showDeckForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeckForm(false)}></div>
+            <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[90vh]">
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-6 md:mb-8 shrink-0">Create Deck</h2>
+              <form onSubmit={handleCreateDeck} className="space-y-6 overflow-y-auto no-scrollbar pr-2 pb-2">
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-2">Collection Name</label>
+                  <input
+                    required placeholder="e.g. Advanced Microbiology"
+                    value={deckFormData.name} onChange={(e) => setDeckFormData({ ...deckFormData, name: e.target.value })}
+                    className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
+                  />
                 </div>
-              </div>
-              <button type="submit" disabled={isSaving} className="w-full py-4 md:py-5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 shrink-0 text-sm md:text-base">
-                {isSaving ? 'CREATING...' : 'CREATE COLLECTION'}
-              </button>
-            </form>
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-2">Category</label>
+                  <select
+                    value={deckFormData.category}
+                    onChange={e => setDeckFormData({ ...deckFormData, category: e.target.value })}
+                    className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-xl md:rounded-2xl outline-none font-bold text-sm md:text-base"
+                  >
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-3">System Icon</label>
+                  <div className="flex gap-2 md:gap-3 flex-wrap">
+                    {deckIcons.map(icon => (
+                      <button
+                        key={icon} type="button"
+                        onClick={() => setDeckFormData({ ...deckFormData, icon })}
+                        className={`text-xl md:text-2xl w-10 md:w-12 h-10 md:h-12 rounded-xl border-4 transition-all flex items-center justify-center ${deckFormData.icon === icon ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'border-transparent bg-gray-50 dark:bg-gray-900'
+                          }`}
+                      >
+                        {getDeckIcon(icon)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button type="submit" disabled={isSaving} className="w-full py-4 md:py-5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 shrink-0 text-sm md:text-base">
+                  {isSaving ? 'CREATING...' : 'CREATE COLLECTION'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </ProtectedRoute>
+        )
+      }
+    </ProtectedRoute >
   )
 }

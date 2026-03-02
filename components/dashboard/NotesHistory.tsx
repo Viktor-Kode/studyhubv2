@@ -141,7 +141,7 @@ export default function NotesHistory() {
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-3xl opacity-50">
                         <FiExternalLink className="text-4xl text-gray-300 mb-4" />
-                        <p className="font-bold text-gray-400 uppercase tracking-widest text-xs">Select a note from the library</p>
+                        <p className="font-bold text-gray-400 uppercase tracking-widest text-xs">Select a note from your collection</p>
                     </div>
                 )}
             </div>
