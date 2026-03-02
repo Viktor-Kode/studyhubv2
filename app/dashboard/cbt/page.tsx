@@ -165,8 +165,6 @@ export default function CBTPage() {
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [showQuestionPanel, setShowQuestionPanel] = useState(false)
-  const [isTimerRunning, setIsTimerRunning] = useState(false)
-  const [showQuestionPanel, setShowQuestionPanel] = useState(false)
 
   // UI state
   const [loading, setLoading] = useState(false)
