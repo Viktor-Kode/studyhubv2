@@ -325,36 +325,41 @@ export default function FlipCardsPage() {
     }
   }
 
-  const handleReview = async (wasCorrect: boolean) => {
+  const handleReview = async (rating: number) => {
     const currentCard = filteredCards[currentIndex]
     if (!currentCard?._id || isReviewing) return
 
     setIsReviewing(true)
-    setReviewFeedback(wasCorrect ? 'correct' : 'incorrect')
+    setReviewFeedback(rating >= 3 ? 'correct' : 'incorrect')
 
     try {
-      await reviewCard(currentCard._id, wasCorrect)
+      const payload = {
+        cardId: currentCard._id,
+        deckId: typeof currentCard.deckId === 'object' ? currentCard.deckId?._id : currentCard.deckId,
+        subject: currentCard.category,
+        topic: 'General', // Fallback
+        rating
+      }
 
-      if (wasCorrect) setSessionCorrect(prev => prev + 1)
+      const res = await reviewCard(payload)
+
+      if (rating >= 3) setSessionCorrect(prev => prev + 1)
       else setSessionIncorrect(prev => prev + 1)
 
-      // Update card mastery in local state
+      // Update card mastery in local state (Simplified mapping for UI)
       setCards(prev => prev.map(c => {
         if (c._id === currentCard._id) {
           return {
             ...c,
             reviewCount: (c.reviewCount || 0) + 1,
-            correctCount: wasCorrect ? (c.correctCount || 0) + 1 : (c.correctCount || 0),
-            incorrectCount: !wasCorrect ? (c.incorrectCount || 0) + 1 : (c.incorrectCount || 0),
-            masteryLevel: wasCorrect
-              ? Math.min(5, (c.masteryLevel || 0) + 1)
-              : Math.max(0, (c.masteryLevel || 0) - 1)
+            status: res.status,
+            nextReviewDate: res.nextReview
           }
         }
         return c
       }))
 
-      // Show feedback for 1.5 seconds then move to next card
+      // Show feedback then move to next card
       setTimeout(() => {
         setReviewFeedback(null)
         setIsFlipped(false)
@@ -364,19 +369,19 @@ export default function FlipCardsPage() {
           setCurrentIndex(prev => prev + 1)
         } else {
           // All cards reviewed
-          showSuccess(`Session complete! ✅ ${sessionCorrect + (wasCorrect ? 1 : 0)} correct, ❌ ${sessionIncorrect + (!wasCorrect ? 1 : 0)} incorrect`)
+          showSuccess(`Session complete! SRS updated.`)
           saveStudySession({
             deckId: selectedDeckId !== 'All' ? selectedDeckId : undefined,
             cardsStudied: sessionCorrect + sessionIncorrect + 1,
-            correctAnswers: wasCorrect ? sessionCorrect + 1 : sessionCorrect,
-            incorrectAnswers: !wasCorrect ? sessionIncorrect + 1 : sessionIncorrect,
+            correctAnswers: rating >= 3 ? sessionCorrect + 1 : sessionCorrect,
+            incorrectAnswers: rating < 3 ? sessionIncorrect + 1 : sessionIncorrect,
             duration: Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000),
             sessionType: viewMode === 'review' ? 'review' : 'study'
           })
           setViewMode('stats')
           loadData()
         }
-      }, 1500)
+      }, 1000)
 
     } catch (err: any) {
       setError(err.message || 'Failed to record review')
@@ -497,7 +502,7 @@ export default function FlipCardsPage() {
     setShowAddForm(false)
   }
 
-  const allCategories = ['All', ...new Set(cards.map(c => c.category))]
+  const allCategories = ['All', ...Array.from(new Set(cards.map(c => c.category)))]
 
   if (isLoading && !cards.length && !decks.length) {
     return (
@@ -517,13 +522,15 @@ export default function FlipCardsPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
               Flashcard Hub
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 font-medium">
-              {cards.length} cards • {dueCards.length} ready for review
-            </p>
+            {dueCards.length > 0 && (
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">
+                {dueCards.length} DUE TODAY
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -847,33 +854,28 @@ export default function FlipCardsPage() {
                         {filteredCards[currentIndex].back}
                       </p>
 
-                      <div className="flex justify-center gap-4 mt-4 w-full px-2 md:px-6">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(false)
-                          }}
-                          disabled={isReviewing}
-                          className={`flex-1 flex items-center justify-center gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
-                            ? 'bg-gray-400 cursor-not-allowed opacity-50'
-                            : 'bg-red-500 hover:bg-red-600 hover:scale-105 active:scale-95'
-                            }`}
-                        >
-                          Still Learning
-                        </button>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(true)
-                          }}
-                          disabled={isReviewing}
-                          className={`flex-1 flex items-center justify-center gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
-                            ? 'bg-gray-400 cursor-not-allowed opacity-50'
-                            : 'bg-green-500 hover:bg-green-600 hover:scale-105 active:scale-95'
-                            }`}
-                        >
-                          I Got This!
-                        </button>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 w-full px-2 md:px-6">
+                        {[
+                          { label: 'Forgot', rating: 1, color: 'bg-red-500' },
+                          { label: 'Hard', rating: 2, color: 'bg-orange-500' },
+                          { label: 'Good', rating: 3, color: 'bg-blue-500' },
+                          { label: 'Easy', rating: 4, color: 'bg-green-500' }
+                        ].map((btn) => (
+                          <button
+                            key={btn.label}
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(btn.rating)
+                            }}
+                            disabled={isReviewing}
+                            className={`flex flex-col items-center justify-center p-3 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
+                              ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                              : `${btn.color} hover:scale-105 active:scale-95`
+                              }`}
+                          >
+                            <span>{btn.label}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>

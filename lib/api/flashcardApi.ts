@@ -109,13 +109,19 @@ export const deleteFlashCard = async (cardId: string) => {
     return response.json()
 }
 
-export const reviewCard = async (cardId: string, wasCorrect: boolean) => {
+export const reviewCard = async (payload: {
+    cardId: string;
+    deckId?: string;
+    subject?: string;
+    topic?: string;
+    rating: number; // 1-4
+}) => {
     try {
-        if (!cardId) throw new Error('Card ID is required')
-        const response = await fetch(`${API_BASE_URL}/cards/${cardId}/review`, {
+        if (!payload.cardId) throw new Error('Card ID is required')
+        const response = await fetch(`${API_BASE_URL}/cards/${payload.cardId}/review`, {
             method: 'POST',
             headers: await getDefaultHeaders(),
-            body: JSON.stringify({ wasCorrect })
+            body: JSON.stringify(payload)
         })
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Failed to review card')

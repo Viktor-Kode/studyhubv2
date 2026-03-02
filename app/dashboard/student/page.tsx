@@ -37,7 +37,8 @@ export default function StudentDashboardPage() {
     upcomingReminders: 0,
     cbtExamsTaken: 0,
     cbtAccuracy: 0,
-    bestCBTSubject: 'N/A'
+    bestCBTSubject: 'N/A',
+    masteryRate: '0%'
   })
   const [activities, setActivities] = useState<any[]>([])
   const [enrolledClasses, setEnrolledClasses] = useState<Class[]>([])
@@ -68,8 +69,9 @@ export default function StudentDashboardPage() {
             studyStreak: sumData.streak.current || 0,
             longestStreak: sumData.streak.longest || 0,
             completedSessions: sumData.studyTimer.totalSessions || 0,
-            totalFlashcards: sumData.flashcards.cardsSeen || 0,
-            masteredCards: sumData.flashcards.cardsMastered || 0,
+            totalFlashcards: sumData.flashcards.totalCards || 0,
+            masteredCards: sumData.flashcards.mastered || 0,
+            masteryRate: sumData.flashcards.masteryRate || '0%',
             upcomingReminders: reminders.length,
             cbtExamsTaken: sumData.cbt.examsTaken || 0,
             cbtAccuracy: parseInt(sumData.cbt.overallAccuracy) || 0,
@@ -287,17 +289,31 @@ export default function StudentDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex-1">
                   <p className="text-sm text-purple-100 mb-1">Flashcards</p>
-                  <p className="text-3xl font-bold">{stats.totalFlashcards}</p>
-                  <p className="text-xs text-purple-100 mt-1">{stats.masteredCards} mastered</p>
+                  <p className="text-3xl font-bold">{stats.masteredCards} mastered</p>
+                  <p className="text-xs text-purple-100 mt-1">of {stats.totalFlashcards} total cards</p>
+
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-purple-100">
+                      <span>Mastery Progress</span>
+                      <span>{stats.masteryRate}</span>
+                    </div>
+                    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white transition-all duration-1000"
+                        style={{ width: stats.masteryRate }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white/20 rounded-full p-3">
+                <div className="bg-white/20 rounded-full p-3 ml-4">
                   <BiCard className="text-3xl" />
                 </div>
               </div>
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
             </div>
           </div>
         )}
