@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   FiTrendingUp, FiTrendingDown, FiTarget, FiAward,
   FiClock, FiBookOpen, FiBarChart2, FiCalendar,
@@ -182,97 +183,26 @@ export default function ProgressAnalytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
-          title="Mastery Level"
+          title="Concept Mastery"
           value={totalCards > 0 ? `${Math.round((masteredCards / totalCards) * 100)}%` : '0%'}
           subtitle={`${masteredCards} cards mastered`}
           icon={<FiCheckCircle />}
           color="green"
         />
         <StatCard
-          title="Daily Study"
-          value={studyChart[studyChart.length - 1]?.minutes + 'm'}
-          subtitle="Time studied today"
-          icon={<FiClock />}
-          color="blue"
-        />
-        <StatCard
-          title="Best Subject"
+          title="Best Subject Mastery"
           value={bestSubject ? `${Math.round(bestSubject.avgScore)}%` : 'N/A'}
           subtitle={bestSubject?._id || 'Keep practicing'}
           icon={<FiAward />}
           color="purple"
         />
-        <StatCard
-          title="Learning Pool"
-          value={learningCards + reviewingCards}
-          subtitle="Cards in active review"
-          icon={<FiZap />}
-          color="orange"
-        />
       </div>
 
       {/* Main Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
 
-        {/* Study Consistency Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
-            <FiBarChart2 className="text-9xl transform rotate-12" />
-          </div>
-
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div>
-              <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Study Consistency</h2>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Last 7 Days</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600">
-              <FiTrendingUp size={24} />
-            </div>
-          </div>
-
-          <div className="flex items-end justify-between h-48 gap-4 px-2 relative z-10">
-            {studyChart.map((d: any) => {
-              const maxMinutes = 120; // 2 hour goal
-              const height = Math.min((d.minutes / maxMinutes) * 100, 100);
-              return (
-                <div key={d.day} className="flex-1 flex flex-col items-center group/item gap-3 h-full justify-end">
-                  <div className="opacity-0 group-hover/item:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-black px-2 py-1 rounded mb-1 absolute -top-4 pointer-events-none">
-                    {d.minutes}m
-                  </div>
-                  <div
-                    className={`w-full rounded-xl transition-all duration-700 relative ${d.minutes >= 60 ? 'bg-blue-500' : 'bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200'}`}
-                    style={{ height: `${Math.max(height, 5)}%` }}
-                  >
-                    {d.minutes >= 120 && (
-                      <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                        <FiAward className="text-white text-[8px]" />
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">{d.day}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-900 dark:text-white">{studyChart.reduce((a: number, b: any) => a + b.minutes, 0)}m</span>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">Weekly Total</span>
-              </div>
-              <div className="w-[1px] h-8 bg-gray-100 dark:bg-gray-700"></div>
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-900 dark:text-white">{Math.round(studyChart.reduce((a: number, b: any) => a + b.minutes, 0) / 7)}m</span>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">Daily Avg</span>
-              </div>
-            </div>
-            <div className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full uppercase tracking-widest">
-              Target: 2h/day
-            </div>
-          </div>
-        </div>
 
         {/* Flashcard Mastery Status */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden group">
@@ -377,4 +307,3 @@ export default function ProgressAnalytics() {
   )
 }
 
-import Link from 'next/link'
