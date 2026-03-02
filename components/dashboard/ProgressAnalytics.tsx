@@ -204,54 +204,6 @@ export default function ProgressAnalytics() {
       <div className="grid grid-cols-1 gap-8">
 
 
-        {/* Flashcard Mastery Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden group">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Memory Health</h2>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Spaced Repetition Status</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600">
-              <BiBrain size={24} />
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              { label: 'Mastered', count: masteredCards, color: 'bg-green-500', desc: 'Securely in long-term memory' },
-              { label: 'Reviewing', count: reviewingCards, color: 'bg-blue-500', desc: 'Intermediate strength' },
-              { label: 'Learning', count: learningCards, color: 'bg-orange-500', desc: 'Fresh information' },
-              { label: 'Unseen', count: unseenCards, color: 'bg-gray-400', desc: 'Not yet reviewed' }
-            ].map((status) => {
-              const perc = totalCards > 0 ? (status.count / totalCards) * 100 : 0;
-              return (
-                <div key={status.label} className="group/item">
-                  <div className="flex justify-between items-end mb-2">
-                    <div>
-                      <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{status.label}</span>
-                      <p className="text-[10px] font-medium text-gray-400">{status.desc}</p>
-                    </div>
-                    <span className="text-xs font-black text-gray-900 dark:text-white">{status.count} <span className="text-gray-400">({Math.round(perc)}%)</span></span>
-                  </div>
-                  <div className="h-3 bg-gray-50 dark:bg-gray-900 rounded-full overflow-hidden p-[2px]">
-                    <div
-                      className={`h-full ${status.color} rounded-full transition-all duration-1000 shadow-sm shadow-black/5`}
-                      style={{ width: `${perc}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Intelligence Pool</p>
-              <span className="text-sm font-black text-purple-600">{totalCards} Cards</span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* CBT Performance Section */}

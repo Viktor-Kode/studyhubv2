@@ -31,7 +31,7 @@ import {
   FlashCardDeck
 } from '@/lib/api/flashcardApi'
 
-type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'stats'
+type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'mastered'
 
 export default function FlipCardsPage() {
   // Auth
@@ -162,6 +162,13 @@ export default function FlipCardsPage() {
     let sourceCards = viewMode === 'review' ? dueCards : cards
     let filtered = [...sourceCards]
 
+    // Hide mastered cards from study, review and list unless in Mastered mode
+    if (viewMode === 'study' || viewMode === 'review' || viewMode === 'list') {
+      filtered = filtered.filter(c => c.status !== 'mastered')
+    } else if (viewMode === 'mastered') {
+      filtered = cards.filter(c => c.status === 'mastered')
+    }
+
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(c => c.category === selectedCategory)
     }
@@ -186,9 +193,15 @@ export default function FlipCardsPage() {
     }
 
     setFilteredCards(filtered)
+    // Only reset index and flip state if the view mode or significant filters changed
+    // This avoids jumping back to card 1 when just mastering a card during study
+  }, [cards, dueCards, viewMode, selectedCategory, selectedDeckId, showFavoritesOnly, searchQuery])
+
+  // Reset index when structural filters change
+  useEffect(() => {
     setCurrentIndex(0)
     setIsFlipped(false)
-  }, [cards, dueCards, viewMode, selectedCategory, selectedDeckId, showFavoritesOnly, searchQuery])
+  }, [viewMode, selectedCategory, selectedDeckId, showFavoritesOnly, searchQuery])
 
   // =================== HELPERS ===================
 
@@ -537,7 +550,7 @@ export default function FlipCardsPage() {
             { id: 'study', label: 'Study', icon: FiBookOpen },
             { id: 'review', label: `Review (${dueCards.length})`, icon: FiRefreshCw },
             { id: 'list', label: 'All Cards', icon: FiFilter },
-            { id: 'stats', label: 'Analytics', icon: FiBarChart2 }
+            { id: 'mastered', label: 'Mastered', icon: FiCheckCircle }
           ].map(tab => (
             <button
               key={tab.id}
@@ -934,45 +947,65 @@ export default function FlipCardsPage() {
           </div>
         )}
 
-        {/* ========== ANALYTICS VIEW ========== */}
-        {viewMode === 'stats' && stats && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { label: 'Cards Mastered', value: stats.masteredCards, color: 'green', icon: FiCheck },
-                { label: 'Total Cards', value: stats.totalCards, color: 'blue', icon: BiBrain },
-              ].map((item) => (
-                <div key={item.label} className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                  <div className={`w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl bg-${item.color}-50 dark:bg-${item.color}-900/20 text-${item.color}-500`}>
-                    <item.icon />
-                  </div>
-                  <h3 className="text-3xl font-black text-gray-900 dark:text-white leading-none lowercase mb-1">{item.value}</h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{item.label}</p>
-                </div>
-              ))}
+        {/* ========== MASTERED VIEW ========== */}
+        {viewMode === 'mastered' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-gray-400">Mastered Cards</h2>
+              <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                {filteredCards.length} CARDS MASTERED
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-8">
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                <h3 className="text-xl font-black uppercase tracking-tight mb-8">Concept Mastery</h3>
-                <div className="space-y-6">
-                  {stats.categoryBreakdown?.map((cat: any) => (
-                    <div key={cat._id}>
-                      <div className="flex justify-between text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
-                        <span>{cat._id}</span>
-                        <span className="text-blue-500">{Math.round((cat.count / stats.totalCards) * 100)}%</span>
-                      </div>
-                      <div className="h-4 w-full bg-gray-50 dark:bg-gray-900 rounded-full overflow-hidden p-1 shadow-inner">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${(cat.count / stats.totalCards) * 100}%` }}
-                        />
+            {filteredCards.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <FiCheckCircle size={48} className="text-gray-300 mx-auto mb-6" />
+                <h3 className="text-2xl font-black mb-2">No Mastered Cards Yet</h3>
+                <p className="text-gray-500 mb-8 max-w-xs mx-auto">Keep studying to master your flashcards! They will appear here once you're confident in them.</p>
+                <button onClick={() => setViewMode('study')} className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">Start Studying</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredCards.map((card) => (
+                  <div key={card._id} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 dark:bg-green-900/30 px-3 py-1 rounded-lg">
+                        {card.category}
+                      </span>
+                      <div className="flex gap-2">
+                        <FiCheckCircle className="text-green-500" />
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{card.front}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-6">{card.back}</p>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsReviewing(true)
+                          const payload = {
+                            cardId: card._id!,
+                            deckId: typeof card.deckId === 'object' ? card.deckId?._id : card.deckId,
+                            subject: card.category,
+                            rating: 1 // Back to learning
+                          }
+                          await reviewCard(payload)
+                          showSuccess('Card moved back to study deck!')
+                          loadData()
+                        } catch (err: any) {
+                          setError(err.message || 'Failed to update card status')
+                        } finally {
+                          setIsReviewing(false)
+                        }
+                      }}
+                      className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <FiRefreshCw className={isReviewing ? 'animate-spin' : ''} /> Still Learning
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         )}
       </div >
