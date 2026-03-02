@@ -61,68 +61,60 @@ export const createFlashCard = async (cardData: Partial<FlashCard>) => {
     }
 }
 
-export const generateAIFlashCards = async (data: { text: string; userId: string; deckId?: string; amount?: number; category?: string }) => {
-    const response = await fetch(`${API_BASE_URL}/generate`, {
-        method: 'POST',
-        headers: await getDefaultHeaders(),
-        body: JSON.stringify(data)
-    })
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to generate AI flashcards')
+export const getFlashCards = async (params?: { category?: string; deckId?: string; favorite?: boolean; search?: string }) => {
+    try {
+        const queryParams = new URLSearchParams()
+        if (params?.category) queryParams.append('category', params.category)
+        if (params?.deckId) queryParams.append('deckId', params.deckId)
+        if (params?.favorite) queryParams.append('favorite', 'true')
+        if (params?.search) queryParams.append('search', params.search)
+
+        const response = await fetch(`${API_BASE_URL}/cards?${queryParams.toString()}`, {
+            headers: await getDefaultHeaders()
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch flashcards')
+        return data
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to fetch flashcards')
     }
-    return response.json()
-}
-
-export const getFlashCards = async (params?: { category?: string; deckId?: string; favorite?: boolean; search?: string; shuffle?: boolean; limit?: number }) => {
-    const query = params ? new URLSearchParams(params as any).toString() : ''
-    const response = await fetch(`${API_BASE_URL}/cards${query ? `?${query}` : ''}`, {
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch flashcards')
-    return response.json()
-}
-
-export const getDueCards = async () => {
-    const response = await fetch(`${API_BASE_URL}/cards/due`, {
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch due cards')
-    return response.json()
 }
 
 export const updateFlashCard = async (cardId: string, updateData: Partial<FlashCard>) => {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardId}`, {
-        method: 'PUT',
-        headers: await getDefaultHeaders(),
-        body: JSON.stringify(updateData)
-    })
-    if (!response.ok) throw new Error('Failed to update flashcard')
-    return response.json()
+    try {
+        const response = await fetch(`${API_BASE_URL}/cards/${cardId}`, {
+            method: 'PUT',
+            headers: await getDefaultHeaders(),
+            body: JSON.stringify(updateData)
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to update flashcard')
+        return data
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to update flashcard')
+    }
 }
 
 export const deleteFlashCard = async (cardId: string) => {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardId}`, {
-        method: 'DELETE',
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to delete flashcard')
-    return response.json()
+    try {
+        const response = await fetch(`${API_BASE_URL}/cards/${cardId}`, {
+            method: 'DELETE',
+            headers: await getDefaultHeaders()
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to delete flashcard')
+        return data
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to delete flashcard')
+    }
 }
 
-export const reviewCard = async (payload: {
-    cardId: string;
-    deckId?: string;
-    subject?: string;
-    topic?: string;
-    rating: number; // 1-4
-}) => {
+export const reviewCard = async (cardId: string, rating: number) => {
     try {
-        if (!payload.cardId) throw new Error('Card ID is required')
-        const response = await fetch(`${API_BASE_URL}/cards/${payload.cardId}/review`, {
+        const response = await fetch(`${API_BASE_URL}/cards/${cardId}/review`, {
             method: 'POST',
             headers: await getDefaultHeaders(),
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ rating })
         })
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Failed to review card')
@@ -133,20 +125,43 @@ export const reviewCard = async (payload: {
 }
 
 export const toggleFavorite = async (cardId: string) => {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardId}/favorite`, {
-        method: 'POST',
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to toggle favorite')
-    return response.json()
+    try {
+        const response = await fetch(`${API_BASE_URL}/cards/${cardId}/favorite`, {
+            method: 'POST',
+            headers: await getDefaultHeaders()
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to toggle favorite')
+        return data
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to toggle favorite')
+    }
 }
 
 export const getFlashCardStats = async () => {
-    const response = await fetch(`${API_BASE_URL}/stats`, {
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch stats')
-    return response.json()
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats`, {
+            headers: await getDefaultHeaders()
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch statistics')
+        return data.stats
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to fetch statistics')
+    }
+}
+
+export const getDueCards = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cards/due`, {
+            headers: await getDefaultHeaders()
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch due cards')
+        return data
+    } catch (error: any) {
+        throw new Error(error.message || 'Failed to fetch due cards')
+    }
 }
 
 // ─── Deck Operations ──────────────────────────────────────────────────────────
@@ -171,24 +186,6 @@ export const getDecks = async () => {
         headers: await getDefaultHeaders()
     })
     if (!response.ok) throw new Error('Failed to fetch decks')
-    return response.json()
-}
-
-export const getPublicDecks = async (params?: { category?: string; search?: string }) => {
-    const query = params ? new URLSearchParams(params as any).toString() : ''
-    const response = await fetch(`${API_BASE_URL}/public-decks${query ? `?${query}` : ''}`, {
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch public decks')
-    return response.json()
-}
-
-export const cloneDeck = async (deckId: string) => {
-    const response = await fetch(`${API_BASE_URL}/decks/${deckId}/clone`, {
-        method: 'POST',
-        headers: await getDefaultHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to clone deck')
     return response.json()
 }
 
