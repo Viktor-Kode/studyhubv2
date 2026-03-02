@@ -400,7 +400,6 @@ export default function FlipCardsPage() {
     try {
       await generateAIFlashCards({
         text: aiText,
-        userId,
         deckId: selectedDeckId !== 'All' ? selectedDeckId : undefined,
         amount: 5
       })
@@ -803,28 +802,27 @@ export default function FlipCardsPage() {
                         {filteredCards[currentIndex].back}
                       </p>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 w-full px-2 md:px-6">
-                        {[
-                          { label: 'Forgot', rating: 1, color: 'bg-red-500' },
-                          { label: 'Hard', rating: 2, color: 'bg-orange-500' },
-                          { label: 'Good', rating: 3, color: 'bg-blue-500' },
-                          { label: 'Easy', rating: 4, color: 'bg-green-500' }
-                        ].map((btn) => (
-                          <button
-                            key={btn.label}
-                            onClick={e => {
-                              e.stopPropagation()
-                              if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(btn.rating)
-                            }}
-                            disabled={isReviewing}
-                            className={`flex flex-col items-center justify-center p-3 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all text-[10px] md:text-xs ${isReviewing
-                              ? 'bg-gray-400 cursor-not-allowed opacity-50'
-                              : `${btn.color} hover:scale-105 active:scale-95`
-                              }`}
-                          >
-                            <span>{btn.label}</span>
-                          </button>
-                        ))}
+                      <div className="flex gap-4 mt-8 w-full px-6">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(1) // Not Mastered
+                          }}
+                          disabled={isReviewing}
+                          className={`flex-1 py-4 rounded-[1.5rem] bg-white/10 text-white font-black uppercase tracking-widest border-2 border-white/20 hover:bg-white/20 transition-all ${isReviewing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          Still Learning
+                        </button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (filteredCards[currentIndex]?._id && !isReviewing) handleReview(4) // Mastered
+                          }}
+                          disabled={isReviewing}
+                          className={`flex-1 py-4 rounded-[1.5rem] bg-white text-blue-600 font-black uppercase tracking-widest shadow-xl hover:bg-blue-50 transition-all ${isReviewing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          Mastered
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -939,12 +937,10 @@ export default function FlipCardsPage() {
         {/* ========== ANALYTICS VIEW ========== */}
         {viewMode === 'stats' && stats && (
           <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
-                { label: 'Intelligence', value: stats.totalCards, color: 'blue', icon: BiBrain },
-                { label: 'Mastery', value: stats.masteredCards, color: 'green', icon: FiCheck },
-                { label: 'Daily Goal', value: stats.dueCards, color: 'orange', icon: FiRefreshCw },
-                { label: 'Accuracy', value: `${stats.accuracy || 0}%`, color: 'purple', icon: FiHeart }
+                { label: 'Cards Mastered', value: stats.masteredCards, color: 'green', icon: FiCheck },
+                { label: 'Total Cards', value: stats.totalCards, color: 'blue', icon: BiBrain },
               ].map((item) => (
                 <div key={item.label} className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                   <div className={`w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center text-xl bg-${item.color}-50 dark:bg-${item.color}-900/20 text-${item.color}-500`}>
@@ -956,7 +952,7 @@ export default function FlipCardsPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8">
               <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
                 <h3 className="text-xl font-black uppercase tracking-tight mb-8">Concept Mastery</h3>
                 <div className="space-y-6">
@@ -974,27 +970,6 @@ export default function FlipCardsPage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                <h3 className="text-xl font-black uppercase tracking-tight mb-8">Difficulty Distribution</h3>
-                <div className="flex items-end justify-between h-48 gap-4 px-4">
-                  {['easy', 'medium', 'hard'].map((diff) => {
-                    const count = stats.difficultyBreakdown?.find((d: any) => d._id === diff)?.count || 0;
-                    const height = stats.totalCards > 0 ? (count / stats.totalCards) * 100 : 0;
-                    return (
-                      <div key={diff} className="flex-1 flex flex-col items-center gap-4">
-                        <div className="text-xs font-black text-gray-400">{count}</div>
-                        <div
-                          className={`w-full rounded-2xl transition-all duration-1000 opacity-80 hover:opacity-100 ${diff === 'easy' ? 'bg-green-500' : diff === 'hard' ? 'bg-red-500' : 'bg-yellow-500'
-                            }`}
-                          style={{ height: `${height}%` }}
-                        />
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{diff}</div>
-                      </div>
-                    )
-                  })}
                 </div>
               </div>
             </div>

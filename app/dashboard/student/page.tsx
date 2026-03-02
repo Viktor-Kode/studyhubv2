@@ -292,13 +292,13 @@ export default function StudentDashboardPage() {
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex-1">
-                  <p className="text-sm text-purple-100 mb-1">Flashcards</p>
-                  <p className="text-3xl font-bold">{stats.masteredCards} mastered</p>
-                  <p className="text-xs text-purple-100 mt-1">of {stats.totalFlashcards} total cards</p>
+                  <p className="text-sm text-purple-100 mb-1">Flashcards Created</p>
+                  <p className="text-3xl font-bold">{stats.totalFlashcards}</p>
+                  <p className="text-xs text-purple-100 mt-1">{stats.masteredCards} mastered</p>
 
                   <div className="mt-4">
                     <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-purple-100">
-                      <span>Mastery Progress</span>
+                      <span>Concept Mastery</span>
                       <span>{stats.masteryRate}</span>
                     </div>
                     <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">

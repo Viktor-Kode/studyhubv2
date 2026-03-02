@@ -109,12 +109,18 @@ export const deleteFlashCard = async (cardId: string) => {
     }
 }
 
-export const reviewCard = async (cardId: string, rating: number) => {
+export const reviewCard = async (payload: {
+    cardId: string;
+    deckId?: string;
+    subject?: string;
+    topic?: string;
+    rating: number;
+}) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/cards/${cardId}/review`, {
+        const response = await fetch(`${API_BASE_URL}/cards/${payload.cardId}/review`, {
             method: 'POST',
             headers: await getDefaultHeaders(),
-            body: JSON.stringify({ rating })
+            body: JSON.stringify(payload)
         })
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Failed to review card')
@@ -228,6 +234,22 @@ export const importFlashCards = async (flashCards: any[], deckId?: string) => {
     })
     if (!response.ok) throw new Error('Failed to import flashcards')
     return response.json()
+}
+
+export const generateAIFlashCards = async (params: {
+    text: string;
+    deckId?: string;
+    amount?: number;
+    category?: string;
+}) => {
+    const response = await fetch(`${API_BASE_URL}/generate`, {
+        method: 'POST',
+        headers: await getDefaultHeaders(),
+        body: JSON.stringify(params)
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.message || 'Failed to generate flashcards')
+    return data
 }
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
