@@ -23,11 +23,11 @@ const GOAL_COLORS = [
 ]
 
 const PRESETS = [
-  { label: 'Pomodoro', minutes: 25, color: 'bg-red-500', icon: <BiTimer className="text-xl" /> },
-  { label: 'Short Break', minutes: 5, color: 'bg-green-500', icon: <FiCoffee className="text-xl" /> },
-  { label: 'Long Break', minutes: 15, color: 'bg-blue-500', icon: <BiChair className="text-xl" /> },
-  { label: 'Deep Work', minutes: 52, color: 'bg-purple-500', icon: <BiBrain className="text-xl" /> },
-  { label: 'Custom', minutes: 0, color: 'bg-gray-500', icon: <FiSettings className="text-xl" /> },
+  { label: 'Pomodoro', minutes: 25, type: 'work' as const, color: 'bg-red-500', icon: <BiTimer className="text-xl" /> },
+  { label: 'Short Break', minutes: 5, type: 'break' as const, color: 'bg-green-500', icon: <FiCoffee className="text-xl" /> },
+  { label: 'Long Break', minutes: 15, type: 'break' as const, color: 'bg-blue-500', icon: <BiChair className="text-xl" /> },
+  { label: 'Deep Work', minutes: 52, type: 'work' as const, color: 'bg-purple-500', icon: <BiBrain className="text-xl" /> },
+  { label: 'Custom', minutes: 0, type: 'work' as const, color: 'bg-gray-500', icon: <FiSettings className="text-xl" /> },
 ]
 
 export default function StudyTimer() {
@@ -118,18 +118,24 @@ export default function StudyTimer() {
     store.start(localSubject, store.totalDuration, store.sessionType)
   }
 
-  const applyPreset = (minutes: number) => {
+  const applyPreset = (minutes: number, type: 'work' | 'break') => {
     if (minutes === 0) {
       setShowCustomInput(true)
       return
     }
     setShowCustomInput(false)
     store.reset()
-    store.start(localSubject, minutes * 60, store.sessionType)
-    // Actually we want to just SET the duration, not start immediately if user hasn't pressed start
-    // But store.reset() clears isActive. Let's just update local state if needed.
-    // For now, let's keep it simple: presets reset and set time.
-    useTimerStore.setState({ timeLeft: minutes * 60, totalDuration: minutes * 60, isActive: false })
+    // Update local subject for work sessions
+    if (type === 'work' && !localSubject.trim()) {
+      // Just keep old subject or stay empty
+    }
+
+    useTimerStore.setState({
+      timeLeft: minutes * 60,
+      totalDuration: minutes * 60,
+      sessionType: type,
+      isActive: false
+    })
   }
 
   const applyCustomDuration = () => {
@@ -335,7 +341,7 @@ export default function StudyTimer() {
                   {PRESETS.map(p => (
                     <button
                       key={p.label}
-                      onClick={() => applyPreset(p.minutes)}
+                      onClick={() => applyPreset(p.minutes, p.type)}
                       className={`flex flex-col items-center p-3 rounded-xl border-2 transition text-center ${(p.minutes > 0 && store.totalDuration === p.minutes * 60) || (p.minutes === 0 && showCustomInput) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
                     >
                       <div className="mb-1 text-gray-700 dark:text-gray-300">{p.icon}</div>

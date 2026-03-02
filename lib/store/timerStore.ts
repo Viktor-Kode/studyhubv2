@@ -39,8 +39,8 @@ interface TimerStore extends TimerState {
 export const useTimerStore = create<TimerStore>((set, get) => ({
     isActive: false,
     isPaused: false,
-    timeLeft: 0,
-    totalDuration: 0,
+    timeLeft: 1500, // 25 minutes default
+    totalDuration: 1500,
     sessionType: 'work',
     subject: '',
     pomodoroCount: 0,
@@ -153,25 +153,14 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         stopAlarmSound()
         set({ alarmFiring: false })
 
-        // Auto-switch logic
-        const { sessionType, pomodoroCount } = get()
-        if (sessionType === 'work') {
-            const nextType = 'break'
-            const breakMins = (pomodoroCount + 1) % 4 === 0 ? 15 : 5
-            set({
-                sessionType: nextType,
-                timeLeft: breakMins * 60,
-                totalDuration: breakMins * 60,
-                isActive: false
-            })
-        } else {
-            set({
-                sessionType: 'work',
-                timeLeft: 0,
-                totalDuration: 0,
-                isActive: false
-            })
-        }
+        // Reset to default study state after any session ends
+        set({
+            sessionType: 'work',
+            timeLeft: 1500, // Reset to 25 mins
+            totalDuration: 1500,
+            isActive: false,
+            alarmFiring: false
+        })
     },
 
     tick: () => {
