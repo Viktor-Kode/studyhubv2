@@ -319,28 +319,29 @@ export default function FlipCardsPage() {
       if (rating >= 3) setSessionCorrect(prev => prev + 1)
       else setSessionIncorrect(prev => prev + 1)
 
-      // Update card mastery in local state (Simplified mapping for UI)
-      setCards(prev => prev.map(c => {
-        if (c._id === currentCard._id) {
-          return {
-            ...c,
-            reviewCount: (c.reviewCount || 0) + 1,
-            status: res.status,
-            nextReviewDate: res.nextReview
-          }
-        }
-        return c
-      }))
-
       // Show feedback then move to next card
       setTimeout(() => {
         setReviewFeedback(null)
         setIsFlipped(false)
         setIsReviewing(false)
 
-        if (currentIndex < filteredCards.length - 1) {
-          setCurrentIndex(prev => prev + 1)
-        } else {
+        // Update card mastery in local state (Simplified mapping for UI)
+        setCards(prev => prev.map(c => {
+          if (c._id === currentCard._id) {
+            return {
+              ...c,
+              reviewCount: (c.reviewCount || 0) + 1,
+              status: res.status,
+              nextReviewDate: res.nextReview
+            }
+          }
+          return c
+        }))
+
+        const willBeRemoved = (res.status === 'mastered') && (viewMode === 'study' || viewMode === 'review' || viewMode === 'list');
+        const wasLastCard = currentIndex === filteredCards.length - 1;
+
+        if (wasLastCard) {
           // All cards reviewed
           showSuccess(`Session complete! SRS updated.`)
           saveStudySession({
@@ -353,6 +354,10 @@ export default function FlipCardsPage() {
           })
           setViewMode('mastered')
           loadData()
+        } else {
+          if (!willBeRemoved) {
+            setCurrentIndex(prev => prev + 1)
+          }
         }
       }, 1000)
 
@@ -781,7 +786,7 @@ export default function FlipCardsPage() {
                         Question
                       </span>
                       <h2 className="text-2xl md:text-4xl font-black leading-tight text-gray-900 dark:text-white max-w-lg px-2">
-                        {filteredCards[currentIndex].front}
+                        {filteredCards[currentIndex]?.front}
                       </h2>
                       <p className="absolute bottom-6 md:bottom-10 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest">
                         Tap to reveal answer
@@ -816,7 +821,7 @@ export default function FlipCardsPage() {
                         Resolution
                       </span>
                       <p className="text-xl md:text-3xl text-white font-bold leading-relaxed max-w-lg mb-4 md:mb-8 px-2">
-                        {filteredCards[currentIndex].back}
+                        {filteredCards[currentIndex]?.back}
                       </p>
 
                       <div className="flex gap-4 mt-8 w-full px-6">
@@ -850,14 +855,16 @@ export default function FlipCardsPage() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation()
-                        handleToggleFavorite(filteredCards[currentIndex]._id!)
+                        if (filteredCards[currentIndex]?._id) {
+                          handleToggleFavorite(filteredCards[currentIndex]._id!)
+                        }
                       }}
-                      className={`p-5 rounded-2xl transition-all shadow-lg ${filteredCards[currentIndex].isFavorite
+                      className={`p-5 rounded-2xl transition-all shadow-lg ${filteredCards[currentIndex]?.isFavorite
                         ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-yellow-500/10'
                         : 'text-gray-400 bg-white dark:bg-gray-800 shadow-gray-200/50 dark:shadow-none'
                         }`}
                     >
-                      {filteredCards[currentIndex].isFavorite ? <FiStar size={28} style={{ fill: 'currentColor' }} /> : <FiStar size={28} />}
+                      {filteredCards[currentIndex]?.isFavorite ? <FiStar size={28} style={{ fill: 'currentColor' }} /> : <FiStar size={28} />}
                     </button>
                     <div className="flex gap-4">
                       <button
