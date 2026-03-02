@@ -385,49 +385,6 @@ export default function TimetableReminders() {
                             </div>
                         </div>
 
-                        {/* Setup Instructions */}
-                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <div className="flex flex-col md:flex-row gap-4 items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <FiInfo className="text-blue-500" />
-                                        <h4 className="font-bold text-blue-900 dark:text-blue-100">
-                                            Enable WhatsApp Notifications
-                                        </h4>
-                                    </div>
-                                    <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-                                        Every new number must join our sandbox to receive reminders.
-                                    </p>
-
-                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-100 dark:border-blue-700 shadow-sm">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-mono">
-                                            Step 1: Click the button below
-                                        </p>
-                                        <a
-                                            href="https://wa.me/14155238886?text=join%20known-show"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition shadow-sm"
-                                        >
-                                            <MdWhatsapp className="text-xl" />
-                                            Join Sandbox
-                                        </a>
-                                        <p className="text-xs text-center text-gray-400 mt-1">
-                                            (Opens WhatsApp with pre-filled message)
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 text-sm text-blue-800 dark:text-blue-200 pt-2 border-t md:border-t-0 md:border-l border-blue-200 dark:border-blue-700 md:pl-4">
-                                    <p className="font-semibold mb-2">Manual Setup:</p>
-                                    <ol className="space-y-2 list-decimal ml-4">
-                                        <li>Open WhatsApp on your phone.</li>
-                                        <li>Send the code <code>join known-show</code> to <strong>+1 415 523 8886</strong>.</li>
-                                        <li>You will receive a confirmation: "You are all set!"</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Phone Number Input */}
                         <div className="space-y-3">
