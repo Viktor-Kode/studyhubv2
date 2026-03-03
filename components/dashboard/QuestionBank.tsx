@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTutor } from '@/lib/api/quizApi'
+import { cbtApi } from '@/lib/api/cbt'
 import { extractTextFromFile } from '@/lib/utils/fileExtractor'
+import { toast } from 'react-hot-toast'
 
 interface QuestionBankProps {
   className?: string
@@ -35,6 +37,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [userAnswers, setUserAnswers] = useState<Record<string, any>>({})
   const [checkedAnswers, setCheckedAnswers] = useState<Record<string, boolean>>({})
   const [score, setScore] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [quizSubmitted, setQuizSubmitted] = useState(false)
 
   const searchParams = useSearchParams()
 
@@ -73,6 +77,71 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   useEffect(() => {
     if (activeTab === 'tutor') scrollToBottom()
   }, [chatMessages, activeTab])
+
+  const handleSubmitQuiz = async () => {
+    if (newQuestions.length === 0) return
+    if (quizSubmitted) return
+
+    const allChecked = newQuestions.length === Object.keys(checkedAnswers).length
+    if (!allChecked) {
+      if (!confirm('You haven\'t verified all answers yet. Submit anyway?')) return
+    }
+
+    try {
+      setSubmitting(true)
+
+      // Recalculate score to be sure it matches current states
+      let finalScore = 0
+      const processedAnswers = newQuestions.map(q => {
+        const userAnswer = userAnswers[q._id]
+        const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
+
+        const isCorrect = (String(userAnswer).toLowerCase().trim() === String(correctAnswer).toLowerCase().trim()) ||
+          (typeof userAnswer === 'number' && typeof correctAnswer === 'number' && userAnswer === correctAnswer) ||
+          (typeof userAnswer === 'number' && String(userAnswer) === String(correctAnswer)) ||
+          (typeof correctAnswer === 'number' && String(userAnswer) === String(correctAnswer));
+
+        if (isCorrect) finalScore++
+
+        return {
+          questionId: q._id,
+          question: q.content || (q as any).question,
+          selectedAnswer: typeof userAnswer === 'number'
+            ? q.options[userAnswer]
+            : (userAnswer || 'Skipped'),
+          correctAnswer: typeof correctAnswer === 'number'
+            ? q.options[Number(correctAnswer)]
+            : correctAnswer,
+          explanation: q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || "No deep-dive available.",
+          isCorrect: isCorrect
+        }
+      })
+
+      const accuracy = Math.round((finalScore / newQuestions.length) * 100)
+
+      const resultsData = {
+        subject: newQuestions[0].subject || 'AI Generated Quiz',
+        examType: 'AI_STUDY',
+        totalQuestions: newQuestions.length,
+        correctAnswers: finalScore,
+        wrongAnswers: newQuestions.length - finalScore,
+        accuracy: accuracy,
+        answers: processedAnswers
+      }
+
+      await cbtApi.saveResult(resultsData)
+      setScore(finalScore)
+      setQuizSubmitted(true)
+      toast.success('Quiz results saved to dashboard!')
+      setSuccess('Quiz results successfully recorded in your progress analytics!')
+    } catch (err: any) {
+      console.error('Failed to save quiz results:', err)
+      setError('Failed to save quiz results to your dashboard.')
+      toast.error('Failed to save quiz results.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -251,13 +320,32 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
+  const compareAnswers = (userAnsw: any, correctAnsw: any) => {
+    if (userAnsw === undefined || userAnsw === null || correctAnsw === undefined || correctAnsw === null) return false;
+
+    // Normal string comparison
+    if (String(userAnsw).toLowerCase().trim() === String(correctAnsw).toLowerCase().trim()) return true;
+
+    // Numeric comparison
+    if (typeof userAnsw === 'number' && typeof correctAnsw === 'number' && userAnsw === correctAnsw) return true;
+    if (typeof userAnsw === 'number' && String(userAnsw) === String(correctAnsw)) return true;
+    if (typeof correctAnsw === 'number' && String(userAnsw) === String(correctAnsw)) return true;
+
+    // Handle cases where correctAnsw might be "Choice 1" vs index 0
+    // (This is advanced but might happen if AI fails to map correctly)
+
+    return false;
+  };
+
   const checkAnswer = (questionId: string, correctAnswer: any) => {
     if (checkedAnswers[questionId]) return;
     const userAnswer = userAnswers[questionId]
     if (userAnswer === undefined || userAnswer === '') return;
 
     setCheckedAnswers(prev => ({ ...prev, [questionId]: true }))
-    const isCorrect = String(userAnswer).toLowerCase().trim() === String(correctAnswer).toLowerCase().trim()
+
+    const isCorrect = compareAnswers(userAnswer, correctAnswer);
+
     if (isCorrect) setScore(prev => prev + 1)
   }
 
@@ -755,7 +843,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     ) : (
                       <div className="mt-4 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
                         <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
-                          {String(userAnswers[q._id]).toLowerCase().trim() === String(q.answer !== undefined ? q.answer : (q as any).correctAnswer).toLowerCase().trim() ? (
+                          {compareAnswers(userAnswers[q._id], q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? (
                             <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
                           ) : (
                             <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
@@ -770,7 +858,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
                           <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic">
-                            "{q.knowledgeDeepDive || (q as any).explanation || (q as any).modelAnswer || "No deep-dive available."}"
+                            "{q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || "No deep-dive available."}"
                           </p>
                         </div>
                       </div>
@@ -780,6 +868,51 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             ))}
           </div>
+
+          {!quizSubmitted && newQuestions.length > 0 && (
+            <div className="mt-8 flex justify-center pb-12">
+              <button
+                onClick={handleSubmitQuiz}
+                disabled={submitting}
+                className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-3"
+              >
+                {submitting ? (
+                  <>
+                    <FiLoader className="animate-spin" />
+                    Recording Progress...
+                  </>
+                ) : (
+                  <>
+                    <FiSave />
+                    Finish & Sync to Dashboard
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {quizSubmitted && (
+            <div className="mt-8 mb-12 p-8 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 rounded-3xl text-center space-y-4 animate-in zoom-in-95 duration-500">
+              <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg shadow-emerald-500/30">
+                <FiCheckCircle />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white">Results Synced!</h3>
+              <p className="text-gray-600 dark:text-gray-400">Your score of {score}/{newQuestions.length} ({Math.round((score / newQuestions.length) * 100)}%) has been recorded in your performance analytics.</p>
+              <div className="flex justify-center gap-4 pt-4">
+                <Link href="/dashboard/student" className="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold text-sm">Return to Dashboard</Link>
+                <button
+                  onClick={() => {
+                    setNewQuestions([])
+                    setQuizSubmitted(false)
+                    setScore(0)
+                    setUserAnswers({})
+                    setCheckedAnswers({})
+                  }}
+                  className="px-6 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm shadow-sm"
+                >New Session</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
