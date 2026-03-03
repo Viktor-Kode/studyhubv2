@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { paymentApi } from '@/lib/api/paymentApi'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { FiCheck, FiX, FiLoader, FiZap, FiAward, FiStar, FiZapOff } from 'react-icons/fi'
+import { FiCheck, FiX, FiLoader, FiZap, FiAward, FiStar } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
 
 const PLANS = [
@@ -12,102 +12,99 @@ const PLANS = [
         type: 'free',
         name: 'Free',
         price: '₦0',
-        description: 'Perfect for getting started',
+        duration: '',
+        description: 'Perfect for trying StudyHelp',
         features: [
-            { text: '1 CBT Practice Test', included: true },
-            { text: '5 AI Explanations', included: true },
-            { text: 'English Language only', included: true },
-            { text: 'Community Support', included: true },
-            { text: 'Limited Analytics', included: true },
-            { text: 'Multi-device Syncing', included: false },
+            { text: '5 AI messages', included: true },
+            { text: '3 flashcard sets', included: true },
+            { text: 'Basic CBT practice', included: true },
+            { text: 'Limited subjects', included: true },
         ],
         buttonText: 'Current Plan',
         highlight: false,
         color: 'gray'
     },
     {
-        type: 'starter',
-        name: 'Starter',
-        price: '₦500',
-        duration: '1 week',
-        description: 'Boost your exam prep',
+        type: 'weekly',
+        name: 'Weekly',
+        price: '₦600',
+        duration: 'week',
+        description: 'Boost your exam prep for 7 days',
         features: [
-            { text: '5 CBT Practice Tests', included: true },
-            { text: '10 AI Explanations', included: true },
-            { text: '1 Subject of your choice', included: true },
-            { text: 'Ad-free Experience', included: true },
-            { text: 'Detailed Analytics', included: true },
-            { text: 'Priority Support', included: false },
+            { text: '80 AI messages', included: true },
+            { text: '40 flashcard sets', included: true },
+            { text: 'Full CBT access', included: true },
+            { text: 'Basic analytics', included: true },
+            { text: 'Study plan', included: true },
         ],
-        buttonText: 'Upgrade Now',
+        buttonText: 'Get Weekly',
         highlight: false,
         color: 'blue'
     },
     {
-        type: 'growth',
-        name: 'Growth',
-        price: '₦2,000',
-        duration: '1 month',
-        description: 'The most popular choice',
+        type: 'monthly',
+        name: 'Monthly',
+        price: '₦2,300',
+        duration: 'month',
+        description: 'Best value for serious students',
         features: [
-            { text: '20 CBT Practice Tests', included: true },
-            { text: '50 AI Explanations', included: true },
-            { text: 'All Subjects included', included: true },
-            { text: 'Advanced Analytics', included: true },
-            { text: 'Study Reminders', included: true },
-            { text: 'Priority Email Support', included: true },
+            { text: '250 AI messages', included: true },
+            { text: '120 flashcard sets', included: true },
+            { text: 'Full CBT + Exam Mode', included: true },
+            { text: 'Advanced analytics', included: true },
+            { text: 'Full study plan', included: true },
+            { text: 'Priority features', included: true },
         ],
-        buttonText: 'Buy Growth',
+        buttonText: 'Get Monthly',
         highlight: true,
         color: 'emerald'
     },
-
+    {
+        type: 'addon',
+        name: 'AI Add-On',
+        price: '₦500',
+        duration: '',
+        description: 'Extra AI messages on any plan',
+        features: [
+            { text: '+100 AI messages', included: true },
+            { text: 'Added to current plan', included: true },
+            { text: 'Never expires', included: true },
+        ],
+        buttonText: 'Buy Add-On',
+        highlight: false,
+        color: 'purple'
+    },
 ]
 
 export default function PricingPage() {
     const { user } = useAuthStore()
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+    const [status, setStatus] = useState<any | null>(null)
+
+    useEffect(() => {
+        const loadStatus = async () => {
+            try {
+                const data = await paymentApi.getStatus()
+                if (data?.success) setStatus(data)
+            } catch {
+                // ignore
+            }
+        }
+        loadStatus()
+    }, [])
 
     const handleSubscribe = async (planType: string) => {
-        if (user?.plan?.type === planType) {
-            toast.error("You are already on this plan")
-            return
-        }
+        if (planType === 'free') return
 
         try {
             setLoadingPlan(planType)
-            // Step 1: Initialize payment on backend
             const data = await paymentApi.initializePayment(planType)
 
-            // Step 2: Open Paystack popup
-            const handler = (window as any).PaystackPop.setup({
-                key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_xxxxxxxxxxxxxxxxxx",
-                email: user?.email,
-                amount: data.amount,
-                ref: data.reference,
-                currency: 'NGN',
-                metadata: { planType, userId: (user as any)?._id || (user as any)?.uid },
-                onSuccess: async (transaction: any) => {
-                    // Step 3: Verify payment on backend
-                    try {
-                        const verify = await paymentApi.verifyPayment(transaction.reference)
-                        if (verify.success) {
-                            toast.success('🎉 Plan upgraded successfully!')
-                            window.location.reload()
-                        }
-                    } catch (err) {
-                        console.error('Verification error:', err)
-                        toast.error('Payment verification failed.')
-                    }
-                },
-                onCancel: () => {
-                    console.log('Payment cancelled')
-                    toast.error('Payment cancelled')
-                }
-            })
-
-            handler.openIframe()
-
+            if (data.authorizationUrl) {
+                window.location.href = data.authorizationUrl
+            } else {
+                toast.error('Failed to start payment. Please try again.')
+            }
         } catch (err: any) {
             console.error('Payment error:', err)
             toast.error('Payment failed. Please try again.')
@@ -155,7 +152,9 @@ export default function PricingPage() {
 
                                     <div className="mb-6">
                                         <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
-                                        <span className="text-gray-500 ml-1">/ {plan.duration}</span>
+                                        {plan.duration && (
+                                            <span className="text-gray-500 ml-1">/ {plan.duration}</span>
+                                        )}
                                     </div>
 
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 min-h-[40px]">
@@ -164,21 +163,17 @@ export default function PricingPage() {
 
                                     <button
                                         onClick={() => plan.price !== '₦0' && handleSubscribe(plan.type)}
-                                        disabled={plan.price === '₦0' || (user?.plan?.type === plan.type) || loadingPlan !== null}
-                                        className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${user?.plan?.type === plan.type
-                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                                            : plan.highlight
-                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                        disabled={plan.price === '₦0' || loadingPlan !== null}
+                                        className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${plan.highlight
+                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                            : plan.price === '₦0'
+                                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
                                                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
                                             } disabled:opacity-50`}
                                     >
                                         {loadingPlan === plan.type ? (
                                             <FiLoader className="animate-spin" />
-                                        ) : user?.plan?.type === plan.type ? (
-                                            <>Current Plan</>
-                                        ) : (
-                                            plan.buttonText
-                                        )}
+                                        ) : plan.type === 'free' ? 'Current Plan' : plan.buttonText}
                                     </button>
                                 </div>
 
@@ -202,7 +197,7 @@ export default function PricingPage() {
                         ))}
                     </div>
 
-                    <div className="mt-24 p-12 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="mt-16 p-8 md:p-12 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-8">
                         <div>
                             <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Need a custom plan?</h2>
                             <p className="text-gray-600 dark:text-gray-400">For schools and tutorial centers with 50+ students.</p>
@@ -212,6 +207,51 @@ export default function PricingPage() {
                         </button>
                     </div>
                 </div>
+
+                {/* Usage display */}
+                {status && (
+                    <div className="max-w-4xl mx-auto mt-12">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 md:p-8">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Current Usage</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium">🤖 AI Messages</span>
+                                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full transition-all"
+                                            style={{
+                                                width: `${(status.usage.ai.used / Math.max(status.usage.ai.limit, 1)) * 100}%`,
+                                                backgroundColor: status.usage.ai.used >= status.usage.ai.limit ? '#EF4444' : '#4F46E5'
+                                            }}
+                                        />
+                                    </div>
+                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                        {status.usage.ai.used}/{status.usage.ai.limit}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium">📇 Flashcard Sets</span>
+                                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-purple-500 transition-all"
+                                            style={{
+                                                width: `${(status.usage.flashcards.used / Math.max(status.usage.flashcards.limit, 1)) * 100}%`
+                                            }}
+                                        />
+                                    </div>
+                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                        {status.usage.flashcards.used}/{status.usage.flashcards.limit}
+                                    </span>
+                                </div>
+                            </div>
+                            {status.subscription.daysLeft > 0 && (
+                                <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                                    ⏰ Plan expires in {status.subscription.daysLeft} day(s)
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </ProtectedRoute>
     )

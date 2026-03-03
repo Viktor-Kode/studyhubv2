@@ -28,14 +28,14 @@ function VerifyContent() {
                 if (data.success) {
                     await refreshUser()
                     setStatus('success')
-                    setMessage('Your plan has been upgraded successfully!')
+                    setMessage(data.message || 'Your plan has been upgraded successfully!')
                 } else {
                     setStatus('failed')
                     setMessage(data.error || 'Payment verification failed.')
                 }
             } catch (err: any) {
                 setStatus('failed')
-                setMessage(err.response?.data?.error || 'Verification error occurred.')
+                setMessage(err.response?.data?.error || err.message || 'Verification error occurred.')
             }
         }
 
