@@ -10,13 +10,15 @@ import Link from 'next/link'
 function VerifyContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const reference = searchParams.get('reference')
+    const transactionId = searchParams.get('transaction_id')
+    const txRef = searchParams.get('tx_ref')
+    const statusParam = searchParams.get('status')
     const { refreshUser } = useAuthStore()
     const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
     const [message, setMessage] = useState('Verifying your payment...')
 
     useEffect(() => {
-        if (!reference) {
+        if (!transactionId || !txRef) {
             setStatus('failed')
             setMessage('No payment reference found.')
             return
@@ -24,14 +26,22 @@ function VerifyContent() {
 
         const verify = async () => {
             try {
-                const data = await paymentApi.verifyPayment(reference)
-                if (data.success) {
-                    await refreshUser()
-                    setStatus('success')
-                    setMessage(data.message || 'Your plan has been upgraded successfully!')
+                if (statusParam === 'successful') {
+                    const data = await paymentApi.verifyPayment(transactionId, txRef)
+                    if (data.success) {
+                        await refreshUser()
+                        setStatus('success')
+                        setMessage(data.message || 'Your plan has been upgraded successfully!')
+                    } else {
+                        setStatus('failed')
+                        setMessage(data.error || 'Payment verification failed.')
+                    }
+                } else if (statusParam === 'cancelled') {
+                    setStatus('failed')
+                    setMessage('Payment was cancelled.')
                 } else {
                     setStatus('failed')
-                    setMessage(data.error || 'Payment verification failed.')
+                    setMessage('Payment was not successful.')
                 }
             } catch (err: any) {
                 setStatus('failed')
@@ -40,7 +50,7 @@ function VerifyContent() {
         }
 
         verify()
-    }, [reference])
+    }, [transactionId, txRef, statusParam])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
