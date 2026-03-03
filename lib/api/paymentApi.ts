@@ -2,15 +2,16 @@ import { apiClient } from './client';
 
 export const paymentApi = {
     initializePayment: async (plan: string) => {
-        const response = await apiClient.post('/payment/initialize', { plan });
+        // Backend currently mounts payment routes under /api/payments/*
+        const response = await apiClient.post('/payments/initialize', { plan });
         return response.data;
     },
     verifyPayment: async (reference: string) => {
-        const response = await apiClient.post('/payment/verify', { reference });
+        const response = await apiClient.post('/payments/verify', { reference });
         return response.data;
     },
     getStatus: async () => {
-        const response = await apiClient.get('/payment/status');
+        const response = await apiClient.get('/payments/status');
         return response.data;
     }
 };
