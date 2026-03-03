@@ -579,6 +579,7 @@ function SubscriptionUsageCard() {
 
       {status ? (
         <div className="space-y-5">
+          {/* AI usage */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
@@ -598,6 +599,7 @@ function SubscriptionUsageCard() {
             </div>
           </div>
 
+          {/* Flashcard usage */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
@@ -614,11 +616,36 @@ function SubscriptionUsageCard() {
             </div>
           </div>
 
+          {/* CBT access info */}
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
+                CBT Practice:{' '}
+                {status.subscription.status === 'active'
+                  ? 'Unlimited practice tests included in your plan.'
+                  : '1 free test per day. Upgrade to unlock full CBT access.'}
+              </span>
+            </div>
+          </div>
+
           {status.subscription.expiresAt && (
             <p className="text-[10px] text-gray-400 font-medium italic">
               Expires: {new Date(status.subscription.expiresAt).toLocaleDateString()}
             </p>
           )}
+
+          {/* Extra upgrade call-to-action */}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              Need more AI, flashcards or CBT? Upgrade your plan.
+            </p>
+            <Link
+              href="/dashboard/pricing"
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg transition-colors"
+            >
+              Upgrade
+            </Link>
+          </div>
         </div>
       ) : (
         <p className="text-xs text-gray-500 dark:text-gray-400">

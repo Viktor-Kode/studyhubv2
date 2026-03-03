@@ -112,19 +112,26 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
       </nav>
 
       {/* Download App Button */}
-      {isInstallable && !isInstalled && (
+      {!isInstalled && (
         <div className="mt-8 px-4">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
             <div className="relative z-10 flex flex-col items-center text-center">
               <FaLaptop className="text-3xl mb-2 opacity-90" />
-              <h3 className="font-bold text-sm mb-1">Get the Desktop App</h3>
-              <p className="text-xs text-blue-100 mb-3">Install StudyHelp for a better faster experience.</p>
+              <h3 className="font-bold text-sm mb-1">Get the app</h3>
+              <p className="text-xs text-blue-100 mb-3">
+                {isInstallable
+                  ? 'Install StudyHelp to access your dashboard faster from your home screen.'
+                  : 'On this device, open your browser menu and choose "Add to Home Screen" to install StudyHelp.'}
+              </p>
               <button
                 onClick={installApp}
-                className="w-full py-2 bg-white text-blue-600 text-xs font-bold rounded-lg shadow hover:bg-blue-50 transition-colors"
+                disabled={!isInstallable}
+                className={`w-full py-2 bg-white text-blue-600 text-xs font-bold rounded-lg shadow transition-colors ${
+                  !isInstallable ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-50'
+                }`}
                 aria-label="Install App"
               >
-                Install Now
+                {isInstallable ? 'Install Now' : 'Add via Browser Menu'}
               </button>
             </div>
             <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
