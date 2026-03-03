@@ -1246,7 +1246,7 @@ export default function CBTPage() {
                             </div>
                           </div>
                         </div>
-                      ) : !isCorrect && (
+                      ) : (
                         <button
                           onClick={() => handleGetAiExplanation(q)}
                           disabled={isExplaining === q.id}
@@ -1255,7 +1255,7 @@ export default function CBTPage() {
                           {isExplaining === q.id ? (
                             <><FiLoader className="animate-spin" /> Generating Explanation...</>
                           ) : (
-                            <><HiOutlineLightBulb /> Why is this correct? Get AI Explanation</>
+                            <><HiOutlineLightBulb /> {isAttempted ? 'Why is this correct?' : 'Show solution & explanation'} Get AI Explanation</>
                           )}
                         </button>
                       )}

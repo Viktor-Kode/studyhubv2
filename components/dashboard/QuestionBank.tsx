@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
+import { HiOutlineLightBulb } from 'react-icons/hi'
 import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTutor } from '@/lib/api/quizApi'
 import { cbtApi } from '@/lib/api/cbt'
 import { extractTextFromFile } from '@/lib/utils/fileExtractor'
@@ -54,6 +55,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [isChatting, setIsChatting] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // Explanation State
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
+  const [isExplaining, setIsExplaining] = useState<string | null>(null)
+
   // Handle Query Params
   useEffect(() => {
     const tabParam = searchParams.get('tab')
@@ -96,10 +101,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         const userAnswer = userAnswers[q._id]
         const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
 
-        const isCorrect = (String(userAnswer).toLowerCase().trim() === String(correctAnswer).toLowerCase().trim()) ||
-          (typeof userAnswer === 'number' && typeof correctAnswer === 'number' && userAnswer === correctAnswer) ||
-          (typeof userAnswer === 'number' && String(userAnswer) === String(correctAnswer)) ||
-          (typeof correctAnswer === 'number' && String(userAnswer) === String(correctAnswer));
+        const isCorrect = compareAnswers(userAnswer, correctAnswer);
 
         if (isCorrect) finalScore++
 
@@ -112,7 +114,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           correctAnswer: typeof correctAnswer === 'number'
             ? q.options[Number(correctAnswer)]
             : correctAnswer,
-          explanation: q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || "No deep-dive available.",
+          explanation: q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation ||
+            (q as any).modelAnswer || (q as any).solution || (q as any).explanationText ||
+            (q as any).reason || (q as any).solution || (q as any).discussion ||
+            "No deep-dive available.",
           isCorrect: isCorrect
         }
       })
@@ -347,6 +352,26 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     const isCorrect = compareAnswers(userAnswer, correctAnswer);
 
     if (isCorrect) setScore(prev => prev + 1)
+  }
+
+  const handleGetAiExplanation = async (q: Question) => {
+    if (aiExplanations[q._id] || isExplaining === q._id) return
+
+    setIsExplaining(q._id)
+    try {
+      const qText = q.content || (q as any).question || '';
+      const correctAnsText = typeof (q.answer !== undefined ? q.answer : (q as any).correctAnswer) === 'number'
+        ? q.options[Number(q.answer !== undefined ? q.answer : (q as any).correctAnswer)]
+        : String(q.answer !== undefined ? q.answer : (q as any).correctAnswer);
+
+      const explanation = await cbtApi.getExplanation(qText, correctAnsText, q.options || [])
+      setAiExplanations(prev => ({ ...prev, [q._id]: explanation }))
+    } catch (err) {
+      console.error('Failed to get AI explanation:', err)
+      toast.error('Failed to generate expansion.')
+    } finally {
+      setIsExplaining(null)
+    }
   }
 
   const getFileIcon = (fileName: string) => {
@@ -857,9 +882,23 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         </div>
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
-                          <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic">
-                            "{q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || "No deep-dive available."}"
-                          </p>
+                          {(q.knowledgeDeepDive && q.knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[q._id] ? (
+                            <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic">
+                              "{aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || "No deep-dive available."}"
+                            </p>
+                          ) : (
+                            <button
+                              onClick={() => handleGetAiExplanation(q)}
+                              disabled={isExplaining === q._id}
+                              className="mt-2 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition py-2 px-3 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-100 dark:border-blue-800"
+                            >
+                              {isExplaining === q._id ? (
+                                <><FiLoader className="animate-spin" /> Generating Explanation...</>
+                              ) : (
+                                <><HiOutlineLightBulb className="text-sm" /> Generate AI Deep-Dive Explanation</>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

@@ -183,10 +183,17 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
   const rawAnswer = q.answer || q.correct_answer || q.correctAnswer || 'a'
 
   if (typeof rawAnswer === 'string') {
-    const letterIndex = optionKeys.indexOf(rawAnswer.toLowerCase())
-    correctAnswer = letterIndex >= 0 ? letterIndex : 0
+    const trimmed = rawAnswer.trim().toLowerCase();
+    const letterIndex = optionKeys.indexOf(trimmed);
+    if (letterIndex >= 0) {
+      correctAnswer = letterIndex;
+    } else if (!isNaN(parseInt(trimmed))) {
+      correctAnswer = parseInt(trimmed);
+    } else {
+      correctAnswer = 0;
+    }
   } else if (typeof rawAnswer === 'number') {
-    correctAnswer = rawAnswer
+    correctAnswer = rawAnswer;
   }
 
   // Clean up question text
@@ -203,7 +210,7 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     question: questionText,
     options,
     correctAnswer,
-    explanation: q.solution || q.explanation || q.note || '',
+    explanation: q.solution || q.explanation || q.note || q.discussion || q.answer_explanation || q.knowledge_deep_dive || q.knowledgeDeepDive || q.modelAnswer || q.reason || '',
     subject: q.subject || '',
     year: String(q.year || ''),
     examType: examType,
