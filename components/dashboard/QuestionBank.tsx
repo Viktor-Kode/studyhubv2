@@ -59,6 +59,69 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
   const [isExplaining, setIsExplaining] = useState<string | null>(null)
 
+  // Fuzzy Answer Matching Helper
+  const getLevenshteinDistance = (a: string, b: string) => {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  };
+
+  const compareAnswers = (userAnsw: any, correctAnsw: any) => {
+    if (userAnsw === undefined || userAnsw === null || correctAnsw === undefined || correctAnsw === null) return false;
+
+    // String normalization helper
+    const normalize = (s: any) =>
+      String(s)
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove punctuation
+        .replace(/\b(a|an|the|is|are|was|were|some|many)\b/g, "") // Remove common filler words
+        .replace(/\s+/g, " ") // Normalize whitespace
+        .trim();
+
+    const u = normalize(userAnsw);
+    const c = normalize(correctAnsw);
+
+    // 1. Exact match after normalization
+    if (u === c) return true;
+
+    // 2. Numeric comparison (direct or string-based)
+    if (typeof userAnsw === 'number' && typeof correctAnsw === 'number' && userAnsw === correctAnsw) return true;
+    if (u && c && !isNaN(Number(u)) && !isNaN(Number(c)) && Number(u) === Number(c)) return true;
+
+    // 3. Fuzzy matching for longer text answers (Blank Questions)
+    // Only apply for strings with at least 3 characters
+    if (u.length >= 3 && c.length >= 3) {
+      const distance = getLevenshteinDistance(u, c);
+
+      // Define threshold: approx 20-25% of the correct answer's length
+      // For short words (3-5), only 1 mistake. For longer words, maybe 2 or 3.
+      let threshold = 1;
+      if (c.length > 5) threshold = 2;
+      if (c.length > 10) threshold = 3;
+
+      if (distance <= threshold) return true;
+
+      // Handle cases where the user answer is contained within or contains the correct answer
+      if (u.length > 4 && (c.includes(u) || u.includes(c))) return true;
+    }
+
+    return false;
+  };
+
   // Handle Query Params
   useEffect(() => {
     const tabParam = searchParams.get('tab')
@@ -325,22 +388,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
-  const compareAnswers = (userAnsw: any, correctAnsw: any) => {
-    if (userAnsw === undefined || userAnsw === null || correctAnsw === undefined || correctAnsw === null) return false;
-
-    // Normal string comparison
-    if (String(userAnsw).toLowerCase().trim() === String(correctAnsw).toLowerCase().trim()) return true;
-
-    // Numeric comparison
-    if (typeof userAnsw === 'number' && typeof correctAnsw === 'number' && userAnsw === correctAnsw) return true;
-    if (typeof userAnsw === 'number' && String(userAnsw) === String(correctAnsw)) return true;
-    if (typeof correctAnsw === 'number' && String(userAnsw) === String(correctAnsw)) return true;
-
-    // Handle cases where correctAnsw might be "Choice 1" vs index 0
-    // (This is advanced but might happen if AI fails to map correctly)
-
-    return false;
-  };
+  // compareAnswers is now defined at the top scope with fuzzy matching logic
 
   const checkAnswer = (questionId: string, correctAnswer: any) => {
     if (checkedAnswers[questionId]) return;
@@ -368,7 +416,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setAiExplanations(prev => ({ ...prev, [q._id]: explanation }))
     } catch (err) {
       console.error('Failed to get AI explanation:', err)
-      toast.error('Failed to generate expansion.')
+      toast.error('Failed to generate explanation.')
     } finally {
       setIsExplaining(null)
     }

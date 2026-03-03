@@ -352,7 +352,7 @@ export const cbtApi = {
       })
 
       console.log('[CBT] Fetching from proxy:', params.toString())
-      const res = await fetchWithAuth(`/api/cbt/questions?${params}`)
+      const res = await fetchWithAuth(`/api/backend/cbt/questions?${params}`)
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
@@ -441,7 +441,7 @@ export const cbtApi = {
    */
   saveResult: async (resultData: any): Promise<any> => {
     try {
-      const res = await fetchWithAuth('/api/cbt/results', {
+      const res = await fetchWithAuth('/api/backend/cbt/results', {
         method: 'POST',
         body: JSON.stringify(resultData)
       });
@@ -458,7 +458,7 @@ export const cbtApi = {
   getResultsSummary: async (studentId?: string): Promise<any> => {
     try {
       const url = studentId ? `/api/cbt/results/summary?studentId=${studentId}` : '/api/cbt/results/summary';
-      const res = await fetchWithAuth(url);
+      const res = await fetchWithAuth(url.replace('/api/cbt', '/api/backend/cbt'));
       return await safeJson(res);
     } catch (err: any) {
       console.error('[CBT API] Failed to fetch summary:', err);
@@ -471,7 +471,7 @@ export const cbtApi = {
    */
   getAllResults: async (): Promise<any> => {
     try {
-      const res = await fetchWithAuth('/api/cbt/results');
+      const res = await fetchWithAuth('/api/backend/cbt/results');
       const data = await safeJson(res);
       return data.data || [];
     } catch (err: any) {
@@ -485,15 +485,22 @@ export const cbtApi = {
    */
   getExplanation: async (question: string, correctAnswer: string, options: string[]): Promise<string> => {
     try {
-      const res = await fetchWithAuth('/api/cbt/explain', {
+      const res = await fetchWithAuth('/api/backend/cbt/explain', {
         method: 'POST',
         body: JSON.stringify({ question, correctAnswer, options })
       });
-      const data = await safeJson(res);
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 403) return data.message || 'AI Limit Reached. Please upgrade your plan for more explanations.';
+        throw new Error(data.message || 'Failed to get explanation');
+      }
+
       return data.explanation;
     } catch (err: any) {
       console.error('[CBT API] Failed to get explanation:', err);
-      return 'Could not generate explanation at this time.';
+      return 'Could not generate explanation at this time. Please check your internet connection or try again later.';
     }
   },
 
