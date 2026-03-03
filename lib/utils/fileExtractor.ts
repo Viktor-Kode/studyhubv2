@@ -56,7 +56,8 @@ export async function extractTextFromFile(file: File): Promise<FileExtractionRes
                     });
 
                     if (!response.ok) {
-                        throw new Error('Failed to extract text via API');
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || errorData.message || 'Failed to extract text via API');
                     }
 
                     const data = await response.json();
@@ -74,11 +75,11 @@ export async function extractTextFromFile(file: File): Promise<FileExtractionRes
                         text: data.text.trim(),
                         fileType: extension.toUpperCase()
                     };
-                } catch (apiError) {
+                } catch (apiError: any) {
                     console.error('PPT API Error:', apiError);
                     return {
                         success: false,
-                        error: 'Failed to process presentation file.',
+                        error: apiError.message || 'Failed to process presentation file.',
                         fileType: extension.toUpperCase()
                     };
                 }

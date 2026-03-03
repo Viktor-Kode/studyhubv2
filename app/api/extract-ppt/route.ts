@@ -7,13 +7,12 @@ export async function POST(req: NextRequest) {
     try {
         let officeParser: any
         try {
-            // officeparser is not installed in package.json, so we skip it to prevent build crashes
-            // const mod = await import('officeparser')
-            // officeParser = mod?.default ?? mod
-            throw new Error('officeparser not installed')
+            const mod = await import('officeparser')
+            officeParser = mod?.default ?? mod
         } catch (e: any) {
+            console.error('Failed to import officeparser:', e)
             return NextResponse.json(
-                { error: 'PPT extraction module is unavailable on this deployment' },
+                { error: 'PPT extraction module is not available' },
                 { status: 501 }
             )
         }
@@ -38,19 +37,16 @@ export async function POST(req: NextRequest) {
         await writeFile(tempFilePath, buffer)
 
         try {
-            // Use parseOffice with a Promise wrapper for compatibility
-            const text = await new Promise<string>((resolve, reject) => {
-                // @ts-ignore - officeparser types might be mismatched with the installed version
-                officeParser.parseOffice(tempFilePath, (data: any, err: any) => {
-                    if (err) return reject(err)
-                    resolve(typeof data === 'string' ? data : JSON.stringify(data))
-                })
-            })
+            // Modern officeparser (v6+) uses parseOffice as an async function returning an AST object
+            const ast = await officeParser.parseOffice(tempFilePath)
+
+            // Extract text from the AST
+            const text = typeof ast.toText === 'function' ? ast.toText() : JSON.stringify(ast)
 
             // Cleanup
             await unlink(tempFilePath).catch(() => { })
 
-            return NextResponse.json({ text: typeof text === 'string' ? text : '' })
+            return NextResponse.json({ text: text || '' })
         } catch (parseError: any) {
             console.error('OfficeParser Error:', parseError)
             await unlink(tempFilePath).catch(() => { }) // Cleanup on error
