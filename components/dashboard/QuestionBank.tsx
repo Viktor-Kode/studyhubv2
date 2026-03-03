@@ -807,8 +807,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         q.options.map((opt, oIdx) => (
                           <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
                             ${userAnswers[q._id] === oIdx ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[q._id] && (q.answer === oIdx || (q as any).correctAnswer === oIdx) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[q._id] && userAnswers[q._id] === oIdx && (q.answer !== oIdx && (q as any).correctAnswer !== oIdx) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
+                            ${checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
+                            ${checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
                           `}>
                             <input type="radio"
                               name={`q-${q._id}`}
@@ -820,8 +820,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                               ${userAnswers[q._id] === oIdx ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
                             `}>{String.fromCharCode(65 + oIdx)}</span>
                             <span className="text-gray-600 dark:text-gray-300 font-medium">{opt}</span>
-                            {checkedAnswers[q._id] && (q.answer === oIdx || (q as any).correctAnswer === oIdx) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && (q.answer !== oIdx && (q as any).correctAnswer !== oIdx) && <FiXCircle className="ml-auto text-red-400" />}
+                            {checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
+                            {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
                         ))
                       ) : (
