@@ -712,15 +712,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <div className="flex items-start gap-4">
                   <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-sm">{idx + 1}</span>
                   <div className="flex-1 space-y-4">
-                    <p className="text-lg text-gray-800 dark:text-gray-100 font-bold leading-snug">{q.content}</p>
+                    <p className="text-lg text-gray-800 dark:text-gray-100 font-bold leading-snug">{q.content || (q as any).question}</p>
 
                     <div className="grid gap-2">
                       {q.options && q.options.length > 0 ? (
                         q.options.map((opt, oIdx) => (
                           <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
                             ${userAnswers[q._id] === oIdx ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[q._id] && q.answer === oIdx ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[q._id] && userAnswers[q._id] === oIdx && q.answer !== oIdx ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
+                            ${checkedAnswers[q._id] && (q.answer === oIdx || (q as any).correctAnswer === oIdx) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
+                            ${checkedAnswers[q._id] && userAnswers[q._id] === oIdx && (q.answer !== oIdx && (q as any).correctAnswer !== oIdx) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
                           `}>
                             <input type="radio"
                               name={`q-${q._id}`}
@@ -732,8 +732,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                               ${userAnswers[q._id] === oIdx ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
                             `}>{String.fromCharCode(65 + oIdx)}</span>
                             <span className="text-gray-600 dark:text-gray-300 font-medium">{opt}</span>
-                            {checkedAnswers[q._id] && q.answer === oIdx && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && q.answer !== oIdx && <FiXCircle className="ml-auto text-red-400" />}
+                            {checkedAnswers[q._id] && (q.answer === oIdx || (q as any).correctAnswer === oIdx) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
+                            {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && (q.answer !== oIdx && (q as any).correctAnswer !== oIdx) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
                         ))
                       ) : (
@@ -749,18 +749,20 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     </div>
 
                     {!checkedAnswers[q._id] ? (
-                      <button onClick={() => checkAnswer(q._id, q.answer)} disabled={userAnswers[q._id] === undefined || userAnswers[q._id] === ''}
+                      <button onClick={() => checkAnswer(q._id, q.answer !== undefined ? q.answer : (q as any).correctAnswer)} disabled={userAnswers[q._id] === undefined || userAnswers[q._id] === ''}
                         className="w-full sm:w-auto px-8 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all hover:bg-blue-600 active:scale-95"
                       >Verify Concept</button>
                     ) : (
                       <div className="mt-4 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
                         <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
-                          {String(userAnswers[q._id]).toLowerCase().trim() === String(q.answer).toLowerCase().trim() ? (
+                          {String(userAnswers[q._id]).toLowerCase().trim() === String(q.answer !== undefined ? q.answer : (q as any).correctAnswer).toLowerCase().trim() ? (
                             <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
                           ) : (
                             <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
                               <span className="text-blue-600 dark:text-blue-200 ml-1">
-                                {typeof q.answer === 'number' ? q.options[q.answer] : q.answer}
+                                {typeof (q.answer !== undefined ? q.answer : (q as any).correctAnswer) === 'number'
+                                  ? q.options?.[q.answer !== undefined ? Number(q.answer) : Number((q as any).correctAnswer)]
+                                  : (q.answer !== undefined ? q.answer : (q as any).correctAnswer)}
                               </span>
                             </span>
                           )}
@@ -768,7 +770,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
                           <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic">
-                            "{q.knowledgeDeepDive}"
+                            "{q.knowledgeDeepDive || (q as any).explanation || (q as any).modelAnswer || "No deep-dive available."}"
                           </p>
                         </div>
                       </div>

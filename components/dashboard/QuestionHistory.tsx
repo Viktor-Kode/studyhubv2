@@ -151,7 +151,7 @@ export default function QuestionHistory() {
                                         {session.questions.map((q, idx) => (
                                             <div key={q._id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
                                                 <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex gap-2">
-                                                    <span className="text-emerald-500">Q{idx + 1}.</span> {q.content}
+                                                    <span className="text-emerald-500">Q{idx + 1}.</span> {q.content || (q as any).question}
                                                 </p>
 
                                                 {q.options && q.options.length > 0 && (
@@ -173,12 +173,12 @@ export default function QuestionHistory() {
                                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Correct Answer</span>
                                                     </div>
                                                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                                        {q.options && q.options.length > 0 ? q.options[Number(q.answer)] : q.answer}
+                                                        {q.options && q.options.length > 0 ? q.options[Number(q.answer || (q as any).correctAnswer)] : (q.answer || (q as any).correctAnswer)}
                                                     </p>
                                                     <div className="mt-2 p-4 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-xl">
                                                         <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1"><FiBook /> Knowledge Deep-Dive</p>
                                                         <p className="text-sm text-blue-900 dark:text-blue-100 italic leading-relaxed">
-                                                            {q.knowledgeDeepDive}
+                                                            {q.knowledgeDeepDive || (q as any).explanation || (q as any).modelAnswer || "No deep-dive available."}
                                                         </p>
                                                     </div>
                                                 </div>
