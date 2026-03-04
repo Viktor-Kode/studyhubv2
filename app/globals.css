@@ -1607,3 +1607,200 @@ html {
   .generator-form { padding: 8px 10px; }
   .generator-page .page-header h2 { font-size: 15px; }
 }
+
+/* ─── POST-UTME PAGE ─────────────────────────────── */
+.postutme-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  overflow-x: hidden;
+}
+.postutme-header { margin-bottom: 20px; }
+.postutme-header h2 { font-size: 22px; font-weight: 700; }
+.postutme-header p { color: #6B7280; font-size: 14px; }
+
+.uni-search {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+}
+
+.uni-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.uni-filters::-webkit-scrollbar { display: none; }
+
+.uni-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.uni-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: white;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.uni-card:hover {
+  border-color: #4F46E5;
+  box-shadow: 0 4px 12px rgba(79,70,229,0.1);
+  transform: translateY(-1px);
+}
+
+.uni-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #EEF2FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.uni-logo img { width: 100%; height: 100%; object-fit: contain; }
+.uni-initials { font-size: 13px; font-weight: 700; color: #4F46E5; }
+
+.uni-info { flex: 1; min-width: 0; }
+.uni-info h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.uni-info p {
+  font-size: 12px;
+  color: #6B7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.uni-meta { display: flex; gap: 8px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+.uni-type {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.uni-type.federal { background: #DBEAFE; color: #1D4ED8; }
+.uni-type.state { background: #D1FAE5; color: #065F46; }
+.uni-type.private { background: #FEE2E2; color: #991B1B; }
+.uni-location { font-size: 11px; color: #9CA3AF; }
+.uni-subjects { font-size: 11px; color: #4F46E5; font-weight: 600; }
+.uni-arrow { color: #9CA3AF; font-size: 18px; flex-shrink: 0; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.uni-modal {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 540px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.uni-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.uni-modal-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: #EEF2FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #4F46E5;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.uni-modal-header h3 { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+.uni-modal-header p { font-size: 13px; color: #6B7280; }
+.close-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #6B7280; padding: 4px; }
+.loading-state { text-align: center; padding: 24px; color: #6B7280; }
+
+.uni-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 14px;
+}
+.uni-stat { flex: 1; text-align: center; }
+.uni-stat .stat-num { display: block; font-size: 22px; font-weight: 700; color: #4F46E5; }
+.uni-stat .stat-label { font-size: 11px; color: #6B7280; }
+
+.exam-config h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.config-group { margin-bottom: 14px; }
+.config-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.config-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+}
+.exam-config .count-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F9FAFB;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: fit-content;
+}
+.exam-config .count-btn {
+  background: #4F46E5;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.exam-config .count-display { font-size: 18px; font-weight: 700; min-width: 24px; text-align: center; }
+.start-exam-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4F46E5;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+@media (max-width: 640px) {
+  .uni-grid { grid-template-columns: 1fr; }
+  .uni-card { padding: 12px; }
+  .uni-modal { padding: 16px; }
+  .uni-stats-row { gap: 8px; padding: 10px; }
+  .uni-stat .stat-num { font-size: 18px; }
+}
