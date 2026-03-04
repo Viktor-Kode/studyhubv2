@@ -436,12 +436,6 @@ export default function CBTPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const getTimerColor = () => {
-    if (timeRemaining > 300) return 'text-green-600 dark:text-green-400'
-    if (timeRemaining > 60) return 'text-yellow-600 dark:text-yellow-400'
-    return 'text-red-600 dark:text-red-400 animate-pulse'
-  }
-
   const resetAll = () => {
     setSelectedExam(null)
     setSelectedYear('')
@@ -791,298 +785,228 @@ export default function CBTPage() {
 
         {/* ====== TEST VIEW ====== */}
         {viewMode === 'test' && currentQuestion && (
-          <div className="cbt-container">
-            <div className="flex flex-col lg:flex-row gap-6">
-
-              {/* Candidate Profile Sidebar (Simulated) */}
-              <div className="hidden lg:block w-64 flex-shrink-0 space-y-4">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-                  <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-b border-gray-100 dark:border-gray-700">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <BiUserCircle className="text-6xl text-gray-300 dark:text-gray-600" />
-                    )}
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Candidate Name</p>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.name || 'GUEST CANDIDATE'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Registration ID</p>
-                      <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 tracking-tighter">
-                        STH/{new Date().getFullYear()}/{Math.floor(100000 + Math.random() * 900000)}
-                      </p>
-                    </div>
-                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Active Exam</p>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{currentExamConfig?.label}</p>
-                      <p className="text-xs text-gray-500">{selectedSubject}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Mini Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                    <p className="text-xl font-bold text-blue-600">{answeredCount}</p>
-                    <p className="text-[9px] font-black uppercase text-gray-400">Answered</p>
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                    <p className="text-xl font-bold text-gray-400">{questions.length - answeredCount}</p>
-                    <p className="text-[9px] font-black uppercase text-gray-400">Left</p>
-                  </div>
-                </div>
+          <div className="cbt-wrapper">
+            {/* Header */}
+            <div className="cbt-header">
+              <div className="cbt-subject">
+                {currentExamConfig?.label} — {selectedSubject} {selectedYear}
               </div>
-
-              <div className="flex-1 space-y-4 question-card">
-
-                {/* Top Bar */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-md">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">
-                        {currentExamConfig?.label} — {selectedSubject} {selectedYear}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {answeredCount} of {questions.length} answered
-                        {flaggedQuestions.size > 0 && ` • ${flaggedQuestions.size} flagged`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className={`flex items-center gap-1.5 font-mono font-bold text-lg ${getTimerColor()}`}>
-                        <FiClock className="text-base" />
-                        {formatTime(timeRemaining)}
-                      </div>
-                      <button
-                        onClick={() => setShowCalculator(true)}
-                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                        title="Open Calculator"
-                      >
-                        <MdCalculate className="text-lg" />
-                      </button>
-                      <button
-                        onClick={() => setShowQuestionPanel(!showQuestionPanel)}
-                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                      >
-                        <FiGrid className="text-sm" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Exit test? Your progress will be lost.')) resetAll()
-                        }}
-                        className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold"
-                      >
-                        End Exam
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all"
-                      style={{ width: `${(answeredCount / questions.length) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>Q{currentIndex + 1}/{questions.length}</span>
-                    <span>{Math.round((answeredCount / questions.length) * 100)}% answered</span>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className={`cbt-timer ${timeRemaining <= 60 ? 'warning' : ''}`}>
+                  <FiClock className="inline-block mr-1" />
+                  {formatTime(timeRemaining)}
                 </div>
+                <button
+                  onClick={() => setShowCalculator(true)}
+                  className="px-3 py-1 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20 transition"
+                  title="Open Calculator"
+                >
+                  <MdCalculate className="inline-block mr-1" /> Calc
+                </button>
+                <button
+                  onClick={() => setShowQuestionPanel(!showQuestionPanel)}
+                  className="px-3 py-1 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20 transition"
+                >
+                  <FiGrid className="inline-block mr-1" /> Questions
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Exit test? Your progress will be lost.')) resetAll()
+                  }}
+                  className="px-3 py-1 rounded-lg bg-red-500/20 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition"
+                >
+                  End
+                </button>
+              </div>
+            </div>
+
+            {/* Progress summary */}
+            <div className="mt-2 mb-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>
+                Question {currentIndex + 1} of {questions.length}
+              </span>
+              <span>
+                Answered {answeredCount}/{questions.length}
+                {flaggedQuestions.size > 0 && ` • ${flaggedQuestions.size} flagged`}
+              </span>
+            </div>
 
                 {/* Question Grid Panel */}
                 {showQuestionPanel && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">
-                        Question Navigator
-                      </h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 mb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                    Question Navigator
+                  </h3>
+                  <button
+                    onClick={() => setShowQuestionPanel(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+                <div className="question-navigator">
+                  {questions.map((_, idx) => {
+                    const isAnswered = selectedAnswers[questions[idx].id] !== undefined
+                    const isFlagged = flaggedQuestions.has(idx)
+                    const isCurrent = idx === currentIndex
+
+                    let stateClass = ''
+                    if (isCurrent) stateClass = 'current'
+                    else if (isFlagged) stateClass = 'skipped'
+                    else if (isAnswered) stateClass = 'answered'
+
+                    return (
                       <button
-                        onClick={() => setShowQuestionPanel(false)}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        key={idx}
+                        onClick={() => handleJumpToQuestion(idx)}
+                        className={`nav-btn ${stateClass}`}
                       >
-                        <FiX />
+                        {idx + 1}
                       </button>
-                    </div>
-                    <div className="question-navigator">
-                      {questions.map((_, idx) => {
-                        const isAnswered = selectedAnswers[questions[idx].id] !== undefined
-                        const isFlagged = flaggedQuestions.has(idx)
-                        const isCurrent = idx === currentIndex
+                    )
+                  })}
+                </div>
+                <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-blue-500 rounded" />
+                    Current
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-400 rounded" />
+                    Answered
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-yellow-300 rounded" />
+                    Flagged
+                  </span>
+                </div>
+              </div>
+            )}
 
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => handleJumpToQuestion(idx)}
-                            className={`aspect-square rounded-lg text-xs font-bold transition flex items-center justify-center ${isCurrent
-                              ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                              : isFlagged
-                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-400'
-                                : isAnswered
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                              }`}
-                          >
-                            {idx + 1}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-green-200 dark:bg-green-900 rounded" />
-                        Answered
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-900 rounded" />
-                        Flagged
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 rounded" />
-                        Unanswered
-                      </span>
-                    </div>
-                  </div>
-                )}
+            {/* Question Card */}
+            <div className="question-card">
+              <div className="flex items-start justify-between mb-2">
+                <p className="question-number">Question {currentIndex + 1}</p>
+                <button
+                  onClick={handleFlagQuestion}
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg transition ${flaggedQuestions.has(currentIndex)
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                    : 'bg-gray-100 dark:bg-gray-200 text-gray-700 hover:bg-yellow-50'
+                    }`}
+                >
+                  <FiTarget className="text-xs" />
+                  {flaggedQuestions.has(currentIndex) ? 'Flagged' : 'Flag'}
+                </button>
+              </div>
 
-                {/* Question Card */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-start justify-between mb-4">
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Question {currentIndex + 1}
-                    </span>
-                    <button
-                      onClick={handleFlagQuestion}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg transition ${flaggedQuestions.has(currentIndex)
-                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                        }`}
-                    >
-                      <FiTarget className="text-xs" />
-                      {flaggedQuestions.has(currentIndex) ? 'Flagged' : 'Flag'}
-                    </button>
-                  </div>
-
-                  {/* ── INSTRUCTION BANNER ─────────────────────────── */}
-                  {currentQuestion.instruction && (
-                    <div className="flex items-start gap-2 mb-4 p-3 
+              {/* ── INSTRUCTION BANNER ─────────────────────────── */}
+              {currentQuestion.instruction && (
+                <div className="flex items-start gap-2 mb-4 p-3 
                               bg-amber-50 dark:bg-amber-900/20 
                               border border-amber-200 dark:border-amber-700 
                               rounded-lg">
-                      <FiInfo className="text-amber-500 flex-shrink-0 mt-0.5 text-sm" />
-                      <p className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
-                        {currentQuestion.instruction}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* ── QUESTION CATEGORY BADGE ─────────────────────── */}
-                  {currentQuestion.category && currentQuestion.category !== 'general' && (
-                    <div className="mb-3">
-                      <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${currentQuestion.category === 'vocabulary'
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                        : currentQuestion.category === 'grammar'
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                          : currentQuestion.category === 'oral_english'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : currentQuestion.category === 'idiom_proverb'
-                              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
-                              : currentQuestion.category === 'sentence_completion'
-                                ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}>
-                        {currentQuestion.category === 'vocabulary' ? 'Vocabulary & Lexis'
-                          : currentQuestion.category === 'grammar' ? 'Grammar & Usage'
-                            : currentQuestion.category === 'oral_english' ? 'Oral English'
-                              : currentQuestion.category === 'idiom_proverb' ? 'Idioms & Proverbs'
-                                : currentQuestion.category === 'sentence_completion' ? 'Sentence Completion'
-                                  : currentQuestion.category}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* ── QUESTION TEXT ───────────────────────────────── */}
-                  <h2
-                    className="text-lg font-semibold text-gray-900 dark:text-white mb-6 leading-relaxed question-text"
-                    dangerouslySetInnerHTML={{ __html: renderQuestion(currentQuestion.question) }}
-                  />
-
-                  {/* ── OPTIONS ─────────────────────────────────────── */}
-                  <div className="space-y-3">
-                    {currentQuestion.options.map((option, index) => {
-                      const isSelected = selectedAnswers[currentQuestion.id] === index
-                      const optionLetters = ['A', 'B', 'C', 'D', 'E']
-
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleAnswerSelect(index)}
-                          className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold transition ${isSelected
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                              }`}>
-                              {optionLetters[index]}
-                            </div>
-                            <span
-                              className={`${isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-gray-800 dark:text-gray-200'}`}
-                              dangerouslySetInnerHTML={{ __html: renderQuestion(option) }}
-                            />
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={currentIndex === 0}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 dark:bg-gray-700 
-                           text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 
-                           dark:hover:bg-gray-600 transition disabled:opacity-40 
-                           disabled:cursor-not-allowed font-medium"
-                  >
-                    <FiArrowLeft /> Previous
-                  </button>
-
-                  <div className="flex items-center gap-2 cbt-nav-buttons">
-                    {currentIndex === questions.length - 1 ? (
-                      <button
-                        onClick={() => {
-                          const unanswered = questions.length - answeredCount
-                          if (unanswered > 0) {
-                            if (!window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
-                          }
-                          handleSubmitTest()
-                        }}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition font-black uppercase tracking-widest shadow-lg shadow-green-500/20"
-                      >
-                        <FiCheckCircle /> Submit Test
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleNext}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition font-bold shadow-md"
-                      >
-                        Next <FiArrowRight />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <FiInfo className="text-amber-500 flex-shrink-0 mt-0.5 text-sm" />
+                <p className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
+                  {currentQuestion.instruction}
+                </p>
               </div>
-              {/* Calculator Component */}
-              {showCalculator && <CBTCalculator onClose={() => setShowCalculator(false)} />}
+            )}
+
+              {/* ── QUESTION CATEGORY BADGE ─────────────────────── */}
+              {currentQuestion.category && currentQuestion.category !== 'general' && (
+                <div className="mb-3">
+                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${currentQuestion.category === 'vocabulary'
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : currentQuestion.category === 'grammar'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : currentQuestion.category === 'oral_english'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        : currentQuestion.category === 'idiom_proverb'
+                          ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                          : currentQuestion.category === 'sentence_completion'
+                            ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}>
+                    {currentQuestion.category === 'vocabulary' ? 'Vocabulary & Lexis'
+                      : currentQuestion.category === 'grammar' ? 'Grammar & Usage'
+                        : currentQuestion.category === 'oral_english' ? 'Oral English'
+                          : currentQuestion.category === 'idiom_proverb' ? 'Idioms & Proverbs'
+                            : currentQuestion.category === 'sentence_completion' ? 'Sentence Completion'
+                              : currentQuestion.category}
+                  </span>
+                </div>
+              )}
+
+              {/* ── QUESTION TEXT ───────────────────────────────── */}
+              <div
+                className="question-text"
+                dangerouslySetInnerHTML={{ __html: renderQuestion(currentQuestion.question) }}
+              />
+
+              {/* Diagram / image */}
+              <QuestionImage question={currentQuestion} />
+
+              {/* ── OPTIONS ─────────────────────────────────────── */}
+              <div className="options-list">
+                {currentQuestion.options.map((option, index) => {
+                  const isSelected = selectedAnswers[currentQuestion.id] === index
+                  const optionLetters = ['A', 'B', 'C', 'D', 'E']
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleAnswerSelect(index)}
+                      className={`option-btn ${isSelected ? 'selected' : ''}`}
+                    >
+                      <span className="option-letter">{optionLetters[index]}.</span>
+                      <span
+                        dangerouslySetInnerHTML={{ __html: renderQuestion(option) }}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* Navigation */}
+            <div className="cbt-nav-buttons">
+              <button
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+                className="nav-prev disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FiArrowLeft className="inline-block mr-1" />
+                Previous
+              </button>
+
+              {currentIndex === questions.length - 1 ? (
+                <button
+                  onClick={() => {
+                    const unanswered = questions.length - answeredCount
+                    if (unanswered > 0) {
+                      if (!window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
+                    }
+                    handleSubmitTest()
+                  }}
+                  className="nav-submit"
+                >
+                  <FiCheckCircle className="inline-block mr-1" />
+                  Submit Test
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="nav-next"
+                >
+                  Next
+                  <FiArrowRight className="inline-block ml-1" />
+                </button>
+              )}
+            </div>
+
+            {/* Calculator Component */}
+            {showCalculator && <CBTCalculator onClose={() => setShowCalculator(false)} />}
           </div>
         )}
 

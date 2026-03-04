@@ -89,4 +89,35 @@ export const questionsApi = {
     )
     return response.data
   },
+
+  generateWithMeta: async (payload: {
+    subject: string
+    topic: string
+    difficulty: string
+    type: string
+    count: number
+    examType?: string
+    dryRun?: boolean
+  }): Promise<{ success: boolean; questions: any[] }> => {
+    const response = await apiClient.post<{ success: boolean; questions: any[] }>('/questions/generate-ai', {
+      ...payload,
+      dryRun: payload.dryRun ?? true,
+    })
+    return response.data
+  },
+
+  saveToBank: async (question: {
+    questionText: string
+    options?: Record<string, string> | null
+    correctAnswer?: string
+    explanation?: string
+    difficulty?: string
+    type?: string
+    totalMarks?: number
+    subject: string
+    topic: string
+  }) => {
+    const response = await apiClient.post<{ success: boolean; question: any }>('/questions', question)
+    return response.data
+  },
 }

@@ -1,96 +1,231 @@
 'use client'
 
-import { useState } from 'react'
-import { FiX, FiDelete } from 'react-icons/fi'
+import { useState, useCallback } from 'react'
 
 interface CalculatorProps {
-    onClose: () => void
+  onClose: () => void
 }
 
-export default function Calculator({ onClose }: CalculatorProps) {
-    const [display, setDisplay] = useState('0')
-    const [equation, setEquation] = useState('')
-    const [isDone, setIsDone] = useState(false)
+const toRad = (deg: number) => (deg * Math.PI) / 180
 
-    const handleNumber = (num: string) => {
-        if (display === '0' || isDone) {
-            setDisplay(num)
-            setIsDone(false)
-        } else {
-            setDisplay(display + num)
+const CBTCalculator = ({ onClose }: CalculatorProps) => {
+  const [display, setDisplay] = useState('0')
+  const [expression, setExpression] = useState('')
+  const [isRad, setIsRad] = useState(true) // radians/degrees
+  const [waitingForOperand, setWaitingForOperand] = useState(false)
+  const [history, setHistory] = useState<string[]>([])
+
+  const calculate = useCallback((expr: string) => {
+    try {
+      // Safer evaluation than eval (still limited to this component)
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict"; return (' + expr + ')')()
+      return Number.isFinite(result) ? parseFloat(Number(result).toPrecision(10)) : 'Error'
+    } catch {
+      return 'Error'
+    }
+  }, [])
+
+  const handleNumber = (num: string) => {
+    if (waitingForOperand || display === '0') {
+      setDisplay(String(num))
+      setWaitingForOperand(false)
+    } else {
+      setDisplay(display + num)
+    }
+  }
+
+  const handleOperator = (op: string) => {
+    setExpression(display + ' ' + op + ' ')
+    setWaitingForOperand(true)
+  }
+
+  const handleScientific = (fn: string) => {
+    const val = parseFloat(display)
+    if (Number.isNaN(val)) return
+
+    let result: number
+    const angle = isRad ? val : toRad(val)
+
+    switch (fn) {
+      case 'sin': result = Math.sin(angle); break
+      case 'cos': result = Math.cos(angle); break
+      case 'tan': result = Math.tan(angle); break
+      case 'asin': result = isRad ? Math.asin(val) : (Math.asin(val) * 180) / Math.PI; break
+      case 'acos': result = isRad ? Math.acos(val) : (Math.acos(val) * 180) / Math.PI; break
+      case 'atan': result = isRad ? Math.atan(val) : (Math.atan(val) * 180) / Math.PI; break
+      case 'log': result = Math.log10(val); break
+      case 'ln': result = Math.log(val); break
+      case 'sqrt': result = Math.sqrt(val); break
+      case 'cbrt': result = Math.cbrt(val); break
+      case 'sq': result = val * val; break
+      case 'cube': result = val * val * val; break
+      case 'inv': result = 1 / val; break
+      case 'exp': result = Math.exp(val); break
+      case 'abs': result = Math.abs(val); break
+      case 'fact': {
+        const n = Math.floor(val)
+        if (n < 0 || n > 170) {
+          setDisplay('Error')
+          return
         }
+        let f = 1
+        for (let i = 1; i <= n; i++) f *= i
+        result = f
+        break
+      }
+      case 'pi': result = Math.PI; break
+      case 'e': result = Math.E; break
+      case 'pow10': result = Math.pow(10, val); break
+      default: return
     }
 
-    const handleOperator = (op: string) => {
-        setEquation(display + ' ' + op + ' ')
-        setDisplay('0')
-        setIsDone(false)
-    }
+    const rounded = parseFloat(result.toPrecision(10))
+    setDisplay(String(rounded))
+    setExpression(`${fn}(${val}) =`)
+    setWaitingForOperand(true)
+  }
 
-    const handleEqual = () => {
-        try {
-            const fullEq = equation + display
-            // eslint-disable-next-line no-eval
-            const result = eval(fullEq.replace('×', '*').replace('÷', '/'))
-            setEquation(fullEq + ' =')
-            setDisplay(String(result))
-            setIsDone(true)
-        } catch (e) {
-            setDisplay('Error')
-        }
-    }
+  const handleEquals = () => {
+    const fullExpr = expression + display
+    const result = calculate(fullExpr.replace('×', '*').replace('÷', '/'))
+    setHistory(prev => [`${fullExpr} = ${result}`, ...prev.slice(0, 4)])
+    setDisplay(String(result))
+    setExpression('')
+    setWaitingForOperand(true)
+  }
 
-    const handleClear = () => {
-        setDisplay('0')
-        setEquation('')
-        setIsDone(false)
-    }
+  const handleClear = () => {
+    setDisplay('0')
+    setExpression('')
+    setWaitingForOperand(false)
+  }
 
-    const handleDelete = () => {
-        if (display.length > 1) {
-            setDisplay(display.slice(0, -1))
-        } else {
-            setDisplay('0')
-        }
-    }
+  const handleBackspace = () => {
+    setDisplay(display.length > 1 ? display.slice(0, -1) : '0')
+  }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-[320px] overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Exam Calculator</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition">
-                        <FiX className="text-gray-500" />
-                    </button>
-                </div>
+  const handleDecimal = () => {
+    if (!display.includes('.')) setDisplay(display + '.')
+  }
 
-                {/* Display */}
-                <div className="p-6 bg-gray-100 dark:bg-gray-900 text-right">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 h-4 mb-1 font-mono">{equation}</div>
-                    <div className="text-3xl font-bold text-gray-900 dark:text-white truncate font-mono">{display}</div>
-                </div>
+  const handleSign = () => {
+    const val = parseFloat(display)
+    if (Number.isNaN(val)) return
+    setDisplay(String(val * -1))
+  }
 
-                {/* Buttons */}
-                <div className="grid grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700">
-                    <button onClick={handleClear} className="col-span-2 p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-red-500 transition">AC</button>
-                    <button onClick={handleDelete} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center justify-center"><FiDelete /></button>
-                    <button onClick={() => handleOperator('÷')} className="p-4 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 font-bold text-blue-600 transition">÷</button>
+  const scientificButtons: { label: string; action: () => void; class: string }[][] = [
+    [
+      { label: isRad ? 'RAD' : 'DEG', action: () => setIsRad(!isRad), class: 'mode' },
+      { label: 'x²', action: () => handleScientific('sq'), class: 'sci' },
+      { label: 'x³', action: () => handleScientific('cube'), class: 'sci' },
+      { label: 'xʸ', action: () => handleOperator('**'), class: 'sci' },
+      { label: '√x', action: () => handleScientific('sqrt'), class: 'sci' }
+    ],
+    [
+      { label: 'sin', action: () => handleScientific('sin'), class: 'sci' },
+      { label: 'cos', action: () => handleScientific('cos'), class: 'sci' },
+      { label: 'tan', action: () => handleScientific('tan'), class: 'sci' },
+      { label: 'log', action: () => handleScientific('log'), class: 'sci' },
+      { label: 'ln', action: () => handleScientific('ln'), class: 'sci' }
+    ],
+    [
+      { label: 'sin⁻¹', action: () => handleScientific('asin'), class: 'sci' },
+      { label: 'cos⁻¹', action: () => handleScientific('acos'), class: 'sci' },
+      { label: 'tan⁻¹', action: () => handleScientific('atan'), class: 'sci' },
+      { label: 'π', action: () => handleScientific('pi'), class: 'sci const' },
+      { label: 'e', action: () => handleScientific('e'), class: 'sci const' }
+    ],
+    [
+      { label: '1/x', action: () => handleScientific('inv'), class: 'sci' },
+      { label: '|x|', action: () => handleScientific('abs'), class: 'sci' },
+      { label: 'n!', action: () => handleScientific('fact'), class: 'sci' },
+      { label: 'eˣ', action: () => handleScientific('exp'), class: 'sci' },
+      { label: '∛x', action: () => handleScientific('cbrt'), class: 'sci' }
+    ],
+    [
+      { label: 'AC', action: handleClear, class: 'clear' },
+      { label: '+/-', action: handleSign, class: 'op' },
+      { label: '⌫', action: handleBackspace, class: 'op' },
+      { label: '÷', action: () => handleOperator('/'), class: 'operator' },
+      { label: '(', action: () => setExpression(expression + display + ' * ('), class: 'op' }
+    ],
+    [
+      { label: '7', action: () => handleNumber('7'), class: 'num' },
+      { label: '8', action: () => handleNumber('8'), class: 'num' },
+      { label: '9', action: () => handleNumber('9'), class: 'num' },
+      { label: '×', action: () => handleOperator('*'), class: 'operator' },
+      { label: ')', action: () => setDisplay(display + ')'), class: 'op' }
+    ],
+    [
+      { label: '4', action: () => handleNumber('4'), class: 'num' },
+      { label: '5', action: () => handleNumber('5'), class: 'num' },
+      { label: '6', action: () => handleNumber('6'), class: 'num' },
+      { label: '−', action: () => handleOperator('-'), class: 'operator' },
+      { label: '%', action: () => setDisplay(String(parseFloat(display) / 100)), class: 'op' }
+    ],
+    [
+      { label: '1', action: () => handleNumber('1'), class: 'num' },
+      { label: '2', action: () => handleNumber('2'), class: 'num' },
+      { label: '3', action: () => handleNumber('3'), class: 'num' },
+      { label: '+', action: () => handleOperator('+'), class: 'operator' },
+      { label: '=', action: handleEquals, class: 'equals' }
+    ],
+    [
+      { label: '0', action: () => handleNumber('0'), class: 'num wide' },
+      { label: '.', action: handleDecimal, class: 'num' },
+      { label: 'EXP', action: () => handleOperator('e'), class: 'op' }
+    ]
+  ]
 
-                    {[7, 8, 9].map(n => <button key={n} onClick={() => handleNumber(String(n))} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition text-gray-800 dark:text-white">{n}</button>)}
-                    <button onClick={() => handleOperator('×')} className="p-4 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 font-bold text-blue-600 transition">×</button>
-
-                    {[4, 5, 6].map(n => <button key={n} onClick={() => handleNumber(String(n))} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition text-gray-800 dark:text-white">{n}</button>)}
-                    <button onClick={() => handleOperator('-')} className="p-4 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 font-bold text-blue-600 transition">-</button>
-
-                    {[1, 2, 3].map(n => <button key={n} onClick={() => handleNumber(String(n))} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition text-gray-800 dark:text-white">{n}</button>)}
-                    <button onClick={() => handleOperator('+')} className="p-4 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 font-bold text-blue-600 transition">+</button>
-
-                    <button onClick={() => handleNumber('0')} className="col-span-2 p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition text-gray-800 dark:text-white">0</button>
-                    <button onClick={() => handleNumber('.')} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition text-gray-800 dark:text-white">.</button>
-                    <button onClick={handleEqual} className="p-4 bg-blue-600 hover:bg-blue-700 font-bold text-white transition">=</button>
-                </div>
-            </div>
+  return (
+    <div className="calc-overlay">
+      <div className="calc-modal">
+        {/* Header */}
+        <div className="calc-header">
+          <span>🔬 Scientific Calculator</span>
+          <button className="calc-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
-    )
+
+        {/* Expression display */}
+        <div className="calc-expression">{expression || '\u00A0'}</div>
+
+        {/* Main display */}
+        <div className="calc-display">{display}</div>
+
+        {/* History */}
+        {history.length > 0 && (
+          <div className="calc-history">
+            {history.map((h, i) => (
+              <div key={i} className="calc-history-item">
+                {h}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="calc-buttons">
+          {scientificButtons.map((row, ri) => (
+            <div key={ri} className="calc-row">
+              {row.map((btn, bi) => (
+                <button
+                  key={bi}
+                  className={`calc-btn ${btn.class} ${btn.label === '0' ? 'wide' : ''}`}
+                  onClick={btn.action}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
+
+export default CBTCalculator

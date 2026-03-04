@@ -105,6 +105,8 @@ export interface CBTQuestion {
   examType: ExamType
   category?: QuestionCategory
   instruction?: string
+  // Optional diagram or image associated with the question
+  image?: string | null
 }
 
 export interface CBTQuestionsResponse {
@@ -205,6 +207,15 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
   const category = detectQuestionCategory(questionText)
   const instruction = getQuestionInstruction(category, q.subject || '')
 
+  // Preserve possible image fields from ALOC payload
+  const image =
+    q.image ||
+    q.diagram ||
+    q.img ||
+    q.image_url ||
+    q.questionImage ||
+    null
+
   return {
     id: String(q.id || `q_${Date.now()}_${Math.random()}`),
     question: questionText,
@@ -215,7 +226,8 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     year: String(q.year || ''),
     examType: examType,
     category,
-    instruction
+    instruction,
+    image
   }
 }
 

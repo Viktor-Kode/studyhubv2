@@ -131,7 +131,7 @@ export default function StudentDashboardPage() {
     {
       href: '/dashboard/question-bank',
       icon: FiBook,
-      label: 'Question Bank',
+      label: 'Question Generator',
       color: 'emerald',
       description: 'Practice with AI-generated questions'
     },
