@@ -351,7 +351,7 @@ export default function MyNotesPage() {
 
   return (
     <ProtectedRoute>
-      <div className="notes-page">
+      <div className="notes-page w-full min-w-0">
         <div className="notes-header">
           <div>
             <h2>📝 My Notes</h2>

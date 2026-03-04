@@ -240,7 +240,7 @@ export default function QuestionGeneratorPage() {
 
   return (
     <ProtectedRoute allowedRoles={['teacher']}>
-      <div className="generator-page">
+      <div className="generator-page w-full min-w-0">
         <div className="page-header">
           <h2>⚡ Question Generator</h2>
           <p>Generate AI-powered exam questions instantly</p>

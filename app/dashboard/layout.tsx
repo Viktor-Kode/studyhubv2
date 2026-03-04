@@ -106,8 +106,8 @@ export default function DashboardLayout({
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 
                 {/* Top Navbar */}
-                <nav className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50">
-                    <div className="h-full px-4 flex items-center justify-between">
+                <nav className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw]">
+                    <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
 
                         {/* Left: Logo + Menu Toggle */}
                         <div className="flex items-center gap-4">
@@ -171,7 +171,7 @@ export default function DashboardLayout({
                                             className="fixed inset-0 z-10"
                                             onClick={() => setShowUserMenu(false)}
                                         />
-                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
+                                        <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
                                             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                                                     {user?.name}
@@ -207,7 +207,7 @@ export default function DashboardLayout({
 
                 {/* Sidebar */}
                 <aside
-                    className={`fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[85vw] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                 >
                     <div className="h-full overflow-y-auto py-4">
@@ -271,8 +271,8 @@ export default function DashboardLayout({
                 )}
 
                 {/* Main Content */}
-                <main className="pt-16 lg:pl-64 min-w-0 overflow-x-hidden">
-                    <div className="p-4 sm:p-6 max-w-full box-border">
+                <main className="pt-14 sm:pt-16 lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
+                    <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-x-hidden">
                         <ProtectedRoute>
                             {children}
                         </ProtectedRoute>

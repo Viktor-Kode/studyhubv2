@@ -5,8 +5,13 @@
 @import 'katex/dist/katex.min.css';
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }
 
@@ -1025,7 +1030,8 @@ html {
 }
 .generator-form .form-group { display: flex; flex-direction: column; gap: 6px; }
 .generator-form .form-group label { font-size: 13px; font-weight: 600; color: #374151; }
-.generator-form .form-input {
+.generator-form .form-input,
+.generator-form select.form-input {
   padding: 10px 12px;
   border: 1.5px solid #E5E7EB;
   border-radius: 8px;
@@ -1033,6 +1039,7 @@ html {
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 .generator-form .form-input:focus { border-color: #4F46E5; }
@@ -1078,9 +1085,11 @@ html {
 
 .generating-state {
   text-align: center;
-  padding: 40px;
+  padding: 24px 16px;
   color: #6B7280;
+  max-width: 100%;
 }
+.generating-state p { word-break: break-word; }
 .generating-state .spinner {
   width: 40px; height: 40px;
   border: 3px solid #E5E7EB;
@@ -1469,20 +1478,39 @@ html {
 }
 .save-note-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ─── MOBILE (Question Generator + Notes) ─────── */
+/* ─── MOBILE (Question Generator + Notes + General) ─────── */
+/* Prevent overflow on all page containers */
+.generator-page, .notes-page {
+  min-width: 0;
+  width: 100%;
+}
+.generator-form .form-input,
+.generator-page .edit-input,
+.generator-page .edit-textarea {
+  max-width: 100%;
+}
+.generator-page .qcard-text,
+.generator-page .qcard-option span,
+.generator-page .qcard-explanation p,
+.note-title, .note-preview {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 @media (max-width: 768px) {
   .generator-form .form-row.three-col { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 640px) {
   .generator-page {
-    padding: 12px;
+    padding: 10px 12px;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
   }
   .generator-page .page-header h2 { font-size: 18px; }
+  .generator-page .page-header p { font-size: 13px; }
   .generator-form {
-    padding: 14px;
+    padding: 12px 14px;
     margin-bottom: 16px;
   }
   .generator-form .form-row { grid-template-columns: 1fr; }
@@ -1491,52 +1519,91 @@ html {
     flex-direction: column;
     align-items: stretch;
   }
+  .generator-form .count-group { width: 100%; }
   .generator-form .count-control { width: 100%; justify-content: space-between; }
-  .generator-form .generate-btn { width: 100%; min-height: 48px; }
+  .generator-form .generate-btn { width: 100%; min-height: 48px; padding: 14px; }
   .generator-page .question-card {
-    padding: 14px;
+    padding: 12px 14px;
     margin-bottom: 12px;
+    min-width: 0;
   }
   .generator-page .qcard-header { flex-wrap: wrap; gap: 6px; }
-  .generator-page .qcard-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
-  .generator-page .icon-btn { padding: 8px; min-width: 40px; min-height: 40px; }
+  .generator-page .qcard-badges { min-width: 0; }
+  .generator-page .qcard-actions { margin-left: 0; width: 100%; justify-content: flex-end; flex-shrink: 0; }
+  .generator-page .icon-btn {
+    padding: 10px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .generator-page .qcard-option {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .generator-page .qcard-option span:last-of-type { min-width: 0; flex: 1; }
   .generator-page .edit-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 10px;
   }
-  .generator-page .edit-header .save-edit-btn { width: 100%; }
-  .generator-page .edit-option { flex-wrap: wrap; }
-  .generator-page .edit-option .edit-input { min-width: 0; }
+  .generator-page .edit-header .save-edit-btn { width: 100%; min-height: 44px; }
+  .generator-page .edit-option {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+  .generator-page .edit-option .edit-input { min-width: 0; flex: 1; }
+  .generator-page .correct-toggle { flex-shrink: 0; min-width: 44px; min-height: 44px; }
+  .questions-section { min-width: 0; }
   .questions-section .questions-header {
     flex-direction: column;
     align-items: stretch;
   }
-  .questions-section .bulk-actions { width: 100%; justify-content: flex-start; }
+  .questions-section .questions-header h3 { font-size: 16px; }
+  .questions-section .bulk-actions { width: 100%; justify-content: stretch; gap: 8px; }
+  .questions-section .save-all-btn,
+  .questions-section .clear-btn { flex: 1; min-height: 44px; }
   .notes-page {
-    padding: 12px;
+    padding: 10px 12px;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
   }
   .notes-header { flex-direction: column; align-items: stretch; }
-  .notes-header .new-note-btn { width: 100%; }
+  .notes-header h2 { font-size: 18px; }
+  .notes-header .new-note-btn { width: 100%; min-height: 44px; }
   .notes-toolbar { gap: 8px; }
   .subject-filters { -webkit-overflow-scrolling: touch; }
+  .subject-filters::-webkit-scrollbar { display: none; }
   .notes-grid { grid-template-columns: 1fr; }
-  .note-card { min-height: 140px; padding: 14px; }
+  .note-card { min-height: 130px; padding: 12px 14px; min-width: 0; }
+  .note-menu { right: 0; left: auto; min-width: 140px; max-width: calc(100vw - 2rem); }
   .editor-overlay { align-items: flex-end; padding: 0; }
   .editor-modal {
     padding: 16px;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
     border-radius: 16px 16px 0 0;
     max-height: 90vh;
+    max-height: 90dvh;
   }
   .editor-meta-row { flex-direction: column; }
-  .editor-select, .editor-input { min-width: 100%; }
+  .editor-select, .editor-input { min-width: 0; width: 100%; }
+  .editor-footer { flex-wrap: wrap; }
+  .cancel-btn, .save-note-btn { min-height: 44px; }
 }
-@media (max-width: 380px) {
-  .generator-page, .notes-page { padding: 8px; }
-  .generator-form { padding: 12px; }
+@media (max-width: 480px) {
+  .generator-page, .notes-page { padding: 8px 10px; }
+  .generator-form { padding: 10px 12px; }
   .generator-page .page-header h2 { font-size: 16px; }
-  .filter-chip { padding: 6px 10px; font-size: 12px; }
+  .notes-header h2 { font-size: 16px; }
+  .filter-chip { padding: 8px 12px; font-size: 12px; }
+  .view-toggle button { min-width: 44px; min-height: 44px; }
+  .menu-btn { min-width: 44px; min-height: 44px; }
+  .pin-btn { min-width: 44px; min-height: 44px; padding: 8px; }
+}
+@media (max-width: 360px) {
+  .generator-page, .notes-page { padding: 6px 8px; }
+  .generator-form { padding: 8px 10px; }
+  .generator-page .page-header h2 { font-size: 15px; }
 }
