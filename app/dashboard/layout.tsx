@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
 
     // Student Only
-    { href: '/dashboard/question-bank', label: 'Question Bank', icon: FiBook, roles: ['student'] },
+    { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student'] },
     { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student'] },
     { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student'] },
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student'] },
@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
 
     // Teacher Only
     { href: '/dashboard/teacher/question-generator', label: 'Question Generator', icon: FiFileText, roles: ['teacher'] },
-    { href: '/dashboard/teacher/questions', label: 'Question Bank', icon: FiBook, roles: ['teacher'] },
+    { href: '/dashboard/teacher/questions', label: 'Saved Questions', icon: FiBook, roles: ['teacher'] },
     { href: '/dashboard/teacher/classes', label: 'Class Management', icon: FiGrid, roles: ['teacher'] },
 
     // Shared (but logically separates history by role maybe, both can use it)
@@ -271,8 +271,8 @@ export default function DashboardLayout({
                 )}
 
                 {/* Main Content */}
-                <main className="pt-16 lg:pl-64">
-                    <div className="p-6">
+                <main className="pt-16 lg:pl-64 min-w-0 overflow-x-hidden">
+                    <div className="p-4 sm:p-6 max-w-full box-border">
                         <ProtectedRoute>
                             {children}
                         </ProtectedRoute>

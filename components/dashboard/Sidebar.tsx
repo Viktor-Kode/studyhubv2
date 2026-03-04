@@ -38,7 +38,7 @@ const studentMenuItems = [
 const teacherMenuItems = [
   { href: '/dashboard/teacher', icon: FaHome, label: 'Dashboard' },
   { href: '/dashboard/teacher/question-generator', icon: FaFilePdf, label: 'Question Generator' },
-  { href: '/dashboard/teacher/questions', icon: FaQuestionCircle, label: 'Question Bank' },
+  { href: '/dashboard/teacher/questions', icon: FaQuestionCircle, label: 'Saved Questions' },
   { href: '/dashboard/notes', icon: FaStickyNote, label: 'My Notes' },
   { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/teacher/classes', icon: FaUsers, label: 'Class Management' },
