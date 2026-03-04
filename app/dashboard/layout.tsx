@@ -207,11 +207,11 @@ export default function DashboardLayout({
 
                 {/* Sidebar */}
                 <aside
-                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[85vw] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                 >
-                    <div className="h-full overflow-y-auto py-4">
-                        <nav className="space-y-1 px-3">
+                    <div className="h-full overflow-y-auto overflow-x-hidden py-4 min-w-0">
+                        <nav className="space-y-1 px-3 min-w-0">
                             {filteredNavItems.map((item) => {
                                 const Icon = item.icon
                                 const isActive = pathname === item.href
@@ -221,13 +221,13 @@ export default function DashboardLayout({
                                         key={item.href}
                                         href={item.href}
                                         onClick={() => setSidebarOpen(false)}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${isActive
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition min-w-0 ${isActive
                                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                                             }`}
                                     >
-                                        <Icon className={`text-lg ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
-                                        {item.label}
+                                        <Icon className={`text-lg flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                                        <span className="break-words min-w-0 flex-1">{item.label}</span>
                                     </Link>
                                 )
                             })}
@@ -235,12 +235,12 @@ export default function DashboardLayout({
 
                         {/* Download App Button */}
                         {!isInstalled && (
-                            <div className="mt-8 px-4 pb-4">
-                                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
+                            <div className="mt-8 px-4 pb-4 min-w-0">
+                                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden min-w-0">
                                     <div className="relative z-10 flex flex-col items-center text-center">
                                         <FiCpu className="text-3xl mb-2 opacity-90" />
                                         <h3 className="font-bold text-sm mb-1">Get the app</h3>
-                                        <p className="text-xs text-blue-100 mb-3">
+                                        <p className="text-xs text-blue-100 mb-3 break-words overflow-hidden">
                                             {isInstallable
                                                 ? 'Install StudyHelp to access your dashboard faster from your home screen.'
                                                 : 'On this device, use your browser menu and choose "Add to Home Screen" to install StudyHelp.'}
