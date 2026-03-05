@@ -24,6 +24,35 @@ import { toast } from 'react-hot-toast'
 
 interface Question extends CBTQuestion { }
 
+function QuestionImage({ question }: { question: CBTQuestion }) {
+  const imageUrl =
+    question?.image ||
+    (question as any)?.diagram ||
+    (question as any)?.img ||
+    (question as any)?.image_url ||
+    null
+
+  if (!imageUrl) return null
+
+  return (
+    <div className="question-diagram">
+      <img
+        src={imageUrl}
+        alt="Question diagram"
+        className="diagram-img"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement
+          if (target?.parentElement) target.parentElement.style.display = 'none'
+        }}
+        onLoad={(e) => {
+          const target = e.target as HTMLImageElement
+          if (target) target.style.opacity = '1'
+        }}
+      />
+    </div>
+  )
+}
+
 const POST_UTME_SCHOOLS = [
   { name: 'University of Lagos', short: 'UNILAG' },
   { name: 'Obafemi Awolowo University', short: 'OAU' },

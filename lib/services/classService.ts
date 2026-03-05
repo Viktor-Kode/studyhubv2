@@ -44,13 +44,17 @@ export const classService = {
     async getTeacherClasses(teacherId: string): Promise<Class[]> {
         try {
             const response = await apiClient.get('/classes')
-            return response.data.classes.map((cls: any) => ({
+            return (response.data.classes || []).map((cls: any) => ({
                 ...cls,
                 id: cls._id,
                 name: cls.className,
                 studentCount: cls.students?.length || 0
             }))
-        } catch (error) {
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                console.warn('[classService] 403 — token may be expired or unauthorized')
+                return []
+            }
             console.error('[classService] getTeacherClasses failed:', error)
             return []
         }
@@ -59,16 +63,18 @@ export const classService = {
     // Get classes for a student (enrolled)
     async getStudentClasses(studentId: string): Promise<Class[]> {
         try {
-            // Note: The backend route for student classes might be different or we use getClasses if student is filtered
-            // For now, let's assume getClasses returns what the user is authorized to see
             const response = await apiClient.get('/classes')
-            return response.data.classes.map((cls: any) => ({
+            return (response.data.classes || []).map((cls: any) => ({
                 ...cls,
                 id: cls._id,
                 name: cls.className,
                 studentCount: cls.students?.length || 0
             }))
-        } catch (error) {
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                console.warn('[classService] 403 — token may be expired or unauthorized')
+                return []
+            }
             console.error('[classService] getStudentClasses failed:', error)
             return []
         }
