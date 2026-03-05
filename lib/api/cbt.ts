@@ -345,12 +345,14 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 export const cbtApi = {
   /**
    * Get questions from ALOC API via internal proxy
+   * For Post-UTME, pass school (e.g. UNILAG) for school-specific questions
    */
   getQuestions: async (
     examType: ExamType,
     year: string,
     subject: string,
-    amount: number = 20
+    amount: number = 20,
+    school?: string
   ): Promise<{ questions: CBTQuestion[], debug?: string }> => {
     const examSlug = EXAM_TYPE_MAP[examType]
     const subjectSlug = SUBJECT_SLUG_MAP[subject] || subject.toLowerCase().replace(/ /g, '-')
@@ -362,6 +364,9 @@ export const cbtApi = {
         amount: String(Math.min(amount, 40)),
         year: year
       })
+      if (examType === 'POST_UTME' && school) {
+        params.set('school', school)
+      }
 
       console.log('[CBT] Fetching from proxy:', params.toString())
       const res = await fetchWithAuth(`/api/backend/cbt/questions?${params}`)

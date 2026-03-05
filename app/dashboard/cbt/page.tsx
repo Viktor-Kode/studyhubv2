@@ -24,6 +24,39 @@ import { toast } from 'react-hot-toast'
 
 interface Question extends CBTQuestion { }
 
+const POST_UTME_SCHOOLS = [
+  { name: 'University of Lagos', short: 'UNILAG' },
+  { name: 'Obafemi Awolowo University', short: 'OAU' },
+  { name: 'University of Ibadan', short: 'UI' },
+  { name: 'University of Nigeria Nsukka', short: 'UNN' },
+  { name: 'Ahmadu Bello University', short: 'ABU' },
+  { name: 'University of Benin', short: 'UNIBEN' },
+  { name: 'University of Ilorin', short: 'UNILORIN' },
+  { name: 'University of Port Harcourt', short: 'UNIPORT' },
+  { name: 'Federal University of Technology Akure', short: 'FUTA' },
+  { name: 'Nnamdi Azikiwe University', short: 'UNIZIK' },
+  { name: 'Lagos State University', short: 'LASU' },
+  { name: 'Olabisi Onabanjo University', short: 'OOU' },
+  { name: 'Ambrose Alli University', short: 'AAU' },
+  { name: 'Covenant University', short: 'CU' },
+  { name: 'Babcock University', short: 'BABCOCK' },
+  { name: 'Redeemers University', short: 'RUN' },
+  { name: 'Benue State University', short: 'BSU' },
+  { name: 'Delta State University', short: 'DELSU' },
+  { name: 'Ekiti State University', short: 'EKSU' },
+  { name: 'Enugu State University', short: 'ESUT' },
+  { name: 'Imo State University', short: 'IMSU' },
+  { name: 'Kogi State University', short: 'KSU' },
+  { name: 'Niger Delta University', short: 'NDU' },
+  { name: 'Rivers State University', short: 'RSU' },
+  { name: 'Tai Solarin University of Education', short: 'TASUED' },
+  { name: 'Federal University of Technology Owerri', short: 'FUTO' },
+  { name: 'Federal University Oye-Ekiti', short: 'FUOYE' },
+  { name: 'Federal University Lokoja', short: 'FULOKOJA' },
+  { name: 'Michael Okpara University', short: 'MOUAU' },
+  { name: 'Ladoke Akintola University of Technology', short: 'LAUTECH' },
+]
+
 const examTypes = [
   {
     value: 'JAMB',
@@ -145,6 +178,7 @@ export default function CBTPage() {
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
+  const [selectedSchool, setSelectedSchool] = useState<string>('')
   const [questionCount, setQuestionCount] = useState<number>(40)
 
   // Data state
@@ -259,6 +293,10 @@ export default function CBTPage() {
       setError('Please select all required fields')
       return
     }
+    if (selectedExam === 'POST_UTME' && !selectedSchool) {
+      setError('Please select a school for Post-UTME')
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -272,7 +310,8 @@ export default function CBTPage() {
         selectedExam,
         selectedYear,
         selectedSubject,
-        questionCount
+        questionCount,
+        selectedExam === 'POST_UTME' ? selectedSchool : undefined
       )
 
       setLoadingStage('Preparing your test...')
@@ -440,6 +479,7 @@ export default function CBTPage() {
     setSelectedExam(null)
     setSelectedYear('')
     setSelectedSubject('')
+    setSelectedSchool('')
     setQuestions([])
     setShowResults(false)
     setCurrentIndex(0)
@@ -604,6 +644,30 @@ export default function CBTPage() {
                 )}
               </div>
 
+              {/* School Select - only for Post-UTME */}
+              {selectedExam === 'POST_UTME' && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Select School
+                  </label>
+                  <select
+                    value={selectedSchool}
+                    onChange={e => setSelectedSchool(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                               text-gray-900 dark:text-white bg-white dark:bg-gray-700 
+                               focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    required
+                  >
+                    <option value="">-- Select University --</option>
+                    {POST_UTME_SCHOOLS.map(s => (
+                      <option key={s.short} value={s.short}>
+                        {s.short} — {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Subject Select */}
               {selectedYear && (
                 <div className="space-y-1.5">
@@ -669,12 +733,20 @@ export default function CBTPage() {
               )}
 
               {/* Exam summary */}
-              {selectedYear && selectedSubject && (
+              {selectedYear && selectedSubject && (!(selectedExam === 'POST_UTME') || selectedSchool) && (
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Exam</span>
                     <span className="font-medium text-gray-900 dark:text-white">{currentExamConfig?.label}</span>
                   </div>
+                  {selectedExam === 'POST_UTME' && selectedSchool && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">School</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {POST_UTME_SCHOOLS.find(s => s.short === selectedSchool)?.name || selectedSchool}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Year</span>
                     <span className="font-medium text-gray-900 dark:text-white">{selectedYear}</span>
@@ -695,7 +767,7 @@ export default function CBTPage() {
               )}
 
               {/* Start button */}
-              {selectedYear && selectedSubject && (
+              {selectedYear && selectedSubject && (!(selectedExam === 'POST_UTME') || selectedSchool) && (
                 <div className="space-y-6">
                   <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
                     <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
