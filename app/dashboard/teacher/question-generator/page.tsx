@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
 import { questionsApi } from '@/lib/api/questions'
+import { Zap, Save, Trash2, Edit2, CheckCircle, Lightbulb, Loader2 } from 'lucide-react'
 
 interface GenForm {
   subject: string
@@ -50,9 +52,9 @@ function QuestionCard({
     return (
       <div className="question-card editing">
         <div className="edit-header">
-          <span>✏️ Editing Question {index + 1}</span>
+          <span className="edit-header-text"><Edit2 size={14} /> Editing Question {index + 1}</span>
           <button onClick={() => onSaveEdit(edited)} className="save-edit-btn" type="button">
-            ✅ Save Changes
+            <CheckCircle size={14} /> Save Changes
           </button>
         </div>
         <textarea
@@ -80,7 +82,7 @@ function QuestionCard({
                 className={`correct-toggle ${edited.correctAnswer === key ? 'correct' : ''}`}
                 onClick={() => setEdited({ ...edited, correctAnswer: key })}
               >
-                {edited.correctAnswer === key ? '✅' : '○'}
+                {edited.correctAnswer === key ? <CheckCircle size={16} /> : '○'}
               </button>
             </div>
           ))}
@@ -123,7 +125,7 @@ function QuestionCard({
         </div>
         <div className="qcard-actions">
           <button type="button" onClick={onEdit} className="icon-btn" title="Edit">
-            ✏️
+            <Edit2 size={16} />
           </button>
           <button
             type="button"
@@ -132,10 +134,10 @@ function QuestionCard({
             title="Save to bank"
             disabled={question.saved}
           >
-            {question.saved ? '✅' : '💾'}
+            {question.saved ? <CheckCircle size={16} /> : <Save size={16} />}
           </button>
           <button type="button" onClick={onDelete} className="icon-btn delete" title="Delete">
-            🗑
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
@@ -156,7 +158,7 @@ function QuestionCard({
       )}
       {question.explanation && (
         <div className="qcard-explanation">
-          <span>💡</span>
+          <Lightbulb size={16} className="qcard-explanation-icon" />
           <p>{question.explanation}</p>
         </div>
       )}
@@ -241,10 +243,7 @@ export default function QuestionGeneratorPage() {
   return (
     <ProtectedRoute allowedRoles={['teacher']}>
       <div className="generator-page w-full min-w-0">
-        <div className="page-header">
-          <h2>⚡ Question Generator</h2>
-          <p>Generate AI-powered exam questions instantly</p>
-        </div>
+        <GeneratorTabsHeader />
 
         <div className="generator-form">
           <div className="form-row">
@@ -341,9 +340,11 @@ export default function QuestionGeneratorPage() {
               disabled={loading}
             >
               {loading ? (
-                <span className="loading-spinner">⟳ Generating...</span>
+                <span className="loading-spinner"><Loader2 size={18} className="animate-spin" /> Generating...</span>
               ) : (
-                '⚡ Generate Questions'
+                <>
+                  <Zap size={18} /> Generate Questions
+                </>
               )}
             </button>
           </div>
@@ -364,10 +365,10 @@ export default function QuestionGeneratorPage() {
               <h3>Generated Questions ({questions.length})</h3>
               <div className="bulk-actions">
                 <button type="button" className="save-all-btn" onClick={handleSaveAll}>
-                  💾 Save All
+                  <Save size={14} /> Save All
                 </button>
                 <button type="button" className="clear-btn" onClick={() => setQuestions([])}>
-                  🗑 Clear
+                  <Trash2 size={14} /> Clear
                 </button>
               </div>
             </div>

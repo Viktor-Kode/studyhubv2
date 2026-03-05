@@ -1,6 +1,7 @@
 'use client'
 
 import AuthSync from './AuthSync'
+import IOSInstallBanner from './IOSInstallBanner'
 
 /**
  * Providers
@@ -72,6 +73,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     return (
         <>
             <AuthSync />
+            <IOSInstallBanner />
             {children}
         </>
     )

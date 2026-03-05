@@ -106,7 +106,7 @@ export default function DashboardLayout({
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 
                 {/* Top Navbar */}
-                <nav className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw]">
+                <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw] pt-[env(safe-area-inset-top)]">
                     <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
 
                         {/* Left: Logo + Menu Toggle */}
@@ -271,7 +271,7 @@ export default function DashboardLayout({
                 )}
 
                 {/* Main Content */}
-                <main className="pt-14 sm:pt-16 lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
+                <main className="pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))] lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
                     <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-x-hidden">
                         <ProtectedRoute>
                             {children}

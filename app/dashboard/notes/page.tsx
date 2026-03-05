@@ -2,7 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
 import { notesApi, type Note } from '@/lib/api/notesApi'
+import {
+  FileText,
+  Pin,
+  MoreVertical,
+  Palette,
+  Edit2,
+  Trash2,
+  LayoutGrid,
+  List,
+  X,
+  Plus,
+  Search,
+  Sparkles,
+  Save,
+} from 'lucide-react'
 
 const SUBJECTS = ['All', 'General', 'Mathematics', 'English', 'Biology', 'Physics', 'Chemistry']
 const NOTE_COLORS = [
@@ -55,7 +71,7 @@ function NoteCard({
           {note.subject && note.subject !== 'General' && (
             <span className="note-subject-badge">{note.subject}</span>
           )}
-          {note.source === 'ai-generated' && <span className="ai-badge">✨ AI</span>}
+          {note.source === 'ai-generated' && <span className="ai-badge"><Sparkles size={12} /> AI</span>}
         </div>
         <div className="note-actions">
           <button
@@ -64,7 +80,7 @@ function NoteCard({
             onClick={onPin}
             title={note.isPinned ? 'Unpin' : 'Pin'}
           >
-            📌
+            <Pin size={13} />
           </button>
           <div className="note-menu-wrapper">
             <button
@@ -72,7 +88,7 @@ function NoteCard({
               className="menu-btn"
               onClick={() => setShowMenu(!showMenu)}
             >
-              ⋮
+              <MoreVertical size={16} />
             </button>
             {showMenu && (
               <div className="note-menu">
@@ -83,7 +99,7 @@ function NoteCard({
                     setShowMenu(false)
                   }}
                 >
-                  ✏️ Edit
+                  <Edit2 size={13} /> Edit
                 </button>
                 <button
                   type="button"
@@ -92,7 +108,7 @@ function NoteCard({
                     setShowMenu(false)
                   }}
                 >
-                  🎨 Color
+                  <Palette size={13} /> Color
                 </button>
                 <button
                   type="button"
@@ -102,7 +118,7 @@ function NoteCard({
                   }}
                   className="delete-option"
                 >
-                  🗑 Delete
+                  <Trash2 size={13} /> Delete
                 </button>
               </div>
             )}
@@ -212,9 +228,9 @@ function NoteEditor({
     <div className="editor-overlay" onClick={onClose} role="presentation">
       <div className="editor-modal" onClick={(e) => e.stopPropagation()} role="dialog">
         <div className="editor-header">
-          <h3>{note ? '✏️ Edit Note' : '📝 New Note'}</h3>
-          <button type="button" className="close-btn" onClick={onClose}>
-            ✕
+          <h3 className="editor-title-with-icon">{note ? <><Edit2 size={18} /> Edit Note</> : <><FileText size={18} /> New Note</>}</h3>
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
+            <X size={18} />
           </button>
         </div>
         <input
@@ -267,7 +283,7 @@ function NoteEditor({
             onClick={handleSave}
             disabled={!form.title || !form.content}
           >
-            💾 Save Note
+            <Save size={14} /> Save Note
           </button>
         </div>
       </div>
@@ -352,10 +368,10 @@ export default function MyNotesPage() {
   return (
     <ProtectedRoute>
       <div className="notes-page w-full min-w-0">
+        <GeneratorTabsHeader />
         <div className="notes-header">
           <div>
-            <h2>📝 My Notes</h2>
-            <p>
+            <p className="notes-count">
               {notes.length} note{notes.length !== 1 ? 's' : ''} saved
             </p>
           </div>
@@ -367,18 +383,21 @@ export default function MyNotesPage() {
               setShowEditor(true)
             }}
           >
-            + New Note
+            <Plus size={14} /> New Note
           </button>
         </div>
 
         <div className="notes-toolbar">
-          <input
-            type="text"
-            placeholder="🔍 Search notes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="notes-search"
-          />
+          <div className="notes-search-wrapper">
+            <Search size={16} className="notes-search-icon" />
+            <input
+              type="text"
+              placeholder="Search notes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="notes-search"
+            />
+          </div>
           <div className="subject-filters">
             {SUBJECTS.map((s) => (
               <button
@@ -396,22 +415,24 @@ export default function MyNotesPage() {
               type="button"
               className={view === 'grid' ? 'active' : ''}
               onClick={() => setView('grid')}
+              aria-label="Grid view"
             >
-              ⊞
+              <LayoutGrid size={16} />
             </button>
             <button
               type="button"
               className={view === 'list' ? 'active' : ''}
               onClick={() => setView('list')}
+              aria-label="List view"
             >
-              ☰
+              <List size={16} />
             </button>
           </div>
         </div>
 
         {pinnedNotes.length > 0 && (
           <div className="notes-section">
-            <h4 className="section-label">📌 Pinned</h4>
+            <h4 className="section-label"><Pin size={14} /> Pinned</h4>
             <div className={`notes-${view}`}>
               {pinnedNotes.map((note) => (
                 <NoteCard
@@ -437,7 +458,7 @@ export default function MyNotesPage() {
             <NotesSkeletonLoader />
           ) : unpinnedNotes.length === 0 && pinnedNotes.length === 0 ? (
             <div className="notes-empty">
-              <span className="empty-icon">📝</span>
+              <span className="empty-icon"><FileText size={48} /></span>
               <h3>No notes yet</h3>
               <p>Create your first note or generate one from the AI tutor</p>
               <button
@@ -445,7 +466,7 @@ export default function MyNotesPage() {
                 className="new-note-btn"
                 onClick={() => setShowEditor(true)}
               >
-                + Create Note
+                <Plus size={14} /> Create Note
               </button>
             </div>
           ) : (
