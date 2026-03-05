@@ -17,6 +17,7 @@ import { MdQuiz, MdSchool } from 'react-icons/md'
 import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
+import { useSaveLastPage } from '@/hooks/useSaveLastPage'
 
 interface NavItem {
     href: string
@@ -56,6 +57,7 @@ export default function DashboardLayout({
     const pathname = usePathname()
     const router = useRouter()
     const { user, logout } = useAuthStore()
+    useSaveLastPage()
     const { theme, toggleTheme } = useThemeStore()
     const { isInstallable, isInstalled, installApp } = usePWA()
 

@@ -1,6 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import ProgressAnalytics from '@/components/dashboard/ProgressAnalytics'
 import { FiBarChart2 } from 'react-icons/fi'
 
@@ -8,6 +9,7 @@ export default function AnalyticsPage() {
   return (
     <ProtectedRoute>
       <div>
+        <BackButton label="Dashboard" href="/dashboard" />
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">

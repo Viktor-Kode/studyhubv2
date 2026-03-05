@@ -1,6 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import Link from 'next/link'
 import { HiOutlineChat, HiOutlineArrowLeft } from 'react-icons/hi'
 
@@ -8,6 +9,7 @@ export default function ChatPage() {
   return (
     <ProtectedRoute>
       <div className="max-w-2xl mx-auto p-6">
+        <BackButton label="Dashboard" href="/dashboard" />
         <Link
           href="/dashboard/student"
           className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm mb-6"

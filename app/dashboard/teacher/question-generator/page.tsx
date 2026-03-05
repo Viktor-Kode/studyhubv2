@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { questionsApi } from '@/lib/api/questions'
 import { Zap, Save, Trash2, Edit2, CheckCircle, Lightbulb, Loader2 } from 'lucide-react'
 
@@ -166,15 +168,17 @@ function QuestionCard({
   )
 }
 
+const DEFAULT_FORM: GenForm = {
+  subject: '',
+  topic: '',
+  difficulty: 'medium',
+  type: 'MCQ',
+  count: 5,
+  examType: 'JAMB',
+}
+
 export default function QuestionGeneratorPage() {
-  const [form, setForm] = useState<GenForm>({
-    subject: '',
-    topic: '',
-    difficulty: 'medium',
-    type: 'MCQ',
-    count: 5,
-    examType: 'JAMB',
-  })
+  const [form, setForm] = usePersistedState<GenForm>('gen_form', DEFAULT_FORM)
   const [questions, setQuestions] = useState<GenQuestion[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -243,6 +247,7 @@ export default function QuestionGeneratorPage() {
   return (
     <ProtectedRoute allowedRoles={['teacher']}>
       <div className="generator-page w-full min-w-0">
+        <BackButton label="Dashboard" href="/dashboard" />
         <GeneratorTabsHeader />
 
         <div className="generator-form">

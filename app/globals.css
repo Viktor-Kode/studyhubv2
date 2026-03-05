@@ -4,6 +4,25 @@
 
 @import 'katex/dist/katex.min.css';
 
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4F46E5;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  transition: opacity 0.15s;
+  text-decoration: none;
+}
+.back-button:hover { opacity: 0.7; }
+.back-button:active { opacity: 0.5; }
+.dark .back-button { color: #818cf8; }
+
 @layer base {
   html {
     overflow-x: hidden;

@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { notesApi, type Note } from '@/lib/api/notesApi'
 import {
   FileText,
@@ -293,9 +295,9 @@ function NoteEditor({
 
 export default function MyNotesPage() {
   const [notes, setNotes] = useState<Note[]>([])
-  const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
+  const [view, setView] = usePersistedState<'grid' | 'list'>('notes_view', 'grid')
+  const [filter, setFilter] = usePersistedState<string>('notes_filter', 'all')
+  const [search, setSearch] = usePersistedState<string>('notes_search', '')
   const [showEditor, setShowEditor] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [loading, setLoading] = useState(true)
@@ -368,6 +370,7 @@ export default function MyNotesPage() {
   return (
     <ProtectedRoute>
       <div className="notes-page w-full min-w-0">
+        <BackButton label="Dashboard" href="/dashboard" />
         <GeneratorTabsHeader />
         <div className="notes-header">
           <div>

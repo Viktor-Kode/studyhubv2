@@ -1,6 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import { useState } from 'react'
 import { FiSettings, FiUser, FiBell, FiLock, FiMoon, FiGlobe, FiCheckCircle, FiAlertCircle, FiLoader, FiLogOut, FiTrash2 } from 'react-icons/fi'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -108,6 +109,7 @@ export default function SettingsPage() {
     return (
         <ProtectedRoute>
             <div className="max-w-4xl mx-auto">
+                <BackButton label="Dashboard" href="/dashboard" />
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                         <FiSettings className="text-gray-400" />

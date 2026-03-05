@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { cbtApi, ExamType, CBTQuestion, renderQuestion } from '@/lib/api/cbt'
 import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 import {
@@ -199,25 +201,33 @@ const subjectInstructions: Record<string, string> = {
 
 type ViewMode = 'exam-select' | 'configure' | 'instructions' | 'test' | 'results'
 
+const CBT_STORAGE_KEYS = ['cbt_exam', 'cbt_year', 'cbt_subject', 'cbt_school', 'cbt_count', 'cbt_viewMode', 'cbt_questions', 'cbt_currentIndex', 'cbt_answers', 'cbt_timeRemaining']
+
+function clearCbtPersistedState() {
+  CBT_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k))
+  localStorage.removeItem('examEndTime')
+  localStorage.removeItem('examActive')
+  localStorage.removeItem('examId')
+}
+
 export default function CBTPage() {
-  // Navigation state
-  const [viewMode, setViewMode] = useState<ViewMode>('exam-select')
+  // Persisted selection state
+  const [selectedExam, setSelectedExam] = usePersistedState<ExamType | null>('cbt_exam', null)
+  const [selectedYear, setSelectedYear] = usePersistedState<string>('cbt_year', '')
+  const [selectedSubject, setSelectedSubject] = usePersistedState<string>('cbt_subject', '')
+  const [selectedSchool, setSelectedSchool] = usePersistedState<string>('cbt_school', '')
+  const [questionCount, setQuestionCount] = usePersistedState<number>('cbt_count', 40)
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>('cbt_viewMode', 'exam-select')
 
-  // Selection state
-  const [selectedExam, setSelectedExam] = useState<ExamType | null>(null)
-  const [selectedYear, setSelectedYear] = useState<string>('')
-  const [selectedSubject, setSelectedSubject] = useState<string>('')
-  const [selectedSchool, setSelectedSchool] = useState<string>('')
-  const [questionCount, setQuestionCount] = useState<number>(40)
+  // Persisted test state (survives refresh)
+  const [questions, setQuestions] = usePersistedState<Question[]>('cbt_questions', [])
+  const [currentIndex, setCurrentIndex] = usePersistedState<number>('cbt_currentIndex', 0)
+  const [selectedAnswers, setSelectedAnswers] = usePersistedState<Record<string, number>>('cbt_answers', {})
+  const [timeRemaining, setTimeRemaining] = usePersistedState<number>('cbt_timeRemaining', 0)
 
-  // Data state
+  // Data state (not persisted)
   const [availableYears, setAvailableYears] = useState<string[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
-  const [questions, setQuestions] = useState<Question[]>([])
-
-  // Test state
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set())
   const [showCalculator, setShowCalculator] = useState(false)
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
@@ -225,7 +235,6 @@ export default function CBTPage() {
   const [summary, setSummary] = useState<any>(null)
   const { user } = useAuthStore()
   const [showResults, setShowResults] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [showQuestionPanel, setShowQuestionPanel] = useState(false)
 
@@ -252,21 +261,25 @@ export default function CBTPage() {
     }
   }, [selectedExam, selectedYear])
 
-  // Timer
+  // Timer — resume test if we have persisted questions and valid time
   useEffect(() => {
-    // Clear stale timer state on mount. We cannot resume a test after refresh
-    // because questions are lost — resuming would show a blank page.
-    const endTimeStr = localStorage.getItem('examEndTime');
-    const examActive = localStorage.getItem('examActive');
-    if (examActive && endTimeStr) {
-      const endTime = parseInt(endTimeStr, 10);
-      const remaining = Math.floor((endTime - Date.now()) / 1000);
-      if (remaining <= 0) {
-        localStorage.removeItem('examEndTime');
-        localStorage.removeItem('examActive');
-        localStorage.removeItem('examId');
+    const endTimeStr = localStorage.getItem('examEndTime')
+    const examActive = localStorage.getItem('examActive')
+    if (examActive && endTimeStr && questions.length > 0) {
+      const endTime = parseInt(endTimeStr, 10)
+      const remaining = Math.floor((endTime - Date.now()) / 1000)
+      if (remaining > 0 && !isTimerRunning && !showResults) {
+        setTimeRemaining(remaining)
+        setIsTimerRunning(true)
+        setViewMode('test')
+      } else if (remaining <= 0) {
+        clearCbtPersistedState()
+        setViewMode('exam-select')
       }
-      // Don't resume to test — questions aren't persisted; would cause blank page
+    } else if (examActive && (!endTimeStr || questions.length === 0)) {
+      localStorage.removeItem('examEndTime')
+      localStorage.removeItem('examActive')
+      localStorage.removeItem('examId')
     }
 
     if (isTimerRunning && timeRemaining > 0 && !showResults) {
@@ -422,11 +435,7 @@ export default function CBTPage() {
   const handleSubmitTest = async () => {
     setIsTimerRunning(false)
     setShowResults(true)
-
-    // Clear the timer
-    localStorage.removeItem('examEndTime');
-    localStorage.removeItem('examActive');
-    localStorage.removeItem('examId');
+    clearCbtPersistedState()
 
     // Calculate final score
     const finalScore = getScore()
@@ -501,6 +510,7 @@ export default function CBTPage() {
   }
 
   const resetAll = () => {
+    clearCbtPersistedState()
     setSelectedExam(null)
     setSelectedYear('')
     setSelectedSubject('')
@@ -534,10 +544,30 @@ export default function CBTPage() {
     )
   }
 
+  // Warn before leaving active exam
+  useEffect(() => {
+    if (viewMode !== 'test' || questions.length === 0) return
+    const handlePopState = () => {
+      const confirmed = window.confirm('You have an active exam. Leaving will lose your progress. Are you sure?')
+      if (!confirmed) window.history.pushState(null, '', window.location.href)
+    }
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      ;(e as any).returnValue = ''
+    }
+    window.history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [viewMode, questions.length])
+
   return (
     <ProtectedRoute>
       <div>
-
+        <BackButton label="Dashboard" href="/dashboard" />
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
