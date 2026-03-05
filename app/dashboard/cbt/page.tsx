@@ -254,24 +254,20 @@ export default function CBTPage() {
 
   // Timer
   useEffect(() => {
-    // Resume timer if active in localStorage
-    const resumeTimerIfActive = () => {
-      const endTimeStr = localStorage.getItem('examEndTime');
-      const examActive = localStorage.getItem('examActive');
-      if (!examActive || !endTimeStr) return;
-      const endTime = parseInt(endTimeStr);
+    // Clear stale timer state on mount. We cannot resume a test after refresh
+    // because questions are lost — resuming would show a blank page.
+    const endTimeStr = localStorage.getItem('examEndTime');
+    const examActive = localStorage.getItem('examActive');
+    if (examActive && endTimeStr) {
+      const endTime = parseInt(endTimeStr, 10);
       const remaining = Math.floor((endTime - Date.now()) / 1000);
-      if (remaining > 0 && !isTimerRunning && !showResults) {
-        setTimeRemaining(remaining);
-        setIsTimerRunning(true);
-        setViewMode('test');
-      } else if (remaining <= 0 && examActive) {
+      if (remaining <= 0) {
         localStorage.removeItem('examEndTime');
         localStorage.removeItem('examActive');
         localStorage.removeItem('examId');
       }
-    };
-    resumeTimerIfActive();
+      // Don't resume to test — questions aren't persisted; would cause blank page
+    }
 
     if (isTimerRunning && timeRemaining > 0 && !showResults) {
       const interval = setInterval(() => {
@@ -884,7 +880,20 @@ export default function CBTPage() {
           </div>
         )}
 
-        {/* ====== TEST VIEW ====== */}
+        {/* ====== TEST VIEW (fallback if no questions e.g. after refresh) ====== */}
+        {viewMode === 'test' && !currentQuestion && questions.length === 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 text-center max-w-md mx-auto">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Your exam session was lost (e.g. after a page refresh). Please start a new exam.
+            </p>
+            <button
+              onClick={resetAll}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition"
+            >
+              Start New Exam
+            </button>
+          </div>
+        )}
         {viewMode === 'test' && currentQuestion && (
           <div className="cbt-wrapper">
             {/* Header */}
