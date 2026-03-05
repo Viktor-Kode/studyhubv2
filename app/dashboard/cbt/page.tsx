@@ -1002,7 +1002,7 @@ export default function CBTPage() {
                   onClick={handleFlagQuestion}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg transition ${flaggedQuestions.has(currentIndex)
                     ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                    : 'bg-gray-100 dark:bg-gray-200 text-gray-700 hover:bg-yellow-50'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
                     }`}
                 >
                   <FiTarget className="text-xs" />
