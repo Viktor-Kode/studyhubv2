@@ -9,8 +9,7 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts'
-import { auth } from '@/lib/firebase'
-import { waitForAuth } from '@/lib/store/authStore'
+import { useAuthStore } from '@/lib/store/authStore'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { apiClient } from '@/lib/api/client'
@@ -510,42 +509,58 @@ const TABS = [
   { id: 'activity', label: 'Activity' },
 ]
 
+const DEFAULT_STATS: AdminStats = {
+  users: { total: 0, today: 0, thisWeek: 0, thisMonth: 0, activeSubscriptions: 0, weeklyPlans: 0, monthlyPlans: 0, conversionRate: '0%' },
+  revenue: { total: 0, formatted: '₦0' },
+  activity: { totalCBT: 0, cbtToday: 0, totalStudySessions: 0, studySessionsToday: 0, totalFlashcardReviews: 0, activeStreaks: 0, totalNotes: 0 },
+  charts: { dailySignups: [], topSubjects: [] },
+  recentUsers: [],
+  recentTransactions: [],
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [notAdmin, setNotAdmin] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkAdminAndFetch = async () => {
+    const isAdmin = user?.role === 'admin'
+    if (!user) {
+      setLoading(false)
+      return
+    }
+    if (!isAdmin) {
+      setNotAdmin(true)
+      setLoading(false)
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      setStats((s) => s ?? DEFAULT_STATS)
+      setLoading(false)
+    }, 5000)
+
+    const fetchStats = async () => {
       try {
-        const user = await waitForAuth()
-        if (!user) {
-          router.replace('/auth/login')
-          return
-        }
-        // Force refresh token to get latest custom claims
-        const tokenResult = await user.getIdTokenResult(true)
-        const isAdmin = tokenResult.claims.admin === true || tokenResult.claims.role === 'admin';
-        if (!isAdmin) {
-          setNotAdmin(true)
-          setLoading(false)
-          return
-        }
-        // Fetch stats (apiClient already attaches Bearer token)
         const res = await apiClient.get('/admin/stats')
         if (res.data?.success) setStats(res.data.stats)
-        else router.replace('/dashboard')
+        else setStats(DEFAULT_STATS)
       } catch (err) {
-        console.error('Admin check failed:', err)
-        router.replace('/dashboard')
+        console.error('Admin stats fetch failed:', err)
+        setStats(DEFAULT_STATS)
+        setApiError('Admin API not configured. Showing placeholder data.')
       } finally {
+        clearTimeout(timeout)
         setLoading(false)
       }
     }
-    checkAdminAndFetch()
-  }, [router])
+    fetchStats()
+    return () => clearTimeout(timeout)
+  }, [user])
 
   if (loading) {
     return (
@@ -572,15 +587,20 @@ export default function AdminDashboardPage() {
       </ProtectedRoute>
     )
   }
-  if (!stats) return null
+  if (!stats) return <div className="admin-loading">Loading...</div>
 
-  const totalUsers = stats.users.total || 1
+  const totalUsers = Math.max(stats.users.total || 1, 1)
   const freeCount = totalUsers - stats.users.activeSubscriptions
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
       <div className="admin-page">
         <BackButton label="Dashboard" href="/dashboard" />
+        {apiError && (
+          <div className="admin-api-error">
+            {apiError}
+          </div>
+        )}
 
         <div className="admin-header">
           <div>
