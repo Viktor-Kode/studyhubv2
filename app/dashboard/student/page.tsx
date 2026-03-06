@@ -21,6 +21,7 @@ import { classService, Class } from '@/lib/services/classService'
 import { reminderService, Reminder } from '@/lib/services/reminderService'
 import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 import { paymentApi } from '@/lib/api/paymentApi'
+import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore()
@@ -32,6 +33,7 @@ export default function StudentDashboardPage() {
     studyHoursToday: '0m',
     studyStreak: 0,
     longestStreak: 0,
+    studiedToday: false,
     completedSessions: 0,
     totalFlashcards: 0,
     masteredCards: 0,
@@ -69,6 +71,7 @@ export default function StudentDashboardPage() {
             studyHoursToday: sumData.studyTimer.todayTime || '0m',
             studyStreak: sumData.streak.current || 0,
             longestStreak: sumData.streak.longest || 0,
+            studiedToday: sumData.streak.studiedToday || false,
             completedSessions: sumData.studyTimer.totalSessions || 0,
             totalFlashcards: sumData.flashcards.totalCards || 0,
             masteredCards: sumData.flashcards.mastered || 0,
@@ -201,6 +204,7 @@ export default function StudentDashboardPage() {
   return (
     <ProtectedRoute allowedRoles={['student']}>
       <div className="space-y-8">
+        <WhatsAppChannelBanner />
 
         {/* Welcome Section */}
         <div className="mb-4">
@@ -212,11 +216,14 @@ export default function StudentDashboardPage() {
           </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1 mb-4">
             Have a productive learning session today.
-            {!loading && stats.studyStreak >= 1 && (
+            {!loading && stats.studyStreak >= 1 && stats.studiedToday && (
               <span className="ml-2 font-bold text-orange-500">🔥 {stats.studyStreak} Day Streak {stats.studyStreak >= 3 ? '— keep it up!' : ''}</span>
             )}
+            {!loading && stats.studyStreak >= 1 && !stats.studiedToday && (
+              <span className="ml-2 font-bold text-amber-600 dark:text-amber-400">Study today to keep your {stats.studyStreak} day streak!</span>
+            )}
             {!loading && stats.studyStreak === 0 && (
-              <span className="ml-2 font-medium text-blue-500">Study today to start your streak!</span>
+              <span className="ml-2 font-medium text-blue-500">Do any activity to start your streak!</span>
             )}
           </p>
           {nextClass && (
@@ -251,15 +258,20 @@ export default function StudentDashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+            <div className={`rounded-xl p-6 text-white shadow-lg ${stats.studyStreak > 0 && !stats.studiedToday ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-2 border-amber-400' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-100 mb-1">Study Streak</p>
                   <p className="text-3xl font-bold">{stats.studyStreak}</p>
-                  <p className="text-xs text-blue-100 mt-1">days in a row</p>
+                  <p className="text-xs text-white/80 mt-1">
+                    {stats.studyStreak === 0 && 'Do any activity to start'}
+                    {stats.studyStreak > 0 && stats.studiedToday && 'Done for today ✓'}
+                    {stats.studyStreak > 0 && !stats.studiedToday && 'Study today to keep it!'}
+                  </p>
+                  <p className="text-xs text-white/70 mt-1">Best: {stats.longestStreak} days</p>
                 </div>
                 <div className="bg-white/20 rounded-full p-3">
-                  <FiZap className="text-3xl" />
+                  <span className="text-3xl">🔥</span>
                 </div>
               </div>
             </div>

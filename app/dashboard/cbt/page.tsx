@@ -10,7 +10,7 @@ import {
   FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft,
   FiClock, FiAward, FiLoader, FiAlertTriangle,
   FiRefreshCw, FiHome, FiTarget, FiBookOpen,
-  FiChevronRight, FiList, FiGrid, FiInfo,
+  FiChevronRight, FiGrid, FiInfo,
   FiTrendingUp, FiCheck, FiX, FiFilter
 } from 'react-icons/fi'
 import Link from 'next/link'
@@ -21,7 +21,7 @@ import { MdOutlineQuiz, MdCalculate } from 'react-icons/md'
 import { BiTimer, BiStats, BiUserCircle } from 'react-icons/bi'
 import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
-import UpgradeModal from '@/components/UpgradeModal'
+import { useUpgrade } from '@/context/UpgradeContext'
 import { toast } from 'react-hot-toast'
 
 interface Question extends CBTQuestion { }
@@ -248,8 +248,7 @@ export default function CBTPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStage, setLoadingStage] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [upgradeMessage, setUpgradeMessage] = useState("")
+  const { showUpgrade } = useUpgrade()
 
   const currentExamConfig = examTypes.find(e => e.value === selectedExam)
 
@@ -378,9 +377,8 @@ export default function CBTPage() {
       setViewMode('instructions')
 
     } catch (err: any) {
-      if (err.response?.data?.upgradeRequired || err.message?.includes('Upgrade to access')) {
-        setUpgradeMessage(err.response?.data?.message || "Please upgrade your plan to access this subject.")
-        setShowUpgradeModal(true)
+      if (err.response?.data?.upgradeRequired || err.message?.includes('Upgrade to access') || err.response?.data?.code === 'CBT_LIMIT_REACHED') {
+        showUpgrade('cbt')
       } else {
         setError(err.message || 'Failed to load questions. Please check your internet connection.')
         toast.error(err.message || 'Failed to load questions')
@@ -536,21 +534,7 @@ export default function CBTPage() {
   const answeredCount = Object.keys(selectedAnswers).length
   const score = showResults ? getScore() : null
 
-  // Loading state
-  if (loading && loadingStage) {
-    return (
-      <ProtectedRoute>
-        <StudyGuideLoader
-          duration={3}
-          networkSpeed="medium"
-          text={loadingStage}
-          tooltipText="Fetching real past questions..."
-        />
-      </ProtectedRoute>
-    )
-  }
-
-  // Warn before leaving active exam
+  // Warn before leaving active exam — must be before any early return to satisfy Rules of Hooks
   useEffect(() => {
     if (viewMode !== 'test' || questions.length === 0) return
     const handlePopState = () => {
@@ -569,6 +553,20 @@ export default function CBTPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [viewMode, questions.length])
+
+  // Loading state — early return must come after all hooks
+  if (loading && loadingStage) {
+    return (
+      <ProtectedRoute>
+        <StudyGuideLoader
+          duration={3}
+          networkSpeed="medium"
+          text={loadingStage}
+          tooltipText="Fetching real past questions..."
+        />
+      </ProtectedRoute>
+    )
+  }
 
   return (
     <ProtectedRoute>
@@ -1158,10 +1156,10 @@ export default function CBTPage() {
 
         {/* ====== RESULTS VIEW ====== */}
         {viewMode === 'results' && score && (
-          <div className="space-y-6 max-w-3xl mx-auto">
+          <div className="result-page space-y-6">
 
             {/* Score Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 text-center shadow-lg">
+            <div className="result-summary">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${score.percentage >= 70
                 ? 'bg-green-100 dark:bg-green-900/30'
                 : score.percentage >= 50
@@ -1191,22 +1189,18 @@ export default function CBTPage() {
               </p>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{score.correct}</p>
-                  <p className="text-xs text-green-700 dark:text-green-300">Correct</p>
+              <div className="result-stats">
+                <div className="result-stat">
+                  <span className="num">{score.correct}</span>
+                  <span className="label">Correct</span>
                 </div>
-                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4">
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {score.attempted - score.correct}
-                  </p>
-                  <p className="text-xs text-red-700 dark:text-red-300">Wrong</p>
+                <div className="result-stat">
+                  <span className="num">{score.attempted - score.correct}</span>
+                  <span className="label">Wrong</span>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                  <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {score.total - score.attempted}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Skipped</p>
+                <div className="result-stat">
+                  <span className="num">{score.total - score.attempted}</span>
+                  <span className="label">Skipped</span>
                 </div>
               </div>
 
@@ -1231,102 +1225,68 @@ export default function CBTPage() {
 
 
             {/* Review Questions */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
-                <FiList className="text-blue-500" />
-                <h3 className="font-bold text-gray-900 dark:text-white">Review All Questions</h3>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            <div>
+              <h3 className="mb-3 font-bold text-gray-900 dark:text-white" style={{ fontSize: 16 }}>Review All Questions</h3>
+              <div className="answer-review-list">
                 {questions.map((q, idx) => {
                   const userAnswer = selectedAnswers[q.id]
                   const isCorrect = userAnswer === q.correctAnswer
                   const isAttempted = userAnswer !== undefined
                   const optionLetters = ['A', 'B', 'C', 'D', 'E']
+                  const cardClass = isCorrect ? 'correct' : isAttempted ? 'wrong' : 'skipped'
+                  const badgeClass = isCorrect ? 'badge-correct' : isAttempted ? 'badge-wrong' : 'badge-skipped'
+                  const badgeText = isCorrect ? 'Correct' : isAttempted ? 'Wrong' : 'Skipped'
 
                   return (
-                    <div key={q.id} className="p-5">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm ${!isAttempted
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-500'
-                          : isCorrect
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                            : 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                          }`}>
-                          {!isAttempted
-                            ? idx + 1
-                            : isCorrect
-                              ? <FiCheck className="text-xs" />
-                              : <FiX className="text-xs" />
-                          }
-                        </div>
-
-                        <div className="flex-1">
-                          {q.instruction && (
-                            <p className="text-xs text-amber-700 dark:text-amber-300 
-                                        bg-amber-50 dark:bg-amber-900/20 
-                                        border border-amber-200 dark:border-amber-800 
-                                        rounded-lg px-2 py-1 mb-2 inline-block">
-                              {q.instruction}
-                            </p>
-                          )}
-                          <p
-                            className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
-                          />
-                          <QuestionImage question={q} />
-                        </div>
+                    <div
+                      key={q.id}
+                      className={`answer-card ${cardClass}`}
+                    >
+                      <div className="answer-card-header">
+                        <span className="answer-q-num">Q{idx + 1}</span>
+                        <span className={`answer-status-badge ${badgeClass}`}>{badgeText}</span>
                       </div>
 
-                      <div className="ml-10 space-y-1.5">
+                      {q.instruction && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300 
+                                    bg-amber-50 dark:bg-amber-900/20 
+                                    border border-amber-200 dark:border-amber-800 
+                                    rounded-lg px-2 py-1 mb-2 inline-block">
+                          {q.instruction}
+                        </p>
+                      )}
+                      <p
+                        className="answer-question-text"
+                        dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
+                      />
+                      <QuestionImage question={q} />
+
+                      <div className="answer-options">
                         {q.options.map((opt, optIdx) => (
                           <div
                             key={optIdx}
-                            className={`flex items-center gap-2 p-2 rounded-lg text-sm ${optIdx === q.correctAnswer
-                              ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200'
-                              : optIdx === userAnswer && !isCorrect
-                                ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
-                                : 'text-gray-600 dark:text-gray-400'
-                              }`}
+                            className={`answer-option ${optIdx === q.correctAnswer ? 'correct-opt' : optIdx === userAnswer && !isCorrect ? 'user-wrong' : ''}`}
                           >
-                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${optIdx === q.correctAnswer
-                              ? 'bg-green-500 text-white'
-                              : optIdx === userAnswer && !isCorrect
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                              }`}>
-                              {optionLetters[optIdx]}
-                            </span>
+                            <span className="answer-opt-key">{optionLetters[optIdx]}.</span>
                             <span dangerouslySetInnerHTML={{ __html: renderQuestion(opt) }} />
-                            {optIdx === q.correctAnswer && (
-                              <FiCheckCircle className="text-green-500 ml-auto flex-shrink-0 text-xs" />
-                            )}
                           </div>
                         ))}
                       </div>
 
                       {(q.explanation || aiExplanations[q.id]) ? (
-                        <div className="ml-10 mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-                          <div className="flex items-start gap-2">
-                            <HiOutlineLightBulb className="text-blue-500 flex-shrink-0 mt-0.5 text-lg" />
-                            <div>
-                              <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Explanation</p>
-                              <p
-                                className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: renderQuestion(q.explanation || aiExplanations[q.id] || '') }}
-                              />
-                            </div>
-                          </div>
+                        <div className="answer-explanation">
+                          <span dangerouslySetInnerHTML={{ __html: renderQuestion(q.explanation || aiExplanations[q.id] || '') }} />
                         </div>
                       ) : (
                         <button
                           onClick={() => handleGetAiExplanation(q)}
                           disabled={isExplaining === q.id}
-                          className="ml-10 mt-3 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition"
+                          className="mt-3 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
                         >
                           {isExplaining === q.id ? (
                             <><FiLoader className="animate-spin" /> Generating Explanation...</>
                           ) : (
-                            <><HiOutlineLightBulb /> {isAttempted ? 'Why is this correct?' : 'Show solution & explanation'} Get AI Explanation</>
+                            <><HiOutlineLightBulb /> Get AI Explanation</>
                           )}
                         </button>
                       )}
@@ -1338,11 +1298,6 @@ export default function CBTPage() {
           </div>
         )}
       </div>
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        message={upgradeMessage}
-      />
     </ProtectedRoute >
   )
 }

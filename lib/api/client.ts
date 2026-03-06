@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 
 // Always use the internal Next.js proxy to forward requests to the backend
 const API_BASE_URL = '/api/backend'
@@ -51,6 +52,15 @@ apiClient.interceptors.response.use(
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
         console.error('[apiClient] Authentication failed permanently. Redirecting to login.')
         window.location.href = '/auth/login'
+      }
+    }
+
+    // Auto-show upgrade modal on 403 paywall responses
+    if (error.response?.status === 403) {
+      const data = error.response?.data
+      if (data?.showUpgrade || data?.upgradeRequired || data?.code) {
+        triggerUpgradeModal(data?.code || 'default')
+        return Promise.reject(error)
       }
     }
 

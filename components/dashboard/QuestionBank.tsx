@@ -10,6 +10,7 @@ import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTuto
 import { cbtApi } from '@/lib/api/cbt'
 import { extractTextFromFile } from '@/lib/utils/fileExtractor'
 import { toast } from 'react-hot-toast'
+import { useUpgrade } from '@/context/UpgradeContext'
 
 interface QuestionBankProps {
   className?: string
@@ -17,7 +18,14 @@ interface QuestionBankProps {
 
 type InputMode = 'upload' | 'manual'
 
+function isUpgradeError(msg: string): boolean {
+  const m = (msg || '').toLowerCase()
+  return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached')
+}
+
 export default function QuestionBank({ className = '' }: QuestionBankProps) {
+  const { showUpgrade } = useUpgrade()
+
   // Generation State
   const [inputMode, setInputMode] = useState<InputMode>('upload')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -122,17 +130,39 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     return false;
   };
 
-  // Handle Query Params
+  // Handle Query Params and sessionStorage (from "Practice with Quiz" in My Study Notes)
   useEffect(() => {
     const tabParam = searchParams.get('tab')
+    const sourceParam = searchParams.get('source')
     const textParam = searchParams.get('text')
 
     if (tabParam === 'notes') setActiveTab('notes')
     if (tabParam === 'quiz') setActiveTab('quiz')
 
+    // Prefer sessionStorage from Practice with Quiz (avoids URI length/decode issues)
+    if (sourceParam === 'notes' && typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('quiz_source_content')
+        if (stored) {
+          setManualText(stored)
+          setInputMode('manual')
+          sessionStorage.removeItem('quiz_source_content')
+          sessionStorage.removeItem('quiz_source_title')
+        }
+      } catch {
+        // ignore
+      }
+      return
+    }
+
+    // Fallback: text in URL (shorter notes only)
     if (textParam) {
-      setManualText(decodeURIComponent(textParam))
-      setInputMode('manual')
+      try {
+        setManualText(decodeURIComponent(textParam))
+        setInputMode('manual')
+      } catch {
+        // URI malformed — ignore to prevent crash
+      }
     }
   }, [searchParams])
 
@@ -295,7 +325,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
       setNewQuestions(response.data)
     } catch (err: any) {
-      setError(err.message || 'Failed to generate quiz')
+      const msg = err.message || ''
+      if (isUpgradeError(msg)) {
+        showUpgrade('ai')
+        return
+      }
+      setError(msg || 'Failed to generate quiz')
     } finally {
       setGenerating(false)
     }
@@ -353,7 +388,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setError('Failed to generate study notes. Please try again.')
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate study notes')
+      const msg = err.message || ''
+      if (isUpgradeError(msg)) {
+        showUpgrade('ai')
+        return
+      }
+      setError(msg || 'Failed to generate study notes')
     } finally {
       setGeneratingNotes(false)
     }
@@ -382,7 +422,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       const response = await chatWithTutor(userMsg, context, chatMessages)
       setChatMessages(prev => [...prev, { role: 'assistant', content: response.reply }])
     } catch (err: any) {
-      setError(err.message || 'Tutor failed to respond. Please try again.')
+      const msg = err.message || ''
+      if (isUpgradeError(msg)) {
+        showUpgrade('ai')
+        return
+      }
+      setError(msg || 'Tutor failed to respond. Please try again.')
     } finally {
       setIsChatting(false)
     }
@@ -414,7 +459,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
       const explanation = await cbtApi.getExplanation(qText, correctAnsText, q.options || [])
       setAiExplanations(prev => ({ ...prev, [q._id]: explanation }))
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.message || ''
+      if (isUpgradeError(msg)) {
+        showUpgrade('ai')
+        return
+      }
       console.error('Failed to get AI explanation:', err)
       toast.error('Failed to generate explanation.')
     } finally {

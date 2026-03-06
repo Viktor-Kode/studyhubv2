@@ -2,6 +2,8 @@
 
 import AuthSync from './AuthSync'
 import IOSInstallBanner from './IOSInstallBanner'
+import { UpgradeProvider } from '@/context/UpgradeContext'
+import UpgradeHandlerSetup from './UpgradeHandlerSetup'
 
 /**
  * Providers
@@ -71,10 +73,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <>
+        <UpgradeProvider>
             <AuthSync />
             <IOSInstallBanner />
+            <UpgradeHandlerSetup />
             {children}
-        </>
+        </UpgradeProvider>
     )
 }
