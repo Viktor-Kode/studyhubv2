@@ -213,7 +213,11 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     q.diagram ||
     q.img ||
     q.image_url ||
+    q.imageUrl ||
     q.questionImage ||
+    q.picture ||
+    q.figure ||
+    q.image_link ||
     null
 
   return {

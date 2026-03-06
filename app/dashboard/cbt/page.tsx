@@ -27,28 +27,34 @@ import { toast } from 'react-hot-toast'
 interface Question extends CBTQuestion { }
 
 function QuestionImage({ question }: { question: CBTQuestion }) {
+  const [imgError, setImgError] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
+
   const imageUrl =
     question?.image ||
     (question as any)?.diagram ||
     (question as any)?.img ||
     (question as any)?.image_url ||
+    (question as any)?.imageUrl ||
+    (question as any)?.picture ||
+    (question as any)?.figure ||
+    (question as any)?.image_link ||
     null
 
-  if (!imageUrl) return null
+  if (!imageUrl || imgError) return null
 
   return (
     <div className="question-diagram">
+      {!imgLoaded && <div className="diagram-skeleton" />}
       <img
         src={imageUrl}
         alt="Question diagram"
         className="diagram-img"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement
-          if (target?.parentElement) target.parentElement.style.display = 'none'
-        }}
-        onLoad={(e) => {
-          const target = e.target as HTMLImageElement
-          if (target) target.style.opacity = '1'
+        style={{ display: imgLoaded ? 'block' : 'none' }}
+        onLoad={() => setImgLoaded(true)}
+        onError={() => {
+          console.warn('[CBT] Image failed to load:', imageUrl)
+          setImgError(true)
         }}
       />
     </div>
@@ -1267,6 +1273,7 @@ export default function CBTPage() {
                             className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
                           />
+                          <QuestionImage question={q} />
                         </div>
                       </div>
 
