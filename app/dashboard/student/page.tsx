@@ -21,6 +21,7 @@ import { classService, Class } from '@/lib/services/classService'
 import { reminderService, Reminder } from '@/lib/services/reminderService'
 import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 import { paymentApi } from '@/lib/api/paymentApi'
+import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore()
@@ -201,6 +202,7 @@ export default function StudentDashboardPage() {
   return (
     <ProtectedRoute allowedRoles={['student']}>
       <div className="space-y-8">
+        <WhatsAppChannelBanner />
 
         {/* Welcome Section */}
         <div className="mb-4">

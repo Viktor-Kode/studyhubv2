@@ -126,7 +126,13 @@ export default function NotesHistory() {
                             </div>
                             <button
                                 onClick={() => {
-                                    window.location.href = '/dashboard/question-bank?tab=quiz&text=' + encodeURIComponent(selectedNote.content)
+                                    try {
+                                        sessionStorage.setItem('quiz_source_content', selectedNote.content)
+                                        sessionStorage.setItem('quiz_source_title', selectedNote.title || 'Study Note')
+                                        window.location.href = '/dashboard/question-bank?tab=quiz&source=notes'
+                                    } catch (e) {
+                                        toast.error('Note too large. Please copy the content and paste it manually in Question Bank.')
+                                    }
                                 }}
                                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
                             >

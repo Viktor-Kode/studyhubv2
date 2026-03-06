@@ -2181,3 +2181,92 @@ html {
   .uni-stats-row { gap: 8px; padding: 10px; }
   .uni-stat .stat-num { font-size: 18px; }
 }
+
+/* WhatsApp Channel Banner */
+.wa-channel-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ECFDF5;
+  border: 1.5px solid #6EE7B7;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.dark .wa-channel-banner {
+  background: rgba(6, 95, 70, 0.2);
+  border-color: #059669;
+}
+.wa-channel-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.wa-icon {
+  width: 42px;
+  height: 42px;
+  background: #25D366;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+.wa-channel-text strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #065F46;
+}
+.dark .wa-channel-text strong { color: #6EE7B7; }
+.wa-channel-text p {
+  font-size: 12px;
+  color: #059669;
+  margin: 2px 0 0;
+}
+.dark .wa-channel-text p { color: #34D399; }
+.wa-channel-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.wa-join-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #25D366;
+  color: white;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.wa-join-btn:hover { background: #1DAF57; color: white; }
+.wa-dismiss-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wa-dismiss-btn:hover { background: rgba(0,0,0,0.06); }
+.dark .wa-dismiss-btn { color: #9CA3AF; }
+.dark .wa-dismiss-btn:hover { background: rgba(255,255,255,0.08); }
+@media (max-width: 640px) {
+  .wa-channel-banner { flex-direction: row; align-items: center; }
+  .wa-channel-text strong { font-size: 13px; }
+  .wa-channel-text p { display: none; }
+}

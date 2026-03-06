@@ -530,21 +530,7 @@ export default function CBTPage() {
   const answeredCount = Object.keys(selectedAnswers).length
   const score = showResults ? getScore() : null
 
-  // Loading state
-  if (loading && loadingStage) {
-    return (
-      <ProtectedRoute>
-        <StudyGuideLoader
-          duration={3}
-          networkSpeed="medium"
-          text={loadingStage}
-          tooltipText="Fetching real past questions..."
-        />
-      </ProtectedRoute>
-    )
-  }
-
-  // Warn before leaving active exam
+  // Warn before leaving active exam — must be before any early return to satisfy Rules of Hooks
   useEffect(() => {
     if (viewMode !== 'test' || questions.length === 0) return
     const handlePopState = () => {
@@ -563,6 +549,20 @@ export default function CBTPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [viewMode, questions.length])
+
+  // Loading state — early return must come after all hooks
+  if (loading && loadingStage) {
+    return (
+      <ProtectedRoute>
+        <StudyGuideLoader
+          duration={3}
+          networkSpeed="medium"
+          text={loadingStage}
+          tooltipText="Fetching real past questions..."
+        />
+      </ProtectedRoute>
+    )
+  }
 
   return (
     <ProtectedRoute>

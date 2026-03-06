@@ -122,17 +122,39 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     return false;
   };
 
-  // Handle Query Params
+  // Handle Query Params and sessionStorage (from "Practice with Quiz" in My Study Notes)
   useEffect(() => {
     const tabParam = searchParams.get('tab')
+    const sourceParam = searchParams.get('source')
     const textParam = searchParams.get('text')
 
     if (tabParam === 'notes') setActiveTab('notes')
     if (tabParam === 'quiz') setActiveTab('quiz')
 
+    // Prefer sessionStorage from Practice with Quiz (avoids URI length/decode issues)
+    if (sourceParam === 'notes' && typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('quiz_source_content')
+        if (stored) {
+          setManualText(stored)
+          setInputMode('manual')
+          sessionStorage.removeItem('quiz_source_content')
+          sessionStorage.removeItem('quiz_source_title')
+        }
+      } catch {
+        // ignore
+      }
+      return
+    }
+
+    // Fallback: text in URL (shorter notes only)
     if (textParam) {
-      setManualText(decodeURIComponent(textParam))
-      setInputMode('manual')
+      try {
+        setManualText(decodeURIComponent(textParam))
+        setInputMode('manual')
+      } catch {
+        // URI malformed — ignore to prevent crash
+      }
     }
   }, [searchParams])
 
