@@ -1,5 +1,6 @@
 import { examSyllabi, getSyllabus, getSubjectsForExam, ExamType as SyllabusExamType } from '../data/examSyllabi'
 import { getFirebaseToken } from '../store/authStore'
+import { triggerUpgradeModal } from '../upgradeHandler'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 
@@ -373,6 +374,9 @@ export const cbtApi = {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
+        if (res.status === 403 && (errorData.upgradeRequired || errorData.showUpgrade || errorData.code === 'CBT_LIMIT_REACHED')) {
+          triggerUpgradeModal('cbt')
+        }
         throw new Error(errorData.message || errorData.error || `Server returned ${res.status}`)
       }
 

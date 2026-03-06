@@ -21,7 +21,7 @@ import { MdOutlineQuiz, MdCalculate } from 'react-icons/md'
 import { BiTimer, BiStats, BiUserCircle } from 'react-icons/bi'
 import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
-import UpgradeModal from '@/components/UpgradeModal'
+import { useUpgrade } from '@/context/UpgradeContext'
 import { toast } from 'react-hot-toast'
 
 interface Question extends CBTQuestion { }
@@ -242,8 +242,7 @@ export default function CBTPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStage, setLoadingStage] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [upgradeMessage, setUpgradeMessage] = useState("")
+  const { showUpgrade } = useUpgrade()
 
   const currentExamConfig = examTypes.find(e => e.value === selectedExam)
 
@@ -372,9 +371,8 @@ export default function CBTPage() {
       setViewMode('instructions')
 
     } catch (err: any) {
-      if (err.response?.data?.upgradeRequired || err.message?.includes('Upgrade to access')) {
-        setUpgradeMessage(err.response?.data?.message || "Please upgrade your plan to access this subject.")
-        setShowUpgradeModal(true)
+      if (err.response?.data?.upgradeRequired || err.message?.includes('Upgrade to access') || err.response?.data?.code === 'CBT_LIMIT_REACHED') {
+        showUpgrade('cbt')
       } else {
         setError(err.message || 'Failed to load questions. Please check your internet connection.')
         toast.error(err.message || 'Failed to load questions')
@@ -1331,11 +1329,6 @@ export default function CBTPage() {
           </div>
         )}
       </div>
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        message={upgradeMessage}
-      />
     </ProtectedRoute >
   )
 }
