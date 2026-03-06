@@ -2681,6 +2681,32 @@ html {
   .upgrade-modal { padding: 20px 16px; }
 }
 
+/* ─── STREAK CARD ───────────────────────────────── */
+.streak-card.at-risk {
+  border-color: #F59E0B;
+  background: #FFFBEB;
+}
+.streak-warning {
+  font-size: 11px;
+  color: #D97706;
+  font-weight: 600;
+}
+.streak-done {
+  font-size: 11px;
+  color: #10B981;
+  font-weight: 600;
+}
+.streak-sub {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+.streak-best {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 4px;
+  display: block;
+}
+
 /* ─── DASHBOARD ─────────────────────────────────── */
 .dashboard-grid {
   display: grid;
