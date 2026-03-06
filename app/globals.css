@@ -4,6 +4,57 @@
 
 @import 'katex/dist/katex.min.css';
 
+/* ─── GLOBAL MOBILE SAFETY NET ─────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Every element respects its container */
+img, video, svg, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tables never overflow — they scroll */
+table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+
+/* All text wraps — never pushes layout */
+p, h1, h2, h3, h4, h5, h6, span, li, td, th, label {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* All inputs full width on mobile */
+input, select, textarea {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* All page wrappers */
+.page, .page-wrapper, .container,
+.cbt-wrapper, .flashcard-hub, .generator-page,
+.notes-page, .analytics-page, .timer-page,
+.dashboard, .settings-page, .upgrade-page,
+.postutme-page, .result-page {
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
 .back-button {
   display: inline-flex;
   align-items: center;
@@ -907,6 +958,176 @@ html {
   margin: 0 auto;
 }
 
+/* ─── CBT RESULTS ───────────────────────────────── */
+.result-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 12px;
+  overflow-x: hidden;
+}
+
+.result-summary {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.dark .result-summary { background: #1f2937; }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.result-stat {
+  background: #F9FAFB;
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.dark .result-stat { background: #374151; }
+
+.result-stat .num {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #4F46E5;
+}
+.dark .result-stat .num { color: #818CF8; }
+
+.result-stat .label {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 2px;
+  display: block;
+}
+.dark .result-stat .label { color: #9CA3AF; }
+
+.answer-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.answer-card {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1.5px solid #E5E7EB;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dark .answer-card { background: #1f2937; border-color: #374151; }
+
+.answer-card.correct { border-left: 4px solid #10B981; }
+.answer-card.wrong { border-left: 4px solid #EF4444; }
+.answer-card.skipped { border-left: 4px solid #F59E0B; }
+
+.answer-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.answer-q-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dark .answer-q-num { color: #9CA3AF; }
+
+.answer-status-badge {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.badge-correct { background: #ECFDF5; color: #059669; }
+.dark .badge-correct { background: #064e3b; color: #6ee7b7; }
+.badge-wrong { background: #FEE2E2; color: #DC2626; }
+.dark .badge-wrong { background: #7f1d1d; color: #fca5a5; }
+.badge-skipped { background: #FEF3C7; color: #D97706; }
+.dark .badge-skipped { background: #78350f; color: #fcd34d; }
+
+.answer-question-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1F2937;
+  margin-bottom: 14px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.dark .answer-question-text { color: #F9FAFB; }
+
+.answer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.answer-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #F9FAFB;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.5;
+}
+.dark .answer-option { background: #374151; }
+
+.answer-option.correct-opt {
+  background: #ECFDF5;
+  color: #065F46;
+  font-weight: 600;
+}
+.dark .answer-option.correct-opt { background: #064e3b; color: #6ee7b7; }
+
+.answer-option.user-wrong {
+  background: #FEE2E2;
+  color: #991B1B;
+  text-decoration: line-through;
+}
+.dark .answer-option.user-wrong { background: #7f1d1d; color: #fca5a5; }
+
+.answer-opt-key {
+  font-weight: 700;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.answer-explanation {
+  background: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+  padding: 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.dark .answer-explanation { background: #78350f; border-color: #f59e0b; color: #fde68a; }
+
 /* Mobile breakpoint */
 @media (max-width: 640px) {
   .cbt-wrapper {
@@ -945,6 +1166,12 @@ html {
     flex-direction: column;
     text-align: center;
   }
+
+  .result-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .result-stat .num { font-size: 18px; }
+  .answer-question-text { font-size: 14px; }
+  .answer-option { font-size: 13px; padding: 8px 10px; }
+  .answer-card { padding: 14px 12px; }
 
   .diagram-img {
     max-height: 220px;
@@ -1218,56 +1445,53 @@ html {
 
 /* Generator top section (tabs header) */
 .generator-top-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
   width: 100%;
+  margin-bottom: 20px;
+  overflow: hidden;
 }
+
 .generator-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  margin-bottom: 14px;
 }
 .generator-title-block h2 {
   font-size: 20px;
   font-weight: 700;
-  margin: 0;
+  margin: 0 0 4px;
 }
 .generator-title-block p {
   font-size: 13px;
   color: #6B7280;
   margin: 0;
 }
+.dark .generator-title-block p { color: #9CA3AF; }
+
+/* Desktop — horizontal row, wraps before overflowing */
 .generator-tabs {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 4px;
   width: 100%;
-  box-sizing: border-box;
+  flex-wrap: wrap;
 }
-.generator-tabs::-webkit-scrollbar { display: none; }
 .generator-tab {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  flex-shrink: 0;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 9px 16px;
+  border-radius: 10px;
   border: 1.5px solid #E5E7EB;
   background: white;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
   color: #374151;
   transition: all 0.15s;
   text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
 }
+.dark .generator-tab { background: #1f2937; border-color: #374151; color: #e5e7eb; }
 .generator-tab.active {
   background: #4F46E5;
   color: white;
@@ -1277,19 +1501,21 @@ html {
   border-color: #4F46E5;
   color: #4F46E5;
 }
-@media (max-width: 640px) {
+
+/* Mobile — force full width stack */
+@media (max-width: 500px) {
   .generator-tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    overflow-x: visible;
     gap: 8px;
+    flex-wrap: unset;
   }
   .generator-tab {
-    flex-shrink: unset;
-    text-align: center;
-    padding: 10px 8px;
-    border-radius: 10px;
+    flex: unset;
+    width: 100%;
+    padding: 11px 8px;
     font-size: 12px;
+    border-radius: 10px;
   }
   .generator-tab:last-child:nth-child(odd) {
     grid-column: 1 / -1;
@@ -2453,4 +2679,138 @@ html {
 @media (max-width: 400px) {
   .upgrade-plans { grid-template-columns: 1fr; }
   .upgrade-modal { padding: 20px 16px; }
+}
+
+/* ─── DASHBOARD ─────────────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+/* ─── FLASHCARD HUB ─────────────────────────────── */
+.flashcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* ─── ANALYTICS CHARTS ──────────────────────────── */
+.chart-section {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.recharts-wrapper, .recharts-surface {
+  max-width: 100% !important;
+}
+
+/* ─── MODALS ────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  z-index: 500;
+}
+.modal-box, .uni-modal, .editor-modal,
+.calc-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  box-sizing: border-box;
+}
+
+/* ─── FORMS ─────────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ─── NOTES GRID ─────────────────────────────────── */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* ─── NAVIGATION BOTTOM BAR ─────────────────────── */
+.bottom-nav {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bottom-nav::-webkit-scrollbar { display: none; }
+.bottom-nav-item {
+  flex-shrink: 0;
+  flex: 1;
+  min-width: 60px;
+}
+
+/* ─── UPGRADE PAGE PLANS ─────────────────────────── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* ─── MOBILE BREAKPOINTS ─────────────────────────── */
+@media (max-width: 640px) {
+  .form-row,
+  .form-row.three-col,
+  .result-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .notes-grid {
+    grid-template-columns: 1fr;
+  }
+  .flashcard-grid {
+    grid-template-columns: 1fr;
+  }
+  .uni-grid {
+    grid-template-columns: 1fr;
+  }
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+  .upgrade-plans {
+    grid-template-columns: 1fr;
+  }
+  .history-table,
+  .analytics-table {
+    font-size: 12px;
+  }
+  .generate-btn,
+  .start-exam-btn,
+  .save-note-btn,
+  .new-note-btn {
+    width: 100%;
+  }
+  .question-card,
+  .answer-card,
+  .note-card,
+  .uni-card,
+  .plan-card {
+    padding: 12px;
+  }
+  h2 { font-size: 18px; }
+  h3 { font-size: 16px; }
+  .page-header h2 { font-size: 18px; }
+}
+
+@media (max-width: 380px) {
+  .dashboard-grid { grid-template-columns: 1fr 1fr; }
+  .result-stats { grid-template-columns: repeat(3, 1fr); }
+  .result-stat .num { font-size: 16px; }
+  .answer-question-text { font-size: 13px; }
+  .cbt-timer { font-size: 14px; }
 }
