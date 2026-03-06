@@ -31,8 +31,9 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       // User is logged in but doesn't have the right role
-      // Cross-role redirection as requested
-      if (user.role === 'teacher') {
+      if (user.role === 'admin') {
+        router.replace('/dashboard/admin')
+      } else if (user.role === 'teacher') {
         router.replace('/dashboard/teacher')
       } else {
         router.replace('/dashboard/student')

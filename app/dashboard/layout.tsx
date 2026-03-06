@@ -11,7 +11,7 @@ import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
-    FiGrid, FiFileText, FiCpu, FiBookOpen
+    FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool } from 'react-icons/md'
 import { BiCard } from 'react-icons/bi'
@@ -23,7 +23,7 @@ interface NavItem {
     href: string
     label: string
     icon: React.ElementType
-    roles?: ('student' | 'teacher')[]
+    roles?: ('student' | 'teacher' | 'admin')[]
 }
 
 const navItems: NavItem[] = [
@@ -47,6 +47,9 @@ const navItems: NavItem[] = [
 
     // Shared (but logically separates history by role maybe, both can use it)
     { href: '/dashboard/question-history', label: 'Quiz History', icon: FiFileText },
+
+    // Admin only
+    { href: '/dashboard/admin', label: 'Admin Dashboard', icon: FiShield, roles: ['admin'] },
 ]
 
 export default function DashboardLayout({
@@ -98,7 +101,7 @@ export default function DashboardLayout({
     // Filter nav items based on user role
     const filteredNavItems = navItems.filter(item => {
         if (!item.roles) return true
-        return user?.role && item.roles.includes(user.role as 'student' | 'teacher')
+        return user?.role && item.roles.includes(user.role as 'student' | 'teacher' | 'admin')
     })
 
     const isDark = theme === 'dark'

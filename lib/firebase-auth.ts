@@ -18,20 +18,41 @@ export type { AppRole, AppUser }
 
 /**
  * Fetch the user's data from Firestore.
+ * Role can be overridden by Firebase custom claims (e.g. admin).
  */
-export async function fetchAppUser(uid: string): Promise<AppUser | null> {
+export async function fetchAppUser(
+    uid: string,
+    firebaseUser?: FirebaseUser
+): Promise<AppUser | null> {
     try {
         const userDoc = await getDoc(doc(db, 'users', uid))
-        if (!userDoc.exists()) return null
+        const userData = userDoc.exists() ? userDoc.data() : {}
 
-        const userData = userDoc.data()
+        let role: AppRole = (userData.role as AppRole) || 'student'
+
+        // Firebase custom claims override Firestore for role (e.g. admin)
+        if (firebaseUser) {
+            try {
+                const tokenResult = await firebaseUser.getIdTokenResult(false)
+                const claimRole = tokenResult.claims.role as string
+                const claimAdmin = tokenResult.claims.admin === true
+                if (claimAdmin) {
+                    role = 'admin'
+                } else if (claimRole === 'admin' || claimRole === 'teacher' || claimRole === 'student') {
+                    role = claimRole as AppRole
+                }
+            } catch {
+                // Ignore token errors
+            }
+        }
+
         return {
             uid: uid,
-            email: userData.email || '',
-            name: userData.name || 'User',
-            role: userData.role as AppRole,
-            avatar: userData.avatar || undefined,
-            provider: userData.provider || 'password'
+            email: userData.email || firebaseUser?.email || '',
+            name: userData.name || firebaseUser?.displayName || 'User',
+            role,
+            avatar: userData.avatar || firebaseUser?.photoURL || undefined,
+            provider: (userData.provider as 'google' | 'password') || (firebaseUser?.providerData[0]?.providerId === 'google.com' ? 'google' : 'password')
         }
     } catch (error) {
         console.error('[fetchAppUser] Failed:', error)
@@ -89,8 +110,8 @@ export async function signInWithGoogle(): Promise<{ appUser: AppUser | null; fir
     provider.setCustomParameters({ prompt: 'select_account' })
     const { user } = await signInWithPopup(auth, provider)
 
-    // 1. Check Firestore for role
-    const appUser = await fetchAppUser(user.uid)
+    // 1. Check Firestore + custom claims for role
+    const appUser = await fetchAppUser(user.uid, user)
 
     return { appUser, firebaseUser: user }
 }
@@ -118,7 +139,7 @@ export async function loginWithEmail(
     password: string
 ): Promise<AppUser> {
     const { user } = await signInWithEmailAndPassword(auth, email, password)
-    const appUser = await fetchAppUser(user.uid)
+    const appUser = await fetchAppUser(user.uid, user)
     return appUser || buildAppUser(user, 'student')
 }
 
@@ -144,8 +165,8 @@ export function subscribeToAuthState(
             setLoading(false) // Stop the global loader early
 
             try {
-                // Then try to sync with Firestore for full profile/role
-                const appUser = await fetchAppUser(firebaseUser.uid)
+                // Sync with Firestore for full profile; merge Firebase custom claims (e.g. admin) for role
+                const appUser = await fetchAppUser(firebaseUser.uid, firebaseUser)
                 if (appUser) {
                     setUser(appUser)
                 }

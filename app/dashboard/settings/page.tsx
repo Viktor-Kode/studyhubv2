@@ -1,375 +1,743 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
+import {
+  User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
+  ChevronRight, Shield
+} from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
-import { useState } from 'react'
-import { FiSettings, FiUser, FiBell, FiLock, FiMoon, FiGlobe, FiCheckCircle, FiAlertCircle, FiLoader, FiLogOut, FiTrash2 } from 'react-icons/fi'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
-import { getFirebaseToken } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 
-export default function SettingsPage() {
-    const { user, logout } = useAuthStore()
-    const { theme, setTheme } = useThemeStore()
-    const router = useRouter()
-    const [activeTab, setActiveTab] = useState('profile')
-    const [isLoading, setIsLoading] = useState(false)
-    const [success, setSuccess] = useState('')
-    const [error, setError] = useState('')
+// ─── Profile Section ──────────────────────────────────────────────────────────
 
-    // Security form state
-    const [passwordForm, setPasswordForm] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-    })
+const AVAILABLE_SUBJECTS = [
+  'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology', 'Economics',
+  'Government', 'Literature', 'Geography', 'Commerce', 'Accounting', 'Agriculture'
+]
 
-    const handlePasswordChange = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError('')
-        setSuccess('')
+function ProfileSection({
+  user,
+  onSaved,
+}: {
+  user: { uid: string; email?: string; name?: string; avatar?: string } | null
+  onSaved: () => void
+}) {
+  const [form, setForm] = useState({
+    displayName: '',
+    phone: '',
+    examTarget: 'JAMB',
+    targetYear: String(new Date().getFullYear() + 1),
+    subjects: [] as string[],
+  })
+  const [loading, setLoading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-        if (passwordForm.newPassword.length < 6) {
-            setError('New password must be at least 6 characters')
-            return
-        }
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            setError('Passwords do not match')
-            return
-        }
+  useEffect(() => {
+    loadSettings()
+  }, [user?.uid])
 
-        setIsLoading(true)
-        try {
-            const { auth } = await import('@/lib/firebase')
-            const { updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth')
-
-            const user = auth.currentUser
-            if (!user || !user.email) throw new Error('No authenticated user found')
-
-            // Re-authenticate user before updating password (required by Firebase)
-            const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword)
-            await reauthenticateWithCredential(user, credential)
-
-            // Update password
-            await updatePassword(user, passwordForm.newPassword)
-
-            setSuccess('Password updated successfully!')
-            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-        } catch (err: any) {
-            console.error('Password update error:', err)
-            let msg = 'Failed to update password'
-            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-                msg = 'Incorrect current password'
-            } else if (err.code === 'auth/requires-recent-login') {
-                msg = 'Please sign out and sign in again to change your password'
-            } else {
-                msg = err.message || msg
-            }
-            setError(msg)
-        } finally {
-            setIsLoading(false)
-        }
+  const loadSettings = async () => {
+    if (!user?.uid) return
+    try {
+      const res = await apiClient.get('/settings')
+      const p = res.data?.profile || {}
+      setForm({
+        displayName: p.name ?? user.name ?? '',
+        phone: p.phone ?? '',
+        examTarget: p.examTarget ?? 'JAMB',
+        targetYear: String(p.targetYear ?? new Date().getFullYear() + 1),
+        subjects: p.subjects ?? [],
+      })
+      setAvatarPreview(p.avatar ?? user.avatar ?? null)
+    } catch {
+      setForm({
+        displayName: user.name ?? '',
+        phone: '',
+        examTarget: 'JAMB',
+        targetYear: String(new Date().getFullYear() + 1),
+        subjects: [],
+      })
+      setAvatarPreview(user.avatar ?? null)
     }
+  }
 
-    const handleLogout = async () => {
-        try {
-            await firebaseSignOut()
-        } catch { }
-        logout()
-        router.push('/auth/login')
+  const toggleSubject = (subject: string) => {
+    setForm((prev) => ({
+      ...prev,
+      subjects: prev.subjects.includes(subject)
+        ? prev.subjects.filter((s) => s !== subject)
+        : [...prev.subjects, subject],
+    }))
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be under 2MB')
+      return
     }
+    const reader = new FileReader()
+    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
-    const [profileForm, setProfileForm] = useState({
-        name: user?.name || '',
-        phone: (user as any)?.phone || ''
-    })
-
-    const handleProfileUpdate = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError('')
-        setSuccess('')
-        setIsLoading(true)
-
-        try {
-            const response = await apiClient.put('/settings', { profile: profileForm })
-            if (response.data.success) {
-                setSuccess('Profile updated successfully!')
-                // Update local auth state if needed, but AuthSync should handle it
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to update profile')
-        } finally {
-            setIsLoading(false)
-        }
+  const handleSave = async () => {
+    if (!form.displayName.trim()) {
+      alert('Display name cannot be empty')
+      return
     }
+    setLoading(true)
+    try {
+      await apiClient.put('/settings', {
+        profile: {
+          name: form.displayName,
+          phone: form.phone,
+          examTarget: form.examTarget,
+          targetYear: Number(form.targetYear),
+          subjects: form.subjects,
+          avatar: avatarPreview,
+        },
+      })
+      useAuthStore.getState().setUser({
+        ...user!,
+        name: form.displayName,
+        avatar: avatarPreview ?? undefined,
+      })
+      onSaved()
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to save')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    return (
-        <ProtectedRoute>
-            <div className="max-w-4xl mx-auto">
-                <BackButton label="Dashboard" href="/dashboard" />
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <FiSettings className="text-gray-400" />
-                        Settings
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">
-                        Manage your account preferences and application settings
-                    </p>
-                </div>
+  return (
+    <div className="settings-section">
+      <h3 className="section-title">Profile</h3>
 
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row min-h-[500px]">
-                    {/* Sidebar */}
-                    <div className="w-full md:w-64 bg-gray-50 dark:bg-gray-900/50 border-r border-gray-200 dark:border-gray-700 p-4 space-y-2">
-                        {[
-                            { id: 'profile', label: 'Profile Settings', icon: FiUser },
-                            { id: 'notifications', label: 'Notifications', icon: FiBell },
-                            { id: 'security', label: 'Security', icon: FiLock },
-                            { id: 'preferences', label: 'App Preferences', icon: FiMoon },
-                        ].map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => { setActiveTab(item.id); setError(''); setSuccess('') }}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
-                  ${activeTab === item.id
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'
-                                    }`}
-                            >
-                                <item.icon className="text-lg" />
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 p-8">
-                        {activeTab === 'profile' && (
-                            <form onSubmit={handleProfileUpdate} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Profile Settings</h2>
-
-                                {error && (
-                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
-                                        <FiAlertCircle className="text-red-500 flex-shrink-0 mt-0.5" />
-                                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-                                    </div>
-                                )}
-                                {success && (
-                                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-2">
-                                        <FiCheckCircle className="text-green-500 flex-shrink-0 mt-0.5" />
-                                        <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-6 mb-8">
-                                    <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-3xl font-bold text-blue-600 dark:text-blue-400">
-                                        {user?.name?.[0] || 'U'}
-                                    </div>
-                                    <div>
-                                        <p className="text-lg font-semibold text-gray-900 dark:text-white">{user?.name || 'User'}</p>
-                                        <p className="text-sm text-gray-500">{user?.email}</p>
-                                        <span className="inline-block mt-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium capitalize">
-                                            {user?.role || 'student'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Display Name</label>
-                                        <input
-                                            type="text"
-                                            value={profileForm.name}
-                                            onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">WhatsApp Number</label>
-                                        <input
-                                            type="text"
-                                            value={profileForm.phone}
-                                            onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                                            placeholder="+234..."
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Email Address</label>
-                                        <input
-                                            type="email"
-                                            defaultValue={user?.email || ''}
-                                            disabled
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed"
-                                        />
-                                        <p className="text-xs text-gray-400">Email cannot be changed</p>
-                                    </div>
-                                </div>
-
-                                <div className="pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold uppercase tracking-wide text-xs hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                        {isLoading && <FiLoader className="animate-spin" />}
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {activeTab === 'notifications' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Notification Preferences</h2>
-                                <div className="space-y-4">
-                                    {['Study Reminders', 'New Quiz Available', 'Weekly Progress Report', 'Achievement Unlocked'].map((item) => (
-                                        <div key={item} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">{item}</span>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" className="sr-only peer" defaultChecked />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'security' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Security Settings</h2>
-
-                                {/* Status Messages */}
-                                {error && (
-                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
-                                        <FiAlertCircle className="text-red-500 flex-shrink-0 mt-0.5" />
-                                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-                                    </div>
-                                )}
-                                {success && (
-                                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-2">
-                                        <FiCheckCircle className="text-green-500 flex-shrink-0 mt-0.5" />
-                                        <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
-                                    </div>
-                                )}
-
-                                {/* Change Password */}
-                                <form onSubmit={handlePasswordChange} className="space-y-4">
-                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Change Password</h3>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
-                                        <input
-                                            type="password"
-                                            value={passwordForm.currentPassword}
-                                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
-                                        <input
-                                            type="password"
-                                            value={passwordForm.newPassword}
-                                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Confirm New Password</label>
-                                        <input
-                                            type="password"
-                                            value={passwordForm.confirmPassword}
-                                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                        {isLoading ? <FiLoader className="animate-spin" /> : <FiLock />}
-                                        Update Password
-                                    </button>
-                                </form>
-
-                                {/* Divider */}
-                                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Account Actions</h3>
-
-                                    <div className="space-y-3">
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition text-gray-700 dark:text-gray-300 font-medium"
-                                        >
-                                            <FiLogOut />
-                                            Sign Out
-                                        </button>
-
-                                        <button className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition text-red-700 dark:text-red-300 font-medium">
-                                            <FiTrash2 />
-                                            Delete Account
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Auth Provider Info */}
-                                {(user as any)?.oauthProvider && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                                            <strong>Note:</strong> Your account is linked via {(user as any).oauthProvider}. Password changes only apply to email/password logins.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'preferences' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">App Preferences</h2>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <FiMoon className="text-gray-500" />
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">Dark Mode</span>
-                                        </div>
-                                        <select
-                                            value={theme}
-                                            onChange={(e) => setTheme(e.target.value as 'light' | 'dark')}
-                                            className="bg-transparent border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 cursor-pointer"
-                                        >
-                                            <option value="light">Light</option>
-                                            <option value="dark">Dark</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <FiGlobe className="text-gray-500" />
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">Language</span>
-                                        </div>
-                                        <select className="bg-transparent border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 cursor-pointer">
-                                            <option>English (US)</option>
-                                            <option>French</option>
-                                            <option>Spanish</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+      <div className="avatar-section">
+        <div className="avatar-wrapper">
+          {avatarPreview ? (
+            <img src={avatarPreview} alt="Avatar" className="avatar-img" />
+          ) : (
+            <div className="avatar-placeholder">
+              {form.displayName?.charAt(0)?.toUpperCase() || 'S'}
             </div>
-        </ProtectedRoute>
+          )}
+          <button
+            type="button"
+            className="avatar-edit-btn"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Camera size={14} />
+          </button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleAvatarChange}
+        />
+        <div>
+          <p className="avatar-name">{form.displayName || 'Student'}</p>
+          <p className="avatar-email">{user?.email}</p>
+        </div>
+      </div>
+
+      <div className="settings-form">
+        <div className="form-group">
+          <label>Display Name</label>
+          <input
+            className="settings-input"
+            value={form.displayName}
+            onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+            placeholder="Your full name"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Phone Number</label>
+          <input
+            className="settings-input"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            placeholder="e.g. 08012345678"
+            type="tel"
+          />
+          <span className="field-hint">Used for WhatsApp notifications</span>
+        </div>
+
+        <div className="form-group">
+          <label>Target Exam</label>
+          <select
+            className="settings-input"
+            value={form.examTarget}
+            onChange={(e) => setForm({ ...form, examTarget: e.target.value })}
+          >
+            <option value="JAMB">JAMB</option>
+            <option value="WAEC">WAEC</option>
+            <option value="NECO">NECO</option>
+            <option value="Post-UTME">Post-UTME</option>
+            <option value="JAMB+WAEC">JAMB + WAEC</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Target Year</label>
+          <select
+            className="settings-input"
+            value={form.targetYear}
+            onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
+          >
+            {[2025, 2026, 2027, 2028].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>My Subjects</label>
+          <div className="subjects-grid">
+            {AVAILABLE_SUBJECTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`subject-chip ${form.subjects.includes(s) ? 'selected' : ''}`}
+                onClick={() => toggleSubject(s)}
+              >
+                {form.subjects.includes(s) && <Check size={12} />}
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="save-btn"
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? 'Saving...' : 'Save Profile'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Account Section ───────────────────────────────────────────────────────────
+
+function AccountSection({
+  user,
+  onSaved,
+}: {
+  user: {
+    email?: string
+    provider?: string
+    plan?: { type: string }
+    providerData?: Array<{ providerId?: string }>
+  } | null
+  onSaved: () => void
+}) {
+  const [resetSent, setResetSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const isGoogleUser = user?.provider === 'google'
+  const planType = user?.plan?.type || 'free'
+  const isActive = planType !== 'free'
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return
+    setLoading(true)
+    setResetSent(false)
+    try {
+      const { auth } = await import('@/lib/firebase')
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      await sendPasswordResetEmail(auth, user.email)
+      setResetSent(true)
+    } catch (err: any) {
+      alert('Failed to send reset email: ' + (err?.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const isGoogle = isGoogleUser || (user as any)?.providerData?.[0]?.providerId === 'google.com'
+
+  return (
+    <div className="settings-section">
+      <h3 className="section-title">Account & Security</h3>
+
+      <div className="form-group">
+        <label>Email Address</label>
+        <div className="readonly-field">
+          <Mail size={16} />
+          <span>{user?.email}</span>
+          <span className="verified-badge">Verified</span>
+        </div>
+        <span className="field-hint">Email cannot be changed</span>
+      </div>
+
+      <div className="form-group">
+        <label>Subscription</label>
+        <div className="subscription-status">
+          <div className="sub-info">
+            <span className={`sub-badge ${isActive ? 'active' : 'free'}`}>
+              {isActive ? `${planType} Plan` : 'Free Plan'}
+            </span>
+          </div>
+          <a href="/dashboard/pricing" className="upgrade-link-btn">
+            {isActive ? 'Manage Plan' : 'Upgrade'}
+          </a>
+        </div>
+      </div>
+
+      {/* Password reset via Firebase (email users only) */}
+      {!isGoogle && (
+        <div className="form-group">
+          <label>Password</label>
+          <div className="password-reset-box">
+            <div>
+              <p className="reset-title">Reset Password</p>
+              <p className="reset-desc">
+                We will send a password reset link to <strong>{user?.email}</strong>
+              </p>
+            </div>
+            {resetSent ? (
+              <div className="reset-sent">
+                <Check size={14} /> Email sent!
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="reset-btn"
+                onClick={handlePasswordReset}
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Reset Email'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sign-in method */}
+      <div className="form-group">
+        <label>Sign-in Method</label>
+        <div className="signin-method">
+          {isGoogle ? (
+            <div className="provider-badge google">
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              Signed in with Google
+            </div>
+          ) : (
+            <div className="provider-badge email">
+              <Mail size={14} />
+              Signed in with Email
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Notifications Section ─────────────────────────────────────────────────────
+
+const NOTIFICATION_ITEMS = [
+  { key: 'streakReminder' as const, label: 'Daily Streak Reminder', desc: 'Get reminded if you have not studied today' },
+  { key: 'cbtResults' as const, label: 'CBT Result Notifications', desc: 'Receive your score after every CBT practice' },
+  { key: 'goalReminder' as const, label: 'Goal Reminders', desc: 'Get reminded about your study goals' },
+  { key: 'planExpiry' as const, label: 'Plan Expiry Warnings', desc: 'Be notified before your plan expires' },
+  { key: 'weeklyReport' as const, label: 'Weekly Progress Report', desc: 'Receive a summary of your weekly activity' },
+]
+
+const DEFAULT_PREFS = {
+  streakReminder: true,
+  cbtResults: true,
+  goalReminder: true,
+  planExpiry: true,
+  weeklyReport: false,
+}
+
+function NotificationsSection({
+  user,
+  onSaved,
+}: {
+  user: { phoneNumber?: string; phone?: string } | null
+  onSaved: () => void
+}) {
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS)
+  const [loading, setLoading] = useState(false)
+  const [profilePhone, setProfilePhone] = useState('')
+
+  useEffect(() => {
+    loadPrefs()
+  }, [])
+
+  const loadPrefs = async () => {
+    try {
+      const res = await apiClient.get('/settings')
+      const np = res.data?.notificationPrefs
+      if (np) setPrefs((p) => ({ ...p, ...np }))
+      const phone = res.data?.profile?.phone
+      if (phone) setProfilePhone(phone)
+    } catch {}
+  }
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      await apiClient.put('/settings', { notificationPrefs: prefs })
+      onSaved()
+    } catch {
+      alert('Failed to save notification preferences')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const hasPhone = !!(
+    profilePhone ||
+    (user as any)?.phoneNumber ||
+    (user as any)?.phone
+  )
+
+  return (
+    <div className="settings-section">
+      <h3 className="section-title">Notifications</h3>
+
+      {!hasPhone && (
+        <div className="warning-banner">
+          <Bell size={16} />
+          <p>Add a phone number in Profile to receive WhatsApp notifications</p>
+        </div>
+      )}
+
+      <div className="toggle-list">
+        {NOTIFICATION_ITEMS.map((item) => (
+          <div key={item.key} className="toggle-row">
+            <div className="toggle-info">
+              <span className="toggle-label">{item.label}</span>
+              <span className="toggle-desc">{item.desc}</span>
+            </div>
+            <button
+              type="button"
+              className={`toggle-switch ${prefs[item.key] ? 'on' : 'off'}`}
+              onClick={() =>
+                setPrefs((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
+              }
+            >
+              <div className="toggle-thumb" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        className="save-btn"
+        onClick={handleSave}
+        disabled={loading}
+      >
+        {loading ? 'Saving...' : 'Save Preferences'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Appearance Section ────────────────────────────────────────────────────────
+
+function AppearanceSection({ onSaved }: { onSaved: () => void }) {
+  const { theme, setTheme } = useThemeStore()
+  const [fontSize, setFontSize] = useState(() => {
+    if (typeof window === 'undefined') return 'medium'
+    return localStorage.getItem('fontSize') || 'medium'
+  })
+
+  const applyTheme = (t: 'light' | 'dark') => {
+    setTheme(t)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', t)
+    }
+    onSaved()
+  }
+
+  const applyFontSize = (size: string) => {
+    setFontSize(size)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fontSize', size)
+      const sizes: Record<string, string> = {
+        small: '14px',
+        medium: '16px',
+        large: '18px',
+      }
+      document.documentElement.style.fontSize = sizes[size] || sizes.medium
+    }
+    onSaved()
+  }
+
+  useEffect(() => {
+    const size = localStorage.getItem('fontSize') || 'medium'
+    const sizes: Record<string, string> = {
+      small: '14px',
+      medium: '16px',
+      large: '18px',
+    }
+    document.documentElement.style.fontSize = sizes[size] || sizes.medium
+  }, [])
+
+  return (
+    <div className="settings-section">
+      <h3 className="section-title">Appearance</h3>
+
+      <div className="form-group">
+        <label>Theme</label>
+        <div className="theme-options">
+          <button
+            type="button"
+            className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
+            onClick={() => applyTheme('light')}
+          >
+            <Sun size={18} />
+            Light
+          </button>
+          <button
+            type="button"
+            className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
+            onClick={() => applyTheme('dark')}
+          >
+            <Moon size={18} />
+            Dark
+          </button>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label>Text Size</label>
+        <div className="font-size-options">
+          {(['small', 'medium', 'large'] as const).map((size) => (
+            <button
+              key={size}
+              type="button"
+              className={`font-size-btn ${fontSize === size ? 'active' : ''}`}
+              onClick={() => applyFontSize(size)}
+            >
+              <span
+                style={{
+                  fontSize:
+                    size === 'small' ? '12px' : size === 'medium' ? '15px' : '18px',
+                }}
+              >
+                A
+              </span>
+              {size.charAt(0).toUpperCase() + size.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Danger Section ────────────────────────────────────────────────────────────
+
+function DangerSection() {
+  const router = useRouter()
+  const [confirmDelete, setConfirmDelete] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    if (confirmDelete !== 'DELETE') {
+      alert('Type DELETE to confirm')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await apiClient.delete('/users/me')
+      if (res.data?.success !== false) {
+        await firebaseSignOut().catch(() => {})
+        useAuthStore.getState().logout()
+        router.push('/auth/login')
+      } else {
+        alert(res.data?.message || 'Failed to delete account')
+      }
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        'Account deletion may not be supported. Contact support.'
+      alert(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleClearData = async () => {
+    const ok = window.confirm(
+      'This will clear all your study history, streaks, CBT results and flashcard progress. This cannot be undone. Continue?'
     )
+    if (!ok) return
+    try {
+      await apiClient.post('/users/clear-data')
+      alert('All study data cleared.')
+    } catch (err: any) {
+      alert(
+        err.response?.data?.message ||
+          'Clear data may not be supported. Your data may be stored locally.'
+      )
+    }
+  }
+
+  return (
+    <div className="settings-section">
+      <h3 className="section-title danger-title">Danger Zone</h3>
+
+      <div className="danger-item">
+        <div className="danger-info">
+          <span className="danger-label">Clear Study Data</span>
+          <span className="danger-desc">
+            Removes all streaks, CBT history, flashcard progress and study sessions.
+            Account stays active.
+          </span>
+        </div>
+        <button
+          type="button"
+          className="danger-btn secondary"
+          onClick={handleClearData}
+        >
+          Clear Data
+        </button>
+      </div>
+
+      <div className="danger-item">
+        <div className="danger-info">
+          <span className="danger-label">Delete Account</span>
+          <span className="danger-desc">
+            Permanently deletes your account and all data. This cannot be undone.
+          </span>
+        </div>
+      </div>
+
+      <div className="delete-confirm-section">
+        <p>
+          Type <strong>DELETE</strong> to confirm account deletion:
+        </p>
+        <input
+          className="settings-input danger-input"
+          value={confirmDelete}
+          onChange={(e) => setConfirmDelete(e.target.value)}
+          placeholder="Type DELETE here"
+        />
+        <button
+          type="button"
+          className="danger-btn primary"
+          onClick={handleDeleteAccount}
+          disabled={confirmDelete !== 'DELETE' || loading}
+        >
+          {loading ? 'Deleting...' : 'Delete My Account'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Settings Page ────────────────────────────────────────────────────────
+
+const SECTIONS = [
+  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'account', label: 'Account & Security', icon: Shield },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'appearance', label: 'Appearance', icon: Sun },
+  { id: 'danger', label: 'Danger Zone', icon: Trash2 },
+]
+
+export default function SettingsPage() {
+  const { user } = useAuthStore()
+  const router = useRouter()
+  const [activeSection, setActiveSection] = useState('profile')
+  const [saved, setSaved] = useState(false)
+
+  const showSaved = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await firebaseSignOut()
+    } catch {}
+    useAuthStore.getState().logout()
+    router.push('/auth/login')
+  }
+
+  return (
+    <ProtectedRoute>
+      <div className="settings-page">
+        <BackButton label="Dashboard" href="/dashboard" />
+
+        <div className="settings-header">
+          <h2>Settings</h2>
+          {saved && (
+            <div className="saved-toast">
+              <Check size={14} /> Saved successfully
+            </div>
+          )}
+        </div>
+
+        <div className="settings-layout">
+          <div className="settings-sidebar">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
+                onClick={() => setActiveSection(s.id)}
+              >
+                <s.icon size={18} />
+                <span>{s.label}</span>
+                <ChevronRight size={15} className="nav-arrow" />
+              </button>
+            ))}
+            <button
+              type="button"
+              className="settings-nav-item logout"
+              onClick={handleLogout}
+            >
+              <LogOut size={18} />
+              <span>Log Out</span>
+            </button>
+          </div>
+
+          <div className="settings-content">
+            {activeSection === 'profile' && (
+              <ProfileSection user={user} onSaved={() => { showSaved(); useAuthStore.getState().refreshUser() }} />
+            )}
+            {activeSection === 'account' && (
+              <AccountSection user={user} onSaved={showSaved} />
+            )}
+            {activeSection === 'notifications' && (
+              <NotificationsSection user={user} onSaved={showSaved} />
+            )}
+            {activeSection === 'appearance' && (
+              <AppearanceSection onSaved={showSaved} />
+            )}
+            {activeSection === 'danger' && <DangerSection />}
+          </div>
+        </div>
+      </div>
+    </ProtectedRoute>
+  )
 }
