@@ -67,7 +67,7 @@ export default function CTASection() {
                 className="flex-1 bg-white/5 border border-white/20 rounded-lg px-6 py-4 text-white placeholder-white/40 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
               />
               <Link
-                href="/signup"
+                href="/auth/signup"
                 className="group bg-cyan-400 text-black px-8 py-4 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105 flex items-center justify-center gap-2"
               >
                 <span>Get Started</span>

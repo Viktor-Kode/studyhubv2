@@ -43,6 +43,12 @@ export default function LandingNavbar() {
             </span>
           </Link>
           <div className="flex items-center space-x-4">
+            <Link
+              href="/#pricing"
+              className="text-white/60 hover:text-white font-medium transition-colors duration-300 uppercase tracking-wide text-sm hidden sm:inline"
+            >
+              Pricing
+            </Link>
             {!isAuthenticated ? (
               <>
                 <Link

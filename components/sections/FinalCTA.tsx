@@ -106,7 +106,7 @@ export default function FinalCTA() {
 
               {/* CTA Button */}
               <Link
-                href="/signup?role=teacher"
+                href="/auth/signup?role=teacher"
                 className="group block w-full bg-blue-500 text-white py-4 rounded-lg font-bold text-center hover:bg-blue-600 transition-all duration-300 hover:scale-105"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -140,7 +140,7 @@ export default function FinalCTA() {
 
               {/* CTA Button */}
               <Link
-                href="/signup?role=student"
+                href="/auth/signup?role=student"
                 className="group block w-full bg-emerald-500 text-white py-4 rounded-lg font-bold text-center hover:bg-emerald-600 transition-all duration-300 hover:scale-105"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -157,7 +157,7 @@ export default function FinalCTA() {
               Not sure which role? You can switch between dashboards anytime.
             </p>
             <Link
-              href="/signup"
+              href="/auth/signup"
               className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors duration-300"
             >
               Create Account

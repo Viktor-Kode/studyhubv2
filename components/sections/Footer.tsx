@@ -11,10 +11,11 @@ const footerLinks = {
     { label: 'AI Workflow', href: '#ai-workflow' },
     { label: 'Pricing', href: '#pricing' },
   ],
-  Company: [
-    { label: 'About', href: '#about' },
-    { label: 'Blog', href: '#blog' },
-    { label: 'Careers', href: '#careers' },
+  Account: [
+    { label: 'Log in', href: '/auth/login' },
+    { label: 'Sign up', href: '/auth/signup' },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Upgrade', href: '/dashboard/pricing' },
   ],
   Resources: [
     { label: 'Help Center', href: '#help' },
