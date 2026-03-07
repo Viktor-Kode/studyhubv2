@@ -83,9 +83,31 @@ function ProfileSection({
       alert('Image must be under 2MB')
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => setAvatarPreview(reader.result as string)
-    reader.readAsDataURL(file)
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.onload = () => {
+      const MAX = 200
+      let width = img.naturalWidth
+      let height = img.naturalHeight
+      if (width > height) {
+        if (width > MAX) {
+          height *= MAX / width
+          width = MAX
+        }
+      } else {
+        if (height > MAX) {
+          width *= MAX / height
+          height = MAX
+        }
+      }
+      canvas.width = width
+      canvas.height = height
+      ctx?.drawImage(img, 0, 0, width, height)
+      const compressed = canvas.toDataURL('image/jpeg', 0.7)
+      setAvatarPreview(compressed)
+    }
+    img.src = URL.createObjectURL(file)
   }
 
   const handleSave = async () => {
@@ -182,11 +204,41 @@ function ProfileSection({
             value={form.examTarget}
             onChange={(e) => setForm({ ...form, examTarget: e.target.value })}
           >
-            <option value="JAMB">JAMB</option>
-            <option value="WAEC">WAEC</option>
-            <option value="NECO">NECO</option>
-            <option value="Post-UTME">Post-UTME</option>
-            <option value="JAMB+WAEC">JAMB + WAEC</option>
+            <optgroup label="Secondary School">
+              <option value="JAMB">JAMB (UTME)</option>
+              <option value="WAEC">WAEC (SSCE)</option>
+              <option value="NECO">NECO</option>
+              <option value="NABTEB">NABTEB</option>
+              <option value="JAMB+WAEC">JAMB + WAEC (Both)</option>
+            </optgroup>
+            <optgroup label="University Admission">
+              <option value="Post-UTME">Post-UTME (General)</option>
+              <option value="Post-UTME-UNILAG">Post-UTME — UNILAG</option>
+              <option value="Post-UTME-OAU">Post-UTME — OAU</option>
+              <option value="Post-UTME-UI">Post-UTME — UI</option>
+              <option value="Post-UTME-UNILORIN">Post-UTME — UNILORIN</option>
+              <option value="Post-UTME-UNIBEN">Post-UTME — UNIBEN</option>
+              <option value="Post-UTME-UNN">Post-UTME — UNN</option>
+              <option value="Post-UTME-ABU">Post-UTME — ABU</option>
+              <option value="Post-UTME-LASU">Post-UTME — LASU</option>
+              <option value="Post-UTME-CU">Post-UTME — Covenant</option>
+              <option value="Post-UTME-BABCOCK">Post-UTME — Babcock</option>
+            </optgroup>
+            <optgroup label="University Student">
+              <option value="100L">100 Level (First Year)</option>
+              <option value="200L">200 Level</option>
+              <option value="300L">300 Level</option>
+              <option value="400L">400 Level</option>
+              <option value="500L">500 Level</option>
+              <option value="Postgraduate">Postgraduate</option>
+            </optgroup>
+            <optgroup label="Professional">
+              <option value="ICAN">ICAN</option>
+              <option value="ACCA">ACCA</option>
+              <option value="CIBN">CIBN</option>
+              <option value="NLE">NLE (Nursing)</option>
+              <option value="MDCN">MDCN (Medical)</option>
+            </optgroup>
           </select>
         </div>
 
