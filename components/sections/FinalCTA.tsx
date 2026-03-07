@@ -106,7 +106,7 @@ export default function FinalCTA() {
 
               {/* CTA Button */}
               <Link
-                href="/auth/signup?role=teacher"
+                href="/auth/signup"
                 className="group block w-full bg-blue-500 text-white py-4 rounded-lg font-bold text-center hover:bg-blue-600 transition-all duration-300 hover:scale-105"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -140,7 +140,7 @@ export default function FinalCTA() {
 
               {/* CTA Button */}
               <Link
-                href="/auth/signup?role=student"
+                href="/auth/signup"
                 className="group block w-full bg-emerald-500 text-white py-4 rounded-lg font-bold text-center hover:bg-emerald-600 transition-all duration-300 hover:scale-105"
               >
                 <span className="flex items-center justify-center gap-2">

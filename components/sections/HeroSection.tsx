@@ -153,7 +153,7 @@ export default function HeroSection() {
 
               {/* Teacher CTA */}
               <Link
-                href="/auth/signup?role=teacher"
+                href="/auth/signup"
                 className="hero-cta mt-4 group relative bg-blue-500 text-white px-8 py-4 rounded-lg hover:bg-blue-600 transition-all duration-300 font-bold text-lg uppercase tracking-wide overflow-hidden block text-center"
               >
                 <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
@@ -208,7 +208,7 @@ export default function HeroSection() {
 
               {/* Student CTA */}
               <Link
-                href="/auth/signup?role=student"
+                href="/auth/signup"
                 className="hero-cta mt-4 group relative bg-emerald-500 text-white px-8 py-4 rounded-lg hover:bg-emerald-600 transition-all duration-300 font-bold text-lg uppercase tracking-wide overflow-hidden block text-center"
               >
                 <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>

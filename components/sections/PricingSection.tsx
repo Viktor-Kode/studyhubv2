@@ -3,73 +3,61 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { FaCheck, FaStar, FaZap, FaAward, FaPlus } from 'react-icons/fa'
+import { FaCheck, FaChalkboardTeacher, FaUserGraduate, FaBuilding } from 'react-icons/fa'
 import Link from 'next/link'
 
 const plans = [
   {
-    name: 'Free',
-    icon: FaStar,
-    price: '₦0',
-    period: '',
-    features: [
-      '5 AI messages',
-      '3 flashcard sets',
-      'Basic CBT practice',
-      'Limited subjects',
-    ],
-    color: 'gray',
-    cta: 'Get Started',
-    href: '/auth/signup',
-    highlight: false,
-  },
-  {
-    name: 'Weekly',
-    icon: FaZap,
-    price: '₦600',
-    period: '/week',
-    features: [
-      '80 AI messages',
-      '40 flashcard sets',
-      'Full CBT access',
-      'Basic analytics',
-      'Study plan',
-    ],
-    color: 'blue',
-    cta: 'Get Weekly',
-    href: '/auth/signup',
-    highlight: false,
-  },
-  {
-    name: 'Monthly',
-    icon: FaAward,
-    price: '₦2,300',
+    name: 'Teacher Plan',
+    icon: FaChalkboardTeacher,
+    price: '₦29,000',
     period: '/month',
     features: [
-      '250 AI messages',
-      '120 flashcard sets',
-      'Full CBT + Exam Mode',
-      'Advanced analytics',
-      'Full study plan',
-      'Priority features',
+      'Unlimited AI question generation',
+      'All question types included',
+      'Class management tools',
+      'Student performance analytics',
+      'LMS integration',
+      'Export to multiple formats',
+    ],
+    color: 'blue',
+    cta: 'Start Teaching',
+    href: '/auth/signup',
+    highlight: false,
+  },
+  {
+    name: 'Student Plan',
+    icon: FaUserGraduate,
+    price: '₦9,000',
+    period: '/month',
+    features: [
+      'AI-generated practice questions',
+      'Study timer & Pomodoro',
+      'CGPA calculator & tracker',
+      'Study reminders',
+      'Progress analytics',
+      'Personalized question bank',
     ],
     color: 'emerald',
-    cta: 'Get Monthly',
+    cta: 'Start Learning',
     href: '/auth/signup',
     highlight: true,
   },
   {
-    name: 'AI Add-On',
-    icon: FaPlus,
-    price: '₦500',
+    name: 'Institution Plan',
+    icon: FaBuilding,
+    price: 'Custom',
     period: '',
     features: [
-      '+100 AI messages',
-      'Added to current plan',
-      'Never expires',
+      'Everything in Teacher & Student plans',
+      'Admin dashboard & controls',
+      'Multi-campus support',
+      'Custom integrations',
+      'Dedicated support',
+      'Advanced analytics',
     ],
     color: 'purple',
-    cta: 'Buy Add-On',
+    cta: 'Contact Sales',
     href: '/auth/signup',
     highlight: false,
   },
@@ -104,19 +92,16 @@ export default function PricingSection() {
   }, [])
 
   const colorClasses: Record<string, string> = {
-    gray: 'border-white/20 hover:border-white/40 bg-white/5',
     blue: 'border-blue-500/30 hover:border-blue-500/60 bg-blue-500/5',
     emerald: 'border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/5',
     purple: 'border-purple-500/30 hover:border-purple-500/60 bg-purple-500/5',
   }
   const textColorClasses: Record<string, string> = {
-    gray: 'text-white/80',
     blue: 'text-blue-400',
     emerald: 'text-emerald-400',
     purple: 'text-purple-400',
   }
   const btnClasses: Record<string, string> = {
-    gray: 'bg-white/20 text-white hover:bg-white/30',
     blue: 'bg-blue-500 text-white hover:bg-blue-600',
     emerald: 'bg-emerald-500 text-white hover:bg-emerald-600',
     purple: 'bg-purple-500 text-white hover:bg-purple-600',
@@ -129,15 +114,15 @@ export default function PricingSection() {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Simple, Transparent Pricing
+              Pricing by Role
             </h2>
             <p className="text-xl text-white/60 max-w-3xl mx-auto">
-              Choose the plan that fits your study journey. Unlock more AI power, tests, and features.
+              Choose the plan that fits your needs. One account, dual dashboard access.
             </p>
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map((plan, index) => {
               const Icon = plan.icon
               return (
@@ -193,11 +178,8 @@ export default function PricingSection() {
           {/* Note */}
           <div className="text-center mt-12">
             <p className="text-white/60 text-sm">
-              No credit card required for free plan. Log in to upgrade from your dashboard.
+              All plans include 14-day free trial. No credit card required.
             </p>
-            <Link href="/auth/signup" className="inline-block mt-4 text-cyan-400 hover:text-cyan-300 font-medium">
-              Create free account →
-            </Link>
           </div>
         </div>
       </div>
