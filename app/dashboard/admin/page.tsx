@@ -546,13 +546,36 @@ export default function AdminDashboardPage() {
 
     const fetchStats = async () => {
       try {
+        console.log('[Admin] Fetching stats...')
         const res = await apiClient.get('/admin/stats')
-        if (res.data?.success) setStats(res.data.stats)
-        else setStats(DEFAULT_STATS)
-      } catch (err) {
-        console.error('Admin stats fetch failed:', err)
+        console.log('[Admin] Response status:', res.status, 'data:', res.data?.success ? 'ok' : res.data)
+        if (res.data?.success) {
+          setStats(res.data.stats)
+          setApiError(null)
+        } else {
+          setStats(DEFAULT_STATS)
+          setApiError('API returned invalid data')
+        }
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status?: number; data?: unknown }; message?: string }
+        const status = axiosErr.response?.status
+        const data = axiosErr.response?.data
+        console.error('[Admin] Stats fetch failed:', { status, data, message: axiosErr.message })
         setStats(DEFAULT_STATS)
-        setApiError('Admin API not configured. Showing placeholder data.')
+        if (status === 403) {
+          setNotAdmin(true)
+          setApiError(null)
+        } else if (status === 401) {
+          setApiError('Session expired. Please log in again.')
+        } else if (status && status >= 500) {
+          setApiError(`Server error (${status}). Check backend logs.`)
+        } else {
+          setApiError(
+            status
+              ? `Request failed (${status}). ${(data as { message?: string })?.message || axiosErr.message || 'Unknown error'}`
+              : `Connection failed: ${axiosErr.message || 'Admin API not configured'}`
+          )
+        }
       } finally {
         clearTimeout(timeout)
         setLoading(false)
