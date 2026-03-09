@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users, TrendingUp, BookOpen, Zap, DollarSign, Activity, Award, Clock,
-  Search, ChevronLeft, ChevronRight, Shield, Trash2, Gift
+  Search, ChevronLeft, ChevronRight, Shield, Trash2, Gift, RefreshCw, X
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
@@ -71,6 +71,28 @@ interface AdminUser {
   createdAt: string
   role?: string
   phoneNumber?: string
+  lastSeen?: string
+  avatar?: string
+}
+
+interface OnlineUser {
+  _id: string
+  name?: string
+  email: string
+  subscriptionStatus?: string
+  subscriptionPlan?: string
+  lastSeen?: string
+  avatar?: string
+}
+
+// ─── Helper ────────────────────────────────────────────────────────────────────
+
+function getTimeAgo(date: string | Date | null | undefined): string {
+  if (!date) return 'never'
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 120) return '1 min ago'
+  return `${Math.floor(seconds / 60)} mins ago`
 }
 
 // ─── Metric Card ───────────────────────────────────────────────────────────────
@@ -175,9 +197,383 @@ function GrantPlanModal({
   )
 }
 
+// ─── Online Users ──────────────────────────────────────────────────────────────
+
+function OnlineUsers({
+  users,
+  onClickUser,
+}: {
+  users: OnlineUser[]
+  onClickUser: (user: OnlineUser) => void
+}) {
+  return (
+    <div className="online-users-card">
+      <div className="online-users-header">
+        <div className="online-title">
+          <div className="online-dot" />
+          <h3>Currently Online</h3>
+          <span className="online-count">{users.length}</span>
+        </div>
+        <span className="online-hint">Active in last 5 minutes</span>
+      </div>
+
+      {users.length === 0 ? (
+        <p className="empty-state">No users active right now</p>
+      ) : (
+        <div className="online-users-list">
+          {users.map((u) => (
+            <div
+              key={u._id}
+              className="online-user-row"
+              onClick={() => onClickUser(u)}
+              onKeyDown={(e) => e.key === 'Enter' && onClickUser(u)}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="online-user-left">
+                <div className="online-avatar-wrap">
+                  {u.avatar ? (
+                    <img src={u.avatar} alt={u.name || ''} className="online-avatar-img" />
+                  ) : (
+                    <div className="online-avatar">
+                      {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div className="online-indicator" />
+                </div>
+                <div>
+                  <span className="online-name">{u.name || 'Unknown'}</span>
+                  <span className="online-email">{u.email}</span>
+                </div>
+              </div>
+              <div className="online-user-right">
+                <span
+                  className={`plan-tag ${u.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
+                >
+                  {u.subscriptionPlan || 'free'}
+                </span>
+                <span className="online-time">{getTimeAgo(u.lastSeen)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── User Activity Drawer ──────────────────────────────────────────────────────
+
+function UserActivityDrawer({
+  userId,
+  onClose,
+}: {
+  userId: string
+  onClose: () => void
+}) {
+  const [data, setData] = useState<{
+    user: AdminUser & { lastSeen?: string }
+    stats: {
+      totalCBT: number
+      avgCBTAccuracy: number
+      totalStudyTime: number
+      totalNotes: number
+      totalTransactions: number
+      currentStreak: number
+      longestStreak: number
+      flashcardsReviewed: number
+      subjectBreakdown: Array<{ subject: string; attempts: number; avgAccuracy: number }>
+    }
+    recentCBT: Array<{
+      subject?: string
+      examType?: string
+      totalQuestions?: number
+      accuracy?: number
+      takenAt?: string
+    }>
+    recentSessions: Array<{
+      subject?: string
+      durationSeconds?: number
+      createdAt?: string
+    }>
+    notes: Array<{ title?: string; subject?: string; createdAt?: string }>
+    transactions: Array<{
+      plan?: string
+      reference?: string
+      amount?: number
+      createdAt?: string
+    }>
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('overview')
+
+  useEffect(() => {
+    const fetchUserActivity = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.get(`/admin/users/${userId}/activity`)
+        const result = res.data
+        if (result?.success) setData(result)
+      } catch (err) {
+        console.error('Activity fetch error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUserActivity()
+  }, [userId])
+
+  return (
+    <div className="drawer-overlay" onClick={onClose} role="presentation">
+      <div className="activity-drawer" onClick={(e) => e.stopPropagation()} role="dialog">
+        <div className="drawer-header">
+          <div className="drawer-user-info">
+            <div className="drawer-avatar">
+              {data?.user?.avatar ? (
+                <img src={data.user.avatar} alt="" />
+              ) : (
+                <span>{data?.user?.name?.charAt(0) || 'U'}</span>
+              )}
+            </div>
+            <div>
+              <h3>{data?.user?.name || 'Loading...'}</h3>
+              <p>{data?.user?.email}</p>
+            </div>
+          </div>
+          <button type="button" className="drawer-close" onClick={onClose} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="drawer-loading">Loading activity...</div>
+        ) : data ? (
+          <>
+            <div className="drawer-meta">
+              <div className="drawer-meta-item">
+                <span className="meta-label">Plan</span>
+                <span
+                  className={`plan-tag ${data.user.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
+                >
+                  {data.user.subscriptionPlan || 'Free'}
+                </span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="meta-label">Joined</span>
+                <span>
+                  {new Date(data.user.createdAt).toLocaleDateString('en-NG', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="meta-label">Last Seen</span>
+                <span>{getTimeAgo(data.user.lastSeen)}</span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="meta-label">Expires</span>
+                <span>
+                  {data.user.subscriptionEnd
+                    ? new Date(data.user.subscriptionEnd).toLocaleDateString('en-NG', {
+                        day: 'numeric',
+                        month: 'short',
+                      })
+                    : '—'}
+                </span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="meta-label">AI Used</span>
+                <span>
+                  {data.user.aiUsageCount ?? 0}/{data.user.aiUsageLimit ?? 0}
+                </span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="meta-label">Phone</span>
+                <span>{data.user.phoneNumber || '—'}</span>
+              </div>
+            </div>
+
+            <div className="drawer-tabs">
+              {['overview', 'cbt', 'sessions', 'payments'].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`drawer-tab ${activeTab === t ? 'active' : ''}`}
+                  onClick={() => setActiveTab(t)}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'overview' && (
+              <div className="drawer-content">
+                <div className="drawer-stats">
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.totalCBT}</span>
+                    <span className="dstat-label">CBT Tests</span>
+                  </div>
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.avgCBTAccuracy}%</span>
+                    <span className="dstat-label">Avg Accuracy</span>
+                  </div>
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.totalStudyTime}m</span>
+                    <span className="dstat-label">Study Time</span>
+                  </div>
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.currentStreak}</span>
+                    <span className="dstat-label">Streak</span>
+                  </div>
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.totalNotes}</span>
+                    <span className="dstat-label">Notes</span>
+                  </div>
+                  <div className="drawer-stat">
+                    <span className="dstat-num">{data.stats.longestStreak}</span>
+                    <span className="dstat-label">Best Streak</span>
+                  </div>
+                </div>
+
+                {data.stats.subjectBreakdown.length > 0 && (
+                  <div className="drawer-section">
+                    <h4>Subject Performance</h4>
+                    {data.stats.subjectBreakdown.map((s) => (
+                      <div key={s.subject} className="subject-perf-row">
+                        <span className="subj-name">{s.subject}</span>
+                        <div className="subj-bar-wrap">
+                          <div className="subj-bar" style={{ width: `${s.avgAccuracy}%` }} />
+                        </div>
+                        <span className="subj-acc">{s.avgAccuracy}%</span>
+                        <span className="subj-count">{s.attempts}x</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'cbt' && (
+              <div className="drawer-content">
+                <h4>Recent CBT Results</h4>
+                {data.recentCBT.length === 0 ? (
+                  <p className="empty-state">No CBT results yet</p>
+                ) : (
+                  data.recentCBT.map((r, i) => (
+                    <div key={i} className="activity-row">
+                      <div className="activity-row-left">
+                        <span className="activity-subject">{r.subject || 'Unknown'}</span>
+                        <span className="activity-meta">
+                          {r.examType || 'CBT'} • {r.totalQuestions ?? 0}Q
+                        </span>
+                      </div>
+                      <div className="activity-row-right">
+                        <span
+                          className={`accuracy-badge ${
+                            (r.accuracy ?? 0) >= 70
+                              ? 'good'
+                              : (r.accuracy ?? 0) >= 50
+                                ? 'ok'
+                                : 'poor'
+                          }`}
+                        >
+                          {r.accuracy ?? 0}%
+                        </span>
+                        <span className="activity-date">
+                          {r.takenAt
+                            ? new Date(r.takenAt).toLocaleDateString('en-NG', {
+                                day: 'numeric',
+                                month: 'short',
+                              })
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === 'sessions' && (
+              <div className="drawer-content">
+                <h4>Study Sessions</h4>
+                {data.recentSessions.length === 0 ? (
+                  <p className="empty-state">No study sessions yet</p>
+                ) : (
+                  data.recentSessions.map((s, i) => (
+                    <div key={i} className="activity-row">
+                      <div className="activity-row-left">
+                        <span className="activity-subject">{s.subject || 'General'}</span>
+                        <span className="activity-meta">Study session</span>
+                      </div>
+                      <div className="activity-row-right">
+                        <span className="duration-badge">
+                          {Math.round((s.durationSeconds || 0) / 60)}m
+                        </span>
+                        <span className="activity-date">
+                          {s.createdAt
+                            ? new Date(s.createdAt).toLocaleDateString('en-NG', {
+                                day: 'numeric',
+                                month: 'short',
+                              })
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === 'payments' && (
+              <div className="drawer-content">
+                <h4>Payment History</h4>
+                {data.transactions.length === 0 ? (
+                  <p className="empty-state">No payments yet</p>
+                ) : (
+                  data.transactions.map((t, i) => (
+                    <div key={i} className="activity-row">
+                      <div className="activity-row-left">
+                        <span className="activity-subject">{t.plan || 'Plan'} plan</span>
+                        <span className="activity-meta">{t.reference || '—'}</span>
+                      </div>
+                      <div className="activity-row-right">
+                        <span className="amount-badge">
+                          ₦{(t.amount ?? 0).toLocaleString()}
+                        </span>
+                        <span className="activity-date">
+                          {t.createdAt
+                            ? new Date(t.createdAt).toLocaleDateString('en-NG', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="drawer-loading">Failed to load activity</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Admin Users Tab ───────────────────────────────────────────────────────────
 
-function AdminUsersTab() {
+function AdminUsersTab({
+  onUserClick,
+}: {
+  onUserClick: (user: AdminUser) => void
+}) {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -268,7 +664,14 @@ function AdminUsersTab() {
               </tr>
             ) : (
               users.map((u) => (
-                <tr key={u._id}>
+                <tr
+                  key={u._id}
+                  onClick={() => onUserClick(u)}
+                  style={{ cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && onUserClick(u)}
+                >
                   <td>
                     <div className="user-cell">
                       <div className="user-cell-avatar">
@@ -307,7 +710,7 @@ function AdminUsersTab() {
                         })
                       : '—'}
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <div className="action-buttons">
                       <button
                         type="button"
@@ -526,6 +929,60 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [notAdmin, setNotAdmin] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(() => new Date())
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
+  const [selectedUser, setSelectedUser] = useState<AdminUser | OnlineUser | null>(null)
+
+  const fetchStats = async () => {
+    try {
+      const res = await apiClient.get('/admin/stats')
+      if (res.data?.success) {
+        setStats(res.data.stats)
+        setApiError(null)
+      } else {
+        setStats(DEFAULT_STATS)
+        setApiError('API returned invalid data')
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: unknown }; message?: string }
+      const status = axiosErr.response?.status
+      const data = axiosErr.response?.data
+      setStats(DEFAULT_STATS)
+      if (status === 403) {
+        setNotAdmin(true)
+        setApiError(null)
+      } else if (status === 401) {
+        setApiError('Session expired. Please log in again.')
+      } else if (status && status >= 500) {
+        setApiError(`Server error (${status}). Check backend logs.`)
+      } else {
+        setApiError(
+          status
+            ? `Request failed (${status}). ${(data as { message?: string })?.message || axiosErr.message || 'Unknown error'}`
+            : `Connection failed: ${axiosErr.message || 'Admin API not configured'}`
+        )
+      }
+    }
+  }
+
+  const fetchOnlineUsers = async () => {
+    try {
+      const res = await apiClient.get('/admin/online-users')
+      if (res.data?.success) {
+        setOnlineUsers(res.data.users || [])
+      }
+    } catch {
+      setOnlineUsers([])
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await Promise.all([fetchStats(), fetchOnlineUsers()])
+    setLastRefreshed(new Date())
+    setTimeout(() => setRefreshing(false), 800)
+  }
 
   useEffect(() => {
     const isAdmin = user?.role === 'admin'
@@ -544,45 +1001,23 @@ export default function AdminDashboardPage() {
       setLoading(false)
     }, 5000)
 
-    const fetchStats = async () => {
-      try {
-        console.log('[Admin] Fetching stats...')
-        const res = await apiClient.get('/admin/stats')
-        console.log('[Admin] Response status:', res.status, 'data:', res.data?.success ? 'ok' : res.data)
-        if (res.data?.success) {
-          setStats(res.data.stats)
-          setApiError(null)
-        } else {
-          setStats(DEFAULT_STATS)
-          setApiError('API returned invalid data')
-        }
-      } catch (err: unknown) {
-        const axiosErr = err as { response?: { status?: number; data?: unknown }; message?: string }
-        const status = axiosErr.response?.status
-        const data = axiosErr.response?.data
-        console.error('[Admin] Stats fetch failed:', { status, data, message: axiosErr.message })
-        setStats(DEFAULT_STATS)
-        if (status === 403) {
-          setNotAdmin(true)
-          setApiError(null)
-        } else if (status === 401) {
-          setApiError('Session expired. Please log in again.')
-        } else if (status && status >= 500) {
-          setApiError(`Server error (${status}). Check backend logs.`)
-        } else {
-          setApiError(
-            status
-              ? `Request failed (${status}). ${(data as { message?: string })?.message || axiosErr.message || 'Unknown error'}`
-              : `Connection failed: ${axiosErr.message || 'Admin API not configured'}`
-          )
-        }
-      } finally {
-        clearTimeout(timeout)
-        setLoading(false)
-      }
+    const run = async () => {
+      await fetchStats()
+      await fetchOnlineUsers()
     }
-    fetchStats()
+    run().finally(() => {
+      clearTimeout(timeout)
+      setLoading(false)
+    })
+
     return () => clearTimeout(timeout)
+  }, [user])
+
+  // Auto-refresh online users every 60 seconds
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return
+    const interval = setInterval(fetchOnlineUsers, 60000)
+    return () => clearInterval(interval)
   }, [user])
 
   if (loading) {
@@ -631,6 +1066,23 @@ export default function AdminDashboardPage() {
             <p>StudyHelp Platform Overview</p>
           </div>
           <div className="admin-header-right">
+            <span className="last-refreshed">
+              Updated{' '}
+              {lastRefreshed.toLocaleTimeString('en-NG', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+            <button
+              type="button"
+              className={`refresh-btn ${refreshing ? 'spinning' : ''}`}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh data"
+            >
+              <RefreshCw size={16} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
             <span className="admin-badge">
               <Shield size={14} /> Admin
             </span>
@@ -659,6 +1111,7 @@ export default function AdminDashboardPage() {
 
         {activeTab === 'overview' && (
           <div className="admin-overview">
+            <OnlineUsers users={onlineUsers} onClickUser={(u) => setSelectedUser(u)} />
             <div className="admin-metrics">
               <MetricCard
                 icon={<Users size={20} />}
@@ -846,9 +1299,18 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {activeTab === 'users' && <AdminUsersTab />}
+        {activeTab === 'users' && (
+          <AdminUsersTab onUserClick={(u) => setSelectedUser(u)} />
+        )}
         {activeTab === 'revenue' && <AdminRevenueTab stats={stats} />}
         {activeTab === 'activity' && <AdminActivityTab stats={stats} />}
+
+        {selectedUser && (
+          <UserActivityDrawer
+            userId={selectedUser._id}
+            onClose={() => setSelectedUser(null)}
+          />
+        )}
       </div>
     </ProtectedRoute>
   )
