@@ -41,7 +41,8 @@ const navItems: NavItem[] = [
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
 
     // Teacher Only
-    { href: '/dashboard/teacher/question-generator', label: 'Question Generator', icon: FiFileText, roles: ['teacher'] },
+    { href: '/dashboard/teacher/tools', label: 'Teacher Tools', icon: FiFileText, roles: ['teacher'] },
+    { href: '/dashboard/teacher/question-generator', label: 'Question Generator', icon: FiBook, roles: ['teacher'] },
     { href: '/dashboard/teacher/questions', label: 'Saved Questions', icon: FiBook, roles: ['teacher'] },
     { href: '/dashboard/teacher/classes', label: 'Class Management', icon: FiGrid, roles: ['teacher'] },
 
