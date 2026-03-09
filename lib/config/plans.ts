@@ -1,0 +1,83 @@
+// ─── Single source of truth for plan display (landing + dashboard) ─────────────
+// Must stay in sync with backend src/config/plans.js
+
+export const PLANS = {
+  free: {
+    name: 'Free',
+    price: 0,
+    label: 'Free forever',
+    aiLimit: 10,
+    flashcardLimit: 5,
+    cbtLimit: 3,
+    features: [
+      '10 AI-generated questions',
+      '3 CBT practice tests',
+      '5 flashcard reviews',
+      'Basic study timer',
+      'Limited analytics',
+    ],
+    notIncluded: [
+      'Unlimited CBT tests',
+      'Post-UTME practice',
+      'AI explanations',
+      'Notes & highlights',
+      'Streak tracking',
+    ],
+  },
+  weekly: {
+    name: 'Weekly',
+    price: 600,
+    label: '₦600 / week',
+    durationDays: 7,
+    aiLimit: 80,
+    flashcardLimit: 40,
+    features: [
+      '80 AI-generated questions',
+      'Unlimited CBT tests',
+      '40 flashcard reviews',
+      'All exam types (JAMB, WAEC, Post-UTME)',
+      'Smart study timer',
+      'Full analytics & progress tracking',
+      'Notes & highlights',
+      'Streak tracking',
+      'AI explanations for answers',
+    ],
+    notIncluded: [],
+  },
+  monthly: {
+    name: 'Monthly',
+    price: 2300,
+    label: '₦2,300 / month',
+    durationDays: 30,
+    aiLimit: 250,
+    flashcardLimit: 120,
+    badge: 'Best Value',
+    savings: 'Save ₦1,100 vs weekly',
+    features: [
+      '250 AI-generated questions',
+      'Unlimited CBT tests',
+      '120 flashcard reviews',
+      'All exam types (JAMB, WAEC, Post-UTME)',
+      'Smart study timer',
+      'Full analytics & progress tracking',
+      'Notes & highlights',
+      'Streak tracking',
+      'AI explanations for answers',
+      'Priority support',
+    ],
+    notIncluded: [],
+  },
+  addon: {
+    name: 'AI Add-on',
+    price: 500,
+    label: '₦500 one-time',
+    aiLimit: 100,
+    features: [
+      '100 extra AI-generated questions',
+      'Added to your current plan',
+      'Never expires',
+    ],
+  },
+} as const
+
+export type PlanKey = keyof typeof PLANS

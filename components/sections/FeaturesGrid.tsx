@@ -3,33 +3,15 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { FaQuestionCircle, FaUsers, FaCheckCircle, FaRocket } from 'react-icons/fa'
+import { FaRobot, FaClipboardList, FaLayerGroup, FaClock, FaChartLine, FaStickyNote } from 'react-icons/fa'
 
-const features = [
-  {
-    number: '01',
-    icon: FaQuestionCircle,
-    title: 'Ask Your Question',
-    description: 'Submit any academic question with details, images, or files. Our system instantly routes it to the perfect tutor.',
-  },
-  {
-    number: '02',
-    icon: FaUsers,
-    title: 'Expert Match',
-    description: 'Our AI matches your question with a vetted tutor who specializes in your exact subject and topic.',
-  },
-  {
-    number: '03',
-    icon: FaCheckCircle,
-    title: 'Learn & Master',
-    description: 'Receive clear, detailed explanations with step-by-step guidance. Understand concepts, not just copy answers.',
-  },
-  {
-    number: '04',
-    icon: FaRocket,
-    title: 'Instant Results',
-    description: 'Get responses in minutes, not hours. 24/7 availability means help is always available when you need it.',
-  },
+const REAL_FEATURES = [
+  { Icon: FaRobot, title: 'AI Question Generator', desc: 'Generate custom practice questions for any subject and topic instantly' },
+  { Icon: FaClipboardList, title: 'CBT Practice', desc: 'Timed practice tests for JAMB, WAEC, NECO and Post-UTME' },
+  { Icon: FaLayerGroup, title: 'Flashcard System', desc: 'Smart flashcards with spaced repetition to help you memorise faster' },
+  { Icon: FaClock, title: 'Study Timer', desc: 'Pomodoro-style timer to keep your study sessions focused' },
+  { Icon: FaChartLine, title: 'Progress Analytics', desc: 'Track your scores, streaks and improvement over time' },
+  { Icon: FaStickyNote, title: 'Notes', desc: 'Save and organise your study notes in one place' },
 ]
 
 export default function FeaturesGrid() {
@@ -97,9 +79,9 @@ export default function FeaturesGrid() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {REAL_FEATURES.map((feature, index) => {
+              const Icon = feature.Icon
               return (
                 <div
                   key={index}
@@ -107,7 +89,7 @@ export default function FeaturesGrid() {
                 >
                   {/* Number Indicator */}
                   <div className="feature-number absolute top-4 right-4 text-6xl font-bold text-white/5 font-mono">
-                    {feature.number}
+                    {String(index + 1).padStart(2, '0')}
                   </div>
 
                   {/* Icon */}
@@ -117,7 +99,7 @@ export default function FeaturesGrid() {
 
                   {/* Content */}
                   <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-                  <p className="text-white/60 leading-relaxed">{feature.description}</p>
+                  <p className="text-white/60 leading-relaxed">{feature.desc}</p>
                 </div>
               )
             })}

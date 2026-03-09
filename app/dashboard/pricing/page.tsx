@@ -6,74 +6,13 @@ import { paymentApi } from '@/lib/api/paymentApi'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { FiCheck, FiX, FiLoader, FiZap, FiAward, FiStar } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
+import { PLANS } from '@/lib/config/plans'
 
-const PLANS = [
-    {
-        type: 'free',
-        name: 'Free',
-        price: '₦0',
-        duration: '',
-        description: 'Perfect for trying StudyHelp',
-        features: [
-            { text: '5 AI messages', included: true },
-            { text: '3 flashcard sets', included: true },
-            { text: 'Basic CBT practice', included: true },
-            { text: 'Limited subjects', included: true },
-        ],
-        buttonText: 'Current Plan',
-        highlight: false,
-        color: 'gray'
-    },
-    {
-        type: 'weekly',
-        name: 'Weekly',
-        price: '₦600',
-        duration: 'week',
-        description: 'Boost your exam prep for 7 days',
-        features: [
-            { text: '80 AI messages', included: true },
-            { text: '40 flashcard sets', included: true },
-            { text: 'Full CBT access', included: true },
-            { text: 'Basic analytics', included: true },
-            { text: 'Study plan', included: true },
-        ],
-        buttonText: 'Get Weekly',
-        highlight: false,
-        color: 'blue'
-    },
-    {
-        type: 'monthly',
-        name: 'Monthly',
-        price: '₦2,300',
-        duration: 'month',
-        description: 'Best value for serious students',
-        features: [
-            { text: '250 AI messages', included: true },
-            { text: '120 flashcard sets', included: true },
-            { text: 'Full CBT + Exam Mode', included: true },
-            { text: 'Advanced analytics', included: true },
-            { text: 'Full study plan', included: true },
-            { text: 'Priority features', included: true },
-        ],
-        buttonText: 'Get Monthly',
-        highlight: true,
-        color: 'emerald'
-    },
-    {
-        type: 'addon',
-        name: 'AI Add-On',
-        price: '₦500',
-        duration: '',
-        description: 'Extra AI messages on any plan',
-        features: [
-            { text: '+100 AI messages', included: true },
-            { text: 'Added to current plan', included: true },
-            { text: 'Never expires', included: true },
-        ],
-        buttonText: 'Buy Add-On',
-        highlight: false,
-        color: 'purple'
-    },
+const DASHBOARD_PLANS = [
+    { type: 'free', description: 'Perfect for trying StudyHelp', buttonText: 'Current Plan', highlight: false, color: 'gray' },
+    { type: 'weekly', description: 'Boost your exam prep for 7 days', buttonText: 'Get Weekly', highlight: false, color: 'blue' },
+    { type: 'monthly', description: 'Best value for serious students', buttonText: 'Get Monthly', highlight: true, color: 'emerald' },
+    { type: 'addon', description: 'Extra AI messages on any plan', buttonText: 'Buy Add-On', highlight: false, color: 'purple' },
 ]
 
 export default function PricingPage() {
@@ -128,15 +67,21 @@ export default function PricingPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {PLANS.map((plan) => (
+                        {DASHBOARD_PLANS.map((meta) => {
+                          const plan = PLANS[meta.type as keyof typeof PLANS]
+                          if (!plan || !('features' in plan)) return null
+                          const features = plan.features.map((text) => ({ text, included: true }))
+                          const price = plan.price === 0 ? '₦0' : `₦${plan.price.toLocaleString()}`
+                          const duration = meta.type === 'weekly' ? 'week' : meta.type === 'monthly' ? 'month' : ''
+                          return (
                             <div
-                                key={plan.type}
-                                className={`flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl border-2 transition-all duration-300 hover:scale-105 ${plan.highlight
+                                key={meta.type}
+                                className={`flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl border-2 transition-all duration-300 hover:scale-105 ${meta.highlight
                                     ? 'border-emerald-500 ring-4 ring-emerald-500/10 scale-105 z-10'
                                     : 'border-transparent hover:border-blue-500/50'
                                     }`}
                             >
-                                {plan.highlight && (
+                                {meta.highlight && (
                                     <div className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest py-1.5 text-center rounded-t-lg">
                                         Most Popular
                                     </div>
@@ -145,41 +90,41 @@ export default function PricingPage() {
                                 <div className="p-8">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
-                                        <div className={`p-2 rounded-lg bg-${plan.color}-100 dark:bg-${plan.color}-900/30 text-${plan.color}-600`}>
-                                            {plan.type === 'premium' ? <FiStar className="text-xl" /> : plan.type === 'growth' ? <FiZap className="text-xl" /> : <FiAward className="text-xl" />}
+                                        <div className={`p-2 rounded-lg bg-${meta.color}-100 dark:bg-${meta.color}-900/30 text-${meta.color}-600`}>
+                                            {meta.type === 'addon' ? <FiZap className="text-xl" /> : <FiAward className="text-xl" />}
                                         </div>
                                     </div>
 
                                     <div className="mb-6">
-                                        <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
-                                        {plan.duration && (
-                                            <span className="text-gray-500 ml-1">/ {plan.duration}</span>
+                                        <span className="text-4xl font-black text-gray-900 dark:text-white">{price}</span>
+                                        {duration && (
+                                            <span className="text-gray-500 ml-1">/ {duration}</span>
                                         )}
                                     </div>
 
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 min-h-[40px]">
-                                        {plan.description}
+                                        {meta.description}
                                     </p>
 
                                     <button
-                                        onClick={() => plan.price !== '₦0' && handleSubscribe(plan.type)}
-                                        disabled={plan.price === '₦0' || loadingPlan !== null}
-                                        className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${plan.highlight
+                                        onClick={() => price !== '₦0' && handleSubscribe(meta.type)}
+                                        disabled={price === '₦0' || loadingPlan !== null}
+                                        className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${meta.highlight
                                             ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
-                                            : plan.price === '₦0'
+                                            : price === '₦0'
                                                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
                                                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
                                             } disabled:opacity-50`}
                                     >
-                                        {loadingPlan === plan.type ? (
+                                        {loadingPlan === meta.type ? (
                                             <FiLoader className="animate-spin" />
-                                        ) : plan.type === 'free' ? 'Current Plan' : plan.buttonText}
+                                        ) : meta.type === 'free' ? 'Current Plan' : meta.buttonText}
                                     </button>
                                 </div>
 
                                 <div className="p-8 border-t border-gray-100 dark:border-gray-800 flex-grow">
                                     <ul className="space-y-4">
-                                        {plan.features.map((feature, idx) => (
+                                        {features.map((feature, idx) => (
                                             <li key={idx} className="flex items-start gap-3">
                                                 {feature.included ? (
                                                     <FiCheck className="text-green-500 mt-1 flex-shrink-0" />
@@ -194,7 +139,7 @@ export default function PricingPage() {
                                     </ul>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
 
                     <div className="mt-16 p-8 md:p-12 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-8">

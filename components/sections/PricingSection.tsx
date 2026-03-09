@@ -1,186 +1,127 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { FaCheck, FaChalkboardTeacher, FaUserGraduate, FaBuilding } from 'react-icons/fa'
+import { Check, X, Zap } from 'lucide-react'
 import Link from 'next/link'
-
-const plans = [
-  {
-    name: 'Teacher Plan',
-    icon: FaChalkboardTeacher,
-    price: '₦29,000',
-    period: '/month',
-    features: [
-      'Unlimited AI question generation',
-      'All question types included',
-      'Class management tools',
-      'Student performance analytics',
-      'LMS integration',
-      'Export to multiple formats',
-    ],
-    color: 'blue',
-    cta: 'Start Teaching',
-    href: '/auth/signup',
-    highlight: false,
-  },
-  {
-    name: 'Student Plan',
-    icon: FaUserGraduate,
-    price: '₦9,000',
-    period: '/month',
-    features: [
-      'AI-generated practice questions',
-      'Study timer & Pomodoro',
-      'CGPA calculator & tracker',
-      'Study reminders',
-      'Progress analytics',
-      'Personalized question bank',
-    ],
-    color: 'emerald',
-    cta: 'Start Learning',
-    href: '/auth/signup',
-    highlight: true,
-  },
-  {
-    name: 'Institution Plan',
-    icon: FaBuilding,
-    price: 'Custom',
-    period: '',
-    features: [
-      'Everything in Teacher & Student plans',
-      'Admin dashboard & controls',
-      'Multi-campus support',
-      'Custom integrations',
-      'Dedicated support',
-      'Advanced analytics',
-    ],
-    color: 'purple',
-    cta: 'Contact Sales',
-    href: '/auth/signup',
-    highlight: false,
-  },
-]
+import { PLANS } from '@/lib/config/plans'
 
 export default function PricingSection() {
-  const sectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    if (!sectionRef.current) return
-    gsap.registerPlugin(ScrollTrigger)
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo('.pricing-card',
-        { y: 50, opacity: 0 },
-        {
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top 70%',
-            toggleActions: 'play none none none',
-          },
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          stagger: 0.2,
-          ease: 'power3.out',
-        }
-      )
-    }, sectionRef)
-
-    return () => ctx.revert()
-  }, [])
-
-  const colorClasses: Record<string, string> = {
-    blue: 'border-blue-500/30 hover:border-blue-500/60 bg-blue-500/5',
-    emerald: 'border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/5',
-    purple: 'border-purple-500/30 hover:border-purple-500/60 bg-purple-500/5',
-  }
-  const textColorClasses: Record<string, string> = {
-    blue: 'text-blue-400',
-    emerald: 'text-emerald-400',
-    purple: 'text-purple-400',
-  }
-  const btnClasses: Record<string, string> = {
-    blue: 'bg-blue-500 text-white hover:bg-blue-600',
-    emerald: 'bg-emerald-500 text-white hover:bg-emerald-600',
-    purple: 'bg-purple-500 text-white hover:bg-purple-600',
-  }
-
   return (
-    <section ref={sectionRef} id="pricing" className="py-20 md:py-32 bg-[#0a0a0a] relative z-10">
-      <div className="container mx-auto px-4">
-        <div className="max-w-7xl mx-auto">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Pricing by Role
-            </h2>
-            <p className="text-xl text-white/60 max-w-3xl mx-auto">
-              Choose the plan that fits your needs. One account, dual dashboard access.
-            </p>
+    <section className="pricing-section" id="pricing">
+      <div className="pricing-container">
+        <div className="section-label">Pricing</div>
+        <h2 className="section-title">Simple, Affordable Plans</h2>
+        <p className="section-sub">
+          Built for Nigerian students. No hidden fees. Cancel anytime.
+        </p>
+
+        <div className="pricing-cards">
+          {/* Free Plan */}
+          <div className="pricing-card free">
+            <div className="plan-header">
+              <span className="plan-name">{PLANS.free.name}</span>
+              <div className="plan-price">
+                <span className="price-amount">₦0</span>
+                <span className="price-period">forever</span>
+              </div>
+              <p className="plan-tagline">Get started with no commitment</p>
+            </div>
+
+            <ul className="feature-list">
+              {PLANS.free.features.map((f) => (
+                <li key={f} className="feature-item included">
+                  <Check size={15} className="feature-check" />
+                  {f}
+                </li>
+              ))}
+              {PLANS.free.notIncluded.map((f) => (
+                <li key={f} className="feature-item excluded">
+                  <X size={15} className="feature-x" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <Link href="/auth/signup" className="plan-btn free-btn">
+              Get Started Free
+            </Link>
           </div>
 
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans.map((plan, index) => {
-              const Icon = plan.icon
-              return (
-                <div
-                  key={index}
-                  className={`pricing-card bg-white/5 backdrop-blur-md border-2 ${colorClasses[plan.color]} rounded-2xl p-8 hover:scale-105 transition-all duration-300 relative opacity-100 ${
-                    plan.highlight ? 'ring-4 ring-emerald-500/20 border-emerald-500/60 scale-105 z-10' : ''
-                  }`}
-                >
-                  {plan.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full">
-                      Most Popular
-                    </div>
-                  )}
-                  {/* Icon */}
-                  <div className={`w-16 h-16 ${colorClasses[plan.color]} border-2 rounded-lg flex items-center justify-center mb-6`}>
-                    <Icon className={`${textColorClasses[plan.color]} text-2xl`} />
-                  </div>
+          {/* Weekly Plan */}
+          <div className="pricing-card weekly">
+            <div className="plan-header">
+              <span className="plan-name">{PLANS.weekly.name}</span>
+              <div className="plan-price">
+                <span className="price-amount">₦600</span>
+                <span className="price-period">/ week</span>
+              </div>
+              <p className="plan-tagline">Perfect for exam season</p>
+            </div>
 
-                  {/* Plan Name */}
-                  <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+            <ul className="feature-list">
+              {PLANS.weekly.features.map((f) => (
+                <li key={f} className="feature-item included">
+                  <Check size={15} className="feature-check" />
+                  {f}
+                </li>
+              ))}
+            </ul>
 
-                  {/* Price */}
-                  <div className="mb-6">
-                    <span className={`text-4xl font-bold ${textColorClasses[plan.color]}`}>
-                      {plan.price}
-                    </span>
-                    <span className="text-white/60 text-lg">{plan.period}</span>
-                  </div>
-
-                  {/* Features */}
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <FaCheck className={`${textColorClasses[plan.color]} mt-1 flex-shrink-0`} />
-                        <span className="text-white/80 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA */}
-                  <Link
-                    href={plan.href}
-                    className={`block w-full text-center py-3 rounded-lg font-bold transition-all duration-300 ${btnClasses[plan.color]}`}
-                  >
-                    {plan.cta}
-                  </Link>
-                </div>
-              )
-            })}
+            <Link href="/auth/signup" className="plan-btn weekly-btn">
+              Start Weekly Plan
+            </Link>
           </div>
 
-          {/* Note */}
-          <div className="text-center mt-12">
-            <p className="text-white/60 text-sm">
-              All plans include 14-day free trial. No credit card required.
-            </p>
+          {/* Monthly Plan — highlighted */}
+          <div className="pricing-card monthly popular">
+            <div className="popular-badge">
+              ⭐ {PLANS.monthly.badge}
+            </div>
+            <div className="plan-header">
+              <span className="plan-name">{PLANS.monthly.name}</span>
+              <div className="plan-price">
+                <span className="price-amount">₦2,300</span>
+                <span className="price-period">/ month</span>
+              </div>
+              <p className="plan-savings">{PLANS.monthly.savings}</p>
+            </div>
+
+            <ul className="feature-list">
+              {PLANS.monthly.features.map((f) => (
+                <li key={f} className="feature-item included">
+                  <Check size={15} className="feature-check" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <Link href="/auth/signup" className="plan-btn monthly-btn">
+              Start Monthly Plan
+            </Link>
           </div>
+        </div>
+
+        {/* Add-on */}
+        <div className="addon-card">
+          <div className="addon-left">
+            <Zap size={20} className="addon-icon" />
+            <div>
+              <span className="addon-title">Need more AI questions?</span>
+              <span className="addon-desc">
+                Top up anytime — 100 extra AI questions for ₦500. Added instantly
+                to your plan.
+              </span>
+            </div>
+          </div>
+          <Link href="/auth/signup" className="addon-btn">
+            Get Add-on
+          </Link>
+        </div>
+
+        {/* Reassurance */}
+        <div className="pricing-footer">
+          <span>✅ Pay with card, bank transfer or USSD</span>
+          <span>✅ Instant activation</span>
+          <span>✅ No auto-renewal</span>
         </div>
       </div>
     </section>
