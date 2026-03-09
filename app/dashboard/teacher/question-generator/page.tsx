@@ -59,6 +59,8 @@ interface QuestionSet {
   questions?: Question[]
 }
 
+const TEACHER_QGEN_KEY = 'teacher_qgen_session'
+
 export default function QuestionGeneratorPage() {
   const [activeTab, setActiveTab] = useState<'generate' | 'sets' | 'edit'>('generate')
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([])
@@ -69,6 +71,18 @@ export default function QuestionGeneratorPage() {
   useEffect(() => {
     fetchQuestionSets()
   }, [])
+
+  const handleStartNew = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(TEACHER_QGEN_KEY)
+      } catch {
+        // ignore
+      }
+    }
+    setEditingSet(null)
+    setActiveTab('generate')
+  }
 
   const fetchQuestionSets = async () => {
     try {
@@ -105,6 +119,47 @@ export default function QuestionGeneratorPage() {
     }
   }
 
+  // On initial load, check for a saved editing session and restore it
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem(TEACHER_QGEN_KEY)
+      if (!raw) return
+      const saved = JSON.parse(raw) as { setId?: string; title?: string; savedAt?: string }
+      if (!saved?.setId) return
+
+      const existing = questionSets.find((s) => s._id === saved.setId)
+      if (existing) {
+        handleEdit(existing)
+      } else {
+        handleEdit({ _id: saved.setId } as QuestionSet)
+      }
+    } catch {
+      // ignore storage errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionSets])
+
+  const handleGeneratedFromTab = (set: QuestionSet) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          TEACHER_QGEN_KEY,
+          JSON.stringify({
+            setId: set._id,
+            title: set.title,
+            savedAt: new Date().toISOString(),
+          })
+        )
+      } catch {
+        // ignore storage errors
+      }
+    }
+    setQuestionSets((prev) => [set, ...prev])
+    setEditingSet(set)
+    setActiveTab('edit')
+  }
+
   const handlePreview = async (set: QuestionSet) => {
     setLoading(true)
     try {
@@ -130,10 +185,7 @@ export default function QuestionGeneratorPage() {
           <button
             type="button"
             className="new-set-btn"
-            onClick={() => {
-              setEditingSet(null)
-              setActiveTab('generate')
-            }}
+            onClick={handleStartNew}
           >
             <Plus size={16} /> New Assessment
           </button>
@@ -186,11 +238,7 @@ export default function QuestionGeneratorPage() {
 
         {activeTab === 'generate' && (
           <GenerateTab
-            onGenerated={(set) => {
-              setQuestionSets((prev) => [set, ...prev])
-              setEditingSet(set)
-              setActiveTab('edit')
-            }}
+            onGenerated={handleGeneratedFromTab}
           />
         )}
 

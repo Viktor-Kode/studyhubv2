@@ -18,6 +18,9 @@ interface QuestionBankProps {
 
 type InputMode = 'upload' | 'manual'
 
+const QGEN_STORAGE_KEY = 'qgen_session_v1'
+const QGEN_SESSION_EXPIRY_HOURS = 24
+
 function isUpgradeError(msg: string): boolean {
   const m = (msg || '').toLowerCase()
   return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached')
@@ -62,6 +65,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [chatInput, setChatInput] = useState('')
   const [isChatting, setIsChatting] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Saved quiz session state
+  const [hasSession, setHasSession] = useState(false)
+  const [showResumeBanner, setShowResumeBanner] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
 
   // Explanation State
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
@@ -136,6 +144,16 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     const sourceParam = searchParams.get('source')
     const textParam = searchParams.get('text')
 
+    if (sourceParam === 'notes' && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(QGEN_STORAGE_KEY)
+      } catch {
+        // ignore
+      }
+      setHasSession(false)
+      setShowResumeBanner(false)
+    }
+
     if (tabParam === 'notes') setActiveTab('notes')
     if (tabParam === 'quiz') setActiveTab('quiz')
 
@@ -166,6 +184,60 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }, [searchParams])
 
+  // Load saved quiz session on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem(QGEN_STORAGE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as {
+        newQuestions?: Question[]
+        userAnswers?: Record<string, any>
+        checkedAnswers?: Record<string, boolean>
+        score?: number
+        quizSubmitted?: boolean
+        amount?: number
+        questionType?: string
+        inputMode?: InputMode
+        manualText?: string
+        extractedText?: string
+        activeTab?: 'quiz' | 'notes' | 'tutor'
+        savedAt?: string
+      }
+
+      if (!parsed.savedAt) {
+        return
+      }
+
+      const savedAt = new Date(parsed.savedAt)
+      const hoursSince = (Date.now() - savedAt.getTime()) / (1000 * 60 * 60)
+      if (hoursSince > QGEN_SESSION_EXPIRY_HOURS) {
+        localStorage.removeItem(QGEN_STORAGE_KEY)
+        return
+      }
+
+      if (parsed.newQuestions && parsed.newQuestions.length > 0) {
+        setNewQuestions(parsed.newQuestions)
+        setUserAnswers(parsed.userAnswers || {})
+        setCheckedAnswers(parsed.checkedAnswers || {})
+        setScore(parsed.score || 0)
+        setQuizSubmitted(!!parsed.quizSubmitted)
+        if (typeof parsed.amount === 'number') setAmount(parsed.amount)
+        if (parsed.questionType) setQuestionType(parsed.questionType)
+        if (parsed.inputMode) setInputMode(parsed.inputMode)
+        if (typeof parsed.manualText === 'string') setManualText(parsed.manualText)
+        if (typeof parsed.extractedText === 'string') setExtractedText(parsed.extractedText)
+        if (parsed.activeTab) setActiveTab(parsed.activeTab)
+
+        setHasSession(true)
+        setShowResumeBanner(true)
+        setLastSavedAt(parsed.savedAt)
+      }
+    } catch {
+      // ignore parse/storage errors
+    }
+  }, [])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
@@ -175,6 +247,45 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   useEffect(() => {
     if (activeTab === 'tutor') scrollToBottom()
   }, [chatMessages, activeTab])
+
+  // Auto-save quiz session to localStorage whenever key state changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!newQuestions.length) return
+    try {
+      const payload = {
+        newQuestions,
+        userAnswers,
+        checkedAnswers,
+        score,
+        quizSubmitted,
+        amount,
+        questionType,
+        inputMode,
+        manualText,
+        extractedText,
+        activeTab,
+        savedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(QGEN_STORAGE_KEY, JSON.stringify(payload))
+      setHasSession(true)
+      setLastSavedAt(payload.savedAt)
+    } catch {
+      // storage full or unavailable — ignore
+    }
+  }, [
+    newQuestions,
+    userAnswers,
+    checkedAnswers,
+    score,
+    quizSubmitted,
+    amount,
+    questionType,
+    inputMode,
+    manualText,
+    extractedText,
+    activeTab,
+  ])
 
   const handleSubmitQuiz = async () => {
     if (newQuestions.length === 0) return
@@ -239,6 +350,34 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const clearSavedSession = () => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.removeItem(QGEN_STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleStartNewSession = () => {
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Start a new session? Your current questions and progress will be cleared.')
+    ) {
+      return
+    }
+    clearSavedSession()
+    setNewQuestions([])
+    setUserAnswers({})
+    setCheckedAnswers({})
+    setScore(0)
+    setQuizSubmitted(false)
+    setActiveTab('quiz')
+    setHasSession(false)
+    setShowResumeBanner(false)
+    setLastSavedAt(null)
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -505,6 +644,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             <FiList className="text-emerald-500" />
             My Notes
           </Link>
+          {hasSession && !showResumeBanner && newQuestions.length > 0 && (
+            <button
+              type="button"
+              className="start-new-btn hidden md:inline-flex"
+              onClick={handleStartNewSession}
+            >
+              + Start New Session
+            </button>
+          )}
           <Link
             href="/dashboard/question-history"
             className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition font-bold shadow-sm"
@@ -513,6 +661,40 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             History
           </Link>
         </div>
+
+        {showResumeBanner && hasSession && newQuestions.length > 0 && (
+          <div className="resume-banner">
+            <div className="resume-banner-left">
+              <div className="resume-icon">⚡</div>
+              <div>
+                <span className="resume-title">You have a saved quiz session</span>
+                <span className="resume-sub">
+                  {newQuestions.length} questions
+                  {lastSavedAt && ` • Saved ${getTimeAgo(lastSavedAt)}`}
+                </span>
+              </div>
+            </div>
+            <div className="resume-actions">
+              <button
+                type="button"
+                className="resume-continue-btn"
+                onClick={() => {
+                  setShowResumeBanner(false)
+                  setActiveTab('quiz')
+                }}
+              >
+                Continue →
+              </button>
+              <button
+                type="button"
+                className="resume-discard-btn"
+                onClick={handleStartNewSession}
+              >
+                Start New
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -1055,3 +1237,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     </div>
   )
 }
+
+const getTimeAgo = (date: string | null) => {
+  if (!date) return ''
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
+

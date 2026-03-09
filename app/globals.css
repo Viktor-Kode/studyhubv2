@@ -4645,3 +4645,465 @@ html {
   .set-card-actions { align-self: flex-end; }
   .preview-modal { max-height: 100vh; border-radius: 0; }
 }
+
+/* Resume Banner for saved quiz/question sessions */
+.resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+  border: 2px solid #4F46E5;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.resume-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.resume-icon {
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+.resume-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 3px;
+}
+.resume-sub {
+  display: block;
+  font-size: 12px;
+  color: #6B7280;
+}
+.resume-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.resume-continue-btn {
+  padding: 9px 20px;
+  background: #4F46E5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.resume-discard-btn {
+  padding: 9px 16px;
+  background: white;
+  color: #6B7280;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.start-new-btn {
+  padding: 9px 18px;
+  background: white;
+  color: #4F46E5;
+  border: 1.5px solid #4F46E5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.start-new-btn:hover {
+  background: #EEF2FF;
+}
+
+/* AI Tutor Layout */
+.tutor-layout {
+  display: flex;
+  height: calc(100vh - 60px);
+  background: #F9FAFB;
+  position: relative;
+  overflow: hidden;
+}
+
+.tutor-sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1.5px solid #E5E7EB;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.tutor-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #F3F4F6;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+.tutor-sidebar-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.new-chat-btn {
+  padding: 6px 12px;
+  background: #EEF2FF;
+  color: #4F46E5;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.history-loading,
+.history-empty {
+  text-align: center;
+  padding: 30px 16px;
+  font-size: 13px;
+  color: #9CA3AF;
+}
+.history-list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1.5px solid transparent;
+}
+.history-item:hover {
+  background: #F9FAFB;
+}
+.history-item.active {
+  background: #EEF2FF;
+  border-color: #C7D2FE;
+}
+.history-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.history-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-subject {
+  font-size: 11px;
+  background: #EEF2FF;
+  color: #4F46E5;
+  padding: 1px 6px;
+  border-radius: 10px;
+  width: fit-content;
+  font-weight: 600;
+}
+.history-meta {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+.history-preview {
+  font-size: 11px;
+  color: #6B7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-delete-btn {
+  background: none;
+  border: none;
+  color: #D1D5DB;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.history-delete-btn:hover {
+  color: #DC2626;
+  background: #FEF2F2;
+}
+
+.tutor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tutor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
+  gap: 12px;
+}
+.history-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #374151;
+}
+.tutor-header-center {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.tutor-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.auto-save-indicator {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+.new-chat-header-btn {
+  padding: 7px 14px;
+  background: #4F46E5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tutor-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tutor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: #6B7280;
+}
+.tutor-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.tutor-empty h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+.tutor-empty p {
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.starter-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.starter-prompt-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #374151;
+}
+.starter-prompt-btn:hover {
+  border-color: #4F46E5;
+  color: #4F46E5;
+}
+
+.message-bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  animation: fadeUp 0.2s ease;
+}
+.message-bubble.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.message-bubble.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.message-content {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.message-bubble.user .message-content {
+  background: #4F46E5;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.message-bubble.assistant .message-content {
+  background: white;
+  color: #111827;
+  border: 1.5px solid #E5E7EB;
+  border-bottom-left-radius: 4px;
+}
+.message-time {
+  font-size: 10px;
+  color: #9CA3AF;
+  margin-top: 3px;
+  padding: 0 4px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 14px 18px;
+  align-items: center;
+}
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #9CA3AF;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-6px);
+  }
+}
+
+.tutor-input-area {
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #E5E7EB;
+}
+.tutor-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.tutor-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.tutor-input:focus {
+  border-color: #4F46E5;
+}
+.tutor-send-btn {
+  width: 44px;
+  height: 44px;
+  background: #4F46E5;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.tutor-send-btn:disabled {
+  background: #C7D2FE;
+  cursor: not-allowed;
+}
+.tutor-hint {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .tutor-sidebar {
+    position: fixed;
+    left: -300px;
+    top: 0;
+    bottom: 0;
+    z-index: 999;
+    transition: left 0.25s ease;
+    width: 280px;
+  }
+  .tutor-sidebar.open {
+    left: 0;
+  }
+  .message-bubble {
+    max-width: 90%;
+  }
+  .resume-banner {
+    flex-direction: column;
+  }
+  .resume-actions {
+    width: 100%;
+  }
+  .resume-continue-btn,
+  .resume-discard-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
