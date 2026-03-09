@@ -24,6 +24,11 @@ apiClient.interceptors.request.use(
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
+    // Teacher endpoints (AI generation, document parsing) need longer timeout
+    const url = config.url || ''
+    if (url.includes('/teacher') || url.includes('/teacher-tools')) {
+      config.timeout = 120000 // 2 minutes
+    }
     return config
   },
   (error) => Promise.reject(error)
