@@ -1103,6 +1103,186 @@ function AdminActivityTab({ stats }: { stats: AdminStats }) {
   )
 }
 
+// ─── Admin Campaigns Tab ───────────────────────────────────────────────────────
+
+function AdminCampaignsTab() {
+  const [audiences, setAudiences] = useState<Record<string, { count: number; label: string }> | null>(null)
+  const [form, setForm] = useState({
+    campaignType: 'upgrade_students',
+    targetAudience: 'free_students',
+    subject: '',
+    testMode: true,
+    testEmail: '',
+  })
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ results: { sent: number; failed: number }; message: string } | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    apiClient.get('/admin/email-stats').then((res) => {
+      if (res.data?.success) setAudiences(res.data.audiences || {})
+    }).catch(() => setAudiences({}))
+  }, [])
+
+  const handleSend = async () => {
+    if (!form.testMode) {
+      const count = audiences?.[form.targetAudience]?.count ?? 0
+      const confirmed = window.confirm(
+        `⚠️ You are about to send a REAL email to ${count} users.\n\nAre you sure?`
+      )
+      if (!confirmed) return
+    }
+
+    setSending(true)
+    setError('')
+    setResult(null)
+    try {
+      const res = await apiClient.post('/admin/email-campaign', form)
+      if (res.data?.success) setResult(res.data)
+      else setError(res.data?.error || 'Failed')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const selectedAudience = audiences?.[form.targetAudience]
+
+  return (
+    <div className="campaigns-tab max-w-[700px]">
+      <h2 className="campaigns-title text-xl font-bold mb-5">Email Campaigns</h2>
+
+      {audiences && (
+        <div className="audience-stats grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 mb-6">
+          {Object.entries(audiences).map(([key, val]) => (
+            <button
+              key={key}
+              type="button"
+              className={`audience-card p-4 rounded-xl border-2 text-center cursor-pointer transition-all ${
+                form.targetAudience === key
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+              }`}
+              onClick={() => setForm((p) => ({ ...p, targetAudience: key }))}
+            >
+              <span className="block text-2xl font-black text-indigo-600">{val.count}</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">{val.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="campaign-form bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 flex flex-col gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Campaign Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: 'upgrade_students', label: '🎓 Student Upgrade', desc: 'Upgrade to Weekly/Monthly' },
+              { value: 'upgrade_teachers', label: '👩‍🏫 Teacher Upgrade', desc: 'Upgrade to Teacher plan' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  form.campaignType === opt.value
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                    : 'border-gray-200 dark:border-gray-600'
+                }`}
+                onClick={() => setForm((p) => ({ ...p, campaignType: opt.value }))}
+              >
+                <span className="block font-bold text-sm">{opt.label}</span>
+                <span className="block text-xs text-gray-500">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Email Subject (leave blank for default)</label>
+          <input
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+            placeholder={
+              form.campaignType === 'upgrade_students'
+                ? "You're missing out — upgrade your StudyHelp plan 🚀"
+                : 'Unlock all Teacher Tools on StudyHelp 📚'
+            }
+            value={form.subject}
+            onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
+          />
+        </div>
+
+        {selectedAudience && (
+          <div className="flex items-center gap-2 flex-wrap text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <span>📬 This will send to</span>
+            <strong className="text-indigo-600">{selectedAudience.count} users</strong>
+            <span>({selectedAudience.label})</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm">
+            <input
+              type="checkbox"
+              checked={form.testMode}
+              onChange={(e) => setForm((p) => ({ ...p, testMode: e.target.checked }))}
+              className="rounded"
+            />
+            {form.testMode ? '🧪 Test Mode (send to 1 email only)' : '🚀 Live Mode (send to all)'}
+          </label>
+        </div>
+
+        {form.testMode && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Test Email (leave blank to use your admin email)</label>
+            <input
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+              placeholder="your@email.com"
+              value={form.testEmail}
+              onChange={(e) => setForm((p) => ({ ...p, testEmail: e.target.value }))}
+            />
+          </div>
+        )}
+
+        {!form.testMode && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-amber-800 dark:text-amber-200 text-sm">
+            ⚠️ <strong>Live Mode</strong> — this will send real emails to <strong>{selectedAudience?.count ?? 0} users</strong>. Test first.
+          </div>
+        )}
+
+        {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 rounded-lg">{error}</div>}
+
+        {result && (
+          <div className="flex items-center gap-5 flex-wrap p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+            <div className="text-center">
+              <span className="block text-3xl font-black text-emerald-600">{result.results.sent}</span>
+              <span className="text-sm">Delivered ✅</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-3xl font-black text-red-600">{result.results.failed}</span>
+              <span className="text-sm">Failed ❌</span>
+            </div>
+            <p className="text-sm text-emerald-800 dark:text-emerald-200 flex-1">{result.message}</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl mt-2"
+          onClick={handleSend}
+          disabled={sending}
+        >
+          {sending
+            ? 'Sending emails...'
+            : form.testMode
+              ? '🧪 Send Test Email'
+              : `🚀 Send to ${selectedAudience?.count ?? 0} Users`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Admin Dashboard ──────────────────────────────────────────────────────
 
 const TABS = [
@@ -1110,6 +1290,7 @@ const TABS = [
   { id: 'users', label: 'Users' },
   { id: 'revenue', label: 'Revenue' },
   { id: 'activity', label: 'Activity' },
+  { id: 'campaigns', label: '📧 Campaigns' },
 ]
 
 const DEFAULT_STATS: AdminStats = {
@@ -1573,6 +1754,7 @@ export default function AdminDashboardPage() {
         )}
         {activeTab === 'revenue' && <AdminRevenueTab stats={stats} />}
         {activeTab === 'activity' && <AdminActivityTab stats={stats} />}
+        {activeTab === 'campaigns' && <AdminCampaignsTab />}
 
         {selectedUser && (
           <UserActivityDrawer
