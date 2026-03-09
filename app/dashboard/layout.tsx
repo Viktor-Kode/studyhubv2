@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
 
     // Student Only
     { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student'] },
+    { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen, roles: ['student'] },
     { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student'] },
     { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student'] },
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student'] },

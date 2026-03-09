@@ -27,6 +27,7 @@ const studentMenuItems = [
   { href: '/dashboard/student', icon: FaHome, label: 'Dashboard' },
   { href: '/dashboard/question-bank', icon: FaBrain, label: 'Question Generator' },
   { href: '/dashboard/tutor', icon: FaGraduationCap, label: 'AI Tutor' },
+  { href: '/dashboard/library', icon: FaBook, label: 'My Library' },
   { href: '/dashboard/notes', icon: FaStickyNote, label: 'My Notes' },
   { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/study-timer', icon: FaClock, label: 'Study Timer' },
