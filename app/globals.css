@@ -3194,6 +3194,102 @@ html {
 .metric-label { display: block; font-size: 12px; color: #6B7280; }
 .metric-sub { display: block; font-size: 11px; color: #9CA3AF; }
 
+/* Clickable metric cards */
+.metric-card.clickable {
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.metric-card.clickable:hover {
+  border-color: #4F46E5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79,70,229,0.12);
+}
+.dark .metric-card.clickable:hover { border-color: #818cf8; }
+.metric-arrow {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: #9CA3AF;
+}
+
+/* Today filter chips */
+.metric-filters-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.metric-filter-chip {
+  padding: 6px 14px;
+  background: #EEF2FF;
+  color: #4F46E5;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.metric-filter-chip:hover { background: #E0E7FF; }
+.dark .metric-filter-chip { background: rgba(79, 70, 229, 0.2); color: #818cf8; }
+.dark .metric-filter-chip:hover { background: rgba(79, 70, 229, 0.3); }
+
+/* Metric users list */
+.metric-users-list { display: flex; flex-direction: column; gap: 2px; }
+.metric-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-wrap: wrap;
+}
+.metric-user-row:hover { background: #F9FAFB; }
+.dark .metric-user-row:hover { background: #374151; }
+.metric-user-rank {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9CA3AF;
+  width: 24px;
+  flex-shrink: 0;
+}
+.metric-user-info { flex: 1; min-width: 0; }
+.metric-user-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.dark .metric-user-name { color: #F9FAFB; }
+.metric-user-detail {
+  display: block;
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.metric-user-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.metric-badge {
+  font-size: 12px;
+  font-weight: 700;
+  background: #F3F4F6;
+  color: #374151;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.dark .metric-badge { background: #374151; color: #D1D5DB; }
+
 .admin-card, .admin-chart-card {
   background: white;
   border-radius: 14px;

@@ -103,21 +103,35 @@ function MetricCard({
   value,
   sub,
   color,
+  onClick,
 }: {
   icon: React.ReactNode
   label: string
   value: string | number
   sub: string
   color: string
+  onClick?: () => void
 }) {
   return (
-    <div className={`metric-card ${color}`}>
+    <div
+      className={`metric-card ${color} ${onClick ? 'clickable' : ''}`}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      title={onClick ? 'Click to see users' : undefined}
+    >
       <div className="metric-icon">{icon}</div>
       <div className="metric-info">
         <span className="metric-value">{value}</span>
         <span className="metric-label">{label}</span>
         <span className="metric-sub">{sub}</span>
       </div>
+      {onClick && (
+        <div className="metric-arrow">
+          <ChevronRight size={16} />
+        </div>
+      )}
     </div>
   )
 }
@@ -567,6 +581,192 @@ function UserActivityDrawer({
   )
 }
 
+// ─── Metric Users Drawer ───────────────────────────────────────────────────────
+
+interface MetricUserEntry {
+  user: AdminUser & { lastSeen?: string }
+  count: number
+  totalMinutes?: number
+  mastered?: number
+  longestStreak?: number
+  lastActivity?: string
+  details: Array<{
+    subject?: string
+    accuracy?: number
+    total?: number
+    duration?: number
+    date?: string
+  }>
+}
+
+function MetricUsersDrawer({
+  metric,
+  filter,
+  label,
+  onClose,
+  onClickUser,
+}: {
+  metric: string
+  filter: string
+  label: string
+  onClose: () => void
+  onClickUser: (user: AdminUser | OnlineUser) => void
+}) {
+  const [users, setUsers] = useState<MetricUserEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMetricUsers = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.get(
+          `/admin/metric-users?metric=${metric}&filter=${filter}`
+        )
+        if (res.data?.success) setUsers(res.data.users || [])
+      } catch (err) {
+        console.error('Metric users error:', err)
+        setUsers([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchMetricUsers()
+  }, [metric, filter])
+
+  const renderUserDetail = (u: MetricUserEntry) => {
+    if (metric === 'cbt')
+      return (
+        <span className="metric-user-detail">
+          {u.count} test{u.count !== 1 ? 's' : ''} •{' '}
+          {u.details[0]
+            ? `Last: ${u.details[0].subject} (${u.details[0].accuracy}%)`
+            : ''}
+        </span>
+      )
+    if (metric === 'sessions')
+      return (
+        <span className="metric-user-detail">
+          {u.count} session{u.count !== 1 ? 's' : ''} • {u.totalMinutes ?? 0}m total
+        </span>
+      )
+    if (metric === 'flashcards')
+      return (
+        <span className="metric-user-detail">
+          {u.count} reviews • {u.mastered ?? 0} mastered
+        </span>
+      )
+    if (metric === 'streaks')
+      return (
+        <span className="metric-user-detail">
+          {u.count} day streak • Best: {u.longestStreak ?? 0} days
+        </span>
+      )
+    return null
+  }
+
+  const getMetricBadge = (u: MetricUserEntry) => {
+    if (metric === 'cbt') return `${u.count} tests`
+    if (metric === 'sessions') return `${u.totalMinutes ?? 0}m`
+    if (metric === 'flashcards') return `${u.count} reviews`
+    if (metric === 'streaks') return `${u.count} days`
+    return ''
+  }
+
+  const isOnline = (lastSeen: string | undefined) => {
+    if (!lastSeen) return false
+    return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
+  }
+
+  return (
+    <div
+      className="drawer-overlay"
+      onClick={onClose}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      role="presentation"
+    >
+      <div
+        className="activity-drawer"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+      >
+        <div className="drawer-header">
+          <div>
+            <h3>{label}</h3>
+            <p>
+              {loading ? 'Loading...' : `${users.length} user${users.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="drawer-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="drawer-content">
+          {loading ? (
+            <div className="drawer-loading">Loading users...</div>
+          ) : users.length === 0 ? (
+            <div className="empty-state">No users found for this metric</div>
+          ) : (
+            <div className="metric-users-list">
+              {users.map((u, i) => (
+                <div
+                  key={u.user._id}
+                  className="metric-user-row"
+                  onClick={() => onClickUser(u.user)}
+                  onKeyDown={(e) => e.key === 'Enter' && onClickUser(u.user)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span className="metric-user-rank">#{i + 1}</span>
+
+                  <div className="online-avatar-wrap">
+                    {u.user.avatar ? (
+                      <img
+                        src={u.user.avatar}
+                        alt=""
+                        className="online-avatar-img"
+                      />
+                    ) : (
+                      <div className="online-avatar">
+                        {u.user.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                    )}
+                    {isOnline(u.user.lastSeen) && (
+                      <div className="online-indicator" />
+                    )}
+                  </div>
+
+                  <div className="metric-user-info">
+                    <span className="metric-user-name">
+                      {u.user.name || 'Unknown'}
+                    </span>
+                    {renderUserDetail(u)}
+                  </div>
+
+                  <div className="metric-user-right">
+                    <span className="metric-badge">{getMetricBadge(u)}</span>
+                    <span
+                      className={`plan-tag ${u.user.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
+                    >
+                      {u.user.subscriptionPlan || 'free'}
+                    </span>
+                    <ChevronRight size={14} color="#9CA3AF" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Admin Users Tab ───────────────────────────────────────────────────────────
 
 function AdminUsersTab({
@@ -933,6 +1133,11 @@ export default function AdminDashboardPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(() => new Date())
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [selectedUser, setSelectedUser] = useState<AdminUser | OnlineUser | null>(null)
+  const [metricDrawer, setMetricDrawer] = useState<{
+    metric: string
+    filter: string
+    label: string
+  } | null>(null)
 
   const fetchStats = async () => {
     try {
@@ -1136,25 +1341,89 @@ export default function AdminDashboardPage() {
               />
               <MetricCard
                 icon={<Activity size={20} />}
-                label="CBT Today"
-                value={stats.activity.cbtToday}
-                sub={`${stats.activity.totalCBT} total`}
+                label="Total CBT Tests"
+                value={stats.activity.totalCBT}
+                sub={`${stats.activity.cbtToday} today`}
                 color="orange"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'cbt',
+                    filter: 'all',
+                    label: 'CBT Tests — All Time',
+                  })
+                }
               />
               <MetricCard
                 icon={<Clock size={20} />}
                 label="Study Sessions"
-                value={stats.activity.studySessionsToday}
-                sub="today"
+                value={stats.activity.totalStudySessions}
+                sub={`${stats.activity.studySessionsToday} today`}
                 color="teal"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'sessions',
+                    filter: 'all',
+                    label: 'Study Sessions — All Time',
+                  })
+                }
+              />
+              <MetricCard
+                icon={<Zap size={20} />}
+                label="Flashcard Reviews"
+                value={stats.activity.totalFlashcardReviews}
+                sub="all time"
+                color="purple"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'flashcards',
+                    filter: 'all',
+                    label: 'Flashcard Reviews',
+                  })
+                }
               />
               <MetricCard
                 icon={<Award size={20} />}
                 label="Active Streaks"
                 value={stats.activity.activeStreaks}
-                sub="users studying daily"
+                sub="users on streak"
                 color="red"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'streaks',
+                    filter: 'all',
+                    label: 'Active Streaks',
+                  })
+                }
               />
+            </div>
+
+            <div className="metric-filters-row">
+              <button
+                type="button"
+                className="metric-filter-chip"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'cbt',
+                    filter: 'today',
+                    label: 'CBT Tests Today',
+                  })
+                }
+              >
+                {stats.activity.cbtToday} CBT today →
+              </button>
+              <button
+                type="button"
+                className="metric-filter-chip"
+                onClick={() =>
+                  setMetricDrawer({
+                    metric: 'sessions',
+                    filter: 'today',
+                    label: 'Study Sessions Today',
+                  })
+                }
+              >
+                {stats.activity.studySessionsToday} sessions today →
+              </button>
             </div>
 
             <div className="admin-chart-card">
@@ -1309,6 +1578,19 @@ export default function AdminDashboardPage() {
           <UserActivityDrawer
             userId={selectedUser._id}
             onClose={() => setSelectedUser(null)}
+          />
+        )}
+
+        {metricDrawer && (
+          <MetricUsersDrawer
+            metric={metricDrawer.metric}
+            filter={metricDrawer.filter}
+            label={metricDrawer.label}
+            onClose={() => setMetricDrawer(null)}
+            onClickUser={(u) => {
+              setMetricDrawer(null)
+              setSelectedUser(u)
+            }}
           />
         )}
       </div>
