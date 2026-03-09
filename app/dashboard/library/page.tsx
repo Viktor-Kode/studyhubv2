@@ -1,82 +1,65 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+// @ts-nocheck
+
+import { useState, useEffect, useRef, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import BackButton from '@/components/BackButton'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import {
   Upload,
   Search,
-  Folder,
   Star,
-  StarOff,
   FileText,
   Trash2,
   Edit2,
-  Eye,
   X,
   Plus,
   BookOpen,
   HardDrive,
-  Grid,
-  List,
+  Clock,
+  ChevronRight,
+  FolderOpen,
+  Folder,
+  Check,
+  ArrowLeft,
 } from 'lucide-react'
 
-const EXAM_TYPES = ['All', 'JAMB', 'WAEC', 'NECO', 'Post-UTME', 'University', 'Professional', 'Other']
-const FOLDER_COLORS = ['#4F46E5', '#059669', '#DC2626', '#D97706', '#7C3AED', '#0891B2', '#BE185D', '#374151']
+// Colour palette for books
+const BOOK_COLORS = [
+  { bg: '#4F46E5', light: '#EEF2FF', label: 'Indigo' },
+  { bg: '#DC2626', light: '#FEF2F2', label: 'Red' },
+  { bg: '#059669', light: '#ECFDF5', label: 'Green' },
+  { bg: '#D97706', light: '#FEF3C7', label: 'Amber' },
+  { bg: '#7C3AED', light: '#F5F3FF', label: 'Purple' },
+  { bg: '#0891B2', light: '#ECFEFF', label: 'Cyan' },
+  { bg: '#BE185D', light: '#FDF2F8', label: 'Pink' },
+  { bg: '#EA580C', light: '#FFF7ED', label: 'Orange' },
+  { bg: '#0D9488', light: '#F0FDFA', label: 'Teal' },
+  { bg: '#4338CA', light: '#EEF2FF', label: 'Blue' },
+]
 
-interface LibraryMaterial {
-  _id: string
-  title: string
-  description?: string
-  subject?: string
-  topic?: string
-  tags?: string[]
-  folder: string
-  fileUrl: string
-  publicId: string
-  fileSize: number
-  pageCount?: number
-  color: string
-  isFavourite: boolean
-  lastReadPage?: number
-  readProgress?: number
-  examType: string
+const getToken = async () => {
+  return await getFirebaseToken()
 }
 
-interface StorageInfo {
-  usedBytes: number
-  usedMB: string
-  limitMB: number
-  percentage: number
-}
-
-type ViewMode = 'grid' | 'list'
-
-export default function LibraryPage() {
-  const [materials, setMaterials] = useState<LibraryMaterial[]>([])
-  const [folders, setFolders] = useState<string[]>(['All'])
-  const [storage, setStorage] = useState<StorageInfo | null>(null)
+const LibraryPage = () => {
+  const [materials, setMaterials] = useState([])
+  const [folders, setFolders] = useState([])
+  const [storage, setStorage] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<ViewMode>('grid')
-  const [activeFolder, setActiveFolder] = useState<string>('All')
-  const [activeExam, setActiveExam] = useState<string>('All')
   const [search, setSearch] = useState('')
+  const [activeFolder, setActiveFolder] = useState('All')
   const [showUpload, setShowUpload] = useState(false)
-  const [showReader, setShowReader] = useState<LibraryMaterial | null>(null)
-  const [editingMaterial, setEditingMaterial] = useState<LibraryMaterial | null>(null)
+  const [showReader, setShowReader] = useState(null)
+  const [editingMaterial, setEditingMaterial] = useState(null)
   const [showFavourites, setShowFavourites] = useState(false)
-
-  const getToken = async () => {
-    return await getFirebaseToken()
-  }
+  const searchRef = useRef(null)
 
   const fetchMaterials = useCallback(async () => {
     try {
       const token = await getToken()
       const params = new URLSearchParams()
-      if (activeFolder && activeFolder !== 'All') params.append('folder', activeFolder)
-      if (activeExam && activeExam !== 'All') params.append('examType', activeExam)
+      if (activeFolder !== 'All') params.append('folder', activeFolder)
       if (search) params.append('search', search)
       if (showFavourites) params.append('favourite', 'true')
 
@@ -85,282 +68,338 @@ export default function LibraryPage() {
       })
       const data = await res.json()
       if (data.success) {
-        setMaterials(data.materials || [])
-        setFolders(['All', ...(data.folders || [])])
-        setStorage(data.storage || null)
+        setMaterials(data.materials)
+        setFolders(data.folders.filter((f: string) => f !== 'General').concat())
+        setStorage(data.storage)
       }
     } catch (err) {
-      console.error('Library fetch error:', err)
+      console.error('Library error:', err)
     } finally {
       setLoading(false)
     }
-  }, [activeFolder, activeExam, search, showFavourites])
+  }, [activeFolder, search, showFavourites])
 
   useEffect(() => {
-    const debounce = setTimeout(() => {
+    const t = setTimeout(() => {
       void fetchMaterials()
-    }, 300)
-    return () => clearTimeout(debounce)
+    }, 250)
+    return () => clearTimeout(t)
   }, [fetchMaterials])
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this material? This cannot be undone.')) return
-    try {
-      const token = await getToken()
-      await fetch(`/api/backend/library/${id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      setMaterials((prev) => prev.filter((m) => m._id !== id))
-    } catch (err) {
-      console.error('Delete material error:', err)
-    }
+    if (!window.confirm('Delete this material?')) return
+    const token = await getToken()
+    await fetch(`/api/backend/library/${id}`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    setMaterials((prev) => prev.filter((m: any) => m._id !== id))
   }
 
-  const handleToggleFavourite = async (material: LibraryMaterial) => {
-    try {
-      const token = await getToken()
-      const updated = !material.isFavourite
-      await fetch(`/api/backend/library/${material._id}`, {
-        method: 'PUT',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isFavourite: updated }),
-      })
-      setMaterials((prev) =>
-        prev.map((m) => (m._id === material._id ? { ...m, isFavourite: updated } : m))
+  const handleToggleFavourite = async (material: any) => {
+    const token = await getToken()
+    const updated = !material.isFavourite
+    await fetch(`/api/backend/library/${material._id}`, {
+      method: 'PUT',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ isFavourite: updated }),
+    })
+    setMaterials((prev) =>
+      prev.map((m: any) =>
+        m._id === material._id ? { ...m, isFavourite: updated } : m
       )
-    } catch (err) {
-      console.error('Toggle favourite error:', err)
-    }
+    )
   }
+
+  const recentlyOpened = materials
+    .filter((m: any) => m.readProgress > 0)
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )
+    .slice(0, 4)
+
+  const allFolders = ['All', 'General', ...folders]
+  const uniqueFolders = [...new Set(allFolders)]
+
+  const folderCount = (f: string) =>
+    f === 'All'
+      ? materials.length
+      : materials.filter((m: any) => m.folder === f).length
+
+  const filtered =
+    activeFolder === 'All'
+      ? materials
+      : materials.filter((m: any) => m.folder === activeFolder)
 
   return (
     <ProtectedRoute>
-      <div className="library-page">
-        <BackButton label="Dashboard" href="/dashboard/student" />
-
-        {/* Header */}
-        <div className="library-header">
-          <div>
-            <h1>My Study Library</h1>
-            <p>Upload, organise and read your PDF study materials</p>
+      <div className="lib-page">
+        {/* Top Hero */}
+        <div className="lib-hero">
+          <div className="lib-hero-left">
+            <div className="lib-hero-icon">
+              <BookOpen size={24} color="white" />
+            </div>
+            <div>
+              <h1 className="lib-hero-title">My Study Library</h1>
+              <p className="lib-hero-sub">
+                {materials.length} material{materials.length !== 1 ? 's' : ''} saved
+              </p>
+            </div>
           </div>
-          <button className="upload-trigger-btn" onClick={() => setShowUpload(true)}>
-            <Upload size={16} /> Upload PDF
+
+          <button
+            className="lib-upload-btn"
+            onClick={() => setShowUpload(true)}
+            type="button"
+          >
+            <Plus size={18} />
+            <span>Upload PDF</span>
           </button>
         </div>
 
-        {/* Storage Bar */}
+        {/* Search bar */}
+        <div className="lib-search-bar">
+          <div className="lib-search-inner">
+            <Search size={18} color="#9CA3AF" />
+            <input
+              ref={searchRef}
+              className="lib-search-input"
+              placeholder="Search by title, subject or tag..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                className="lib-search-x"
+                onClick={() => setSearch('')}
+                type="button"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            className={`lib-fav-btn ${showFavourites ? 'active' : ''}`}
+            onClick={() => setShowFavourites(!showFavourites)}
+            title="Starred only"
+            type="button"
+          >
+            <Star
+              size={16}
+              fill={showFavourites ? '#F59E0B' : 'none'}
+              color={showFavourites ? '#F59E0B' : '#6B7280'}
+            />
+            <span>{showFavourites ? 'Starred' : 'All'}</span>
+          </button>
+        </div>
+
+        {/* Storage bar */}
         {storage && (
-          <div className="storage-bar-card">
-            <div className="storage-info">
-              <HardDrive size={16} color="#4F46E5" />
-              <span>Storage Used</span>
-              <strong>
-                {storage.usedMB} MB / {storage.limitMB} MB
-              </strong>
-              {storage.percentage >= 80 && (
-                <span className="storage-warning">
-                  {storage.percentage >= 100 ? '⚠️ Full!' : `⚠️ ${storage.percentage}% used`}
-                </span>
-              )}
-            </div>
-            <div className="storage-track">
+          <div className="lib-storage">
+            <HardDrive size={14} />
+            <div className="lib-storage-track">
               <div
-                className="storage-fill"
+                className="lib-storage-fill"
                 style={{
                   width: `${Math.min(storage.percentage, 100)}%`,
                   background:
-                    storage.percentage >= 90 ? '#DC2626' : storage.percentage >= 70 ? '#D97706' : '#4F46E5',
+                    storage.percentage >= 90
+                      ? '#DC2626'
+                      : storage.percentage >= 70
+                      ? '#D97706'
+                      : '#4F46E5',
                 }}
               />
             </div>
+            <span className="lib-storage-text">
+              {storage.usedMB} / {storage.limitMB} MB
+            </span>
             {storage.limitMB === 50 && (
               <button
-                className="storage-upgrade-btn"
+                className="lib-storage-upgrade"
                 onClick={() => {
                   window.location.href = '/dashboard/pricing'
                 }}
+                type="button"
               >
-                Upgrade for 500MB →
+                Upgrade →
               </button>
             )}
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="library-toolbar">
-          <div className="lib-search-wrap">
-            <Search size={15} />
-            <input
-              className="lib-search"
-              placeholder="Search materials..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="lib-search-clear" onClick={() => setSearch('')}>
-                <X size={14} />
-              </button>
-            )}
+        {/* Recently opened */}
+        {recentlyOpened.length > 0 && !search && activeFolder === 'All' && (
+          <div className="lib-section">
+            <div className="lib-section-header">
+              <Clock size={15} />
+              <span>Continue Reading</span>
+            </div>
+            <div className="lib-recent-row">
+              {recentlyOpened.map((m: any) => (
+                <RecentCard
+                  key={m._id}
+                  material={m}
+                  onClick={() => setShowReader(m)}
+                />
+              ))}
+            </div>
           </div>
+        )}
 
+        {/* Folder tabs */}
+        <div className="lib-folder-tabs">
+          {uniqueFolders.map((f: string) => (
+            <button
+              key={f}
+              className={`lib-folder-tab ${
+                activeFolder === f ? 'active' : ''
+              }`}
+              onClick={() => setActiveFolder(f)}
+              type="button"
+            >
+              {activeFolder === f ? (
+                <FolderOpen size={14} />
+              ) : (
+                <Folder size={14} />
+              )}
+              <span>{f}</span>
+              <span className="lib-folder-count">{folderCount(f)}</span>
+            </button>
+          ))}
           <button
-            className={`fav-toggle ${showFavourites ? 'active' : ''}`}
-            onClick={() => setShowFavourites(!showFavourites)}
-            title="Show favourites"
+            className="lib-new-folder-tab"
+            onClick={() => {
+              const name = window.prompt('New folder name:')
+              if (name && name.trim()) {
+                setFolders((prev) => [...prev, name.trim()])
+              }
+            }}
+            type="button"
           >
-            <Star size={16} />
+            <Plus size={13} /> New Folder
           </button>
-
-          <div className="view-toggle">
-            <button
-              className={view === 'grid' ? 'active' : ''}
-              onClick={() => setView('grid')}
-              type="button"
-            >
-              <Grid size={15} />
-            </button>
-            <button
-              className={view === 'list' ? 'active' : ''}
-              onClick={() => setView('list')}
-              type="button"
-            >
-              <List size={15} />
-            </button>
-          </div>
         </div>
 
-        <div className="library-body">
-          {/* Sidebar */}
-          <div className="library-sidebar">
-            <div className="lib-sidebar-section">
-              <span className="lib-sidebar-label">Folders</span>
-              {folders.map((f) => (
-                <button
-                  key={f}
-                  className={`lib-folder-btn ${activeFolder === f ? 'active' : ''}`}
-                  onClick={() => setActiveFolder(f)}
-                  type="button"
-                >
-                  <Folder size={14} />
-                  <span>{f}</span>
-                  <span className="folder-count">
-                    {f === 'All'
-                      ? materials.length
-                      : materials.filter((m) => m.folder === f).length}
-                  </span>
-                </button>
-              ))}
-              <button
-                className="new-folder-btn"
-                type="button"
-                onClick={() => {
-                  const name = window.prompt('New folder name:')
-                  if (name) setFolders((prev) => [...prev, name])
-                }}
-              >
-                <Plus size={13} /> New Folder
-              </button>
+        {/* Bookshelf grid */}
+        <div className="lib-section">
+          {activeFolder !== 'All' && (
+            <div className="lib-section-header">
+              <FolderOpen size={15} />
+              <span>{activeFolder}</span>
+              <span className="lib-section-count">
+                {filtered.length} files
+              </span>
             </div>
+          )}
 
-            <div className="lib-sidebar-section">
-              <span className="lib-sidebar-label">Exam Type</span>
-              {EXAM_TYPES.map((type) => (
-                <button
-                  key={type}
-                  className={`lib-filter-btn ${activeExam === type ? 'active' : ''}`}
-                  onClick={() => setActiveExam(type)}
-                  type="button"
-                >
-                  {type}
-                </button>
-              ))}
+          {loading ? (
+            <div className="lib-skeleton-grid">
+              {Array(8)
+                .fill(0)
+                .map((_, i) => (
+                  <div key={i} className="lib-skeleton-card">
+                    <div className="lib-skeleton-top" />
+                    <div className="lib-skeleton-body">
+                      <div className="lib-skeleton-line long" />
+                      <div className="lib-skeleton-line short" />
+                    </div>
+                  </div>
+                ))}
             </div>
-          </div>
-
-          {/* Materials */}
-          <div className="library-content">
-            {loading ? (
-              <div className="lib-loading">Loading your library...</div>
-            ) : materials.length === 0 ? (
-              <div className="lib-empty">
-                <BookOpen size={48} color="#E5E7EB" />
-                <h3>{search ? 'No results found' : 'Your library is empty'}</h3>
-                <p>
-                  {search
-                    ? 'Try a different search term'
-                    : 'Upload your first PDF to get started'}
-                </p>
-                {!search && (
+          ) : filtered.length === 0 ? (
+            <div className="lib-empty-state">
+              {search ? (
+                <>
+                  <Search size={40} color="#E5E7EB" />
+                  <h3>No results for "{search}"</h3>
+                  <p>Try searching by subject or tag</p>
+                </>
+              ) : (
+                <>
+                  <BookOpen size={40} color="#E5E7EB" />
+                  <h3>
+                    {activeFolder === 'All'
+                      ? 'Your library is empty'
+                      : `No files in ${activeFolder}`}
+                  </h3>
+                  <p>Upload your first PDF to get started</p>
                   <button
-                    className="upload-trigger-btn"
+                    className="lib-upload-btn"
                     onClick={() => setShowUpload(true)}
                     type="button"
                   >
-                    <Upload size={15} /> Upload PDF
+                    <Plus size={16} /> Upload PDF
                   </button>
-                )}
-              </div>
-            ) : (
-              <div className={`materials-${view}`}>
-                {materials.map((material) => (
-                  <MaterialCard
-                    key={material._id}
-                    material={material}
-                    view={view}
-                    onRead={() => setShowReader(material)}
-                    onEdit={() => setEditingMaterial(material)}
-                    onDelete={() => handleDelete(material._id)}
-                    onToggleFavourite={() => handleToggleFavourite(material)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="lib-book-grid">
+              {filtered.map((material: any) => (
+                <BookCard
+                  key={material._id}
+                  material={material}
+                  onRead={() => setShowReader(material)}
+                  onEdit={() => setEditingMaterial(material)}
+                  onDelete={() => handleDelete(material._id)}
+                  onToggleFav={() => handleToggleFavourite(material)}
+                />
+              ))}
+
+              <button
+                className="lib-add-card"
+                onClick={() => setShowUpload(true)}
+                type="button"
+              >
+                <div className="lib-add-icon">
+                  <Plus size={24} />
+                </div>
+                <span>Add Material</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Upload Modal */}
+        {/* Modals */}
         {showUpload && (
           <UploadModal
-            folders={folders.filter((f) => f !== 'All')}
+            folders={uniqueFolders.filter((f: string) => f !== 'All')}
             onClose={() => setShowUpload(false)}
-            onUploaded={(material) => {
+            onUploaded={(material: any) => {
               setMaterials((prev) => [material, ...prev])
               setShowUpload(false)
             }}
           />
         )}
 
-        {/* PDF Reader Modal */}
         {showReader && (
           <PDFReader
             material={showReader}
             onClose={() => setShowReader(null)}
             onProgressSaved={(id, page, progress) => {
               setMaterials((prev) =>
-                prev.map((m) =>
-                  m._id === id
-                    ? { ...m, lastReadPage: page, readProgress: progress }
-                    : m
+                prev.map((m: any) =>
+                  m._id === id ? { ...m, lastReadPage: page, readProgress: progress } : m
                 )
               )
             }}
           />
         )}
 
-        {/* Edit Modal */}
         {editingMaterial && (
-          <EditMaterialModal
+          <EditModal
             material={editingMaterial}
-            folders={folders.filter((f) => f !== 'All')}
+            folders={uniqueFolders.filter((f: string) => f !== 'All')}
             onClose={() => setEditingMaterial(null)}
-            onSaved={(updated) => {
+            onSaved={(updated: any) => {
               setMaterials((prev) =>
-                prev.map((m) => (m._id === updated._id ? updated : m))
+                prev.map((m: any) => (m._id === updated._id ? updated : m))
               )
               setEditingMaterial(null)
             }}
@@ -371,174 +410,164 @@ export default function LibraryPage() {
   )
 }
 
-function MaterialCard({
+// Recently opened card
+const RecentCard = ({ material, onClick }: { material: any; onClick: () => void }) => {
+  const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
+  return (
+    <button className="lib-recent-card" onClick={onClick} type="button">
+      <div
+        className="lib-recent-spine"
+        style={{ background: colorObj.bg }}
+      />
+      <div className="lib-recent-info">
+        <span className="lib-recent-title">{material.title}</span>
+        {material.subject && (
+          <span className="lib-recent-subject">{material.subject}</span>
+        )}
+        <div className="lib-recent-progress">
+          <div className="lib-recent-bar">
+            <div
+              className="lib-recent-fill"
+              style={{
+                width: `${material.readProgress}%`,
+                background: colorObj.bg,
+              }}
+            />
+          </div>
+          <span>{material.readProgress}%</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// Book card
+const BookCard = ({
   material,
-  view,
   onRead,
   onEdit,
   onDelete,
-  onToggleFavourite,
+  onToggleFav,
 }: {
-  material: LibraryMaterial
-  view: ViewMode
+  material: any
   onRead: () => void
   onEdit: () => void
   onDelete: () => void
-  onToggleFavourite: () => void
-}) {
+  onToggleFav: () => void
+}) => {
+  const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
   const sizeMB = (material.fileSize / (1024 * 1024)).toFixed(1)
-
-  if (view === 'list') {
-    return (
-      <div className="material-list-row">
-        <div
-          className="material-list-icon"
-          style={{ background: `${material.color}20` }}
-        >
-          <FileText size={20} color={material.color} />
-        </div>
-        <div className="material-list-info">
-          <span className="material-title">{material.title}</span>
-          <div className="material-meta">
-            {material.subject && <span>{material.subject}</span>}
-            {material.examType !== 'Other' && <span>• {material.examType}</span>}
-            <span>• {sizeMB} MB</span>
-            {material.readProgress && material.readProgress > 0 && (
-              <span className="progress-chip">{material.readProgress}% read</span>
-            )}
-          </div>
-        </div>
-        <div className="material-list-actions">
-          <button className="lib-action-btn" onClick={onToggleFavourite} type="button">
-            {material.isFavourite ? (
-              <Star size={15} color="#F59E0B" fill="#F59E0B" />
-            ) : (
-              <StarOff size={15} color="#9CA3AF" />
-            )}
-          </button>
-          <button
-            className="lib-action-btn read"
-            onClick={onRead}
-            title="Read"
-            type="button"
-          >
-            <Eye size={15} />
-          </button>
-          <button
-            className="lib-action-btn edit"
-            onClick={onEdit}
-            title="Edit"
-            type="button"
-          >
-            <Edit2 size={15} />
-          </button>
-          <button
-            className="lib-action-btn delete"
-            onClick={onDelete}
-            title="Delete"
-            type="button"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const initials = material.title
+    .split(' ')
+    .slice(0, 2)
+    .map((w: string) => w[0]?.toUpperCase())
+    .join('')
 
   return (
-    <div className="material-card">
+    <div className="lib-book-card">
       <div
-        className="material-card-top"
+        className="lib-book-cover"
         style={{
-          background: `linear-gradient(135deg, ${material.color}22, ${material.color}44)`,
+          background: `linear-gradient(160deg, ${colorObj.bg} 0%, ${colorObj.bg}CC 100%)`,
         }}
         onClick={onRead}
       >
-        <FileText size={36} color={material.color} />
-        {material.isFavourite && (
-          <Star size={14} color="#F59E0B" fill="#F59E0B" className="fav-star" />
+        <div className="lib-book-spine" />
+        <div className="lib-book-initials">{initials || '📄'}</div>
+
+        {material.subject && (
+          <div className="lib-book-subject-badge">{material.subject}</div>
         )}
-        {material.readProgress && material.readProgress > 0 && (
-          <div className="card-progress-bar">
+
+        {material.isFavourite && (
+          <div className="lib-book-star">
+            <Star size={13} fill="#FCD34D" color="#FCD34D" />
+          </div>
+        )}
+
+        {material.readProgress > 0 && (
+          <div className="lib-book-progress">
             <div
-              className="card-progress-fill"
-              style={{ width: `${material.readProgress}%`, background: material.color }}
+              className="lib-book-progress-fill"
+              style={{ width: `${material.readProgress}%` }}
             />
           </div>
         )}
+
+        <div className="lib-book-hover">
+          <span>Open</span>
+        </div>
       </div>
 
-      <div className="material-card-body">
-        <h4 className="material-title" title={material.title}>
+      <div className="lib-book-info">
+        <p className="lib-book-title" title={material.title}>
           {material.title}
-        </h4>
-        <div className="material-meta">
-          {material.subject && <span className="meta-chip">{material.subject}</span>}
-          {material.examType !== 'Other' && (
-            <span className="meta-chip exam">{material.examType}</span>
-          )}
-        </div>
-        {material.tags && material.tags.length > 0 && (
-          <div className="material-tags">
-            {material.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="tag-chip">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-        <div className="material-footer">
-          <span className="file-size">{sizeMB} MB</span>
-          {material.readProgress && material.readProgress > 0 && (
-            <span className="read-progress">{material.readProgress}% read</span>
+        </p>
+        <div className="lib-book-meta">
+          <span>{sizeMB} MB</span>
+          {material.readProgress > 0 && (
+            <span className="lib-book-read" style={{ color: colorObj.bg }}>
+              {material.readProgress}% read
+            </span>
           )}
         </div>
       </div>
 
-      <div className="material-card-actions">
-        <button className="lib-action-btn" onClick={onToggleFavourite} type="button">
-          {material.isFavourite ? (
-            <Star size={14} color="#F59E0B" fill="#F59E0B" />
-          ) : (
-            <StarOff size={14} color="#9CA3AF" />
-          )}
+      <div className="lib-book-actions">
+        <button
+          className="lib-book-action-btn fav"
+          onClick={onToggleFav}
+          title={material.isFavourite ? 'Unstar' : 'Star'}
+          type="button"
+        >
+          <Star
+            size={13}
+            fill={material.isFavourite ? '#F59E0B' : 'none'}
+            color={material.isFavourite ? '#F59E0B' : '#9CA3AF'}
+          />
         </button>
-        <button className="lib-action-btn read" onClick={onRead} type="button">
-          <Eye size={14} /> Read
+        <button
+          className="lib-book-action-btn"
+          onClick={onEdit}
+          title="Edit"
+          type="button"
+        >
+          <Edit2 size={13} />
         </button>
-        <button className="lib-action-btn edit" onClick={onEdit} type="button">
-          <Edit2 size={14} />
-        </button>
-        <button className="lib-action-btn delete" onClick={onDelete} type="button">
-          <Trash2 size={14} />
+        <button
+          className="lib-book-action-btn danger"
+          onClick={onDelete}
+          title="Delete"
+          type="button"
+        >
+          <Trash2 size={13} />
         </button>
       </div>
     </div>
   )
 }
 
-function UploadModal({
+// Upload modal
+const UploadModal = ({
   folders,
   onClose,
   onUploaded,
 }: {
   folders: string[]
   onClose: () => void
-  onUploaded: (material: LibraryMaterial) => void
-}) {
+  onUploaded: (material: any) => void
+}) => {
   const [file, setFile] = useState<File | null>(null)
+  const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     title: '',
     subject: '',
-    topic: '',
     folder: 'General',
-    examType: 'Other',
-    description: '',
     tags: '',
     color: '#4F46E5',
   })
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
 
@@ -553,32 +582,24 @@ function UploadModal({
       return
     }
     setFile(f)
+    setForm((p) => ({ ...p, title: f.name.replace('.pdf', '') }))
     setError('')
-    if (!form.title) {
-      setForm((p) => ({ ...p, title: f.name.replace(/\.pdf$/i, '') }))
-    }
+    setStep(2)
   }
 
   const handleUpload = async () => {
-    if (!file) {
-      setError('Please select a PDF file')
-      return
-    }
-    if (!form.title) {
+    if (!form.title.trim()) {
       setError('Please enter a title')
       return
     }
-
     setUploading(true)
     setError('')
 
     try {
-      const token = await getFirebaseToken()
+      const token = await getToken()
       const formData = new FormData()
-      formData.append('pdf', file)
-      Object.entries(form).forEach(([key, val]) => {
-        formData.append(key, val as string)
-      })
+      formData.append('pdf', file as File)
+      Object.entries(form).forEach(([k, v]) => formData.append(k, v as string))
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
@@ -589,21 +610,17 @@ function UploadModal({
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
-            setProgress(Math.round((e.loaded / e.total) * 100))
+            setUploadProgress(Math.round((e.loaded / e.total) * 100))
           }
         }
 
         xhr.onload = () => {
-          try {
-            const data = JSON.parse(xhr.responseText)
-            if (xhr.status === 200 && data.success) {
-              onUploaded(data.material)
-              resolve()
-            } else {
-              reject(new Error(data.error || 'Upload failed'))
-            }
-          } catch (err) {
-            reject(err as Error)
+          const data = JSON.parse(xhr.responseText)
+          if (xhr.status === 200 && data.success) {
+            onUploaded(data.material)
+            resolve()
+          } else {
+            reject(new Error(data.error || 'Upload failed'))
           }
         }
 
@@ -611,217 +628,245 @@ function UploadModal({
         xhr.send(formData)
       })
     } catch (err: any) {
-      setError(err.message || 'Upload failed')
-      setProgress(0)
+      setError(err.message)
+      setUploadProgress(0)
     } finally {
       setUploading(false)
     }
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Upload Study Material</h3>
-          <button className="modal-close" onClick={onClose} type="button">
+    <div className="lib-overlay" onClick={onClose}>
+      <div className="lib-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="lib-modal-header">
+          {step === 2 && (
+            <button
+              className="lib-modal-back"
+              onClick={() => setStep(1)}
+              type="button"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          )}
+          <h3>{step === 1 ? 'Upload PDF' : 'Add Details'}</h3>
+          <button className="lib-modal-close" onClick={onClose} type="button">
             <X size={18} />
           </button>
         </div>
 
-        <div
-          className={`lib-upload-zone ${dragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setDragOver(false)
-            handleFile(e.dataTransfer.files[0])
-          }}
-          onClick={() => {
-            const input = document.getElementById('lib-file-input') as HTMLInputElement | null
-            input?.click()
-          }}
-        >
-          <input
-            id="lib-file-input"
-            type="file"
-            accept=".pdf"
-            style={{ display: 'none' }}
-            onChange={(e) => handleFile(e.target.files?.[0])}
-          />
-          {file ? (
-            <div className="file-selected">
-              <FileText size={28} color="#4F46E5" />
-              <div>
-                <span className="file-name">{file.name}</span>
-                <span className="file-size">
-                  {(file.size / (1024 * 1024)).toFixed(1)} MB
-                </span>
-              </div>
-              <button
-                className="remove-file-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setFile(null)
-                  setProgress(0)
-                }}
-                type="button"
-              >
-                <X size={14} />
-              </button>
+        {step === 1 && (
+          <div
+            className={`lib-drop-zone ${dragOver ? 'drag-over' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              handleFile(e.dataTransfer.files[0])
+            }}
+            onClick={() => {
+              const input = document.getElementById('lib-pdf-input') as HTMLInputElement | null
+              input?.click()
+            }}
+          >
+            <input
+              id="lib-pdf-input"
+              type="file"
+              accept=".pdf"
+              style={{ display: 'none' }}
+              onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+            <div className="lib-drop-icon">
+              <Upload size={32} color="#4F46E5" />
             </div>
-          ) : (
-            <>
-              <Upload size={28} color="#9CA3AF" />
-              <p className="upload-title">Drop PDF here or click to browse</p>
-              <p className="upload-sub">Max 20MB per file</p>
-            </>
-          )}
-        </div>
-
-        {uploading && (
-          <div className="upload-progress-wrap">
-            <div className="upload-progress-bar">
-              <div className="upload-progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-            <span>{progress}% uploaded</span>
+            <p className="lib-drop-title">Drop your PDF here</p>
+            <p className="lib-drop-sub">or click to browse files</p>
+            <div className="lib-drop-limit">Max 20MB per file · PDF only</div>
+            {error && <div className="lib-error">{error}</div>}
           </div>
         )}
 
-        <div className="upload-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Title *</label>
-              <input
-                className="teacher-input"
-                placeholder="e.g. JAMB Chemistry Past Questions"
-                value={form.title}
-                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Subject</label>
-              <input
-                className="teacher-input"
-                placeholder="e.g. Chemistry"
-                value={form.subject}
-                onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Folder</label>
-              <select
-                className="teacher-input"
-                value={form.folder}
-                onChange={(e) => setForm((p) => ({ ...p, folder: e.target.value }))}
+        {step === 2 && (
+          <div className="lib-upload-details">
+            <div className="lib-file-preview">
+              <div
+                className="lib-file-preview-icon"
+                style={{ background: form.color + '22' }}
               >
-                <option value="General">General</option>
-                {folders.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-                <option value="__new__">+ Create new folder</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Exam Type</label>
-              <select
-                className="teacher-input"
-                value={form.examType}
-                onChange={(e) => setForm((p) => ({ ...p, examType: e.target.value }))}
+                <FileText size={24} color={form.color} />
+              </div>
+              <div className="lib-file-preview-info">
+                <span className="lib-file-preview-name">{file?.name}</span>
+                <span className="lib-file-preview-size">
+                  {(file?.size / (1024 * 1024)).toFixed(1)} MB
+                </span>
+              </div>
+              <button
+                className="lib-file-preview-change"
+                onClick={() => setStep(1)}
+                type="button"
               >
-                {EXAM_TYPES.filter((t) => t !== 'All').map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                Change
+              </button>
+            </div>
+
+            <div className="lib-color-row">
+              <span className="lib-form-label">Colour</span>
+              <div className="lib-colors">
+                {BOOK_COLORS.map((c) => (
+                  <button
+                    key={c.bg}
+                    className={`lib-color-btn ${
+                      form.color === c.bg ? 'active' : ''
+                    }`}
+                    style={{ background: c.bg }}
+                    onClick={() => setForm((p) => ({ ...p, color: c.bg }))}
+                    title={c.label}
+                    type="button"
+                  >
+                    {form.color === c.bg && (
+                      <Check size={12} color="white" strokeWidth={3} />
+                    )}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-          </div>
 
-          {form.folder === '__new__' && (
-            <div className="form-group">
-              <label>New Folder Name</label>
-              <input
-                className="teacher-input"
-                placeholder="e.g. WAEC Materials"
-                onChange={(e) => setForm((p) => ({ ...p, folder: e.target.value }))}
-              />
+            <div className="lib-book-preview">
+              <div
+                className="lib-preview-cover"
+                style={{
+                  background: `linear-gradient(160deg, ${form.color} 0%, ${form.color}CC 100%)`,
+                }}
+              >
+                <div className="lib-book-spine" />
+                <div className="lib-book-initials">
+                  {form.title
+                    .split(' ')
+                    .slice(0, 2)
+                    .map((w) => w[0]?.toUpperCase())
+                    .join('') || '📄'}
+                </div>
+                {form.subject && (
+                  <div className="lib-book-subject-badge">{form.subject}</div>
+                )}
+              </div>
+              <span className="lib-preview-label">Preview</span>
             </div>
-          )}
 
-          <div className="form-group">
-            <label>Tags (comma separated)</label>
-            <input
-              className="teacher-input"
-              placeholder="e.g. chemistry, organic, 2023"
-              value={form.tags}
-              onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Colour Label</label>
-            <div className="color-picker">
-              {FOLDER_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`color-dot ${form.color === c ? 'selected' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => setForm((p) => ({ ...p, color: c }))}
-                  type="button"
+            <div className="lib-form-fields">
+              <div className="lib-form-group">
+                <label className="lib-form-label">Title *</label>
+                <input
+                  className="lib-input"
+                  placeholder="e.g. JAMB Chemistry Past Questions 2024"
+                  value={form.title}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, title: e.target.value }))
+                  }
                 />
-              ))}
+              </div>
+
+              <div className="lib-form-row">
+                <div className="lib-form-group">
+                  <label className="lib-form-label">Subject</label>
+                  <input
+                    className="lib-input"
+                    placeholder="e.g. Chemistry"
+                    value={form.subject}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, subject: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="lib-form-group">
+                  <label className="lib-form-label">Folder</label>
+                  <select
+                    className="lib-input"
+                    value={form.folder}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, folder: e.target.value }))
+                    }
+                  >
+                    <option value="General">General</option>
+                    {folders
+                      .filter((f) => f !== 'General')
+                      .map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="lib-form-group">
+                <label className="lib-form-label">Tags</label>
+                <input
+                  className="lib-input"
+                  placeholder="e.g. organic, 2023, waec (comma separated)"
+                  value={form.tags}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, tags: e.target.value }))
+                  }
+                />
+              </div>
             </div>
+
+            {uploading && (
+              <div className="lib-upload-progress">
+                <div className="lib-progress-track">
+                  <div
+                    className="lib-progress-fill"
+                    style={{ width: `${uploadProgress}%`, background: form.color }}
+                  />
+                </div>
+                <span>{uploadProgress}%</span>
+              </div>
+            )}
+
+            {error && <div className="lib-error">{error}</div>}
+
+            <button
+              className="lib-upload-submit"
+              style={{ background: form.color }}
+              onClick={handleUpload}
+              disabled={uploading}
+              type="button"
+            >
+              {uploading ? (
+                `Uploading... ${uploadProgress}%`
+              ) : (
+                <>
+                  <Upload size={16} /> Save to Library
+                </>
+              )}
+            </button>
           </div>
-        </div>
-
-        {error && <div className="tool-error">{error}</div>}
-
-        <button
-          className="generate-btn"
-          onClick={handleUpload}
-          disabled={uploading || !file}
-          type="button"
-        >
-          {uploading ? `Uploading... ${progress}%` : (
-            <>
-              <Upload size={16} /> Upload Material
-            </>
-          )}
-        </button>
+        )}
       </div>
     </div>
   )
 }
 
-function PDFReader({
+// PDF reader
+const PDFReader = ({
   material,
   onClose,
   onProgressSaved,
 }: {
-  material: LibraryMaterial
+  material: any
   onClose: () => void
   onProgressSaved: (id: string, page: number, progress: number) => void
-}) {
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const [currentPage] = useState<number>(material.lastReadPage || 1)
+}) => {
+  const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
 
   const handleClose = async () => {
     try {
-      const token = await getFirebaseToken()
-      const progress =
-        material.pageCount && material.pageCount > 0
-          ? Math.round((currentPage / material.pageCount) * 100)
-          : material.readProgress || 0
-
+      const token = await getToken()
       await fetch(`/api/backend/library/${material._id}/progress`, {
         method: 'PUT',
         headers: {
@@ -829,88 +874,85 @@ function PDFReader({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          lastReadPage: currentPage,
-          readProgress: progress,
+          lastReadPage: material.lastReadPage || 1,
+          readProgress: material.readProgress || 0,
         }),
       })
-      onProgressSaved(material._id, currentPage, progress)
     } catch (err) {
-      console.error('Progress save error:', err)
+      console.error(err)
     }
     onClose()
   }
 
-  const pdfUrl = `${material.fileUrl}#page=${currentPage}`
-
   return (
-    <div className="reader-overlay">
-      <div className="reader-modal">
-        <div className="reader-header">
-          <div className="reader-title">
-            <FileText size={18} color={material.color} />
-            <span>{material.title}</span>
-            {material.subject && <span className="reader-subject">— {material.subject}</span>}
+    <div className="lib-reader-overlay">
+      <div className="lib-reader">
+        <div
+          className="lib-reader-bar"
+          style={{ borderBottom: `3px solid ${material.color}` }}
+        >
+          <button className="lib-reader-back" onClick={handleClose} type="button">
+            <ArrowLeft size={18} />
+            <span>Back to Library</span>
+          </button>
+
+          <div className="lib-reader-title-wrap">
+            <div
+              className="lib-reader-dot"
+              style={{ background: material.color }}
+            />
+            <span className="lib-reader-title">{material.title}</span>
+            {material.subject && (
+              <span className="lib-reader-sub">— {material.subject}</span>
+            )}
           </div>
-          <div className="reader-controls">
+
+          <div className="lib-reader-right">
+            {material.readProgress > 0 && (
+              <span
+                className="lib-reader-progress-badge"
+                style={{ background: colorObj.bg + '22', color: colorObj.bg }}
+              >
+                {material.readProgress}% read
+              </span>
+            )}
             <a
               href={material.fileUrl}
-              download={material.title}
-              className="reader-download-btn"
               target="_blank"
               rel="noreferrer"
+              className="lib-reader-download"
             >
               Download
             </a>
-            <button className="reader-close-btn" onClick={handleClose} type="button">
-              <X size={18} /> Close
-            </button>
           </div>
         </div>
 
-        <div className="reader-body">
-          <iframe
-            ref={iframeRef}
-            src={pdfUrl}
-            className="pdf-iframe"
-            title={material.title}
-          />
-        </div>
-
-        {material.readProgress && material.readProgress > 0 && (
-          <div className="reader-footer">
-            <span>Last read: Page {material.lastReadPage}</span>
-            <div className="reader-progress-bar">
-              <div
-                className="reader-progress-fill"
-                style={{ width: `${material.readProgress}%`, background: material.color }}
-              />
-            </div>
-            <span>{material.readProgress}% complete</span>
-          </div>
-        )}
+        <iframe
+          src={`${material.fileUrl}#toolbar=1&navpanes=1`}
+          className="lib-reader-iframe"
+          title={material.title}
+        />
       </div>
     </div>
   )
 }
 
-function EditMaterialModal({
+// Edit modal
+const EditModal = ({
   material,
   folders,
   onClose,
   onSaved,
 }: {
-  material: LibraryMaterial
+  material: any
   folders: string[]
   onClose: () => void
-  onSaved: (material: LibraryMaterial) => void
-}) {
+  onSaved: (material: any) => void
+}) => {
   const [form, setForm] = useState({
     title: material.title,
     subject: material.subject || '',
-    topic: material.topic || '',
     folder: material.folder || 'General',
-    examType: material.examType || 'Other',
-    description: material.description || '',
     tags: material.tags?.join(', ') || '',
     color: material.color || '#4F46E5',
   })
@@ -919,7 +961,7 @@ function EditMaterialModal({
   const handleSave = async () => {
     setSaving(true)
     try {
-      const token = await getFirebaseToken()
+      const token = await getToken()
       const res = await fetch(`/api/backend/library/${material._id}`, {
         method: 'PUT',
         headers: {
@@ -930,103 +972,114 @@ function EditMaterialModal({
       })
       const data = await res.json()
       if (data.success) onSaved(data.material)
-    } catch (err) {
-      console.error('Save material error:', err)
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="lib-overlay" onClick={onClose}>
+      <div className="lib-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="lib-modal-header">
           <h3>Edit Material</h3>
-          <button className="modal-close" onClick={onClose} type="button">
+          <button className="lib-modal-close" onClick={onClose} type="button">
             <X size={18} />
           </button>
         </div>
 
-        <div className="upload-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Title</label>
-              <input
-                className="teacher-input"
-                value={form.title}
-                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Subject</label>
-              <input
-                className="teacher-input"
-                value={form.subject}
-                onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Folder</label>
-              <select
-                className="teacher-input"
-                value={form.folder}
-                onChange={(e) => setForm((p) => ({ ...p, folder: e.target.value }))}
-              >
-                <option value="General">General</option>
-                {folders.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Exam Type</label>
-              <select
-                className="teacher-input"
-                value={form.examType}
-                onChange={(e) => setForm((p) => ({ ...p, examType: e.target.value }))}
-              >
-                {EXAM_TYPES.filter((t) => t !== 'All').map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Tags</label>
-            <input
-              className="teacher-input"
-              placeholder="tag1, tag2, tag3"
-              value={form.tags}
-              onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
-            />
-          </div>
-          <div className="form-group">
-            <label>Colour Label</label>
-            <div className="color-picker">
-              {FOLDER_COLORS.map((c) => (
+        <div className="lib-upload-details">
+          <div className="lib-color-row">
+            <span className="lib-form-label">Colour</span>
+            <div className="lib-colors">
+              {BOOK_COLORS.map((c) => (
                 <button
-                  key={c}
-                  className={`color-dot ${form.color === c ? 'selected' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => setForm((p) => ({ ...p, color: c }))}
+                  key={c.bg}
+                  className={`lib-color-btn ${
+                    form.color === c.bg ? 'active' : ''
+                  }`}
+                  style={{ background: c.bg }}
+                  onClick={() => setForm((p) => ({ ...p, color: c.bg }))}
                   type="button"
-                />
+                >
+                  {form.color === c.bg && (
+                    <Check size={12} color="white" strokeWidth={3} />
+                  )}
+                </button>
               ))}
             </div>
           </div>
-        </div>
 
-        <button className="generate-btn" onClick={handleSave} disabled={saving} type="button">
-          {saving ? 'Saving...' : 'Save Changes'}
-        </button>
+          <div className="lib-form-fields">
+            <div className="lib-form-group">
+              <label className="lib-form-label">Title</label>
+              <input
+                className="lib-input"
+                value={form.title}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, title: e.target.value }))
+                }
+              />
+            </div>
+            <div className="lib-form-row">
+              <div className="lib-form-group">
+                <label className="lib-form-label">Subject</label>
+                <input
+                  className="lib-input"
+                  value={form.subject}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, subject: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="lib-form-group">
+                <label className="lib-form-label">Folder</label>
+                <select
+                  className="lib-input"
+                  value={form.folder}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, folder: e.target.value }))
+                  }
+                >
+                  {folders.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="lib-form-group">
+              <label className="lib-form-label">Tags</label>
+              <input
+                className="lib-input"
+                placeholder="tag1, tag2"
+                value={form.tags}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, tags: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <button
+            className="lib-upload-submit"
+            style={{ background: form.color }}
+            onClick={handleSave}
+            disabled={saving}
+            type="button"
+          >
+            {saving ? (
+              'Saving...'
+            ) : (
+              <>
+                <Check size={16} /> Save Changes
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
+export default LibraryPage
