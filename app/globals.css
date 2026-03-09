@@ -5114,6 +5114,9 @@ html {
   margin: 0 auto;
   padding: 16px;
 }
+.dark .library-page {
+  color: #E5E7EB;
+}
 .library-header {
   display: flex;
   justify-content: space-between;
@@ -5157,6 +5160,10 @@ html {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+.dark .storage-bar-card {
+  background: #111827;
+  border-color: #374151;
 }
 .storage-info {
   display: flex;
@@ -5217,6 +5224,10 @@ html {
   flex: 1;
   min-width: 200px;
 }
+.dark .lib-search-wrap {
+  background: #111827;
+  border-color: #374151;
+}
 .lib-search {
   border: none;
   outline: none;
@@ -5246,6 +5257,10 @@ html {
   background: #FEF3C7;
   border-color: #F59E0B;
   color: #F59E0B;
+}
+.dark .fav-toggle {
+  background: #111827;
+  border-color: #374151;
 }
 .view-toggle {
   display: flex;
@@ -5287,6 +5302,10 @@ html {
   gap: 20px;
   position: sticky;
   top: 16px;
+}
+.dark .library-sidebar {
+  background: #111827;
+  border-color: #374151;
 }
 .lib-sidebar-section {
   display: flex;
@@ -5394,6 +5413,10 @@ html {
   transition: all 0.15s;
   display: flex;
   flex-direction: column;
+}
+.dark .material-card {
+  background: #111827;
+  border-color: #374151;
 }
 .material-card:hover {
   border-color: #4F46E5;
@@ -5503,6 +5526,10 @@ html {
 }
 .material-list-row:hover {
   border-color: #4F46E5;
+}
+.dark .material-list-row {
+  background: #111827;
+  border-color: #374151;
 }
 .material-list-icon {
   width: 42px;
