@@ -1,160 +1,302 @@
 'use client'
 
 import { useState } from 'react'
-import { FaCalculator, FaPlus, FaTrash } from 'react-icons/fa'
+import { Plus, Trash2 } from 'lucide-react'
+import { usePersistedState } from '@/hooks/usePersistedState'
 
 interface Course {
-  id: string
   name: string
-  creditHours: number
   grade: string
-  gradePoint: number
+  units: string
+}
+
+interface Result {
+  semesterGPA: string
+  cumulativeGPA: string | null
+  totalUnits: number
+  classification: { label: string; color: string }
+  scale: number
 }
 
 interface CGPACalculatorProps {
   className?: string
 }
 
-const gradePoints: Record<string, number> = {
-  'A': 4.0,
-  'B': 3.0,
-  'C': 2.0,
-  'D': 1.0,
-  'F': 0.0,
-}
-
 export default function CGPACalculator({ className = '' }: CGPACalculatorProps) {
-  const [courses, setCourses] = useState<Course[]>([
-    { id: '1', name: '', creditHours: 3, grade: 'A', gradePoint: 4.0 },
+  const [scale, setScale] = usePersistedState('cgpa_scale', '5.0')
+  const [currentCGPA, setCurrentCGPA] = usePersistedState('cgpa_current', '')
+  const [currentCredits, setCurrentCredits] = usePersistedState('cgpa_credits', '')
+  const [courses, setCourses] = usePersistedState<Course[]>('cgpa_courses', [
+    { name: '', grade: '', units: '' },
   ])
-  const [targetCGPA, setTargetCGPA] = useState(4.0)
+  const [result, setResult] = useState<Result | null>(null)
 
-  const addCourse = () => {
-    setCourses([
-      ...courses,
-      { id: Date.now().toString(), name: '', creditHours: 3, grade: 'A', gradePoint: 4.0 },
-    ])
-  }
-
-  const removeCourse = (id: string) => {
-    if (courses.length > 1) {
-      setCourses(courses.filter((c) => c.id !== id))
-    }
-  }
-
-  const updateCourse = (id: string, field: keyof Course, value: any) => {
+  const updateCourse = (index: number, field: keyof Course, value: string) => {
     setCourses(
-      courses.map((course) => {
-        if (course.id === id) {
-          const updated = { ...course, [field]: value }
-          if (field === 'grade') {
-            updated.gradePoint = gradePoints[value] || 0
-          }
-          return updated
-        }
-        return course
-      })
+      courses.map((c, i) => (i === index ? { ...c, [field]: value } : c))
     )
   }
 
-  const calculateCGPA = () => {
-    const totalPoints = courses.reduce((sum, course) => sum + course.gradePoint * course.creditHours, 0)
-    const totalCredits = courses.reduce((sum, course) => sum + course.creditHours, 0)
-    return totalCredits > 0 ? totalPoints / totalCredits : 0
+  const addCourse = () => {
+    setCourses([...courses, { name: '', grade: '', units: '' }])
   }
 
-  const currentCGPA = calculateCGPA()
-  const remaining = targetCGPA - currentCGPA
+  const removeCourse = (index: number) => {
+    if (courses.length > 1) {
+      setCourses(courses.filter((_, i) => i !== index))
+    }
+  }
+
+  const calculateCGPA = () => {
+    const maxScale = parseFloat(scale)
+
+    const validCourses = courses.filter((c) => c.grade !== '' && c.units !== '')
+
+    if (validCourses.length === 0) {
+      setResult(null)
+      return
+    }
+
+    let totalPoints = 0
+    let totalUnits = 0
+
+    validCourses.forEach((c) => {
+      const units = parseFloat(c.units)
+      const gradePoint = parseFloat(c.grade)
+      totalPoints += gradePoint * units
+      totalUnits += units
+    })
+
+    const semesterGPA = totalUnits > 0 ? totalPoints / totalUnits : 0
+
+    let cumulativeGPA: number | null = null
+    if (currentCGPA && currentCredits) {
+      const prevPoints = parseFloat(currentCGPA) * parseFloat(currentCredits)
+      const newTotalPoints = prevPoints + totalPoints
+      const newTotalUnits = parseFloat(currentCredits) + totalUnits
+      cumulativeGPA = newTotalPoints / newTotalUnits
+    }
+
+    const getClass = (gpa: number) => {
+      if (scale === '5.0') {
+        if (gpa >= 4.5) return { label: 'First Class', color: '#059669' }
+        if (gpa >= 3.5) return { label: 'Second Class Upper', color: '#4F46E5' }
+        if (gpa >= 2.4) return { label: 'Second Class Lower', color: '#D97706' }
+        if (gpa >= 1.5) return { label: 'Third Class', color: '#DC2626' }
+        return { label: 'Fail', color: '#991B1B' }
+      } else {
+        if (gpa >= 3.7) return { label: 'First Class', color: '#059669' }
+        if (gpa >= 3.0) return { label: 'Second Class Upper', color: '#4F46E5' }
+        if (gpa >= 2.0) return { label: 'Second Class Lower', color: '#D97706' }
+        if (gpa >= 1.0) return { label: 'Third Class', color: '#DC2626' }
+        return { label: 'Fail', color: '#991B1B' }
+      }
+    }
+
+    const displayGPA = cumulativeGPA ?? semesterGPA
+
+    setResult({
+      semesterGPA: semesterGPA.toFixed(2),
+      cumulativeGPA: cumulativeGPA?.toFixed(2) ?? null,
+      totalUnits,
+      classification: getClass(displayGPA),
+      scale: maxScale,
+    })
+  }
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <FaCalculator className="text-blue-500 text-xl" />
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">CGPA Calculator</h3>
-      </div>
-
-      <div className="space-y-4">
-        {/* Current CGPA Display */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Current CGPA</span>
-            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {currentCGPA.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Target CGPA</span>
-            <input
-              type="number"
-              min="0"
-              max="4"
-              step="0.1"
-              value={targetCGPA}
-              onChange={(e) => setTargetCGPA(parseFloat(e.target.value) || 0)}
-              className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-            />
-          </div>
-          {remaining > 0 && (
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Need <span className="font-bold text-blue-600 dark:text-blue-400">{remaining.toFixed(2)}</span> more to reach target
-            </div>
-          )}
-        </div>
-
-        {/* Courses List */}
-        <div className="space-y-3 max-h-64 overflow-y-auto">
-          {courses.map((course, index) => (
-            <div
-              key={course.id}
-              className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+    <div className={`cgpa-page ${className}`}>
+      {/* Scale selector */}
+      <div className="cgpa-scale-selector">
+        <label>CGPA Scale</label>
+        <div className="scale-options">
+          {['4.0', '5.0'].map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`scale-btn ${scale === s ? 'active' : ''}`}
+              onClick={() => setScale(s)}
             >
-              <input
-                type="text"
-                placeholder="Course name"
-                value={course.name}
-                onChange={(e) => updateCourse(course.id, 'name', e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-              />
-              <input
-                type="number"
-                min="1"
-                max="6"
-                value={course.creditHours}
-                onChange={(e) => updateCourse(course.id, 'creditHours', parseInt(e.target.value) || 0)}
-                className="w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                placeholder="Credits"
-              />
-              <select
-                value={course.grade}
-                onChange={(e) => updateCourse(course.id, 'grade', e.target.value)}
-                className="w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-              >
-                {Object.keys(gradePoints).map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}
-                  </option>
-                ))}
-              </select>
-              {courses.length > 1 && (
-                <button
-                  onClick={() => removeCourse(course.id)}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                >
-                  <FaTrash className="text-sm" />
-                </button>
-              )}
-            </div>
+              {s} Scale
+            </button>
           ))}
         </div>
+      </div>
 
-        <button
-          onClick={addCourse}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors"
-        >
-          <FaPlus />
-          Add Course
+      {/* Current CGPA section */}
+      <div className="cgpa-current-section">
+        <h4>
+          Your Current CGPA <span className="optional-tag">(optional)</span>
+        </h4>
+        <p className="section-hint">
+          Fill this in if you want to calculate your cumulative CGPA after
+          adding new courses
+        </p>
+        <div className="current-cgpa-row">
+          <div className="form-group">
+            <label>Current CGPA</label>
+            <input
+              className="cgpa-input"
+              type="number"
+              placeholder={scale === '5.0' ? 'e.g. 3.85' : 'e.g. 3.20'}
+              value={currentCGPA}
+              onChange={(e) => setCurrentCGPA(e.target.value)}
+              min={0}
+              max={scale === '5.0' ? 5 : 4}
+              step={0.01}
+            />
+          </div>
+          <div className="form-group">
+            <label>Total Credit Units Done</label>
+            <input
+              className="cgpa-input"
+              type="number"
+              placeholder="e.g. 60"
+              value={currentCredits}
+              onChange={(e) => setCurrentCredits(e.target.value)}
+              min={0}
+            />
+          </div>
+        </div>
+        {currentCGPA && (
+          <div className="current-cgpa-display">
+            <span>Current CGPA:</span>
+            <strong>
+              {parseFloat(currentCGPA).toFixed(2)} / {scale}
+            </strong>
+            <button
+              type="button"
+              className="clear-cgpa-btn"
+              onClick={() => {
+                setCurrentCGPA('')
+                setCurrentCredits('')
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Course rows */}
+      <div className="courses-section">
+        <h4>Courses This Semester</h4>
+
+        {courses.map((course, index) => (
+          <div key={index} className="course-row">
+            <div className="course-name-group">
+              <label>Course Name / Code</label>
+              <input
+                className="cgpa-input course-name-input"
+                type="text"
+                placeholder="e.g. MTH 201 — Calculus"
+                value={course.name}
+                onChange={(e) => updateCourse(index, 'name', e.target.value)}
+              />
+            </div>
+
+            <div className="course-meta-row">
+              <div className="form-group">
+                <label>Grade</label>
+                <select
+                  className="cgpa-input"
+                  value={course.grade}
+                  onChange={(e) => updateCourse(index, 'grade', e.target.value)}
+                >
+                  <option value="">Grade</option>
+                  {scale === '5.0' ? (
+                    <>
+                      <option value="5">A — 5.0</option>
+                      <option value="4">B — 4.0</option>
+                      <option value="3">C — 3.0</option>
+                      <option value="2">D — 2.0</option>
+                      <option value="1">E — 1.0</option>
+                      <option value="0">F — 0.0</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="4">A — 4.0</option>
+                      <option value="3.7">A- — 3.7</option>
+                      <option value="3.3">B+ — 3.3</option>
+                      <option value="3">B — 3.0</option>
+                      <option value="2.7">B- — 2.7</option>
+                      <option value="2.3">C+ — 2.3</option>
+                      <option value="2">C — 2.0</option>
+                      <option value="1">D — 1.0</option>
+                      <option value="0">F — 0.0</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Credit Units</label>
+                <input
+                  className="cgpa-input"
+                  type="number"
+                  placeholder="e.g. 3"
+                  value={course.units}
+                  onChange={(e) => updateCourse(index, 'units', e.target.value)}
+                  min={1}
+                  max={6}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="remove-course-btn"
+                onClick={() => removeCourse(index)}
+                disabled={courses.length === 1}
+                aria-label="Remove course"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <button type="button" className="add-course-btn" onClick={addCourse}>
+          <Plus size={15} /> Add Course
         </button>
       </div>
+
+      {/* Calculate button */}
+      <button
+        type="button"
+        className="calculate-cgpa-btn"
+        onClick={calculateCGPA}
+      >
+        Calculate CGPA
+      </button>
+
+      {/* Result */}
+      {result && (
+        <div
+          className="cgpa-result"
+          style={{ borderColor: result.classification.color }}
+        >
+          <div className="result-row">
+            <span>Semester GPA:</span>
+            <strong>{result.semesterGPA} / {result.scale}</strong>
+          </div>
+          {result.cumulativeGPA && (
+            <div className="result-row">
+              <span>Cumulative GPA:</span>
+              <strong>{result.cumulativeGPA} / {result.scale}</strong>
+            </div>
+          )}
+          <div className="result-row">
+            <span>Classification:</span>
+            <strong style={{ color: result.classification.color }}>
+              {result.classification.label}
+            </strong>
+          </div>
+          <div className="result-row">
+            <span>Total Units (this sem):</span>
+            <strong>{result.totalUnits}</strong>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
