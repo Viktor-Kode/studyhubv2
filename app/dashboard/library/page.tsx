@@ -3,6 +3,9 @@
 // @ts-nocheck
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Document, Page, pdfjs } from 'react-pdf'
+import 'react-pdf/dist/Page/AnnotationLayer.css'
+import 'react-pdf/dist/Page/TextLayer.css'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import {
@@ -41,6 +44,9 @@ const BOOK_COLORS = [
 const getToken = async () => {
   return await getFirebaseToken()
 }
+
+// Configure pdf.js worker for react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 
 // Confirm Dialog (replaces window.confirm)
 const ConfirmDialog = ({
@@ -972,12 +978,6 @@ const UploadModal = ({
   )
 }
 
-const VIEWER_STRATEGIES = [
-  { id: 'google', label: 'Google Docs' },
-  { id: 'direct', label: 'Direct' },
-  { id: 'office', label: 'Office Viewer' },
-]
-
 const PDFReader = ({
   material,
   onClose,
@@ -988,78 +988,59 @@ const PDFReader = ({
   onProgressSaved: (id: string, page: number, progress: number) => void
 }) => {
   const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
-  const [loading, setLoading] = useState(true)
-  const [strategyIndex, setStrategyIndex] = useState(0)
-  const [allFailed, setAllFailed] = useState(false)
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const loadTimerRef = useRef<number | null>(null)
+  const [numPages, setNumPages] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState<number>(material.lastReadPage || 1)
+  const [scale, setScale] = useState<number>(1.2)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<boolean>(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
-  const pdfUrl = material.fileUrl as string
-
-  const getViewerSrc = (index: number) => {
-    switch (index) {
-      case 0:
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`
-      case 1:
-        return pdfUrl
-      case 2:
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pdfUrl)}`
-      default:
-        return null
-    }
-  }
-
-  const tryNextStrategy = () => {
-    if (loadTimerRef.current) {
-      window.clearTimeout(loadTimerRef.current)
-    }
-    if (strategyIndex < VIEWER_STRATEGIES.length - 1) {
-      setStrategyIndex((prev) => prev + 1)
-      setLoading(true)
-      setAllFailed(false)
-    } else {
-      setAllFailed(true)
-      setLoading(false)
-    }
-  }
-
-  // Auto-detect blank/failed load for Google Docs, then fall back
-  useEffect(() => {
-    setLoading(true)
-    setAllFailed(false)
-
-    if (loadTimerRef.current) {
-      window.clearTimeout(loadTimerRef.current)
-    }
-
-    loadTimerRef.current = window.setTimeout(() => {
-      if (strategyIndex === 0) {
-        tryNextStrategy()
-      }
-    }, 12000)
-
-    return () => {
-      if (loadTimerRef.current) {
-        window.clearTimeout(loadTimerRef.current)
-      }
-    }
-  }, [strategyIndex])
-
-  const handleIframeLoad = () => {
-    if (loadTimerRef.current) {
-      window.clearTimeout(loadTimerRef.current)
-    }
+  const onDocumentLoadSuccess = ({ numPages: total }: { numPages: number }) => {
+    setNumPages(total)
     setLoading(false)
   }
 
-  const handleClose = async () => {
-    if (loadTimerRef.current) {
-      window.clearTimeout(loadTimerRef.current)
+  const onDocumentLoadError = (err: unknown) => {
+    console.error('PDF load error:', err)
+    setError(true)
+    setLoading(false)
+  }
+
+  const goToPage = (page: number) => {
+    const safeTotal = numPages || 1
+    const p = Math.max(1, Math.min(page, safeTotal))
+    setCurrentPage(p)
+    const el = pageRefs.current[p]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
+  }
+
+  const handleScroll = () => {
+    if (!containerRef.current || !numPages) return
+    const scrollTop = containerRef.current.scrollTop
+    const containerHeight = containerRef.current.clientHeight
+    const center = scrollTop + containerHeight / 2
+
+    let closest = 1
+    let minDist = Infinity
+    Object.entries(pageRefs.current).forEach(([pageNum, el]) => {
+      if (!el) return
+      const mid = el.offsetTop + el.clientHeight / 2
+      const dist = Math.abs(center - mid)
+      if (dist < minDist) {
+        minDist = dist
+        closest = parseInt(pageNum, 10)
+      }
+    })
+    setCurrentPage(closest)
+  }
+
+  const handleClose = async () => {
     try {
       const token = await getToken()
-      const progress = material.readProgress || 0
-      const lastReadPage = material.lastReadPage || 1
+      const progress = numPages ? Math.round((currentPage / numPages) * 100) : 0
       await fetch(`/api/backend/library/${material._id}/progress`, {
         method: 'PUT',
         headers: {
@@ -1067,18 +1048,16 @@ const PDFReader = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          lastReadPage,
+          lastReadPage: currentPage,
           readProgress: progress,
         }),
       })
-      onProgressSaved(material._id, lastReadPage, progress)
+      onProgressSaved?.(material._id, currentPage, progress)
     } catch (err) {
       console.error(err)
     }
     onClose()
   }
-
-  const viewerSrc = getViewerSrc(strategyIndex)
 
   return (
     <div className="lib-reader-overlay">
@@ -1105,26 +1084,70 @@ const PDFReader = ({
           </div>
 
           <div className="lib-reader-right">
-            {!loading && !allFailed && (
-              <button
-                className="lib-reader-retry"
-                onClick={tryNextStrategy}
-                type="button"
-                title="If the PDF looks blank, tap this"
-              >
-                Not loading? Try again
-              </button>
+            {/* Page navigation */}
+            {numPages && (
+              <div className="lib-reader-nav">
+                <button
+                  className="lib-reader-nav-btn"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  type="button"
+                >
+                  ‹
+                </button>
+                <span className="lib-reader-page-info">
+                  <input
+                    className="lib-reader-page-input"
+                    type="number"
+                    min={1}
+                    max={numPages}
+                    value={currentPage}
+                    onChange={(e) => goToPage(parseInt(e.target.value || '1', 10) || 1)}
+                  />
+                  <span>/ {numPages}</span>
+                </span>
+                <button
+                  className="lib-reader-nav-btn"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= numPages}
+                  type="button"
+                >
+                  ›
+                </button>
+              </div>
             )}
-            {material.readProgress > 0 && (
+
+            {/* Zoom */}
+            <div className="lib-reader-zoom">
+              <button
+                className="lib-reader-nav-btn"
+                onClick={() => setScale((s: number) => Math.max(0.7, s - 0.2))}
+                type="button"
+              >
+                −
+              </button>
+              <span className="lib-reader-zoom-label">{Math.round(scale * 100)}%</span>
+              <button
+                className="lib-reader-nav-btn"
+                onClick={() => setScale((s: number) => Math.min(2.5, s + 0.2))}
+                type="button"
+              >
+                +
+              </button>
+            </div>
+
+            {/* Progress badge */}
+            {numPages && (
               <span
                 className="lib-reader-progress-badge"
                 style={{ background: colorObj.bg + '22', color: colorObj.bg }}
               >
-                {material.readProgress}%
+                {Math.round((currentPage / numPages) * 100)}%
               </span>
             )}
+
             <a
-              href={pdfUrl}
+              href={material.fileUrl}
               target="_blank"
               rel="noreferrer"
               className="lib-reader-download"
@@ -1134,58 +1157,97 @@ const PDFReader = ({
           </div>
         </div>
 
-        {/* Loading spinner */}
-        {loading && (
-          <div className="lib-reader-loading">
-            <div
-              className="lib-reader-spinner"
-              style={{ borderTopColor: material.color }}
-            />
-            <p>Opening PDF...</p>
-            <span className="lib-reader-loading-sub">
-              Using {VIEWER_STRATEGIES[strategyIndex].label} viewer
-            </span>
-          </div>
-        )}
+        {/* Reader body */}
+        <div
+          className="lib-reader-body"
+          ref={containerRef}
+          onScroll={handleScroll}
+        >
+          {/* Loading */}
+          {loading && (
+            <div className="lib-reader-loading">
+              <div
+                className="lib-reader-spinner"
+                style={{ borderTopColor: material.color }}
+              />
+              <p>Loading PDF...</p>
+            </div>
+          )}
 
-        {/* All strategies failed */}
-        {allFailed && (
-          <div className="lib-reader-error">
-            <BookOpen size={44} color="#4B5563" />
-            <h3>Couldn&apos;t display this PDF</h3>
-            <p>
-              This can happen with large files or restricted URLs.
-              <br />
-              Download it to read offline.
-            </p>
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="lib-upload-submit"
-              style={{
-                background: material.color,
-                textDecoration: 'none',
-                maxWidth: 220,
-                padding: '12px 24px',
+          {/* Error */}
+          {error && (
+            <div className="lib-reader-error">
+              <BookOpen size={44} color="#4B5563" />
+              <h3>Couldn&apos;t load this PDF</h3>
+              <p>Try downloading it to read offline.</p>
+              <a
+                href={material.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="lib-upload-submit"
+                style={{
+                  background: material.color,
+                  textDecoration: 'none',
+                  maxWidth: 220,
+                  padding: '12px 24px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                Download PDF
+              </a>
+            </div>
+          )}
+
+          {/* PDF Document */}
+          {!error && (
+            <Document
+              file={material.fileUrl}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading=""
+              options={{
+                cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+                cMapPacked: true,
               }}
             >
-              Download PDF
-            </a>
-          </div>
-        )}
+              {numPages &&
+                Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
+                  <div
+                    key={page}
+                    ref={(el) => {
+                      pageRefs.current[page] = el
+                    }}
+                    className="lib-pdf-page-wrap"
+                  >
+                    <Page
+                      pageNumber={page}
+                      scale={scale}
+                      renderTextLayer
+                      renderAnnotationLayer
+                      loading=""
+                    />
+                    <div className="lib-pdf-page-num">{page}</div>
+                  </div>
+                ))}
+            </Document>
+          )}
+        </div>
 
-        {/* iframe viewer */}
-        {!allFailed && viewerSrc && (
-          <iframe
-            key={strategyIndex}
-            ref={iframeRef}
-            src={viewerSrc}
-            className="lib-reader-iframe"
-            title={material.title}
-            style={{ display: loading ? 'none' : 'block' }}
-            onLoad={handleIframeLoad}
-          />
+        {/* Bottom progress bar */}
+        {numPages && (
+          <div className="lib-reader-footer">
+            <div className="lib-reader-footer-bar">
+              <div
+                className="lib-reader-footer-fill"
+                style={{
+                  width: `${(currentPage / numPages) * 100}%`,
+                  background: material.color,
+                }}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
