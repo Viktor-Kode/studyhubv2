@@ -972,7 +972,7 @@ const UploadModal = ({
   )
 }
 
-// PDF reader
+// PDF reader using PDF.js
 const PDFReader = ({
   material,
   onClose,
@@ -982,8 +982,121 @@ const PDFReader = ({
   onClose: () => void
   onProgressSaved: (id: string, page: number, progress: number) => void
 }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [pdfDoc, setPdfDoc] = useState<any | null>(null)
+  const [currentPage, setCurrentPage] = useState<number>(material.lastReadPage || 1)
+  const [totalPages, setTotalPages] = useState<number>(0)
+  const [scale, setScale] = useState<number>(1.4)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>('')
+  const [rendering, setRendering] = useState<boolean>(false)
+  const renderTaskRef = useRef<any | null>(null)
   const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
 
+  // Load PDF.js from CDN
+  useEffect(() => {
+    const loadPdfJs = async () => {
+      try {
+        if (!(window as any).pdfjsLib) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+            script.onload = () => resolve()
+            script.onerror = () => reject(new Error('Failed to load PDF.js'))
+            document.head.appendChild(script)
+          })
+          ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+        }
+
+        setLoading(true)
+        setError('')
+
+        const loadingTask = (window as any).pdfjsLib.getDocument({
+          url: material.fileUrl,
+          cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+          cMapPacked: true,
+        })
+
+        const pdf = await loadingTask.promise
+        setPdfDoc(pdf)
+        setTotalPages(pdf.numPages)
+        setLoading(false)
+      } catch (err) {
+        console.error('PDF load error:', err)
+        setError('Could not load PDF. Try downloading it instead.')
+        setLoading(false)
+      }
+    }
+
+    loadPdfJs()
+  }, [material.fileUrl])
+
+  // Auto-detect good scale based on screen width
+  useEffect(() => {
+    const w = window.innerWidth
+    if (w < 480) setScale(0.8)
+    else if (w < 768) setScale(1.0)
+    else if (w < 1024) setScale(1.3)
+    else setScale(1.5)
+  }, [])
+
+  const goToPage = (page: number) => {
+    const p = Math.max(1, Math.min(page, totalPages || 1))
+    setCurrentPage(p)
+  }
+
+  // Render current page
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current) return
+
+    const renderPage = async () => {
+      if (renderTaskRef.current) {
+        try {
+          await renderTaskRef.current.cancel()
+        } catch {
+          // ignore
+        }
+      }
+
+      setRendering(true)
+      try {
+        const page = await pdfDoc.getPage(currentPage)
+        const viewport = page.getViewport({ scale })
+        const canvas = canvasRef.current
+        if (!canvas) {
+          setRendering(false)
+          return
+        }
+
+        canvas.height = viewport.height
+        canvas.width = viewport.width
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          setRendering(false)
+          return
+        }
+
+        const renderTask = page.render({ canvasContext: ctx, viewport })
+        renderTaskRef.current = renderTask
+
+        await renderTask.promise
+        setRendering(false)
+      } catch (err: any) {
+        if (err?.name !== 'RenderingCancelledException') {
+          console.error('Render error:', err)
+          setRendering(false)
+        }
+      }
+    }
+
+    renderPage()
+  }, [pdfDoc, currentPage, scale])
+
+  const progress = totalPages ? Math.round((currentPage / totalPages) * 100) : 0
+
+  // Save progress on close
   const handleClose = async () => {
     try {
       const token = await getToken()
@@ -994,26 +1107,39 @@ const PDFReader = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          lastReadPage: material.lastReadPage || 1,
-          readProgress: material.readProgress || 0,
+          lastReadPage: currentPage,
+          readProgress: progress,
         }),
       })
+      onProgressSaved(material._id, currentPage, progress)
     } catch (err) {
       console.error(err)
     }
     onClose()
   }
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goToPage(currentPage + 1)
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goToPage(currentPage - 1)
+      if (e.key === 'Escape') handleClose()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [currentPage, totalPages, progress])
+
   return (
     <div className="lib-reader-overlay">
       <div className="lib-reader">
+        {/* Top bar */}
         <div
           className="lib-reader-bar"
           style={{ borderBottom: `3px solid ${material.color}` }}
         >
           <button className="lib-reader-back" onClick={handleClose} type="button">
-            <ArrowLeft size={18} />
-            <span>Back to Library</span>
+            <ArrowLeft size={16} />
+            <span>Back</span>
           </button>
 
           <div className="lib-reader-title-wrap">
@@ -1027,34 +1153,159 @@ const PDFReader = ({
             )}
           </div>
 
+          {/* Zoom + download */}
           <div className="lib-reader-right">
-            {material.readProgress > 0 && (
-              <span
-                className="lib-reader-progress-badge"
-                style={{ background: colorObj.bg + '22', color: colorObj.bg }}
+            <div className="lib-reader-zoom">
+              <button
+                className="lib-zoom-btn"
+                onClick={() => setScale((s) => Math.max(0.6, s - 0.2))}
+                title="Zoom out"
+                type="button"
               >
-                {material.readProgress}% read
-              </span>
-            )}
+                −
+              </button>
+              <span className="lib-zoom-label">{Math.round(scale * 100)}%</span>
+              <button
+                className="lib-zoom-btn"
+                onClick={() => setScale((s) => Math.min(3, s + 0.2))}
+                title="Zoom in"
+                type="button"
+              >
+                +
+              </button>
+            </div>
             <a
               href={material.fileUrl}
+              download
+              className="lib-reader-download"
               target="_blank"
               rel="noreferrer"
-              className="lib-reader-download"
             >
               Download
             </a>
           </div>
         </div>
 
-        <iframe
-          src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-            material.fileUrl,
-          )}&embedded=true`}
-          className="lib-reader-iframe"
-          title={material.title}
-          allow="autoplay"
-        />
+        {/* PDF Canvas Area */}
+        <div className="lib-reader-body">
+          {loading && (
+            <div className="lib-reader-loading">
+              <div
+                className="lib-reader-spinner"
+                style={{ borderTopColor: material.color }}
+              />
+              <p>Loading PDF...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="lib-reader-error">
+              <p>{error}</p>
+              <a
+                href={material.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="lib-confirm-ok"
+                style={{
+                  background: material.color,
+                  padding: '10px 24px',
+                  borderRadius: 10,
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                }}
+              >
+                Download PDF instead
+              </a>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="lib-canvas-wrap">
+              {rendering && (
+                <div className="lib-render-overlay">
+                  <div
+                    className="lib-reader-spinner"
+                    style={{ borderTopColor: material.color }}
+                  />
+                </div>
+              )}
+              <canvas ref={canvasRef} className="lib-pdf-canvas" />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom navigation bar */}
+        {!loading && !error && totalPages > 0 && (
+          <div className="lib-reader-nav">
+            {/* Progress bar */}
+            <div className="lib-reader-progress-track">
+              <div
+                className="lib-reader-progress-fill"
+                style={{ width: `${progress}%`, background: material.color }}
+              />
+            </div>
+
+            {/* Page controls */}
+            <div className="lib-reader-controls">
+              <button
+                className="lib-nav-btn"
+                onClick={() => goToPage(1)}
+                disabled={currentPage === 1}
+                title="First page"
+                type="button"
+              >
+                «
+              </button>
+              <button
+                className="lib-nav-btn"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                type="button"
+              >
+                ‹ Prev
+              </button>
+
+              <div className="lib-page-indicator">
+                <input
+                  className="lib-page-input"
+                  type="number"
+                  value={currentPage}
+                  min={1}
+                  max={totalPages}
+                  onChange={(e) =>
+                    goToPage(parseInt(e.target.value || '1', 10) || 1)
+                  }
+                />
+                <span>of {totalPages}</span>
+                <span
+                  className="lib-progress-pct"
+                  style={{ color: material.color }}
+                >
+                  {progress}%
+                </span>
+              </div>
+
+              <button
+                className="lib-nav-btn"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                type="button"
+              >
+                Next ›
+              </button>
+              <button
+                className="lib-nav-btn"
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Last page"
+                type="button"
+              >
+                »
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
