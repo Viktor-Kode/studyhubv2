@@ -2,7 +2,7 @@
 
 // @ts-nocheck
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -26,7 +26,9 @@ const getToken = async () => {
   return await getFirebaseToken()
 }
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+// Worker config that works dynamically for v3 (.js) and v4 (.mjs)
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.${pdfjs.version.startsWith('3') ? 'js' : 'mjs'
+  }`
 
 type PDFReaderProps = {
   material: any
@@ -41,23 +43,11 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   const [scale, setScale] = useState<number>(1.2)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<boolean>(false)
-  const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
-  useEffect(() => {
-    let active = true;
-    fetch(material.fileUrl)
-      .then(r => r.blob())
-      .then(blob => {
-        if (active) setBlobUrl(URL.createObjectURL(blob));
-      })
-      .catch(err => {
-        console.error('Blob fetch err:', err);
-        if (active) setBlobUrl(material.fileUrl);
-      });
-    return () => { active = false; };
-  }, [material.fileUrl])
+  // Proxy the file to dodge CORS on Cloudinary entirely
+  const proxyUrl = `/api/pdf-proxy?url=${encodeURIComponent(material.fileUrl)}`
 
   const onDocumentLoadSuccess = ({ numPages: total }: { numPages: number }) => {
     setNumPages(total)
@@ -123,44 +113,44 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   }
 
   return (
-    <div className="lib-reader-overlay">
-      <div className="lib-reader">
+    <div className="lib-reader-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="lib-reader w-full h-full max-w-6xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
         {/* Top bar */}
         <div
-          className="lib-reader-bar"
+          className="lib-reader-bar flex items-center justify-between px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b relative z-10"
           style={{ borderBottom: `3px solid ${material.color}` }}
         >
-          <button className="lib-reader-back" onClick={handleClose} type="button">
-            <ArrowLeft size={18} />
-            <span>Back to Library</span>
+          <button className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors" onClick={handleClose} type="button">
+            <ArrowLeft size={20} />
+            <span className="font-medium hidden sm:inline">Back to Library</span>
           </button>
 
-          <div className="lib-reader-title-wrap">
+          <div className="flex flex-1 items-center justify-center px-4 overflow-hidden">
             <div
-              className="lib-reader-dot"
+              className="w-2 h-2 rounded-full mr-3 shrink-0"
               style={{ background: material.color }}
             />
-            <span className="lib-reader-title">{material.title}</span>
+            <span className="font-bold text-gray-900 dark:text-white truncate max-w-[200px] sm:max-w-md">{material.title}</span>
             {material.subject && (
-              <span className="lib-reader-sub">— {material.subject}</span>
+              <span className="text-gray-500 text-sm ml-2 shrink-0 hidden md:inline">— {material.subject}</span>
             )}
           </div>
 
-          <div className="lib-reader-right">
+          <div className="flex items-center gap-4">
             {/* Page navigation */}
             {numPages && (
-              <div className="lib-reader-nav">
+              <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-gray-700 rounded-lg p-1 border border-gray-200 dark:border-gray-600 shadow-sm">
                 <button
-                  className="lib-reader-nav-btn"
+                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 text-xl text-gray-600 dark:text-gray-300"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage <= 1}
                   type="button"
                 >
                   ‹
                 </button>
-                <span className="lib-reader-page-info">
+                <div className="flex items-center gap-1 font-medium text-sm text-gray-600 dark:text-gray-300">
                   <input
-                    className="lib-reader-page-input"
+                    className="w-12 text-center bg-transparent outline-none font-bold text-gray-900 dark:text-white no-spinners"
                     type="number"
                     min={1}
                     max={numPages}
@@ -168,9 +158,9 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
                     onChange={(e) => goToPage(parseInt(e.target.value || '1', 10) || 1)}
                   />
                   <span>/ {numPages}</span>
-                </span>
+                </div>
                 <button
-                  className="lib-reader-nav-btn"
+                  className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 text-xl text-gray-600 dark:text-gray-300"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage >= numPages}
                   type="button"
@@ -181,17 +171,17 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
             )}
 
             {/* Zoom */}
-            <div className="lib-reader-zoom">
+            <div className="hidden lg:flex items-center gap-2 bg-white dark:bg-gray-700 rounded-lg p-1 border border-gray-200 dark:border-gray-600 shadow-sm">
               <button
-                className="lib-reader-nav-btn"
+                className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 text-lg text-gray-600 dark:text-gray-300"
                 onClick={() => setScale((s: number) => Math.max(0.7, s - 0.2))}
                 type="button"
               >
                 −
               </button>
-              <span className="lib-reader-zoom-label">{Math.round(scale * 100)}%</span>
+              <span className="text-sm font-medium w-12 text-center text-gray-700 dark:text-gray-300">{Math.round(scale * 100)}%</span>
               <button
-                className="lib-reader-nav-btn"
+                className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 text-lg text-gray-600 dark:text-gray-300"
                 onClick={() => setScale((s: number) => Math.min(2.5, s + 0.2))}
                 type="button"
               >
@@ -202,7 +192,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
             {/* Progress badge */}
             {numPages && (
               <span
-                className="lib-reader-progress-badge"
+                className="px-3 py-1.5 rounded-full font-bold text-xs"
                 style={{ background: colorObj.bg + '22', color: colorObj.bg }}
               >
                 {Math.round((currentPage / numPages) * 100)}%
@@ -213,88 +203,83 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
               href={material.fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="lib-reader-download"
+              className="hidden sm:block text-sm font-semibold rounded-lg px-4 py-2 text-white shadow-md transition-all hover:opacity-90 active:scale-95"
+              style={{ background: material.color }}
             >
-              Download
+              Raw File
             </a>
           </div>
         </div>
 
         {/* Reader body */}
         <div
-          className="lib-reader-body"
+          className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950 p-4 sm:p-8"
           ref={containerRef}
           onScroll={handleScroll}
         >
           {/* Loading */}
           {loading && (
-            <div className="lib-reader-loading">
+            <div className="flex flex-col items-center justify-center h-full">
               <div
-                className="lib-reader-spinner"
+                className="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin mb-4"
                 style={{ borderTopColor: material.color }}
               />
-              <p>Loading PDF...</p>
+              <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Loading PDF Document...</p>
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="lib-reader-error">
-              <BookOpen size={44} color="#4B5563" />
-              <h3>Couldn&apos;t load this PDF</h3>
-              <p>Try downloading it to read offline.</p>
+            <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto">
+              <BookOpen size={48} className="text-gray-400 mb-6" />
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Couldn&apos;t load this PDF</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8">Try downloading it to read offline.</p>
               <a
                 href={material.fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="lib-upload-submit"
-                style={{
-                  background: material.color,
-                  textDecoration: 'none',
-                  maxWidth: 220,
-                  padding: '12px 24px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className="text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+                style={{ background: material.color }}
               >
-                Download PDF
+                Download PDF Original
               </a>
             </div>
           )}
 
           {/* PDF Document */}
-          {!error && blobUrl && (
-            <Document
-              file={blobUrl}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              loading=""
-              options={{
-                cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
-                cMapPacked: true,
-              }}
-            >
-              {numPages &&
-                Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
-                  <div
-                    key={page}
-                    ref={(el) => {
-                      pageRefs.current[page] = el
-                    }}
-                    className="lib-pdf-page-wrap"
-                  >
-                    <Page
-                      pageNumber={page}
-                      scale={scale}
-                      renderTextLayer
-                      renderAnnotationLayer
-                      loading=""
-                    />
-                    <div className="lib-pdf-page-num">{page}</div>
-                  </div>
-                ))}
-            </Document>
+          {!error && (
+            <div className="flex flex-col items-center gap-6 w-full pb-12">
+              <Document
+                file={proxyUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                loading=""
+                options={{
+                  cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+                  cMapPacked: true,
+                }}
+              >
+                {numPages &&
+                  Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
+                    <div
+                      key={page}
+                      ref={(el) => {
+                        pageRefs.current[page] = el
+                      }}
+                      className="lib-pdf-page-wrap mb-6 shadow-md rounded-md overflow-hidden"
+                    >
+                      <Page
+                        pageNumber={page}
+                        scale={scale}
+                        renderTextLayer
+                        renderAnnotationLayer
+                        loading=""
+                      />
+                      <div className="lib-pdf-page-num">{page}</div>
+                    </div>
+                  ))}
+              </Document>
+            </div>
           )}
         </div>
 

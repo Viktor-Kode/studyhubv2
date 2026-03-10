@@ -145,15 +145,15 @@ const NewFolderDialog = ({
 }
 
 const LibraryPage = () => {
-  const [materials, setMaterials] = useState([])
-  const [folders, setFolders] = useState([])
-  const [storage, setStorage] = useState(null)
+  const [materials, setMaterials] = useState<any[]>([])
+  const [folders, setFolders] = useState<string[]>([])
+  const [storage, setStorage] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeFolder, setActiveFolder] = useState('All')
   const [showUpload, setShowUpload] = useState(false)
-  const [showReader, setShowReader] = useState(null)
-  const [editingMaterial, setEditingMaterial] = useState(null)
+  const [showReader, setShowReader] = useState<any>(null)
+  const [editingMaterial, setEditingMaterial] = useState<any>(null)
   const [showFavourites, setShowFavourites] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [showNewFolder, setShowNewFolder] = useState(false)
@@ -233,7 +233,7 @@ const LibraryPage = () => {
     .slice(0, 4)
 
   const allFolders = ['All', 'General', ...folders]
-  const uniqueFolders = [...new Set(allFolders)]
+  const uniqueFolders = Array.from(new Set(allFolders))
 
   const folderCount = (f: string) =>
     f === 'All'
@@ -338,8 +338,8 @@ const LibraryPage = () => {
                     storage.percentage >= 90
                       ? '#DC2626'
                       : storage.percentage >= 70
-                      ? '#D97706'
-                      : '#4F46E5',
+                        ? '#D97706'
+                        : '#4F46E5',
                 }}
               />
             </div>
@@ -384,9 +384,8 @@ const LibraryPage = () => {
           {uniqueFolders.map((f: string) => (
             <button
               key={f}
-              className={`lib-folder-tab ${
-                activeFolder === f ? 'active' : ''
-              }`}
+              className={`lib-folder-tab ${activeFolder === f ? 'active' : ''
+                }`}
               onClick={() => setActiveFolder(f)}
               type="button"
             >
@@ -556,27 +555,29 @@ const LibraryPage = () => {
 const RecentCard = ({ material, onClick }: { material: any; onClick: () => void }) => {
   const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
   return (
-    <button className="lib-recent-card" onClick={onClick} type="button">
+    <button
+      className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all text-left w-full sm:w-[280px]"
+      onClick={onClick}
+      type="button"
+    >
       <div
-        className="lib-recent-spine"
-        style={{ background: colorObj.bg }}
-      />
-      <div className="lib-recent-info">
-        <span className="lib-recent-title">{material.title}</span>
-        {material.subject && (
-          <span className="lib-recent-subject">{material.subject}</span>
-        )}
-        <div className="lib-recent-progress">
-          <div className="lib-recent-bar">
-            <div
-              className="lib-recent-fill"
-              style={{
-                width: `${material.readProgress}%`,
-                background: colorObj.bg,
-              }}
-            />
-          </div>
-          <span>{material.readProgress}%</span>
+        className="w-12 h-16 rounded-lg shrink-0 flex items-center justify-center relative overflow-hidden"
+        style={{ background: `${colorObj.bg}15`, border: `1px solid ${colorObj.bg}30` }}
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: colorObj.bg }} />
+        <BookOpen size={20} color={colorObj.bg} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate mb-1">{material.title}</p>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="text-xs text-gray-500 truncate">{material.subject || 'Document'}</span>
+          <span className="text-[10px] font-bold" style={{ color: colorObj.bg }}>{material.readProgress}%</span>
+        </div>
+        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${material.readProgress}%`, background: colorObj.bg }}
+          />
         </div>
       </div>
     </button>
@@ -599,103 +600,91 @@ const BookCard = ({
 }) => {
   const colorObj = BOOK_COLORS.find((c) => c.bg === material.color) || BOOK_COLORS[0]
   const sizeMB = (material.fileSize / (1024 * 1024)).toFixed(1)
-  const initials = material.title
-    .split(' ')
-    .slice(0, 2)
-    .map((w: string) => w[0]?.toUpperCase())
-    .join('')
-
-  const spineColor = material.color + 'CC'
 
   return (
-    <div className="lib-book-card">
-      {/* 3D Book */}
-      <div className="lib-book-3d-wrap" onClick={onRead}>
-        <div className="lib-book-3d">
-          {/* Spine */}
-          <div
-            className="lib-book-side"
-            style={{ background: spineColor }}
-          >
-            <span className="lib-book-side-text">{material.title}</span>
-          </div>
-
-          {/* Front cover */}
-          <div
-            className="lib-book-front"
-            style={{
-              background: `linear-gradient(150deg, ${material.color} 0%, ${material.color}DD 60%, ${material.color}AA 100%)`,
-            }}
-          >
-            {/* Top section */}
-            <div className="lib-book-cover-top">
-              <div className="lib-book-cover-icon">
-                <FileText size={18} color="white" opacity={0.9} />
-              </div>
-              {material.subject && (
-                <span className="lib-book-cover-subject">{material.subject}</span>
-              )}
-            </div>
-
-            {/* Bottom section */}
-            <div className="lib-book-cover-bottom">
-              <div className="lib-book-cover-line" />
-              <span className="lib-book-cover-title">{material.title}</span>
-            </div>
-
-            {/* Star */}
-            {material.isFavourite && (
-              <div className="lib-book-fav-star">
-                <Star size={14} fill="#FCD34D" color="#FCD34D" />
-              </div>
-            )}
-
-            {/* Progress */}
-            {material.readProgress > 0 && (
-              <div className="lib-book-cover-progress">
-                <div
-                  className="lib-book-cover-progress-fill"
-                  style={{ width: `${material.readProgress}%` }}
-                />
-              </div>
-            )}
-
-            {/* Hover overlay */}
-            <div className="lib-book-open-overlay">
-              <span>Open</span>
-            </div>
-          </div>
+    <div className="relative group bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-lg hover:-translate-y-1">
+      {material.isFavourite && (
+        <div className="absolute -top-2 -right-2 bg-yellow-100 p-1.5 rounded-full z-10 shadow-sm border border-yellow-200">
+          <Star size={14} fill="#F59E0B" color="#F59E0B" />
         </div>
-      </div>
+      )}
 
-      {/* Info */}
-      <div className="lib-book-info">
-        <p className="lib-book-title">{material.title}</p>
-        <div className="lib-book-meta">
-          <span>{sizeMB} MB</span>
-          {material.readProgress > 0 && (
-            <span className="lib-book-read" style={{ color: material.color }}>
-              {material.readProgress}%
+      {/* Internal Card body */}
+      <div
+        className="w-full aspect-[3/4] rounded-xl mb-4 relative overflow-hidden cursor-pointer group/inner shadow-sm"
+        onClick={onRead}
+        style={{
+          background: `linear-gradient(135deg, ${material.color}11 0%, ${material.color}05 100%)`,
+          border: `1px solid ${material.color}33`,
+        }}
+      >
+        <div
+          className="absolute inset-x-0 top-0 h-1.5"
+          style={{ background: material.color }}
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <div className="p-4 bg-white dark:bg-gray-900 rounded-full shadow-sm mb-3 group-hover/inner:scale-110 transition-transform">
+            <FileText size={28} color={material.color} strokeWidth={1.5} />
+          </div>
+          <p className="font-bold text-gray-900 dark:text-white text-[15px] leading-tight line-clamp-3 mb-2">
+            {material.title}
+          </p>
+          {material.subject && (
+            <span
+              className="text-xs font-semibold px-2.5 py-1 rounded-md"
+              style={{ color: material.color, background: `${material.color}15` }}
+            >
+              {material.subject}
             </span>
           )}
         </div>
+
+        {/* Hover overlay read */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/inner:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+          <span className="bg-white text-gray-900 font-bold px-6 py-2 rounded-full shadow-lg transform translate-y-4 group-hover/inner:translate-y-0 transition-transform">
+            Read PDF
+          </span>
+        </div>
+
+        {material.readProgress > 0 && (
+          <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gray-200 dark:bg-gray-700 z-10">
+            <div
+              className="h-full"
+              style={{ width: `${material.readProgress}%`, background: material.color }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Actions */}
-      <div className="lib-book-actions">
-        <button className="lib-book-action-btn fav" onClick={onToggleFav} type="button">
-          <Star
-            size={12}
-            fill={material.isFavourite ? '#F59E0B' : 'none'}
-            color={material.isFavourite ? '#F59E0B' : '#CBD5E1'}
-          />
-        </button>
-        <button className="lib-book-action-btn" onClick={onEdit} type="button">
-          <Edit2 size={12} />
-        </button>
-        <button className="lib-book-action-btn danger" onClick={onDelete} type="button">
-          <Trash2 size={12} />
-        </button>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-[11px] text-gray-400 font-medium">{sizeMB} MB</span>
+          {material.readProgress > 0 && (
+            <span className="text-[11px] font-bold" style={{ color: material.color }}>
+              {material.readProgress}% Read
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={onToggleFav}
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-yellow-500 transition-colors"
+          >
+            <Star size={16} fill={material.isFavourite ? '#F59E0B' : 'none'} color={material.isFavourite ? '#F59E0B' : 'currentColor'} />
+          </button>
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-indigo-500 transition-colors"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/40 text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -855,7 +844,7 @@ const UploadModal = ({
               <div className="lib-file-preview-info">
                 <span className="lib-file-preview-name">{file?.name}</span>
                 <span className="lib-file-preview-size">
-                  {(file?.size / (1024 * 1024)).toFixed(1)} MB
+                  {((file?.size || 0) / (1024 * 1024)).toFixed(1)} MB
                 </span>
               </div>
               <button
@@ -873,9 +862,8 @@ const UploadModal = ({
                 {BOOK_COLORS.map((c) => (
                   <button
                     key={c.bg}
-                    className={`lib-color-btn ${
-                      form.color === c.bg ? 'active' : ''
-                    }`}
+                    className={`lib-color-btn ${form.color === c.bg ? 'active' : ''
+                      }`}
                     style={{ background: c.bg }}
                     onClick={() => setForm((p) => ({ ...p, color: c.bg }))}
                     title={c.label}
@@ -1063,9 +1051,8 @@ const EditModal = ({
               {BOOK_COLORS.map((c) => (
                 <button
                   key={c.bg}
-                  className={`lib-color-btn ${
-                    form.color === c.bg ? 'active' : ''
-                  }`}
+                  className={`lib-color-btn ${form.color === c.bg ? 'active' : ''
+                    }`}
                   style={{ background: c.bg }}
                   onClick={() => setForm((p) => ({ ...p, color: c.bg }))}
                   type="button"
