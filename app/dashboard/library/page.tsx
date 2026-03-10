@@ -256,10 +256,27 @@ const LibraryPage = () => {
               <BookOpen size={24} color="white" />
             </div>
             <div>
-              <h1 className="lib-hero-title">My Study Library</h1>
-              <p className="lib-hero-sub">
-                {materials.length} material{materials.length !== 1 ? 's' : ''} saved
-              </p>
+              <h1 className="lib-hero-title">Study Library</h1>
+              <p className="lib-hero-sub">Your personal reading collection</p>
+            </div>
+          </div>
+
+          <div className="lib-hero-stats">
+            <div className="lib-hero-stat">
+              <span className="lib-hero-stat-num">{materials.length}</span>
+              <span className="lib-hero-stat-label">Materials</span>
+            </div>
+            <div className="lib-hero-divider" />
+            <div className="lib-hero-stat">
+              <span className="lib-hero-stat-num">{folders.length + 1}</span>
+              <span className="lib-hero-stat-label">Folders</span>
+            </div>
+            <div className="lib-hero-divider" />
+            <div className="lib-hero-stat">
+              <span className="lib-hero-stat-num">
+                {materials.filter((m: any) => m.readProgress > 0).length}
+              </span>
+              <span className="lib-hero-stat-label">In Progress</span>
             </div>
           </div>
 
@@ -268,13 +285,13 @@ const LibraryPage = () => {
             onClick={() => setShowUpload(true)}
             type="button"
           >
-            <Plus size={18} />
+            <Plus size={17} />
             <span>Upload PDF</span>
           </button>
         </div>
 
-        {/* Search bar */}
-        <div className="lib-search-bar">
+        {/* Toolbar */}
+        <div className="lib-toolbar">
           <div className="lib-search-inner">
             <Search size={18} color="#9CA3AF" />
             <input
@@ -589,84 +606,96 @@ const BookCard = ({
     .map((w: string) => w[0]?.toUpperCase())
     .join('')
 
+  const spineColor = material.color + 'CC'
+
   return (
     <div className="lib-book-card">
-      <div
-        className="lib-book-cover"
-        style={{
-          background: `linear-gradient(160deg, ${colorObj.bg} 0%, ${colorObj.bg}CC 100%)`,
-        }}
-        onClick={onRead}
-      >
-        <div className="lib-book-spine" />
-        <div className="lib-book-initials">{initials || '📄'}</div>
-
-        {material.subject && (
-          <div className="lib-book-subject-badge">{material.subject}</div>
-        )}
-
-        {material.isFavourite && (
-          <div className="lib-book-star">
-            <Star size={13} fill="#FCD34D" color="#FCD34D" />
+      {/* 3D Book */}
+      <div className="lib-book-3d-wrap" onClick={onRead}>
+        <div className="lib-book-3d">
+          {/* Spine */}
+          <div
+            className="lib-book-side"
+            style={{ background: spineColor }}
+          >
+            <span className="lib-book-side-text">{material.title}</span>
           </div>
-        )}
 
-        {material.readProgress > 0 && (
-          <div className="lib-book-progress">
-            <div
-              className="lib-book-progress-fill"
-              style={{ width: `${material.readProgress}%` }}
-            />
+          {/* Front cover */}
+          <div
+            className="lib-book-front"
+            style={{
+              background: `linear-gradient(150deg, ${material.color} 0%, ${material.color}DD 60%, ${material.color}AA 100%)`,
+            }}
+          >
+            {/* Top section */}
+            <div className="lib-book-cover-top">
+              <div className="lib-book-cover-icon">
+                <FileText size={18} color="white" opacity={0.9} />
+              </div>
+              {material.subject && (
+                <span className="lib-book-cover-subject">{material.subject}</span>
+              )}
+            </div>
+
+            {/* Bottom section */}
+            <div className="lib-book-cover-bottom">
+              <div className="lib-book-cover-line" />
+              <span className="lib-book-cover-title">{material.title}</span>
+            </div>
+
+            {/* Star */}
+            {material.isFavourite && (
+              <div className="lib-book-fav-star">
+                <Star size={14} fill="#FCD34D" color="#FCD34D" />
+              </div>
+            )}
+
+            {/* Progress */}
+            {material.readProgress > 0 && (
+              <div className="lib-book-cover-progress">
+                <div
+                  className="lib-book-cover-progress-fill"
+                  style={{ width: `${material.readProgress}%` }}
+                />
+              </div>
+            )}
+
+            {/* Hover overlay */}
+            <div className="lib-book-open-overlay">
+              <span>Open</span>
+            </div>
           </div>
-        )}
-
-        <div className="lib-book-hover">
-          <span>Open</span>
         </div>
       </div>
 
+      {/* Info */}
       <div className="lib-book-info">
-        <p className="lib-book-title" title={material.title}>
-          {material.title}
-        </p>
+        <p className="lib-book-title">{material.title}</p>
         <div className="lib-book-meta">
           <span>{sizeMB} MB</span>
           {material.readProgress > 0 && (
-            <span className="lib-book-read" style={{ color: colorObj.bg }}>
-              {material.readProgress}% read
+            <span className="lib-book-read" style={{ color: material.color }}>
+              {material.readProgress}%
             </span>
           )}
         </div>
       </div>
 
+      {/* Actions */}
       <div className="lib-book-actions">
-        <button
-          className="lib-book-action-btn fav"
-          onClick={onToggleFav}
-          title={material.isFavourite ? 'Unstar' : 'Star'}
-          type="button"
-        >
+        <button className="lib-book-action-btn fav" onClick={onToggleFav} type="button">
           <Star
-            size={13}
+            size={12}
             fill={material.isFavourite ? '#F59E0B' : 'none'}
-            color={material.isFavourite ? '#F59E0B' : '#9CA3AF'}
+            color={material.isFavourite ? '#F59E0B' : '#CBD5E1'}
           />
         </button>
-        <button
-          className="lib-book-action-btn"
-          onClick={onEdit}
-          title="Edit"
-          type="button"
-        >
-          <Edit2 size={13} />
+        <button className="lib-book-action-btn" onClick={onEdit} type="button">
+          <Edit2 size={12} />
         </button>
-        <button
-          className="lib-book-action-btn danger"
-          onClick={onDelete}
-          title="Delete"
-          type="button"
-        >
-          <Trash2 size={13} />
+        <button className="lib-book-action-btn danger" onClick={onDelete} type="button">
+          <Trash2 size={12} />
         </button>
       </div>
     </div>
