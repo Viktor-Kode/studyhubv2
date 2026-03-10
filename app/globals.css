@@ -6401,6 +6401,89 @@ html {
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.8);
 }
 
+.lib-confirm-modal {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+}
+.lib-confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.lib-confirm-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+.lib-confirm-message {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.6;
+}
+.lib-confirm-modal .lib-input {
+  width: 100%;
+  text-align: center;
+  margin-top: 4px;
+}
+.lib-confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+.lib-confirm-cancel {
+  flex: 1;
+  padding: 12px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lib-confirm-cancel:hover {
+  background: #E5E7EB;
+}
+.lib-confirm-ok {
+  flex: 1;
+  padding: 12px;
+  background: #4F46E5;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.lib-confirm-ok:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.lib-confirm-ok:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.lib-confirm-ok.danger {
+  background: #DC2626;
+}
+
 .lib-modal-header {
   display: flex;
   align-items: center;
@@ -6796,11 +6879,25 @@ html {
 
 .dark .lib-recent-card,
 .dark .lib-book-card,
-.dark .lib-modal {
+.dark .lib-modal,
+.dark .lib-confirm-modal {
   background: #020617;
   border-color: #111827;
   color: #E5E7EB;
 }
+
+.dark .lib-confirm-message {
+  color: #9CA3AF;
+}
+
+.dark .lib-confirm-cancel {
+  background: #111827;
+  color: #E5E7EB;
+}
+.dark .lib-confirm-cancel:hover {
+  background: #1F2937;
+}
+
 
 .dark .lib-book-title {
   color: #F9FAFB;

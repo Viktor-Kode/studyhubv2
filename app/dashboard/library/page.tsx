@@ -42,6 +42,103 @@ const getToken = async () => {
   return await getFirebaseToken()
 }
 
+// Confirm Dialog (replaces window.confirm)
+const ConfirmDialog = ({
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  danger = false,
+}: {
+  title: string
+  message: string
+  onConfirm: () => void
+  onCancel: () => void
+  danger?: boolean
+}) => (
+  <div className="lib-overlay" onClick={onCancel}>
+    <div className="lib-confirm-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="lib-confirm-icon"
+        style={{ background: danger ? '#FEF2F2' : '#EEF2FF' }}
+      >
+        {danger ? <Trash2 size={22} color="#DC2626" /> : <BookOpen size={22} color="#4F46E5" />}
+      </div>
+      <h3 className="lib-confirm-title">{title}</h3>
+      <p className="lib-confirm-message">{message}</p>
+      <div className="lib-confirm-actions">
+        <button className="lib-confirm-cancel" onClick={onCancel} type="button">
+          Cancel
+        </button>
+        <button
+          className={`lib-confirm-ok ${danger ? 'danger' : ''}`}
+          onClick={onConfirm}
+          type="button"
+        >
+          {danger ? 'Delete' : 'Confirm'}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+// New Folder Dialog (replaces window.prompt)
+const NewFolderDialog = ({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (name: string) => void
+  onCancel: () => void
+}) => {
+  const [name, setName] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 100)
+    return () => clearTimeout(t)
+  }, [])
+
+  const handleSubmit = () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    onConfirm(trimmed)
+  }
+
+  return (
+    <div className="lib-overlay" onClick={onCancel}>
+      <div className="lib-confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="lib-confirm-icon" style={{ background: '#EEF2FF' }}>
+          <FolderOpen size={22} color="#4F46E5" />
+        </div>
+        <h3 className="lib-confirm-title">New Folder</h3>
+        <p className="lib-confirm-message">Give your folder a name</p>
+        <input
+          ref={inputRef}
+          className="lib-input"
+          placeholder="e.g. WAEC Materials"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          style={{ marginBottom: 0 }}
+        />
+        <div className="lib-confirm-actions">
+          <button className="lib-confirm-cancel" onClick={onCancel} type="button">
+            Cancel
+          </button>
+          <button
+            className="lib-confirm-ok"
+            onClick={handleSubmit}
+            disabled={!name.trim()}
+            type="button"
+          >
+            Create Folder
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const LibraryPage = () => {
   const [materials, setMaterials] = useState([])
   const [folders, setFolders] = useState([])
@@ -53,6 +150,8 @@ const LibraryPage = () => {
   const [showReader, setShowReader] = useState(null)
   const [editingMaterial, setEditingMaterial] = useState(null)
   const [showFavourites, setShowFavourites] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [showNewFolder, setShowNewFolder] = useState(false)
   const searchRef = useRef(null)
 
   const fetchMaterials = useCallback(async () => {
@@ -86,8 +185,14 @@ const LibraryPage = () => {
     return () => clearTimeout(t)
   }, [fetchMaterials])
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this material?')) return
+  const handleDelete = (id: string) => {
+    setConfirmDelete(id)
+  }
+
+  const confirmDeleteMaterial = async () => {
+    if (!confirmDelete) return
+    const id = confirmDelete
+    setConfirmDelete(null)
     const token = await getToken()
     await fetch(`/api/backend/library/${id}`, {
       method: 'DELETE',
@@ -274,12 +379,7 @@ const LibraryPage = () => {
           ))}
           <button
             className="lib-new-folder-tab"
-            onClick={() => {
-              const name = window.prompt('New folder name:')
-              if (name && name.trim()) {
-                setFolders((prev) => [...prev, name.trim()])
-              }
-            }}
+            onClick={() => setShowNewFolder(true)}
             type="button"
           >
             <Plus size={13} /> New Folder
@@ -403,6 +503,26 @@ const LibraryPage = () => {
               )
               setEditingMaterial(null)
             }}
+          />
+        )}
+
+        {confirmDelete && (
+          <ConfirmDialog
+            title="Delete Material"
+            message="This will permanently delete this PDF from your library. This cannot be undone."
+            danger
+            onConfirm={confirmDeleteMaterial}
+            onCancel={() => setConfirmDelete(null)}
+          />
+        )}
+
+        {showNewFolder && (
+          <NewFolderDialog
+            onConfirm={(name) => {
+              setFolders((prev) => [...prev, name])
+              setShowNewFolder(false)
+            }}
+            onCancel={() => setShowNewFolder(false)}
           />
         )}
       </div>
@@ -928,9 +1048,12 @@ const PDFReader = ({
         </div>
 
         <iframe
-          src={`${material.fileUrl}#toolbar=1&navpanes=1`}
+          src={`https://docs.google.com/viewer?url=${encodeURIComponent(
+            material.fileUrl,
+          )}&embedded=true`}
           className="lib-reader-iframe"
           title={material.title}
+          allow="autoplay"
         />
       </div>
     </div>
