@@ -2,7 +2,7 @@
 
 // @ts-nocheck
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -41,8 +41,23 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   const [scale, setScale] = useState<number>(1.2)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<boolean>(false)
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
+
+  useEffect(() => {
+    let active = true;
+    fetch(material.fileUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        if (active) setBlobUrl(URL.createObjectURL(blob));
+      })
+      .catch(err => {
+        console.error('Blob fetch err:', err);
+        if (active) setBlobUrl(material.fileUrl);
+      });
+    return () => { active = false; };
+  }, [material.fileUrl])
 
   const onDocumentLoadSuccess = ({ numPages: total }: { numPages: number }) => {
     setNumPages(total)
@@ -249,9 +264,9 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           )}
 
           {/* PDF Document */}
-          {!error && (
+          {!error && blobUrl && (
             <Document
-              file={material.fileUrl}
+              file={blobUrl}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
               loading=""
