@@ -12,7 +12,7 @@ import {
   FiBookOpen,
   FiLoader,
   FiHome,
-  FiSparkles,
+  FiStar,
   FiTarget
 } from 'react-icons/fi'
 import Link from 'next/link'
@@ -384,7 +384,7 @@ export default function StudyModePage() {
 
                     <div className="rounded-lg bg-white/80 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800 px-3 py-3 space-y-2">
                       <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-500">
-                        <FiSparkles className="text-xs" />
+                        <FiStar className="text-xs" />
                         AI Explanation
                       </div>
                       {loadingExp ? (
