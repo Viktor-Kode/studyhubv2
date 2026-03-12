@@ -57,7 +57,12 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
         const token = await getToken()
         console.log('[PDF] Fetching proxy for:', material._id)
 
-        const response = await fetch(`/api/library/proxy-pdf/${material._id}`, {
+        const API =
+          process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL !== ''
+            ? process.env.NEXT_PUBLIC_BACKEND_URL
+            : '/api/backend'
+
+        const response = await fetch(`${API}/library/proxy-pdf/${material._id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
 
