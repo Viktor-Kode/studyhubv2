@@ -369,7 +369,7 @@ export default function StudyModePage() {
                     }`}
                   >
                     <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50">
-                      {selected === q.correctAnswer ? (
+                      {answers[current]?.isCorrect ? (
                         <>
                           <FiCheckCircle className="text-emerald-500" />
                           Correct!
