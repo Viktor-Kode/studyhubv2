@@ -67,35 +67,56 @@ export default function StudyModePage() {
     loadQuestions()
   }, [selectedExam, selectedYear, selectedSubject, questionCount])
 
-  const q = questions[current]
-
   const handleSelect = async (optionIndex: number) => {
-    if (!q || revealed) return
-
-    setSelected(optionIndex)
-    setRevealed(true)
-
-    const isCorrect = optionIndex === q.correctAnswer
-    if (isCorrect) setScore((s) => s + 1)
-
-    setAnswers((prev) => {
-      const next = [...prev]
-      next[current] = {
-        isCorrect,
-        correctIndex: q.correctAnswer,
-        selectedIndex: optionIndex
-      }
-      return next
-    })
-
-    setLoadingExp(true)
     try {
-      const exp = await cbtApi.getExplanation(q.question, q.options[q.correctAnswer], q.options)
-      setExplanation(exp)
-    } catch {
-      setExplanation('The correct answer is highlighted above.')
-    } finally {
+      const currentQuestion = questions[current]
+      if (!currentQuestion || revealed) return
+
+      const options = Array.isArray(currentQuestion.options) ? currentQuestion.options : []
+      const correctIndex =
+        typeof currentQuestion.correctAnswer === 'number'
+          ? currentQuestion.correctAnswer
+          : 0
+
+      if (!options.length) {
+        console.error('[Study Mode] Question has no options', currentQuestion)
+        return
+      }
+
+      setSelected(optionIndex)
+      setRevealed(true)
+
+      const isCorrect = optionIndex === correctIndex
+      if (isCorrect) setScore((s) => s + 1)
+
+      setAnswers((prev) => {
+        const next = [...prev]
+        next[current] = {
+          isCorrect,
+          correctIndex,
+          selectedIndex: optionIndex
+        }
+        return next
+      })
+
+      setLoadingExp(true)
+      try {
+        const correctText = options[correctIndex] ?? ''
+        const exp = await cbtApi.getExplanation(currentQuestion.question, correctText, options)
+        setExplanation(exp)
+      } catch (err) {
+        console.error('[Study Mode] Failed to get explanation:', err)
+        setExplanation('The correct answer is highlighted above.')
+      } finally {
+        setLoadingExp(false)
+      }
+    } catch (err) {
+      console.error('[Study Mode] Error while selecting option:', err)
+      setExplanation('Something went wrong while handling your answer. Please try the next question.')
+      setRevealed(true)
       setLoadingExp(false)
+    } finally {
+      // no-op; loadingExp handled in inner try/finally
     }
   }
 
@@ -257,7 +278,7 @@ export default function StudyModePage() {
             </div>
           )}
 
-          {!loading && !error && !finished && q && (
+          {!loading && !error && !finished && questions[current] && (
             <div className="space-y-4">
               {/* Progress */}
               <div className="flex items-center gap-3">
@@ -281,16 +302,16 @@ export default function StudyModePage() {
                     </p>
                     <div
                       className="mt-2 text-sm md:text-[15px] leading-relaxed text-slate-900 dark:text-slate-50"
-                      dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
+                      dangerouslySetInnerHTML={{ __html: renderQuestion(questions[current].question) }}
                     />
                   </div>
                 </div>
 
                 {/* Options */}
                 <div className="space-y-2.5">
-                  {q.options.map((opt, idx) => {
+                  {questions[current].options.map((opt, idx) => {
                     const isSelected = selected === idx
-                    const isCorrect = idx === q.correctAnswer
+                    const isCorrect = idx === questions[current].correctAnswer
 
                     let base =
                       'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left text-sm transition shadow-sm'
@@ -342,7 +363,7 @@ export default function StudyModePage() {
                 {revealed && (
                   <div
                     className={`mt-4 rounded-xl border px-4 py-4 space-y-3 text-sm ${
-                      selected === q.correctAnswer
+                      selected === questions[current].correctAnswer
                         ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
                         : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-700'
                     }`}
