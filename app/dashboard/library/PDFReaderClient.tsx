@@ -55,13 +55,30 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
     const loadPdf = async () => {
       try {
         const token = await getToken()
-        const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
+        console.log('[PDF] Fetching proxy for:', material._id)
+
+        const response = await fetch(`/api/library/proxy-pdf/${material._id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
 
-        if (!response.ok) throw new Error('Failed to load PDF')
+        console.log('[PDF] Proxy response status:', response.status)
+
+        if (!response.ok) {
+          let errData: any = null
+          try {
+            errData = await response.json()
+          } catch {
+            // ignore JSON parse errors
+          }
+          if (errData) {
+            console.error('[PDF] Proxy error:', errData)
+          }
+          throw new Error(errData?.error || 'Failed to load PDF')
+        }
 
         const blob = await response.blob()
+        console.log('[PDF] Blob size:', blob.size, 'type:', blob.type)
+
         const url = URL.createObjectURL(blob)
         if (!isMounted) {
           URL.revokeObjectURL(url)
@@ -70,7 +87,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
         setPdfData(url)
         setLoading(false)
       } catch (err) {
-        console.error('[PDF Load]', err)
+        console.error('[PDF Load] Final error:', (err as any)?.message || err)
         if (!isMounted) return
         setFetchError(true)
         setLoading(false)
