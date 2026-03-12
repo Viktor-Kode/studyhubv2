@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
@@ -217,6 +218,7 @@ function clearCbtPersistedState() {
 }
 
 export default function CBTPage() {
+  const router = useRouter()
   // Persisted selection state
   const [selectedExam, setSelectedExam] = usePersistedState<ExamType | null>('cbt_exam', null)
   const [selectedYear, setSelectedYear] = usePersistedState<string>('cbt_year', '')
@@ -825,9 +827,9 @@ export default function CBTPage() {
                 </div>
               )}
 
-              {/* Start button */}
+              {/* Start / Study Mode buttons */}
               {selectedYear && selectedSubject && (!(selectedExam === 'POST_UTME') || selectedSchool) && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
                     <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
                       <FiInfo /> Candidate Instructions
@@ -841,21 +843,43 @@ export default function CBTPage() {
                       <li>Use the question navigator to move between questions.</li>
                     </ul>
                   </div>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <button
+                      onClick={handleStartTest}
+                      disabled={loading}
+                      className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
+                               bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 
+                               text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-blue-500/20 
+                               disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <><FiLoader className="animate-spin" /> Preparing Exam...</>
+                      ) : (
+                        <><HiOutlineAcademicCap className="text-xl" /> I am ready, Start Exam</>
+                      )}
+                    </button>
 
-                  <button
-                    onClick={handleStartTest}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-4 px-6 
-                             bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 
-                             text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-blue-500/20 
-                             disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <><FiLoader className="animate-spin" /> Preparing Exam...</>
-                    ) : (
-                      <><HiOutlineAcademicCap className="text-xl" /> I am ready, Start Exam</>
-                    )}
-                  </button>
+                    <button
+                      onClick={() => {
+                        if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
+                          setError('Please complete the exam setup before starting Study Mode.')
+                          return
+                        }
+                        router.push('/dashboard/cbt/study')
+                      }}
+                      className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
+                               bg-white dark:bg-gray-900 border-2 border-blue-600/80 
+                               text-blue-700 dark:text-blue-300 font-black uppercase tracking-widest rounded-xl 
+                               transition hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                    >
+                      <FiBookOpen className="text-xl" />
+                      Study Mode
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Study Mode shows one question at a time with instant feedback and AI-powered explanations. No timer, just learning.
+                  </p>
                 </div>
               )}
             </div>
