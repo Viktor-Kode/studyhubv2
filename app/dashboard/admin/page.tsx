@@ -1516,6 +1516,7 @@ export default function AdminDashboardPage() {
                 value={stats.users.total}
                 sub={`+${stats.users.today} today`}
                 color="blue"
+                onClick={() => router.push('/dashboard/admin/logins-today')}
               />
               <MetricCard
                 icon={<DollarSign size={20} />}
