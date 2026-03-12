@@ -2,7 +2,7 @@
 
 // @ts-nocheck
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -43,11 +43,50 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   const [scale, setScale] = useState<number>(1.2)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<boolean>(false)
+  const [fetchError, setFetchError] = useState<boolean>(false)
+  const [pdfData, setPdfData] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
-  // Proxy the file to dodge CORS on Cloudinary entirely
-  const proxyUrl = `/api/pdf-proxy?url=${encodeURIComponent(material.fileUrl)}`
+  // Load PDF via backend proxy to avoid Cloudinary CORS
+  useEffect(() => {
+    let isMounted = true
+
+    const loadPdf = async () => {
+      try {
+        const token = await getToken()
+        const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+
+        if (!response.ok) throw new Error('Failed to load PDF')
+
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        if (!isMounted) {
+          URL.revokeObjectURL(url)
+          return
+        }
+        setPdfData(url)
+        setLoading(false)
+      } catch (err) {
+        console.error('[PDF Load]', err)
+        if (!isMounted) return
+        setFetchError(true)
+        setLoading(false)
+      }
+    }
+
+    loadPdf()
+
+    return () => {
+      isMounted = false
+      if (pdfData) {
+        URL.revokeObjectURL(pdfData)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [material._id])
 
   const onDocumentLoadSuccess = ({ numPages: total }: { numPages: number }) => {
     setNumPages(total)
@@ -218,7 +257,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           onScroll={handleScroll}
         >
           {/* Loading */}
-          {loading && (
+          {loading && !fetchError && (
             <div className="flex flex-col items-center justify-center h-full">
               <div
                 className="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin mb-4"
@@ -229,7 +268,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           )}
 
           {/* Error */}
-          {error && (
+          {(error || fetchError) && (
             <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto">
               <BookOpen size={48} className="text-gray-400 mb-6" />
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Couldn&apos;t load this PDF</h3>
@@ -241,16 +280,16 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
                 className="text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
                 style={{ background: material.color }}
               >
-                Download PDF Original
+                Download PDF
               </a>
             </div>
           )}
 
           {/* PDF Document */}
-          {!error && (
+          {!error && !fetchError && pdfData && (
             <div className="flex flex-col items-center gap-6 w-full pb-12">
               <Document
-                file={proxyUrl}
+                file={pdfData}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
                 loading=""
