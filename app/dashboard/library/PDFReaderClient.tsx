@@ -81,7 +81,8 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           throw new Error(errData?.error || 'Failed to load PDF')
         }
 
-        const blob = await response.blob()
+        const arrayBuffer = await response.arrayBuffer()
+        const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
         console.log('[PDF] Blob size:', blob.size, 'type:', blob.type)
 
         const url = URL.createObjectURL(blob)
