@@ -1,27 +1,36 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev'
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
+const resend = new Resend(RESEND_API_KEY)
+
+async function sendEmail({
+    to,
+    subject,
+    html,
+}: {
+    to: string
+    subject: string
+    html: string
+}) {
+    if (!RESEND_API_KEY) {
+        console.warn('[Email] RESEND_API_KEY not set. Skipping send.')
+        return
     }
-})
 
-// Verify transporter on startup
-if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-    transporter.verify((error) => {
-        if (error) {
-            console.error('Email transporter verification failed:', error)
-        } else {
-            console.log('✅ Email server is ready to send messages')
-        }
+    const { error } = await resend.emails.send({
+        from: `StudyHelp <${FROM}>`,
+        to,
+        subject,
+        html,
     })
+
+    if (error) {
+        console.error('[Email] Resend error:', error)
+        throw error
+    }
 }
 
 export async function sendVerificationEmail(
@@ -31,11 +40,7 @@ export async function sendVerificationEmail(
 ) {
     const verifyUrl = `${APP_URL}/auth/verify-email?token=${token}`
 
-    const mailOptions = {
-        from: process.env.EMAIL_FROM || '"StudyBuddy" <noreply@studybuddy.com>',
-        to: email,
-        subject: 'Verify Your Email - StudyBuddy',
-        html: `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -72,15 +77,12 @@ export async function sendVerificationEmail(
       </body>
       </html>
     `
-    }
 
-    try {
-        await transporter.sendMail(mailOptions)
-        console.log('✅ Verification email sent to:', email)
-    } catch (error) {
-        console.error('❌ Failed to send verification email:', error)
-        throw error
-    }
+    await sendEmail({
+        to: email,
+        subject: 'Verify Your Email - StudyBuddy',
+        html,
+    })
 }
 
 export async function sendPasswordResetEmail(
@@ -90,11 +92,7 @@ export async function sendPasswordResetEmail(
 ) {
     const resetUrl = `${APP_URL}/auth/reset-password?token=${token}`
 
-    const mailOptions = {
-        from: process.env.EMAIL_FROM || '"StudyBuddy" <noreply@studybuddy.com>',
-        to: email,
-        subject: 'Reset Your Password - StudyBuddy',
-        html: `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -133,13 +131,10 @@ export async function sendPasswordResetEmail(
       </body>
       </html>
     `
-    }
 
-    try {
-        await transporter.sendMail(mailOptions)
-        console.log('✅ Password reset email sent to:', email)
-    } catch (error) {
-        console.error('❌ Failed to send reset email:', error)
-        throw error
-    }
+    await sendEmail({
+        to: email,
+        subject: 'Reset Your Password - StudyBuddy',
+        html,
+    })
 }

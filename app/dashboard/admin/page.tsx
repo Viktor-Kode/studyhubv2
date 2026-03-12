@@ -1137,11 +1137,22 @@ function AdminCampaignsTab() {
     setError('')
     setResult(null)
     try {
-      const res = await apiClient.post('/admin/email-campaign', form)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 60000)
+
+      const res = await apiClient.post('/admin/email-campaign', form, {
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeout)
       if (res.data?.success) setResult(res.data)
       else setError(res.data?.error || 'Failed')
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed')
+      const message =
+        (err as any)?.name === 'CanceledError'
+          ? 'Request timed out while sending emails. Please try again.'
+          : (err as Error).message || 'Failed'
+      setError(message)
     } finally {
       setSending(false)
     }
