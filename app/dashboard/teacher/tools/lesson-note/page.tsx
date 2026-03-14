@@ -1,15 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, Section, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 
 export default function LessonNotePage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ subject: '', topic: '', classLevel: '', duration: 40 })
   const [result, setResult] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'lesson_note') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content) {
+        setResult(item.content as Record<string, unknown>)
+        if (item.meta?.subject) setForm((f) => ({ ...f, subject: String(item.meta.subject) }))
+        if (item.meta?.topic) setForm((f) => ({ ...f, topic: String(item.meta.topic) }))
+        if (item.meta?.classLevel) setForm((f) => ({ ...f, classLevel: String(item.meta.classLevel) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
 
   const generate = async () => {
     if (!form.subject || !form.topic || !form.classLevel) {
@@ -64,6 +81,7 @@ export default function LessonNotePage() {
           >
             ← New Note
           </button>
+          <span className="px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">Saved on site</span>
           <button
             type="button"
             className="result-download-btn px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm"

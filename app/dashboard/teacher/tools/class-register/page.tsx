@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { FileDown, Loader } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { FileDown, Loader, Save } from 'lucide-react'
 import { generateClassRegister } from '@/lib/utils/pdfGenerator'
-import { ToolInput, ToolGenerateBtn } from '../_components/shared'
+import { apiClient } from '@/lib/api/client'
+import { ToolInput } from '../_components/shared'
 
 export default function ClassRegisterPage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({
     schoolName: '',
     classTeacher: '',
@@ -17,6 +20,38 @@ export default function ClassRegisterPage() {
     weeks: 4,
   })
   const [generating, setGenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'class_register') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.meta) {
+        setForm((f) => ({
+          ...f,
+          ...item.meta,
+          students: Number(item.meta.students) || 30,
+          weeks: Number(item.meta.weeks) || 4,
+        }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'class_register',
+        title: `Class Register – ${form.className || 'Class'}`.trim() || 'Class Register',
+        meta: form,
+        content: {},
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
@@ -116,7 +151,16 @@ export default function ClassRegisterPage() {
 
         <button
           type="button"
-          className="generate-btn flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
+          className="w-full py-3 border border-emerald-600 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          <Save size={18} />
+          {saving ? 'Saving...' : 'Save on site'}
+        </button>
+        <button
+          type="button"
+          className="generate-btn flex items-center justify-center gap-2 w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
           onClick={handleDownload}
           disabled={generating}
         >

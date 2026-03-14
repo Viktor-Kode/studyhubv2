@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -9,6 +10,7 @@ interface Student { name: string; ca: string; exam: string }
 interface ProcessedStudent extends Student { total: number; grade: string; remark: string; position: number }
 
 export default function ResultCompilerPage() {
+  const searchParams = useSearchParams()
   const [meta, setMeta] = useState({
     className: '',
     subject: '',
@@ -29,6 +31,32 @@ export default function ResultCompilerPage() {
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'result_compiler') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content?.students) {
+        const stats = item.content.stats || {}
+        setResult({
+          students: item.content.students,
+          stats: {
+            classAverage: stats.classAverage ?? '',
+            highest: stats.highest ?? 0,
+            lowest: stats.lowest ?? 0,
+            passed: stats.passed ?? 0,
+            total: stats.total ?? 0,
+          },
+        })
+        if (item.meta?.className) setMeta((m) => ({ ...m, className: String(item.meta.className) }))
+        if (item.meta?.subject) setMeta((m) => ({ ...m, subject: String(item.meta.subject) }))
+        if (item.meta?.term) setMeta((m) => ({ ...m, term: String(item.meta.term) }))
+        if (item.meta?.year) setMeta((m) => ({ ...m, year: String(item.meta.year) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
 
   const updateStudent = (index: number, field: keyof Student, value: string) => {
     setStudents((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)))
@@ -80,6 +108,7 @@ export default function ResultCompilerPage() {
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setResult(null)}>
             ← Edit
           </button>
+          <span className="px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">Saved on site</span>
           <button type="button" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" onClick={downloadResults}>
             Download (.csv)
           </button>

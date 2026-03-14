@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   ClipboardList,
-  Download
+  Download,
+  FolderOpen
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
@@ -103,6 +104,18 @@ export default function TeacherToolsLayout({ children }: { children: React.React
               </Link>
             )
           })}
+
+          <Link
+            href="/dashboard/teacher/tools/saved"
+            onClick={() => setSidebarOpen(false)}
+            className={`sidebar-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg w-full text-left transition-colors
+              ${toolFromPath === 'saved' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-900/20">
+              <FolderOpen size={17} color="#D97706" />
+            </div>
+            <span className="flex-1 text-sm">My Saved</span>
+          </Link>
 
           <Link
             href="/dashboard/teacher/question-generator"

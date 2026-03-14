@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -9,6 +10,7 @@ interface StudentInput { name: string; score: string; grade: string; strengths: 
 interface Comment { name: string; comment: string }
 
 export default function ReportCommentsPage() {
+  const searchParams = useSearchParams()
   const [meta, setMeta] = useState({ subject: '', term: 'First Term' })
   const [students, setStudents] = useState<StudentInput[]>(
     Array(5)
@@ -18,6 +20,38 @@ export default function ReportCommentsPage() {
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'report_comments') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content && Array.isArray(item.content)) {
+        setComments(item.content)
+        if (item.meta?.subject) setMeta((m) => ({ ...m, subject: String(item.meta.subject) }))
+        if (item.meta?.term) setMeta((m) => ({ ...m, term: String(item.meta.term) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    if (!comments?.length) return
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'report_comments',
+        title: `Report Comments – ${meta.subject} ${meta.term}`.trim() || 'Report Comments',
+        meta: { subject: meta.subject, term: meta.term },
+        content: comments,
+      })
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const updateStudent = (index: number, field: keyof StudentInput, value: string) => {
     setStudents((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)))
@@ -56,6 +90,9 @@ export default function ReportCommentsPage() {
         <div className="flex gap-2 flex-wrap">
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setComments(null)}>
             ← Edit
+          </button>
+          <button type="button" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save on site'}
           </button>
           <button type="button" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" onClick={downloadComments}>
             Download

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { FileDown, Loader, Sparkles } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { FileDown, Loader, Sparkles, Save } from 'lucide-react'
 import { generateTeacherDiary, type DiaryEntry } from '@/lib/utils/pdfGenerator'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -19,6 +20,7 @@ const emptyEntry = (): DiaryEntry => ({
 })
 
 export default function TeacherDiaryPage() {
+  const searchParams = useSearchParams()
   const [meta, setMeta] = useState({
     schoolName: '',
     classTeacher: '',
@@ -32,6 +34,36 @@ export default function TeacherDiaryPage() {
   const [mode, setMode] = useState<'manual' | 'ai'>('manual')
   const [aiLoading, setAiLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'teacher_diary') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content?.entries) {
+        if (item.content.meta) setMeta(item.content.meta)
+        setEntries(Array.isArray(item.content.entries) ? item.content.entries : DAYS.map(() => emptyEntry()))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'teacher_diary',
+        title: `Diary – ${meta.className} Week ${meta.weekNumber}`.trim() || "Teacher's Diary",
+        meta,
+        content: { meta, entries },
+      })
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleMeta = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setMeta((m) => ({ ...m, [e.target.name]: e.target.value }))
@@ -243,6 +275,15 @@ export default function TeacherDiaryPage() {
           </button>
         )}
 
+        <button
+          type="button"
+          className="w-full py-3 border border-emerald-600 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          <Save size={18} />
+          {saving ? 'Saving...' : 'Save on site'}
+        </button>
         <button
           type="button"
           className="generate-btn flex items-center justify-center gap-2 w-full"

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, Section, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -9,10 +10,42 @@ interface Q { type?: string; text: string; options?: string[]; answer: string; m
 interface Vocab { word: string; meaning: string; usedInSentence?: string }
 
 export default function ComprehensionPage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ passage: '', classLevel: '', questionCount: 10 })
   const [result, setResult] = useState<{ questions?: Q[]; summary_question?: string; vocabulary?: Vocab[] } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'comprehension') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content?.questions) {
+        setResult(item.content)
+        if (item.meta?.classLevel) setForm((f) => ({ ...f, classLevel: String(item.meta.classLevel) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    if (!result) return
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'comprehension',
+        title: 'Comprehension Exercise',
+        meta: { classLevel: form.classLevel, questionCount: form.questionCount },
+        content: result,
+      })
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const generate = async () => {
     if (!form.passage || form.passage.trim().length < 100) {
@@ -54,6 +87,9 @@ export default function ComprehensionPage() {
         <div className="flex gap-2 flex-wrap">
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setResult(null)}>
             ← New Passage
+          </button>
+          <button type="button" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save on site'}
           </button>
           <button type="button" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" onClick={downloadComprehension}>
             Download

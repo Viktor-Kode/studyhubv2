@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { FileDown, Loader, Plus, Trash2, Sparkles } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { FileDown, Loader, Plus, Trash2, Sparkles, Save } from 'lucide-react'
 import { generateReportSheet, type ReportStudent } from '@/lib/utils/pdfGenerator'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -58,6 +59,7 @@ function gradeFromTotal(total: number): string {
 }
 
 export default function ReportSheetPage() {
+  const searchParams = useSearchParams()
   const [meta, setMeta] = useState({
     schoolName: '',
     classTeacher: '',
@@ -68,7 +70,37 @@ export default function ReportSheetPage() {
   const [students, setStudents] = useState<ReportStudent[]>([emptyStudent()])
   const [generating, setGenerating] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [mode, setMode] = useState<'manual' | 'ai'>('manual')
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'report_sheet') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content?.students) {
+        if (item.content.meta) setMeta(item.content.meta)
+        setStudents(Array.isArray(item.content.students) ? item.content.students : [emptyStudent()])
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'report_sheet',
+        title: `Report Sheet – ${meta.className} ${meta.term}`.trim() || 'Report Sheet',
+        meta,
+        content: { meta, students },
+      })
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleMeta = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setMeta((m) => ({ ...m, [e.target.name]: e.target.value }))
@@ -391,6 +423,15 @@ export default function ReportSheetPage() {
           </button>
         )}
 
+        <button
+          type="button"
+          className="w-full py-3 border border-emerald-600 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          <Save size={18} />
+          {saving ? 'Saving...' : 'Save on site'}
+        </button>
         <button
           type="button"
           className="generate-btn flex items-center justify-center gap-2 w-full"

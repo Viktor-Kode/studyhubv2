@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -9,6 +10,7 @@ interface Question { text: string; marks: number; type?: string }
 interface SchemeItem { questionNumber: number; question: string; marks: number; keyPoints?: string[]; modelAnswer?: string; commonErrors?: string[] }
 
 export default function MarkingSchemePage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ subject: '', totalMarks: 100 })
   const [questions, setQuestions] = useState<Question[]>([
     { text: '', marks: 5 },
@@ -17,6 +19,38 @@ export default function MarkingSchemePage() {
   const [result, setResult] = useState<SchemeItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'marking_scheme') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content && Array.isArray(item.content)) {
+        setResult(item.content)
+        if (item.meta?.subject) setForm((f) => ({ ...f, subject: String(item.meta.subject) }))
+        if (item.meta?.totalMarks) setForm((f) => ({ ...f, totalMarks: Number(item.meta.totalMarks) || 100 }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    if (!result?.length) return
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'marking_scheme',
+        title: `Marking Scheme – ${form.subject}`.trim() || 'Marking Scheme',
+        meta: { subject: form.subject, totalMarks: form.totalMarks },
+        content: result,
+      })
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const addQuestion = () => {
     setQuestions((p) => [...p, { text: '', marks: 5 }])
@@ -71,6 +105,9 @@ export default function MarkingSchemePage() {
         <div className="flex gap-2 flex-wrap">
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setResult(null)}>
             ← New
+          </button>
+          <button type="button" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save on site'}
           </button>
           <button type="button" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" onClick={downloadScheme}>
             Download

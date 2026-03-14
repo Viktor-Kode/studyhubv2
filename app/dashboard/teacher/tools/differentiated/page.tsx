@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, Section } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -8,11 +9,44 @@ import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 interface Q { text: string; options?: string[]; answer: string; marks?: number }
 
 export default function DifferentiatedPage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ topic: '', subject: '', classLevel: '', questionCount: 10, documentText: '' })
   const [result, setResult] = useState<{ easy: { label: string; description: string; questions: Q[] }; medium: { label: string; description: string; questions: Q[] }; hard: { label: string; description: string; questions: Q[] } } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeVersion, setActiveVersion] = useState<'easy' | 'medium' | 'hard'>('easy')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'differentiated') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content?.easy) {
+        setResult(item.content)
+        if (item.meta?.topic) setForm((f) => ({ ...f, topic: String(item.meta.topic) }))
+        if (item.meta?.subject) setForm((f) => ({ ...f, subject: String(item.meta.subject) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    if (!result) return
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'differentiated',
+        title: `Differentiated – ${form.topic} ${form.subject}`.trim() || 'Differentiated Questions',
+        meta: { topic: form.topic, subject: form.subject, classLevel: form.classLevel },
+        content: result,
+      })
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const generate = async () => {
     if (!form.topic || !form.subject) {
@@ -41,6 +75,9 @@ export default function DifferentiatedPage() {
         <div className="flex gap-2 flex-wrap items-center">
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setResult(null)}>
             ← New
+          </button>
+          <button type="button" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save on site'}
           </button>
           <div className="flex gap-2">
             {(['easy', 'medium', 'hard'] as const).map((key) => (

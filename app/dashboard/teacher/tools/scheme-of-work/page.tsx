@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ToolInput, ToolGenerateBtn, downloadText } from '../_components/shared'
 import { apiClient } from '@/lib/api/client'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
@@ -8,10 +9,44 @@ import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 interface Week { week: number; topic: string; subtopics?: string[]; objectives?: string[]; resources?: string[]; evaluation?: string }
 
 export default function SchemeOfWorkPage() {
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ subject: '', classLevel: '', term: 'First Term', weeksCount: 13 })
   const [result, setResult] = useState<Week[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const savedId = searchParams.get('saved')
+    const type = searchParams.get('type')
+    if (!savedId || type !== 'scheme_of_work') return
+    apiClient.get(`/teacher-tools/saved/${type}/${savedId}`).then((res) => {
+      const item = res.data?.item
+      if (item?.content && Array.isArray(item.content)) {
+        setResult(item.content)
+        if (item.meta?.subject) setForm((f) => ({ ...f, subject: String(item.meta.subject) }))
+        if (item.meta?.classLevel) setForm((f) => ({ ...f, classLevel: String(item.meta.classLevel) }))
+        if (item.meta?.term) setForm((f) => ({ ...f, term: String(item.meta.term) }))
+      }
+    }).catch(() => {})
+  }, [searchParams])
+
+  const handleSave = async () => {
+    if (!result || result.length === 0) return
+    setSaving(true)
+    try {
+      await apiClient.post('/teacher-tools/saved', {
+        toolType: 'scheme_of_work',
+        title: `Scheme – ${form.subject} ${form.classLevel}`.trim() || 'Scheme of Work',
+        meta: { subject: form.subject, classLevel: form.classLevel, term: form.term, weeksCount: form.weeksCount },
+        content: result,
+      })
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const generate = async () => {
     if (!form.subject || !form.classLevel) {
@@ -64,6 +99,9 @@ export default function SchemeOfWorkPage() {
         <div className="flex gap-2 flex-wrap">
           <button type="button" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-sm" onClick={() => setResult(null)}>
             ← New Scheme
+          </button>
+          <button type="button" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save on site'}
           </button>
           <button type="button" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" onClick={downloadScheme}>
             Download
