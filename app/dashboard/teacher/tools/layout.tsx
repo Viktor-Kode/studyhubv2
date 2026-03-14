@@ -27,10 +27,10 @@ const TOOLS = [
   { id: 'templates', label: 'Templates', icon: Download, color: '#7C3AED', bg: '#F5F3FF', desc: 'Lesson note, scheme of work, exam timetable PDFs', free: true },
   { id: 'result-compiler', label: 'Result Compiler', icon: BarChart2, color: '#059669', bg: '#ECFDF5', desc: 'Compile, grade and rank student results', free: true },
   { id: 'report-comments', label: 'Report Card Comments', icon: MessageSquare, color: '#D97706', bg: '#FEF3C7', desc: 'Generate personalised comments for 30+ students', free: true },
-  { id: 'scheme-of-work', label: 'Scheme of Work', icon: Calendar, color: '#7C3AED', bg: '#F5F3FF', desc: 'Full term scheme aligned to NERDC curriculum', free: false },
-  { id: 'marking-scheme', label: 'Marking Scheme', icon: CheckSquare, color: '#DC2626', bg: '#FEF2F2', desc: 'Detailed marking guide with key points per question', free: false },
-  { id: 'differentiated', label: 'Differentiated Questions', icon: Layers, color: '#0891B2', bg: '#ECFEFF', desc: '3 difficulty versions of same test from one document', free: false },
-  { id: 'comprehension', label: 'Comprehension Builder', icon: BookOpen, color: '#BE185D', bg: '#FDF2F8', desc: 'Generate questions, vocabulary and summary tasks', free: false },
+  { id: 'scheme-of-work', label: 'Scheme of Work', icon: Calendar, color: '#7C3AED', bg: '#F5F3FF', desc: 'Full term scheme aligned to NERDC curriculum', free: true },
+  { id: 'marking-scheme', label: 'Marking Scheme', icon: CheckSquare, color: '#DC2626', bg: '#FEF2F2', desc: 'Detailed marking guide with key points per question', free: true },
+  { id: 'differentiated', label: 'Differentiated Questions', icon: Layers, color: '#0891B2', bg: '#ECFEFF', desc: '3 difficulty versions of same test from one document', free: true },
+  { id: 'comprehension', label: 'Comprehension Builder', icon: BookOpen, color: '#BE185D', bg: '#FDF2F8', desc: 'Generate questions, vocabulary and summary tasks', free: true },
 ]
 
 export default function TeacherToolsLayout({ children }: { children: React.ReactNode }) {
