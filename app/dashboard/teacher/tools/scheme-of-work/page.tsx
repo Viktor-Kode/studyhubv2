@@ -20,14 +20,26 @@ export default function SchemeOfWorkPage() {
     }
     setLoading(true)
     setError('')
+    setResult(null)
     try {
       const res = await apiClient.post('/teacher-tools/scheme-of-work', form)
-      if (res.data.success) setResult(res.data.scheme)
-      else setError(res.data.error || 'Failed')
+      const data = res.data as { success?: boolean; scheme?: Week[]; error?: string }
+      const scheme = data.scheme
+      if (Array.isArray(scheme)) {
+        setResult(scheme)
+      } else if (data.success === false && data.error) {
+        setError(data.error)
+      } else {
+        setError(data.error || 'No scheme data returned. Please try again.')
+      }
     } catch (err: unknown) {
-      const e = err as { response?: { status?: number; data?: { showUpgrade?: boolean } } }
-      if (e.response?.status === 403 && e.response?.data?.showUpgrade) triggerUpgradeModal('teacher')
-      else setError((err as Error).message || 'Failed')
+      const e = err as { response?: { status?: number; data?: { error?: string; showUpgrade?: boolean } }; message?: string }
+      if (e.response?.status === 403 && e.response?.data?.showUpgrade) {
+        triggerUpgradeModal('teacher')
+      } else {
+        const msg = e.response?.data?.error || e.message || 'Request failed. Please try again.'
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
