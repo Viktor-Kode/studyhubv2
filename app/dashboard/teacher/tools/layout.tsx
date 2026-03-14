@@ -13,12 +13,18 @@ import {
   BookOpen,
   Lock,
   Menu,
-  X
+  X,
+  ClipboardList,
+  Download
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
 const TOOLS = [
   { id: 'lesson-note', label: 'Lesson Note Generator', icon: FileText, color: '#4F46E5', bg: '#EEF2FF', desc: 'Generate full lesson notes from topic name', free: true },
+  { id: 'class-register', label: 'Class Register', icon: ClipboardList, color: '#2563EB', bg: '#EFF6FF', desc: 'Attendance + score sheet template (PDF)', free: true },
+  { id: 'report-sheet', label: 'Report Sheet', icon: BarChart2, color: '#D97706', bg: '#FEF3C7', desc: 'Full termly report cards per student (PDF)', free: true },
+  { id: 'teacher-diary', label: "Teacher's Diary", icon: BookOpen, color: '#059669', bg: '#ECFDF5', desc: 'Weekly lesson plan diary (PDF)', free: true },
+  { id: 'templates', label: 'Templates', icon: Download, color: '#7C3AED', bg: '#F5F3FF', desc: 'Lesson note, scheme of work, exam timetable PDFs', free: true },
   { id: 'result-compiler', label: 'Result Compiler', icon: BarChart2, color: '#059669', bg: '#ECFDF5', desc: 'Compile, grade and rank student results', free: true },
   { id: 'report-comments', label: 'Report Card Comments', icon: MessageSquare, color: '#D97706', bg: '#FEF3C7', desc: 'Generate personalised comments for 30+ students', free: true },
   { id: 'scheme-of-work', label: 'Scheme of Work', icon: Calendar, color: '#7C3AED', bg: '#F5F3FF', desc: 'Full term scheme aligned to NERDC curriculum', free: false },

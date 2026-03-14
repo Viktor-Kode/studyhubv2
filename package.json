@@ -21,6 +21,8 @@
     "firebase-admin": "^13.6.1",
     "gsap": "^3.12.5",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "katex": "^0.16.33",
     "lucide-react": "^0.577.0",
     "mammoth": "^1.11.0",
@@ -35,8 +37,8 @@
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-pdf": "^10.4.1",
-    "resend": "^4.0.0",
     "recharts": "^2.15.4",
+    "resend": "^4.0.0",
     "twilio": "^5.12.1",
     "uuid": "^13.0.0",
     "zustand": "^4.5.7"
