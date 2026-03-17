@@ -770,13 +770,24 @@ function EditTab({
     }
   }
 
-  const handleDownload = () => {
-    const content = formatForDownload(meta, questions)
+  const handleDownloadQuestions = () => {
+    const content = formatQuestionsOnly(meta, questions)
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${meta.title}.txt`
+    a.download = `${meta.title} - Questions.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadAnswers = () => {
+    const content = formatAnswersOnly(meta, questions)
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${meta.title} - Answers.txt`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -839,8 +850,19 @@ function EditTab({
             {questions.length} Questions •{' '}
             {questions.reduce((s, q) => s + (q.marks || 1), 0)} Marks
           </span>
-          <button type="button" className="download-btn" onClick={handleDownload}>
-            <Download size={15} /> Download
+          <button
+            type="button"
+            className="download-btn"
+            onClick={handleDownloadQuestions}
+          >
+            <Download size={15} /> Download Questions
+          </button>
+          <button
+            type="button"
+            className="download-btn"
+            onClick={handleDownloadAnswers}
+          >
+            <Download size={15} /> Download Answers
           </button>
           <button
             type="button"
@@ -1180,7 +1202,7 @@ function PreviewModal({
   )
 }
 
-function formatForDownload(
+function buildDownloadHeader(
   meta: {
     title: string
     assessmentType?: string
@@ -1205,6 +1227,22 @@ function formatForDownload(
   if (meta.instructions) out += `\nInstructions: ${meta.instructions}\n`
   out += `\n${'─'.repeat(50)}\n\n`
 
+  return out
+}
+
+function formatQuestionsOnly(
+  meta: {
+    title: string
+    assessmentType?: string
+    subject?: string
+    classLevel?: string
+    duration?: number
+    instructions?: string
+  },
+  questions: Question[]
+) {
+  let out = buildDownloadHeader(meta, questions)
+
   questions.forEach((q, i) => {
     out += `${i + 1}. ${q.text} (${q.marks} mark${(q.marks ?? 1) !== 1 ? 's' : ''})\n`
     if (q.options && q.options.length > 0) {
@@ -1212,9 +1250,31 @@ function formatForDownload(
         out += `   ${opt}\n`
       })
     }
-    out += `   Answer: ${q.answer}\n`
-    if (q.explanation) out += `   Explanation: ${q.explanation}\n`
     out += '\n'
+  })
+
+  return out
+}
+
+function formatAnswersOnly(
+  meta: {
+    title: string
+    assessmentType?: string
+    subject?: string
+    classLevel?: string
+    duration?: number
+    instructions?: string
+  },
+  questions: Question[]
+) {
+  let out = buildDownloadHeader(
+    { ...meta, title: `${meta.title} — Answer Key` },
+    questions
+  )
+
+  questions.forEach((q, i) => {
+    out += `${i + 1}. Answer: ${q.answer}\n`
+    if (q.explanation) out += `   Explanation: ${q.explanation}\n`
   })
 
   return out
