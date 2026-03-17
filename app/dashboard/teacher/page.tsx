@@ -13,7 +13,7 @@ import {
   FaPlus,
   FaBrain
 } from 'react-icons/fa'
-import { FiCreditCard } from 'react-icons/fi'
+import { FiCreditCard, FiActivity } from 'react-icons/fi'
 import Link from 'next/link'
 import { classService } from '@/lib/services/classService'
 import { apiClient } from '@/lib/api/client'
@@ -169,6 +169,10 @@ export default function TeacherDashboardPage() {
     (sum, val) => sum + (typeof val === 'number' ? val : 0),
     0
   )
+  const toolUsageEntries = Object.entries(teacherUsage || {})
+    .filter(([, v]) => typeof v === 'number' && v > 0)
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
+    .slice(0, 5)
 
   return (
     <ProtectedRoute allowedRoles={['teacher']}>
@@ -459,6 +463,48 @@ export default function TeacherDashboardPage() {
                   <FaArrowRight className="text-gray-400 group-hover:text-purple-500 transition-colors" />
                 </Link>
               </div>
+            </div>
+
+            {/* Teacher Tool Usage */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <FiActivity className="text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                    Teacher Tool Usage
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {planLoading
+                      ? 'Loading usage...'
+                      : isPaid
+                        ? 'Unlimited on your current plan.'
+                        : `Used ${totalToolRuns} run${totalToolRuns === 1 ? '' : 's'} · Free trial gives 3 per tool.`}
+                  </p>
+                </div>
+              </div>
+
+              {!planLoading && toolUsageEntries.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {toolUsageEntries.map(([key, value]) => (
+                    <li
+                      key={key}
+                      className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300"
+                    >
+                      <span className="truncate">
+                        {key
+                          .replace(/_/g, ' ')
+                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </span>
+                      <span className="font-mono">
+                        {value}
+                        {!isPaid && ' / 3'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
