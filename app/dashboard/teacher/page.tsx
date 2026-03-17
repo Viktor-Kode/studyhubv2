@@ -13,8 +13,10 @@ import {
   FaPlus,
   FaBrain
 } from 'react-icons/fa'
+import { FiCreditCard } from 'react-icons/fi'
 import Link from 'next/link'
 import { classService } from '@/lib/services/classService'
+import { apiClient } from '@/lib/api/client'
 
 interface GeneratedQuestion {
   id: string
@@ -44,9 +46,30 @@ export default function TeacherDashboardPage() {
   const [recentQuestions, setRecentQuestions] = useState<GeneratedQuestion[]>([])
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+  const [teacherPlan, setTeacherPlan] = useState<'free' | 'weekly' | 'monthly'>('free')
+  const [teacherUsage, setTeacherUsage] = useState<Record<string, number>>({})
+  const [planLoading, setPlanLoading] = useState(true)
 
   useEffect(() => {
     loadDashboardData()
+  }, [])
+
+  useEffect(() => {
+    const loadTeacherPlan = async () => {
+      try {
+        setPlanLoading(true)
+        const res = await apiClient.get('/teacher-tools/usage')
+        if (res.data?.success) {
+          setTeacherPlan(res.data.teacherPlan || 'free')
+          setTeacherUsage(res.data.teacherUsage || {})
+        }
+      } catch {
+        // ignore usage errors on dashboard
+      } finally {
+        setPlanLoading(false)
+      }
+    }
+    loadTeacherPlan()
   }, [])
 
   const loadDashboardData = async () => {
@@ -141,6 +164,12 @@ export default function TeacherDashboardPage() {
     return colors[color] || colors.blue
   }
 
+  const isPaid = teacherPlan !== 'free'
+  const totalToolRuns = Object.values(teacherUsage).reduce(
+    (sum, val) => sum + (typeof val === 'number' ? val : 0),
+    0
+  )
+
   return (
     <ProtectedRoute allowedRoles={['teacher']}>
       <div className="space-y-8">
@@ -164,6 +193,34 @@ export default function TeacherDashboardPage() {
               </p>
             </div>
           </div>
+
+          {!isPaid && (
+            <div className="mt-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
+                  <FiCreditCard className="text-amber-700 dark:text-amber-200" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-100">
+                    Free Teacher Trial — 3 free uses per tool
+                  </p>
+                  <p className="text-xs text-amber-700/90 dark:text-amber-200/90">
+                    {planLoading
+                      ? 'Checking your usage...'
+                      : `You have run your teacher tools ${totalToolRuns} time${totalToolRuns === 1 ? '' : 's'} so far. Upgrade to unlock unlimited usage and full tracking for reports & payments.`}
+                  </p>
+                </div>
+              </div>
+              <div className="sm:ml-auto">
+                <Link
+                  href="/dashboard/upgrade?plan=teacher"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold shadow-sm"
+                >
+                  Upgrade Teacher Plan
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
