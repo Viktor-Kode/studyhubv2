@@ -57,6 +57,20 @@ interface AdminStats {
     createdAt: string
     userId?: { name?: string; email?: string }
   }>
+  extra?: {
+    quizzes?: {
+      totalSessions: number
+      sessionsToday: number
+    }
+    content?: {
+      totalNotes: number
+      flashcardDecks: number
+    }
+    classes?: {
+      totalClasses: number
+      totalReminders: number
+    }
+  }
 }
 
 interface AdminUser {
@@ -1081,6 +1095,20 @@ function AdminActivityTab({ stats }: { stats: AdminStats }) {
           sub="users on streak"
           color="orange"
         />
+        <MetricCard
+          icon={<BookOpen size={20} />}
+          label="AI Study Quizzes"
+          value={stats.extra?.quizzes?.totalSessions ?? 0}
+          sub={`${stats.extra?.quizzes?.sessionsToday ?? 0} today`}
+          color="teal"
+        />
+        <MetricCard
+          icon={<Users size={20} />}
+          label="Classes & Reminders"
+          value={stats.extra?.classes?.totalClasses ?? 0}
+          sub={`${stats.extra?.classes?.totalReminders ?? 0} reminders`}
+          color="red"
+        />
       </div>
       <div className="admin-card">
         <h3>Top Subjects by Attempts</h3>
@@ -1311,6 +1339,11 @@ const DEFAULT_STATS: AdminStats = {
   charts: { dailySignups: [], topSubjects: [] },
   recentUsers: [],
   recentTransactions: [],
+  extra: {
+    quizzes: { totalSessions: 0, sessionsToday: 0 },
+    content: { totalNotes: 0, flashcardDecks: 0 },
+    classes: { totalClasses: 0, totalReminders: 0 },
+  },
 }
 
 export default function AdminDashboardPage() {
@@ -1679,21 +1712,29 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="admin-card">
-                <h3>Top CBT Subjects</h3>
+            <h3>Learning & Content Overview</h3>
                 <div className="subject-list">
-                  {(stats.charts.topSubjects || []).map((s, i) => (
-                    <div key={s._id || i} className="subject-row">
-                      <span className="subject-rank">{i + 1}</span>
-                      <span className="subject-name">{s._id || 'Unknown'}</span>
-                      <span className="subject-count">{s.count} attempts</span>
-                      <span className="subject-accuracy">
-                        {Math.round(s.avgAccuracy || 0)}% avg
-                      </span>
-                    </div>
-                  ))}
-                  {(stats.charts.topSubjects || []).length === 0 && (
-                    <p className="empty-state">No data yet</p>
-                  )}
+              <div className="subject-row">
+                <span className="subject-rank">1</span>
+                <span className="subject-name">Study Notes</span>
+                <span className="subject-count">
+                  {stats.activity.totalNotes} total
+                </span>
+              </div>
+              <div className="subject-row">
+                <span className="subject-rank">2</span>
+                <span className="subject-name">Flashcard Decks</span>
+                <span className="subject-count">
+                  {stats.extra?.content?.flashcardDecks ?? 0} decks
+                </span>
+              </div>
+              <div className="subject-row">
+                <span className="subject-rank">3</span>
+                <span className="subject-name">Top CBT Subjects</span>
+                <span className="subject-count">
+                  {(stats.charts.topSubjects || []).length} tracked
+                </span>
+              </div>
                 </div>
               </div>
             </div>
