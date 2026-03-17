@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList } from 'react-icons/fi'
+import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
 import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTutor } from '@/lib/api/quizApi'
@@ -16,7 +16,7 @@ interface QuestionBankProps {
   className?: string
 }
 
-type InputMode = 'upload' | 'manual'
+type InputMode = 'upload' | 'manual' | 'link'
 
 const QGEN_STORAGE_KEY = 'qgen_session_v1'
 const QGEN_SESSION_EXPIRY_HOURS = 24
@@ -43,6 +43,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [success, setSuccess] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [fetchingLink, setFetchingLink] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [fetchedTitle, setFetchedTitle] = useState<string | null>(null)
 
   // Quiz Interaction State
   const [newQuestions, setNewQuestions] = useState<Question[]>([])
@@ -426,6 +430,53 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
+  const handleFetchUrl = async () => {
+    const url = linkUrl.trim()
+    if (!url) return
+
+    setFetchingLink(true)
+    setFetchError(null)
+    setSuccess(null)
+    setWarning(null)
+
+    try {
+      const res = await fetch('/api/ai/fetch-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        let message = data?.error || 'Could not fetch that link. Try copying the text manually instead.'
+        if (url.includes('docs.google.com')) {
+          message =
+            'Google Docs links need to be published first. Go to File → Share → Publish to web, then paste the published link.'
+        } else if (url.includes('drive.google.com')) {
+          message =
+            'Google Drive links are not publicly accessible. Try copying the document text and pasting it manually.'
+        }
+        throw new Error(message)
+      }
+
+      const text: string = data.text
+      const title: string = data.title || url
+
+      setFetchedTitle(title)
+      setManualText(text || '')
+      setExtractedText('')
+      setFetchError(null)
+      setSuccess('Link content fetched successfully! You can now generate questions or notes.')
+    } catch (err: any) {
+      const msg = err?.message || 'Could not fetch that link. Try copying the text manually instead.'
+      setFetchError(msg)
+    } finally {
+      setFetchingLink(false)
+    }
+  }
+
   const handleGenerate = async (forcedText?: string, forceNew: boolean = false) => {
     // Determine which text to use based on mode or override
     let textToUse = forcedText
@@ -731,31 +782,35 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           {/* Input Side */}
           <div className="space-y-4">
 
-            {/* Input Method Tabs */}
-            <div className="flex p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
+            {/* Source Tabs: Paste Text / Paste Link / Upload PDF */}
+            <div className="qg-source-tabs">
               <button
-                onClick={() => setInputMode('upload')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all
-                  ${inputMode === 'upload'
-                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-300 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
+                type="button"
+                onClick={() => setInputMode('manual')}
+                className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`}
               >
-                <FiUpload /> Upload File
+                <span>✏️</span>
+                <span>Paste Text</span>
               </button>
               <button
-                onClick={() => setInputMode('manual')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all
-                  ${inputMode === 'manual'
-                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-300 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
+                type="button"
+                onClick={() => setInputMode('link')}
+                className={`qg-source-tab ${inputMode === 'link' ? 'active' : ''}`}
               >
-                <FiEdit3 /> Manual Text
+                <span>🔗</span>
+                <span>Paste Link</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('upload')}
+                className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`}
+              >
+                <span>📄</span>
+                <span>Upload PDF</span>
               </button>
             </div>
 
-            {/* UPLOAD MODE */}
+            {/* UPLOAD PDF MODE */}
             {inputMode === 'upload' && (
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
@@ -826,7 +881,70 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             )}
 
-            {/* MANUAL MODE */}
+            {/* PASTE LINK MODE */}
+            {inputMode === 'link' && (
+              <div className="space-y-3">
+                <div className="qg-url-input-row">
+                  <input
+                    type="url"
+                    placeholder="Paste a link e.g. https://en.wikipedia.org/wiki/Photosynthesis"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    className="qg-url-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchUrl}
+                    disabled={fetchingLink || !linkUrl.trim()}
+                    className="qg-fetch-btn"
+                  >
+                    {fetchingLink ? (
+                      <>
+                        <FiLoader size={15} className="animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <FiLink size={15} />
+                        Fetch Content
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {fetchedTitle && manualText && (
+                  <div className="qg-url-preview">
+                    <div className="qg-url-preview-icon">🌐</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="qg-url-preview-title" title={fetchedTitle}>
+                        {fetchedTitle}
+                      </p>
+                      <p className="qg-url-preview-chars">
+                        {manualText.length} characters extracted
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFetchedTitle(null)
+                        setManualText('')
+                      }}
+                      className="text-gray-400 hover:text-gray-600 text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {fetchError && (
+                  <div className="qg-fetch-error">
+                    {fetchError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MANUAL TEXT MODE */}
             {inputMode === 'manual' && (
               <div className="min-h-[250px] flex flex-col">
                 <textarea

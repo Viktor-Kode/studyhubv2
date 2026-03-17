@@ -221,6 +221,113 @@ input, select, textarea {
   cursor: pointer;
 }
 
+/* Question Generator URL Source Tabs */
+.qg-source-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.qg-source-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid #E8EAED;
+  border-radius: 999px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.qg-source-tab.active {
+  background: #5B4CF5;
+  border-color: #5B4CF5;
+  color: white;
+}
+.qg-url-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.qg-url-input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1.5px solid #E8EAED;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.qg-url-input:focus {
+  border-color: #5B4CF5;
+  box-shadow: 0 0 0 3px rgba(91,76,245,0.1);
+}
+.qg-fetch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 18px;
+  background: #5B4CF5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.qg-fetch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.qg-fetch-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+.qg-url-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F0FDF4;
+  border: 1.5px solid #A7F3D0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+.qg-url-preview-icon {
+  font-size: 22px;
+}
+.qg-url-preview-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+.qg-url-preview-chars {
+  font-size: 11px;
+  color: #64748B;
+  margin: 0;
+}
+.qg-fetch-error {
+  background: #FEF2F2;
+  border: 1.5px solid #FECACA;
+  color: #DC2626;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
 /* Ensure components are visible by default */
 .hero-logo,
 .hero-nav-link,
