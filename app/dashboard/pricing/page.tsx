@@ -1,10 +1,11 @@
-'use client'
+ 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { paymentApi } from '@/lib/api/paymentApi'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { FiCheck, FiX, FiLoader, FiZap, FiAward, FiStar } from 'react-icons/fi'
+import { FiCheck, FiX, FiLoader, FiZap, FiAward } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
 import { PLANS } from '@/lib/config/plans'
 
@@ -17,6 +18,8 @@ const DASHBOARD_PLANS = [
 
 export default function PricingPage() {
     const { user } = useAuthStore()
+    const searchParams = useSearchParams()
+    const isTeacherFlow = searchParams?.get('from') === 'teacher'
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
     const [status, setStatus] = useState<any | null>(null)
 
@@ -58,11 +61,16 @@ export default function PricingPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
-                            Simple, Transparent <span className="text-blue-600">Pricing</span>
+                            {isTeacherFlow ? (
+                              <>Teacher <span className="text-blue-600">Plans</span></>
+                            ) : (
+                              <>Simple, Transparent <span className="text-blue-600">Pricing</span></>
+                            )}
                         </h1>
                         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                            Choose the right plan to accelerate your study journey.
-                            Unlock more tests, subjects, and AI power.
+                            {isTeacherFlow
+                              ? 'Choose the right plan to unlock StudyHelp Teacher Tools for lesson notes, result sheets, schemes of work and more.'
+                              : 'Choose the right plan to accelerate your study journey. Unlock more tests, subjects, and AI power.'}
                         </p>
                     </div>
 
@@ -70,7 +78,48 @@ export default function PricingPage() {
                         {DASHBOARD_PLANS.map((meta) => {
                           const plan = PLANS[meta.type as keyof typeof PLANS]
                           if (!plan || !('features' in plan)) return null
-                          const features = plan.features.map((text) => ({ text, included: true }))
+
+                          // For teacher flow, we keep the same backend plan keys/prices
+                          // but change the copy to focus on teacher tools instead of student CBT usage.
+                          let planName = plan.name
+                          let description = meta.description
+                          let features: { text: string; included: boolean }[] =
+                            plan.features.map((text) => ({ text, included: true }))
+
+                          if (isTeacherFlow) {
+                            if (meta.type === 'free') {
+                              planName = 'Teacher Free Trial'
+                              description = 'Test all teacher tools with limited free uses.'
+                              features = [
+                                { text: 'Access all teacher tools', included: true },
+                                { text: '3 free runs per tool (Lesson Note, Scheme of Work, Result Compiler, etc.)', included: true },
+                                { text: 'Export lesson notes, schemes and reports as PDF/Word', included: true },
+                                { text: 'Perfect to try StudyHelp in your classroom', included: true },
+                              ]
+                            } else if (meta.type === 'weekly') {
+                              planName = 'Teacher Basic (Weekly)'
+                              description = 'Short-term access to core teacher tools.'
+                              features = [
+                                { text: 'Unlimited Lesson Note Generator & Scheme of Work', included: true },
+                                { text: 'Access to Result Compiler & Report Comments', included: true },
+                                { text: 'Unlock saving & exporting for all generated content', included: true },
+                                { text: 'Priority over free users for AI generation speed', included: true },
+                              ]
+                            } else if (meta.type === 'monthly') {
+                              planName = 'Teacher Premium (Monthly)'
+                              description = 'Best for schools and serious teachers.'
+                              features = [
+                                { text: 'Unlimited access to ALL Teacher Tools', included: true },
+                                { text: 'Unlimited saves & downloads for lesson notes and reports', included: true },
+                                { text: 'Best value for full-term planning and assessments', included: true },
+                                { text: 'Priority support for teachers and school admins', included: true },
+                              ]
+                            } else if (meta.type === 'addon') {
+                              // Hide AI add-on in dedicated teacher flow – it is student-focused.
+                              return null
+                            }
+                          }
+
                           const price = plan.price === 0 ? '₦0' : `₦${plan.price.toLocaleString()}`
                           const duration = meta.type === 'weekly' ? 'week' : meta.type === 'monthly' ? 'month' : ''
                           return (
@@ -89,7 +138,7 @@ export default function PricingPage() {
 
                                 <div className="p-8">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
+                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{planName}</h3>
                                         <div className={`p-2 rounded-lg bg-${meta.color}-100 dark:bg-${meta.color}-900/30 text-${meta.color}-600`}>
                                             {meta.type === 'addon' ? <FiZap className="text-xl" /> : <FiAward className="text-xl" />}
                                         </div>
@@ -103,7 +152,7 @@ export default function PricingPage() {
                                     </div>
 
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 min-h-[40px]">
-                                        {meta.description}
+                                        {description}
                                     </p>
 
                                     <button
