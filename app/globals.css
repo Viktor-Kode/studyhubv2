@@ -262,6 +262,8 @@ input, select, textarea {
   outline: none;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
+  color: #0F172A;
+  background-color: #FFFFFF;
 }
 .qg-url-input:focus {
   border-color: #5B4CF5;

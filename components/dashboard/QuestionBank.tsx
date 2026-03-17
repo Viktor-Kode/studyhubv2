@@ -440,27 +440,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setWarning(null)
 
     try {
-      const res = await fetch('/api/ai/fetch-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      })
+      // Use backend API client so we always hit the Node API, not the Next.js app
+      const response = await import('@/lib/api/client').then(m => m.apiClient.post('/ai/fetch-url', { url }))
 
-      const data = await res.json()
-      if (!res.ok) {
-        let message = data?.error || 'Could not fetch that link. Try copying the text manually instead.'
-        if (url.includes('docs.google.com')) {
-          message =
-            'Google Docs links need to be published first. Go to File → Share → Publish to web, then paste the published link.'
-        } else if (url.includes('drive.google.com')) {
-          message =
-            'Google Drive links are not publicly accessible. Try copying the document text and pasting it manually.'
-        }
-        throw new Error(message)
-      }
-
+      const data = response.data
       const text: string = data.text
       const title: string = data.title || url
 
@@ -470,8 +453,21 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setFetchError(null)
       setSuccess('Link content fetched successfully! You can now generate questions or notes.')
     } catch (err: any) {
-      const msg = err?.message || 'Could not fetch that link. Try copying the text manually instead.'
-      setFetchError(msg)
+      const rawMessage =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Could not fetch that link. Try copying the text manually instead.'
+
+      let message = rawMessage
+      if (url.includes('docs.google.com')) {
+        message =
+          'Google Docs links need to be published first. Go to File → Share → Publish to web, then paste the published link.'
+      } else if (url.includes('drive.google.com')) {
+        message =
+          'Google Drive links are not publicly accessible. Try copying the document text and pasting it manually.'
+      }
+
+      setFetchError(message)
     } finally {
       setFetchingLink(false)
     }
@@ -950,7 +946,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <textarea
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
-                  className="flex-1 w-full p-4 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none"
+                  className="flex-1 w-full p-4 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none text-gray-900 dark:text-gray-100"
                   placeholder="Paste your study notes, sections of a book, or lecture transcripts here..."
                 />
                 <p className="text-xs text-gray-400 text-right mt-2">
