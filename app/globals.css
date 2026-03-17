@@ -4591,7 +4591,26 @@ html {
 .edit-meta-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
 .edit-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .question-count-badge { font-size: 13px; color: #6B7280; margin-right: auto; }
-.download-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: #F3F4F6; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #4F46E5;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.download-btn svg {
+  color: inherit;
+}
+.dark .download-btn {
+  background: #6366F1;
+  color: #ffffff;
+}
 .save-draft-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: #EEF2FF; color: #4F46E5; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .publish-btn { padding: 8px 16px; background: #4F46E5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
 
