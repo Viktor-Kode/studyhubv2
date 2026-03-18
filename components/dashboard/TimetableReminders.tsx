@@ -444,7 +444,7 @@ export default function TimetableReminders() {
                                     <li>
                                         Tap{' '}
                                         <a
-                                            href="https://wa.me/14155238886?text=freedom-explore"
+                                            href="https://wa.me/14155238886?text=join%20freedom-explore"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-green-700 dark:text-green-400 font-semibold underline"
