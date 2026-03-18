@@ -385,7 +385,6 @@ export default function TimetableReminders() {
                             </div>
                         </div>
 
-
                         {/* Phone Number Input */}
                         <div className="space-y-3">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -435,6 +434,43 @@ export default function TimetableReminders() {
                                     <FiCheckCircle /> WhatsApp configured successfully
                                 </div>
                             )}
+
+                            {/* Twilio sandbox join instructions */}
+                            <div className="mt-4 rounded-lg border border-dashed border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-900/20 p-4 space-y-2">
+                                <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+                                    How to start getting reminders on WhatsApp
+                                </p>
+                                <ol className="list-decimal list-inside text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                    <li>
+                                        Tap{' '}
+                                        <a
+                                            href="https://wa.me/14155238886?text=freedom-explore"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-green-700 dark:text-green-400 font-semibold underline"
+                                        >
+                                            this WhatsApp link
+                                        </a>{' '}
+                                        to open a chat with the StudyHelp WhatsApp number.
+                                    </li>
+                                    <li>
+                                        Send the join code{' '}
+                                        <span className="font-mono font-semibold bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded">
+                                            freedom-explore
+                                        </span>{' '}
+                                        as a message in that chat to join the StudyHelp WhatsApp sandbox.
+                                    </li>
+                                    <li>
+                                        Come back here, enter your WhatsApp number above and click{' '}
+                                        <span className="font-semibold">Save</span>, then use{' '}
+                                        <span className="font-semibold">Send Test Reminder</span> to confirm it works.
+                                    </li>
+                                </ol>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                    This join step is required by WhatsApp/Twilio so we are allowed to message you.
+                                    You only need to do it once for this number.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
