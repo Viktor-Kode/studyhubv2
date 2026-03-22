@@ -19,6 +19,7 @@ import {
   HiOutlineAcademicCap, HiOutlineLightBulb
 } from 'react-icons/hi'
 import { MdOutlineQuiz, MdCalculate } from 'react-icons/md'
+import { GraduationCap } from 'lucide-react'
 import { BiTimer, BiStats, BiUserCircle } from 'react-icons/bi'
 import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -843,37 +844,56 @@ export default function CBTPage() {
                       <li>Use the question navigator to move between questions.</li>
                     </ul>
                   </div>
-                  <div className="flex flex-col md:flex-row gap-3">
-                    <button
-                      onClick={handleStartTest}
-                      disabled={loading}
-                      className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <button
+                        onClick={handleStartTest}
+                        disabled={loading}
+                        className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
                                bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 
                                text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-blue-500/20 
                                disabled:cursor-not-allowed"
-                    >
-                      {loading ? (
-                        <><FiLoader className="animate-spin" /> Preparing Exam...</>
-                      ) : (
-                        <><HiOutlineAcademicCap className="text-xl" /> I am ready, Start Exam</>
-                      )}
-                    </button>
+                      >
+                        {loading ? (
+                          <><FiLoader className="animate-spin" /> Preparing Exam...</>
+                        ) : (
+                          <><HiOutlineAcademicCap className="text-xl" /> I am ready, Start Exam</>
+                        )}
+                      </button>
 
-                    <button
-                      onClick={() => {
-                        if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
-                          setError('Please complete the exam setup before starting Study Mode.')
-                          return
-                        }
-                        router.push('/dashboard/cbt/study')
-                      }}
-                      className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
+                      <button
+                        onClick={() => {
+                          if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
+                            setError('Please complete the exam setup before starting Study Mode.')
+                            return
+                          }
+                          router.push('/dashboard/cbt/study')
+                        }}
+                        className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
                                bg-white dark:bg-gray-900 border-2 border-blue-600/80 
                                text-blue-700 dark:text-blue-300 font-black uppercase tracking-widest rounded-xl 
                                transition hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                      >
+                        <FiBookOpen className="text-xl" />
+                        Study Mode
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => router.push('/dashboard/student/cbt/syllabus')}
+                      className="cbt-topic-btn w-full flex flex-col sm:flex-row items-center justify-center gap-2 py-4 px-6 
+                        bg-white dark:bg-gray-900 border-2 border-[#10B981] text-[#10B981] font-bold rounded-[14px] 
+                        transition hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                      style={{ borderWidth: '1.5px' }}
                     >
-                      <FiBookOpen className="text-xl" />
-                      Study Mode
+                      <span className="flex items-center gap-2">
+                        <GraduationCap size={18} strokeWidth={2} />
+                        <span>Study by Topic</span>
+                      </span>
+                      <span className="cbt-topic-badge text-[10px] uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 font-semibold">
+                        JAMB • WAEC • NECO • Post-UTME
+                      </span>
                     </button>
                   </div>
 

@@ -26,7 +26,11 @@ apiClient.interceptors.request.use(
     }
     // Teacher endpoints (AI generation, document parsing) need longer timeout
     const url = config.url || ''
-    if (url.includes('/teacher') || url.includes('/teacher-tools')) {
+    if (
+      url.includes('/teacher') ||
+      url.includes('/teacher-tools') ||
+      url.includes('/generate-topic-questions')
+    ) {
       config.timeout = 120000 // 2 minutes
     }
     return config

@@ -347,6 +347,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
   return fetch(url, { ...options, headers });
 }
 
+export interface TopicGeneratedQuestion {
+  question: string
+  options: { A: string; B: string; C: string; D: string }
+  answer: string
+  explanation: string
+}
+
 export const cbtApi = {
   /**
    * Get questions from ALOC API via internal proxy
@@ -529,4 +536,31 @@ export const cbtApi = {
     }
   },
 
+  /**
+   * AI-generated MCQs for syllabus topic study (not from question bank).
+   */
+  generateTopicQuestions: async (params: {
+    exam: string
+    subject: string
+    topic: string
+    count?: number
+  }): Promise<TopicGeneratedQuestion[]> => {
+    const res = await fetchWithAuth('/api/backend/cbt/generate-topic-questions', {
+      method: 'POST',
+      body: JSON.stringify({
+        exam: params.exam,
+        subject: params.subject,
+        topic: params.topic,
+        count: params.count ?? 5,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Failed to generate questions')
+    }
+    if (!Array.isArray(data.questions)) {
+      throw new Error('Invalid response from server')
+    }
+    return data.questions as TopicGeneratedQuestion[]
+  },
 }
