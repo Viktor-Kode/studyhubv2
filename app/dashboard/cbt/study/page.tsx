@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { CBTQuestion, ExamType, cbtApi, renderQuestion } from '@/lib/api/cbt'
+import { progressApi } from '@/lib/api/progressApi'
 import {
   FiCheckCircle,
   FiXCircle,
@@ -98,6 +99,8 @@ export default function StudyModePage() {
         }
         return next
       })
+
+      void progressApi.award('study_question').catch(() => {})
 
       setLoadingExp(true)
       try {

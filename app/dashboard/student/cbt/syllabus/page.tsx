@@ -12,6 +12,7 @@ import {
   type SyllabusExamKey,
   type SyllabusSubjectKey,
 } from '@/lib/data/syllabus'
+import { progressApi } from '@/lib/api/progressApi'
 import { FiArrowLeft, FiBook, FiCheckCircle, FiMessageCircle } from 'react-icons/fi'
 import { HiOutlineAcademicCap } from 'react-icons/hi'
 
@@ -80,6 +81,7 @@ export default function SyllabusStudyPage() {
 
   const goTopic = (topic: string, tab: 'tutor' | 'practice') => {
     if (!exam || !subject) return
+    void progressApi.award('syllabus_topic').catch(() => {})
     const q = new URLSearchParams({
       exam,
       subject,

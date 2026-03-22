@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ProgressWidget from '@/components/ProgressWidget'
+import { progressApi } from '@/lib/api/progressApi'
+import { showBadgeToast, showXPToast } from '@/hooks/useProgress'
 import { useAuthStore } from '@/lib/store/authStore'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
@@ -24,6 +28,7 @@ import { paymentApi } from '@/lib/api/paymentApi'
 import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
 
 export default function StudentDashboardPage() {
+  const router = useRouter()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -128,6 +133,22 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     loadDashboardData()
+  }, [user?.uid])
+
+  useEffect(() => {
+    if (!user?.uid || typeof window === 'undefined') return
+    const day = new Date().toISOString().split('T')[0]
+    const key = `sh_daily_xp_${day}`
+    if (sessionStorage.getItem(key)) return
+    progressApi
+      .award('daily_login')
+      .then((res) => {
+        sessionStorage.setItem(key, '1')
+        const d = res.data as { xpAdded?: number; newBadges?: { icon: string; name: string }[] }
+        if (d.xpAdded != null) showXPToast(d.xpAdded)
+        if (d.newBadges?.length) showBadgeToast(d.newBadges[0])
+      })
+      .catch(() => {})
   }, [user?.uid])
 
   const quickLinks = [
@@ -238,6 +259,10 @@ export default function StudentDashboardPage() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="max-w-md">
+          <ProgressWidget onViewFull={() => router.push('/dashboard/student/community')} />
         </div>
 
         {/* Stats Grid */}

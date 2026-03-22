@@ -21,10 +21,12 @@ import {
   FaHistory,
   FaStickyNote,
   FaGraduationCap,
+  FaTrophy,
 } from 'react-icons/fa'
 
 const studentMenuItems = [
   { href: '/dashboard/student', icon: FaHome, label: 'Dashboard' },
+  { href: '/dashboard/student/community', icon: FaTrophy, label: 'Community' },
   { href: '/dashboard/question-bank', icon: FaBrain, label: 'Question Generator' },
   { href: '/dashboard/tutor', icon: FaGraduationCap, label: 'AI Tutor' },
   { href: '/dashboard/library', icon: FaBook, label: 'My Library' },

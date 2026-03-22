@@ -1,0 +1,169 @@
+.pw-card {
+  background: white;
+  border: 1.5px solid #e8eaed;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.dark .pw-card {
+  background: rgb(17 24 39);
+  border-color: rgb(55 65 81);
+}
+
+.pw-skeleton {
+  height: 160px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: pw-shimmer 1.4s infinite;
+}
+
+.dark .pw-skeleton {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes pw-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.pw-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pw-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pw-level-icon {
+  font-size: 28px;
+}
+
+.pw-level-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.dark .pw-level-name {
+  color: #f9fafb;
+}
+
+.pw-level-num {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.pw-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.pw-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.dark .pw-stat {
+  color: #cbd5e1;
+}
+
+.pw-xp-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pw-xp-bar-track {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dark .pw-xp-bar-track {
+  background: #374151;
+}
+
+.pw-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5b4cf5, #8b5cf6);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.pw-xp-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.pw-weekly {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pw-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pw-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1.5px solid #e8eaed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: default;
+}
+
+.dark .pw-badge {
+  background: #1f2937;
+  border-color: #4b5563;
+}
+
+.pw-view-btn {
+  background: none;
+  border: none;
+  color: #5b4cf5;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.pw-view-btn:hover {
+  text-decoration: underline;
+}

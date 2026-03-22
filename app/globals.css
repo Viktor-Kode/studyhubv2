@@ -7298,3 +7298,58 @@ html {
     padding: 16px 14px;
   }
 }
+
+/* Gamification toasts */
+.xp-toast {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: #5b4cf5;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 800;
+  z-index: 99999;
+  animation: xp-pop 0.3s ease, xp-fade 0.5s ease 2s forwards;
+  box-shadow: 0 4px 16px rgba(91, 76, 245, 0.4);
+}
+
+.badge-toast {
+  position: fixed;
+  bottom: 120px;
+  right: 20px;
+  background: white;
+  border: 2px solid #f59e0b;
+  color: #0f172a;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  z-index: 99999;
+  animation: xp-pop 0.3s ease, xp-fade 0.5s ease 3.5s forwards;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+}
+
+.dark .badge-toast {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #f59e0b;
+}
+
+@keyframes xp-pop {
+  from {
+    transform: scale(0.8) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes xp-fade {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}

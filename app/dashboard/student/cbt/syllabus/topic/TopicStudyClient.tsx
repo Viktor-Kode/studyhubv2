@@ -6,6 +6,7 @@ import Link from 'next/link'
 import BackButton from '@/components/BackButton'
 import { apiClient } from '@/lib/api/client'
 import { cbtApi, type TopicGeneratedQuestion } from '@/lib/api/cbt'
+import { progressApi } from '@/lib/api/progressApi'
 import {
   progressStorageKey,
   readTopicProgress,
@@ -277,6 +278,7 @@ export default function TopicStudyClient() {
     if (correct) setScore((s) => s + 1)
     setAttemptedRound((a) => a + 1)
     bumpProgress()
+    void progressApi.award('study_question').catch(() => {})
 
     setExpLoading(true)
     if (q.explanation) {
