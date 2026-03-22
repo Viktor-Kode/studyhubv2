@@ -6,6 +6,5 @@ self.addEventListener('activate', (e) => {
     self.clients.claim();
 });
 
-self.addEventListener('fetch', (e) => {
-    // Minimal fetch event handler to satisfy PWA requirements
-});
+// No fetch listener — empty handlers cause Chrome "no-op fetch" warnings and add overhead.
+// Install/activate only is enough for basic PWA installability without intercepting API calls.

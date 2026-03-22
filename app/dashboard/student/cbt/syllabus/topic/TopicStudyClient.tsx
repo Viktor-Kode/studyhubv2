@@ -543,6 +543,7 @@ export default function TopicStudyClient() {
           </div>
         ) : (
           <>
+            {/* Narrow: tabs (avoid hidden+grid — use flex row on lg+ for reliable desktop layout) */}
             <div className="flex lg:hidden gap-2 mb-2">
               <button
                 type="button"
@@ -568,9 +569,9 @@ export default function TopicStudyClient() {
               </button>
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-2 gap-4 items-start">
-              {tutorPanel}
-              {practicePanel}
+            <div className="hidden lg:flex lg:flex-row gap-4 items-stretch w-full min-h-0">
+              <div className="flex-1 min-w-0 basis-0">{tutorPanel}</div>
+              <div className="flex-1 min-w-0 basis-0">{practicePanel}</div>
             </div>
             <div className="lg:hidden space-y-4">{mobileTab === 'tutor' ? tutorPanel : practicePanel}</div>
           </>

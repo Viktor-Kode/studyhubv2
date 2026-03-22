@@ -1,45 +1,11 @@
 import { NextRequest } from 'next/server'
+import { proxyBackend } from '@/lib/server/backend-proxy'
 
-export const dynamic = 'force-dynamic';
-
-const BACKEND_BASE = process.env.BACKEND_API_URL || 'https://studyhelp-zyqw.onrender.com/api'
-
+export const dynamic = 'force-dynamic'
 
 async function forward(req: NextRequest, params: { path?: string[] }) {
   const path = params.path?.join('/') || ''
-  const query = req.nextUrl.searchParams.toString()
-  const url = `${BACKEND_BASE}/${path}${query ? `?${query}` : ''}`
-
-  const headers: Record<string, string> = {
-    'content-type': req.headers.get('content-type') || 'application/json',
-    'accept': req.headers.get('accept') || 'application/json',
-    // Forward auth header if present
-  }
-  const auth = req.headers.get('authorization')
-  if (auth) headers['authorization'] = auth
-
-  const init: RequestInit = {
-    method: req.method,
-    headers,
-    body: ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text(),
-    // Do not forward cookies cross-origin; backend does not require them for auth
-    redirect: 'manual',
-    cache: 'no-store'
-  }
-
-  const resp = await fetch(url, init)
-  const contentType = resp.headers.get('content-type') || ''
-
-  // Stream through response preserving status and JSON/text
-  if (contentType.includes('application/json')) {
-    const data = await resp.json()
-    return new Response(JSON.stringify(data), {
-      status: resp.status,
-      headers: { 'content-type': 'application/json' }
-    })
-  }
-  const text = await resp.text()
-  return new Response(text, { status: resp.status })
+  return proxyBackend(req, path)
 }
 
 export async function GET(req: NextRequest, { params }: { params: { path?: string[] } }) {
