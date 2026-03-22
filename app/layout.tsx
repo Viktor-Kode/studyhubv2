@@ -1,4 +1,5 @@
 import './globals.css'
+import '@/styles/gamification-modern.css'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import ThemeProvider from '@/components/ThemeProvider'
