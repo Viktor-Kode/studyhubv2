@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import BackButton from '@/components/BackButton'
 import { apiClient } from '@/lib/api/client'
@@ -70,6 +70,7 @@ function normalizeQuestion(q: TopicGeneratedQuestion): {
 }
 
 export default function TopicStudyClient() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const exam = (searchParams.get('exam') || '').toLowerCase() as SyllabusExamKey
   const subjectKey = (searchParams.get('subject') || '') as SyllabusSubjectKey
@@ -532,14 +533,30 @@ export default function TopicStudyClient() {
       <div className="max-w-6xl mx-auto space-y-4">
         <BackButton label="Back to topics" href="/dashboard/student/cbt/syllabus" />
         {invalid ? (
-          <div className={`${CARD} p-8 text-center`}>
-            <p className="text-gray-600 dark:text-gray-400 mb-2">Missing or invalid topic link.</p>
-            <p className="text-xs text-gray-500 mb-4 font-mono break-all">
+          <div className={`${CARD} p-10 text-center space-y-4`}>
+            <p className="text-slate-500 dark:text-slate-400">
+              Missing topic information. Open a topic from the syllabus list so the URL includes{' '}
+              <span className="font-mono text-xs">exam</span>, <span className="font-mono text-xs">subject</span>, and{' '}
+              <span className="font-mono text-xs">topic</span>.
+            </p>
+            <p className="text-xs text-slate-400 font-mono break-all">
               exam={exam || '—'} · subject={subjectKey || '—'} · topic={topicTitle || '—'}
             </p>
-            <Link href="/dashboard/student/cbt/syllabus" className="text-[#5B4CF5] font-semibold">
-              Return to Study by Topic
-            </Link>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-4 py-2 rounded-[12px] border-[1.5px] border-[#E8EAED] dark:border-gray-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Go back
+              </button>
+              <Link
+                href="/dashboard/student/cbt/syllabus"
+                className="inline-flex items-center px-4 py-2 rounded-[12px] bg-[#5B4CF5] text-white text-sm font-semibold"
+              >
+                Study by Topic
+              </Link>
+            </div>
           </div>
         ) : (
           <>
