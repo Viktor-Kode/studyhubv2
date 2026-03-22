@@ -310,7 +310,11 @@ export default function TopicStudyClient() {
   const validSubject = SYLLABUS_SUBJECTS.some((s) => s.key === subjectKey)
   const invalid = !validExam || !validSubject || !topicTitle
 
-  const tutorPanel = (
+  /**
+   * Must be a function (new element tree each call). Reusing one `<div>...</div>` object in both
+   * the desktop row and the mobile `lg:hidden` branch breaks React reconciliation — desktop can go blank.
+   */
+  const renderTutorPanel = () => (
     <div className={`${CARD} flex flex-col h-[min(720px,70vh)] lg:h-[calc(100vh-220px)]`}>
       <div className="p-3 border-b border-[#E8EAED] dark:border-gray-700 font-semibold text-gray-900 dark:text-white">
         AI Tutor — {topicTitle || 'Topic'}
@@ -391,7 +395,7 @@ export default function TopicStudyClient() {
     </div>
   )
 
-  const practicePanel = (
+  const renderPracticePanel = () => (
     <div className={`${CARD} flex flex-col min-h-[320px] lg:min-h-[calc(100vh-220px)]`}>
       <div className="p-3 border-b border-[#E8EAED] dark:border-gray-700 flex flex-wrap items-center gap-2 justify-between">
         <div>
@@ -560,7 +564,7 @@ export default function TopicStudyClient() {
           </div>
         ) : (
           <>
-            {/* Narrow: tabs (avoid hidden+grid — use flex row on lg+ for reliable desktop layout) */}
+            {/* Mobile: tab switcher. Desktop (lg+): both columns visible via `lg:block` on each cell. */}
             <div className="flex lg:hidden gap-2 mb-2">
               <button
                 type="button"
@@ -586,11 +590,19 @@ export default function TopicStudyClient() {
               </button>
             </div>
 
-            <div className="hidden lg:flex lg:flex-row gap-4 items-stretch w-full min-h-0">
-              <div className="flex-1 min-w-0 basis-0">{tutorPanel}</div>
-              <div className="flex-1 min-w-0 basis-0">{practicePanel}</div>
+            {/* One cell per panel: `hidden lg:block` avoids mounting two copies on desktop (and fixes reused-element reconciliation bugs). */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full items-stretch">
+              <div
+                className={`min-w-0 ${mobileTab !== 'tutor' ? 'hidden lg:block' : ''}`}
+              >
+                {renderTutorPanel()}
+              </div>
+              <div
+                className={`min-w-0 ${mobileTab !== 'practice' ? 'hidden lg:block' : ''}`}
+              >
+                {renderPracticePanel()}
+              </div>
             </div>
-            <div className="lg:hidden space-y-4">{mobileTab === 'tutor' ? tutorPanel : practicePanel}</div>
           </>
         )}
       </div>
