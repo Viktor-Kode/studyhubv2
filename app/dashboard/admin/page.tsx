@@ -1,105 +1,159 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatDistanceToNow } from 'date-fns'
 import {
-  Users, TrendingUp, BookOpen, Zap, DollarSign, Activity, Award, Clock,
-  Search, ChevronLeft, ChevronRight, Shield, Trash2, Gift, RefreshCw, X
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  Activity,
+  Mail,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Shield,
+  RefreshCw,
+  X,
+  MoreHorizontal,
+  Download,
 } from 'lucide-react'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts'
 import { useAuthStore } from '@/lib/store/authStore'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { apiClient } from '@/lib/api/client'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-interface AdminStats {
+interface DashboardStatsV2 {
   users: {
     total: number
     today: number
-    thisWeek: number
-    thisMonth: number
-    activeSubscriptions: number
-    weeklyPlans: number
-    monthlyPlans: number
-    conversionRate: string
+    week: number
+    month: number
+    paid: number
+    free: number
+    teachers: number
   }
-  revenue: { total: number; formatted: string }
-  activity: {
-    totalCBT: number
-    cbtToday: number
-    totalStudySessions: number
-    studySessionsToday: number
-    totalFlashcardReviews: number
-    activeStreaks: number
-    totalNotes: number
+  revenue: {
+    total: number
+    week: number
+    month: number
+    byPlan: Array<{ _id: string; total: number; count: number }>
+    weekly: Array<{ _id: string; y: number; w: number; total: number; count: number }>
   }
-  charts: {
-    dailySignups: { _id: string; count: number }[]
-    topSubjects: { _id: string; count: number; avgAccuracy?: number }[]
+  cbt: { total: number; week: number; avgScore: number }
+  library: {
+    files: number
+    storage: number
+    byRole: Array<{ _id: string; bytes: number; files: number }>
   }
-  recentUsers: Array<{
-    _id: string
-    name?: string
-    email: string
-    subscriptionStatus?: string
-    subscriptionPlan?: string
-    createdAt: string
-    role?: string
+  failedPayments: number
+  topStudents: Array<{
+    userId: string
+    xp: number
+    level: number
+    levelName?: string
+    user?: {
+      name?: string
+      email?: string
+      subscriptionPlan?: string | null
+      role?: string
+    } | null
   }>
-  recentTransactions: Array<{
-    _id: string
-    amount: number
-    plan?: string
-    createdAt: string
-    userId?: { name?: string; email?: string }
-  }>
-  extra?: {
-    quizzes?: {
-      totalSessions: number
-      sessionsToday: number
-    }
-    content?: {
-      totalNotes: number
-      flashcardDecks: number
-    }
-    classes?: {
-      totalClasses: number
-      totalReminders: number
-    }
-  }
+  userGrowth: Array<{ _id: string; count: number }>
+  teacherToolTotals: Record<string, number>
+  aiUsageTotal: number
 }
 
-interface AdminUser {
+interface AdminUserRow {
   _id: string
   name?: string
   email: string
   subscriptionStatus?: string
-  subscriptionPlan?: string
+  subscriptionPlan?: string | null
   subscriptionEnd?: string
-  aiUsageCount?: number
-  aiUsageLimit?: number
   createdAt: string
   role?: string
   phoneNumber?: string
-  lastSeen?: string
-  avatar?: string
+  teacherPlan?: string
+  banned?: boolean
 }
 
-interface OnlineUser {
-  _id: string
-  name?: string
-  email: string
-  subscriptionStatus?: string
-  subscriptionPlan?: string
-  lastSeen?: string
-  avatar?: string
+interface FeedItem {
+  type: string
+  time: string
+  message: string
+  plan?: string | null
+  status?: string
+  icon: string
 }
 
-// ─── Helper ────────────────────────────────────────────────────────────────────
+const PLAN_PIE_COLORS: Record<string, string> = {
+  weekly: '#3B82F6',
+  monthly: '#10B981',
+  addon: '#F59E0B',
+  teacher: '#8B5CF6',
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function nairaFromKobo(kobo: number): string {
+  return `₦${Math.round((kobo || 0) / 100).toLocaleString('en-NG')}`
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return '0 B'
+  const u = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let n = bytes
+  while (n >= 1024 && i < u.length - 1) {
+    n /= 1024
+    i++
+  }
+  return `${n.toFixed(i === 0 ? 0 : 1)} ${u[i]}`
+}
+
+function fillUserGrowth(raw: Array<{ _id: string; count: number }>, days = 30) {
+  const map = new Map(raw.map((r) => [r._id, r.count]))
+  const out: Array<{ _id: string; count: number }> = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    out.push({ _id: key.slice(5), count: map.get(key) || 0 })
+  }
+  return out
+}
+
+function planBadgeKey(u: AdminUserRow): 'free' | 'weekly' | 'monthly' | 'teacher' {
+  if (u.role === 'teacher') return 'teacher'
+  if (u.subscriptionStatus === 'active' && u.subscriptionPlan === 'weekly') return 'weekly'
+  if (u.subscriptionStatus === 'active' && u.subscriptionPlan === 'monthly') return 'monthly'
+  return 'free'
+}
+
+function planBadgeLabel(u: AdminUserRow): string {
+  const k = planBadgeKey(u)
+  if (k === 'teacher') return 'Teacher'
+  if (k === 'weekly') return 'Weekly'
+  if (k === 'monthly') return 'Monthly'
+  return 'Free'
+}
 
 function getTimeAgo(date: string | Date | null | undefined): string {
   if (!date) return 'never'
@@ -109,198 +163,11 @@ function getTimeAgo(date: string | Date | null | undefined): string {
   return `${Math.floor(seconds / 60)} mins ago`
 }
 
-// ─── Metric Card ───────────────────────────────────────────────────────────────
+// ─── User Activity Drawer ─────────────────────────────────────────────────────
 
-function MetricCard({
-  icon,
-  label,
-  value,
-  sub,
-  color,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string | number
-  sub: string
-  color: string
-  onClick?: () => void
-}) {
-  return (
-    <div
-      className={`metric-card ${color} ${onClick ? 'clickable' : ''}`}
-      onClick={onClick}
-      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      title={onClick ? 'Click to see users' : undefined}
-    >
-      <div className="metric-icon">{icon}</div>
-      <div className="metric-info">
-        <span className="metric-value">{value}</span>
-        <span className="metric-label">{label}</span>
-        <span className="metric-sub">{sub}</span>
-      </div>
-      {onClick && (
-        <div className="metric-arrow">
-          <ChevronRight size={16} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Grant Plan Modal ──────────────────────────────────────────────────────────
-
-function GrantPlanModal({
-  user,
-  onClose,
-  onGranted,
-}: {
-  user: AdminUser
-  onClose: () => void
-  onGranted: () => void
-}) {
-  const [plan, setPlan] = useState('monthly')
-  const [days, setDays] = useState(30)
-  const [loading, setLoading] = useState(false)
-
-  const handleGrant = async () => {
-    setLoading(true)
-    try {
-      const res = await apiClient.post(`/admin/users/${user._id}/grant-plan`, {
-        plan,
-        days,
-      })
-      if (res.data?.success) onGranted()
-    } catch (err) {
-      alert((err as any)?.response?.data?.error || 'Failed to grant plan')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Grant Plan to {user.name || 'User'}</h3>
-        <p className="modal-email">{user.email}</p>
-        <div className="form-group">
-          <label>Plan</label>
-          <select
-            className="settings-input"
-            value={plan}
-            onChange={(e) => setPlan(e.target.value)}
-          >
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Duration (days)</label>
-          <input
-            type="number"
-            className="settings-input"
-            value={days}
-            onChange={(e) => setDays(parseInt(e.target.value) || 30)}
-            min={1}
-            max={365}
-          />
-        </div>
-        <div className="modal-actions">
-          <button type="button" className="cancel-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="save-btn"
-            onClick={handleGrant}
-            disabled={loading}
-          >
-            {loading ? 'Granting...' : 'Grant Plan'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Online Users ──────────────────────────────────────────────────────────────
-
-function OnlineUsers({
-  users,
-  onClickUser,
-}: {
-  users: OnlineUser[]
-  onClickUser: (user: OnlineUser) => void
-}) {
-  return (
-    <div className="online-users-card">
-      <div className="online-users-header">
-        <div className="online-title">
-          <div className="online-dot" />
-          <h3>Currently Online</h3>
-          <span className="online-count">{users.length}</span>
-        </div>
-        <span className="online-hint">Active in last 5 minutes</span>
-      </div>
-
-      {users.length === 0 ? (
-        <p className="empty-state">No users active right now</p>
-      ) : (
-        <div className="online-users-list">
-          {users.map((u) => (
-            <div
-              key={u._id}
-              className="online-user-row"
-              onClick={() => onClickUser(u)}
-              onKeyDown={(e) => e.key === 'Enter' && onClickUser(u)}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="online-user-left">
-                <div className="online-avatar-wrap">
-                  {u.avatar ? (
-                    <img src={u.avatar} alt={u.name || ''} className="online-avatar-img" />
-                  ) : (
-                    <div className="online-avatar">
-                      {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                  <div className="online-indicator" />
-                </div>
-                <div>
-                  <span className="online-name">{u.name || 'Unknown'}</span>
-                  <span className="online-email">{u.email}</span>
-                </div>
-              </div>
-              <div className="online-user-right">
-                <span
-                  className={`plan-tag ${u.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
-                >
-                  {u.subscriptionPlan || 'free'}
-                </span>
-                <span className="online-time">{getTimeAgo(u.lastSeen)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── User Activity Drawer ──────────────────────────────────────────────────────
-
-function UserActivityDrawer({
-  userId,
-  onClose,
-}: {
-  userId: string
-  onClose: () => void
-}) {
+function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [data, setData] = useState<{
-    user: AdminUser & { lastSeen?: string }
+    user: AdminUserRow & { lastSeen?: string; avatar?: string; aiUsageCount?: number; aiUsageLimit?: number }
     stats: {
       totalCBT: number
       avgCBTAccuracy: number
@@ -569,7 +436,7 @@ function UserActivityDrawer({
                       </div>
                       <div className="activity-row-right">
                         <span className="amount-badge">
-                          ₦{(t.amount ?? 0).toLocaleString()}
+                          {nairaFromKobo(t.amount ?? 0)}
                         </span>
                         <span className="activity-date">
                           {t.createdAt
@@ -595,546 +462,12 @@ function UserActivityDrawer({
   )
 }
 
-// ─── Metric Users Drawer ───────────────────────────────────────────────────────
-
-interface MetricUserEntry {
-  user: AdminUser & { lastSeen?: string }
-  count: number
-  totalMinutes?: number
-  mastered?: number
-  longestStreak?: number
-  lastActivity?: string
-  details: Array<{
-    subject?: string
-    accuracy?: number
-    total?: number
-    duration?: number
-    date?: string
-  }>
-}
-
-function MetricUsersDrawer({
-  metric,
-  filter,
-  label,
-  onClose,
-  onClickUser,
-}: {
-  metric: string
-  filter: string
-  label: string
-  onClose: () => void
-  onClickUser: (user: AdminUser | OnlineUser) => void
-}) {
-  const [users, setUsers] = useState<MetricUserEntry[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchMetricUsers = async () => {
-      setLoading(true)
-      try {
-        const res = await apiClient.get(
-          `/admin/metric-users?metric=${metric}&filter=${filter}`
-        )
-        if (res.data?.success) setUsers(res.data.users || [])
-      } catch (err) {
-        console.error('Metric users error:', err)
-        setUsers([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchMetricUsers()
-  }, [metric, filter])
-
-  const renderUserDetail = (u: MetricUserEntry) => {
-    if (metric === 'cbt')
-      return (
-        <span className="metric-user-detail">
-          {u.count} test{u.count !== 1 ? 's' : ''} •{' '}
-          {u.details[0]
-            ? `Last: ${u.details[0].subject} (${u.details[0].accuracy}%)`
-            : ''}
-        </span>
-      )
-    if (metric === 'sessions')
-      return (
-        <span className="metric-user-detail">
-          {u.count} session{u.count !== 1 ? 's' : ''} • {u.totalMinutes ?? 0}m total
-        </span>
-      )
-    if (metric === 'flashcards')
-      return (
-        <span className="metric-user-detail">
-          {u.count} reviews • {u.mastered ?? 0} mastered
-        </span>
-      )
-    if (metric === 'streaks')
-      return (
-        <span className="metric-user-detail">
-          {u.count} day streak • Best: {u.longestStreak ?? 0} days
-        </span>
-      )
-    return null
-  }
-
-  const getMetricBadge = (u: MetricUserEntry) => {
-    if (metric === 'cbt') return `${u.count} tests`
-    if (metric === 'sessions') return `${u.totalMinutes ?? 0}m`
-    if (metric === 'flashcards') return `${u.count} reviews`
-    if (metric === 'streaks') return `${u.count} days`
-    return ''
-  }
-
-  const isOnline = (lastSeen: string | undefined) => {
-    if (!lastSeen) return false
-    return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
-  }
-
-  return (
-    <div
-      className="drawer-overlay"
-      onClick={onClose}
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      role="presentation"
-    >
-      <div
-        className="activity-drawer"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-      >
-        <div className="drawer-header">
-          <div>
-            <h3>{label}</h3>
-            <p>
-              {loading ? 'Loading...' : `${users.length} user${users.length !== 1 ? 's' : ''}`}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="drawer-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="drawer-content">
-          {loading ? (
-            <div className="drawer-loading">Loading users...</div>
-          ) : users.length === 0 ? (
-            <div className="empty-state">No users found for this metric</div>
-          ) : (
-            <div className="metric-users-list">
-              {users.map((u, i) => (
-                <div
-                  key={u.user._id}
-                  className="metric-user-row"
-                  onClick={() => onClickUser(u.user)}
-                  onKeyDown={(e) => e.key === 'Enter' && onClickUser(u.user)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span className="metric-user-rank">#{i + 1}</span>
-
-                  <div className="online-avatar-wrap">
-                    {u.user.avatar ? (
-                      <img
-                        src={u.user.avatar}
-                        alt=""
-                        className="online-avatar-img"
-                      />
-                    ) : (
-                      <div className="online-avatar">
-                        {u.user.name?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
-                    )}
-                    {isOnline(u.user.lastSeen) && (
-                      <div className="online-indicator" />
-                    )}
-                  </div>
-
-                  <div className="metric-user-info">
-                    <span className="metric-user-name">
-                      {u.user.name || 'Unknown'}
-                    </span>
-                    {renderUserDetail(u)}
-                  </div>
-
-                  <div className="metric-user-right">
-                    <span className="metric-badge">{getMetricBadge(u)}</span>
-                    <span
-                      className={`plan-tag ${u.user.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
-                    >
-                      {u.user.subscriptionPlan || 'free'}
-                    </span>
-                    <ChevronRight size={14} color="#9CA3AF" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Admin Users Tab ───────────────────────────────────────────────────────────
-
-function AdminUsersTab({
-  onUserClick,
-}: {
-  onUserClick: (user: AdminUser) => void
-}) {
-  const [users, setUsers] = useState<AdminUser[]>([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [planFilter, setPlanFilter] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [grantModal, setGrantModal] = useState<AdminUser | null>(null)
-
-  useEffect(() => {
-    const params = new URLSearchParams({ page: String(page), limit: '20' })
-    if (search) params.append('search', search)
-    if (planFilter) params.append('status', planFilter)
-
-    setLoading(true)
-    apiClient
-      .get(`/admin/users?${params}`)
-      .then((res) => {
-        setUsers(res.data?.users || [])
-        setTotal(res.data?.total || 0)
-      })
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false))
-  }, [page, search, planFilter])
-
-  const handleDelete = async (userId: string, name?: string) => {
-    if (!window.confirm(`Delete user "${name || 'Unknown'}"? This cannot be undone.`))
-      return
-    try {
-      await apiClient.delete(`/admin/users/${userId}`)
-      setUsers((u) => u.filter((x) => x._id !== userId))
-      setTotal((t) => Math.max(0, t - 1))
-    } catch (err) {
-      alert((err as any)?.response?.data?.error || 'Failed to delete')
-    }
-  }
-
-  const pages = Math.ceil(total / 20) || 1
-
-  return (
-    <div className="admin-users-tab">
-      <div className="users-toolbar">
-        <div className="search-wrap">
-          <Search size={16} />
-          <input
-            placeholder="Search name or email..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            className="admin-search"
-          />
-        </div>
-        <select
-          value={planFilter}
-          onChange={(e) => {
-            setPlanFilter(e.target.value)
-            setPage(1)
-          }}
-          className="admin-filter-select"
-        >
-          <option value="">All Users</option>
-          <option value="active">Paid Users</option>
-          <option value="free">Free Users</option>
-          <option value="expired">Expired</option>
-        </select>
-        <span className="total-count">{total} users</span>
-      </div>
-
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Plan</th>
-              <th>AI Usage</th>
-              <th>Joined</th>
-              <th>Expires</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="table-loading">
-                  Loading...
-                </td>
-              </tr>
-            ) : (
-              users.map((u) => (
-                <tr
-                  key={u._id}
-                  onClick={() => onUserClick(u)}
-                  style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onUserClick(u)}
-                >
-                  <td>
-                    <div className="user-cell">
-                      <div className="user-cell-avatar">
-                        {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
-                      <div>
-                        <span className="user-cell-name">{u.name || 'Unknown'}</span>
-                        <span className="user-cell-email">{u.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`plan-tag ${u.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
-                    >
-                      {u.subscriptionPlan || 'free'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="usage-text">
-                      {u.aiUsageCount ?? 0}/{u.aiUsageLimit ?? 0}
-                    </span>
-                  </td>
-                  <td className="date-cell">
-                    {new Date(u.createdAt).toLocaleDateString('en-NG', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="date-cell">
-                    {u.subscriptionEnd
-                      ? new Date(u.subscriptionEnd).toLocaleDateString('en-NG', {
-                          day: 'numeric',
-                          month: 'short',
-                        })
-                      : '—'}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <div className="action-buttons">
-                      <button
-                        type="button"
-                        className="action-btn grant"
-                        title="Grant Plan"
-                        onClick={() => setGrantModal(u)}
-                      >
-                        <Gift size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="action-btn delete"
-                        title="Delete User"
-                        onClick={() => handleDelete(u._id, u.name)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="admin-pagination">
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <span>
-          Page {page} of {pages}
-        </span>
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={page >= pages}
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
-
-      {grantModal && (
-        <GrantPlanModal
-          user={grantModal}
-          onClose={() => setGrantModal(null)}
-          onGranted={() => {
-            setGrantModal(null)
-            setUsers((u) =>
-              u.map((x) =>
-                x._id === grantModal._id
-                  ? { ...x, subscriptionStatus: 'active', subscriptionPlan: 'monthly' }
-                  : x
-              )
-            )
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-// ─── Admin Revenue Tab ─────────────────────────────────────────────────────────
-
-function AdminRevenueTab({ stats }: { stats: AdminStats }) {
-  return (
-    <div className="admin-revenue-tab">
-      <div className="admin-metrics">
-        <MetricCard
-          icon={<DollarSign size={20} />}
-          label="Total Revenue"
-          value={stats.revenue.formatted}
-          sub="all time"
-          color="green"
-        />
-        <MetricCard
-          icon={<Users size={20} />}
-          label="Paid Users"
-          value={stats.users.activeSubscriptions}
-          sub={`${stats.users.conversionRate} conversion`}
-          color="blue"
-        />
-        <MetricCard
-          icon={<TrendingUp size={20} />}
-          label="Weekly Plans"
-          value={stats.users.weeklyPlans}
-          sub="active"
-          color="orange"
-        />
-        <MetricCard
-          icon={<Award size={20} />}
-          label="Monthly Plans"
-          value={stats.users.monthlyPlans}
-          sub="active"
-          color="purple"
-        />
-      </div>
-      <div className="admin-card">
-        <h3>Recent Transactions</h3>
-        <div className="recent-list">
-          {stats.recentTransactions.map((t) => (
-            <div key={t._id} className="recent-tx-row">
-              <div className="tx-info">
-                <span className="tx-name">{t.userId?.name || 'Unknown'}</span>
-                <span className="tx-email">{t.userId?.email}</span>
-              </div>
-              <div className="tx-meta">
-                <span className="plan-tag paid">{t.plan || '—'}</span>
-                <span className="tx-date">
-                  {new Date(t.createdAt).toLocaleDateString('en-NG', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-              <span className="tx-amount">
-                ₦{typeof t.amount === 'number' ? t.amount.toLocaleString() : '0'}
-              </span>
-            </div>
-          ))}
-          {stats.recentTransactions.length === 0 && (
-            <p className="empty-state">No transactions yet</p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Admin Activity Tab ────────────────────────────────────────────────────────
-
-function AdminActivityTab({ stats }: { stats: AdminStats }) {
-  return (
-    <div className="admin-activity-tab">
-      <div className="admin-metrics">
-        <MetricCard
-          icon={<BookOpen size={20} />}
-          label="Total CBT Tests"
-          value={stats.activity.totalCBT}
-          sub={`${stats.activity.cbtToday} today`}
-          color="blue"
-        />
-        <MetricCard
-          icon={<Clock size={20} />}
-          label="Study Sessions"
-          value={stats.activity.totalStudySessions}
-          sub={`${stats.activity.studySessionsToday} today`}
-          color="green"
-        />
-        <MetricCard
-          icon={<Zap size={20} />}
-          label="Flashcard Reviews"
-          value={stats.activity.totalFlashcardReviews}
-          sub="all time"
-          color="purple"
-        />
-        <MetricCard
-          icon={<Award size={20} />}
-          label="Active Streaks"
-          value={stats.activity.activeStreaks}
-          sub="users on streak"
-          color="orange"
-        />
-        <MetricCard
-          icon={<BookOpen size={20} />}
-          label="AI Study Quizzes"
-          value={stats.extra?.quizzes?.totalSessions ?? 0}
-          sub={`${stats.extra?.quizzes?.sessionsToday ?? 0} today`}
-          color="teal"
-        />
-        <MetricCard
-          icon={<Users size={20} />}
-          label="Classes & Reminders"
-          value={stats.extra?.classes?.totalClasses ?? 0}
-          sub={`${stats.extra?.classes?.totalReminders ?? 0} reminders`}
-          color="red"
-        />
-      </div>
-      <div className="admin-card">
-        <h3>Top Subjects by Attempts</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={stats.charts.topSubjects || []}>
-            <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="count" fill="#4F46E5" radius={[4, 4, 0, 0]} name="Attempts" />
-            <Bar
-              dataKey="avgAccuracy"
-              fill="#10B981"
-              radius={[4, 4, 0, 0]}
-              name="Avg Accuracy %"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  )
-}
-
-// ─── Admin Campaigns Tab ───────────────────────────────────────────────────────
+// ─── Email Campaigns (unchanged API) ─────────────────────────────────────────
 
 function AdminCampaignsTab() {
-  const [audiences, setAudiences] = useState<Record<string, { count: number; label: string }> | null>(null)
+  const [audiences, setAudiences] = useState<Record<string, { count: number; label: string }> | null>(
+    null
+  )
   const [form, setForm] = useState({
     campaignType: 'upgrade_students',
     targetAudience: 'free_students',
@@ -1143,20 +476,26 @@ function AdminCampaignsTab() {
     testEmail: '',
   })
   const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<{ results: { sent: number; failed: number }; message: string } | null>(null)
+  const [result, setResult] = useState<{
+    results: { sent: number; failed: number }
+    message: string
+  } | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    apiClient.get('/admin/email-stats').then((res) => {
-      if (res.data?.success) setAudiences(res.data.audiences || {})
-    }).catch(() => setAudiences({}))
+    apiClient
+      .get('/admin/email-stats')
+      .then((res) => {
+        if (res.data?.success) setAudiences(res.data.audiences || {})
+      })
+      .catch(() => setAudiences({}))
   }, [])
 
   const handleSend = async () => {
     if (!form.testMode) {
       const count = audiences?.[form.targetAudience]?.count ?? 0
       const confirmed = window.confirm(
-        `⚠️ You are about to send a REAL email to ${count} users.\n\nAre you sure?`
+        `You are about to send a REAL email to ${count} users.\n\nAre you sure?`
       )
       if (!confirmed) return
     }
@@ -1177,7 +516,7 @@ function AdminCampaignsTab() {
       else setError(res.data?.error || 'Failed')
     } catch (err: unknown) {
       const message =
-        (err as any)?.name === 'CanceledError'
+        (err as { name?: string }).name === 'CanceledError'
           ? 'Request timed out while sending emails. Please try again.'
           : (err as Error).message || 'Failed'
       setError(message)
@@ -1217,8 +556,8 @@ function AdminCampaignsTab() {
           <label className="block text-sm font-medium mb-2">Campaign Type</label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { value: 'upgrade_students', label: '🎓 Student Upgrade', desc: 'Upgrade to Weekly/Monthly' },
-              { value: 'upgrade_teachers', label: '👩‍🏫 Teacher Upgrade', desc: 'Upgrade to Teacher plan' },
+              { value: 'upgrade_students', label: 'Student Upgrade', desc: 'Upgrade to Weekly/Monthly' },
+              { value: 'upgrade_teachers', label: 'Teacher Upgrade', desc: 'Upgrade to Teacher plan' },
             ].map((opt) => (
               <button
                 key={opt.value}
@@ -1243,8 +582,8 @@ function AdminCampaignsTab() {
             className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
             placeholder={
               form.campaignType === 'upgrade_students'
-                ? "You're missing out — upgrade your StudyHelp plan 🚀"
-                : 'Unlock all Teacher Tools on StudyHelp 📚'
+                ? "You're missing out — upgrade your StudyHelp plan"
+                : 'Unlock all Teacher Tools on StudyHelp'
             }
             value={form.subject}
             onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
@@ -1253,7 +592,7 @@ function AdminCampaignsTab() {
 
         {selectedAudience && (
           <div className="flex items-center gap-2 flex-wrap text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-            <span>📬 This will send to</span>
+            <span>This will send to</span>
             <strong className="text-indigo-600">{selectedAudience.count} users</strong>
             <span>({selectedAudience.label})</span>
           </div>
@@ -1267,13 +606,15 @@ function AdminCampaignsTab() {
               onChange={(e) => setForm((p) => ({ ...p, testMode: e.target.checked }))}
               className="rounded"
             />
-            {form.testMode ? '🧪 Test Mode (send to 1 email only)' : '🚀 Live Mode (send to all)'}
+            {form.testMode ? 'Test Mode (send to 1 email only)' : 'Live Mode (send to all)'}
           </label>
         </div>
 
         {form.testMode && (
           <div>
-            <label className="block text-sm font-medium mb-1">Test Email (leave blank to use your admin email)</label>
+            <label className="block text-sm font-medium mb-1">
+              Test Email (leave blank to use your admin email)
+            </label>
             <input
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
               placeholder="your@email.com"
@@ -1285,7 +626,8 @@ function AdminCampaignsTab() {
 
         {!form.testMode && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-amber-800 dark:text-amber-200 text-sm">
-            ⚠️ <strong>Live Mode</strong> — this will send real emails to <strong>{selectedAudience?.count ?? 0} users</strong>. Test first.
+            <strong>Live Mode</strong> — this will send real emails to{' '}
+            <strong>{selectedAudience?.count ?? 0} users</strong>. Test first.
           </div>
         )}
 
@@ -1295,11 +637,11 @@ function AdminCampaignsTab() {
           <div className="flex items-center gap-5 flex-wrap p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
             <div className="text-center">
               <span className="block text-3xl font-black text-emerald-600">{result.results.sent}</span>
-              <span className="text-sm">Delivered ✅</span>
+              <span className="text-sm">Delivered</span>
             </div>
             <div className="text-center">
               <span className="block text-3xl font-black text-red-600">{result.results.failed}</span>
-              <span className="text-sm">Failed ❌</span>
+              <span className="text-sm">Failed</span>
             </div>
             <p className="text-sm text-emerald-800 dark:text-emerald-200 flex-1">{result.message}</p>
           </div>
@@ -1314,140 +656,721 @@ function AdminCampaignsTab() {
           {sending
             ? 'Sending emails...'
             : form.testMode
-              ? '🧪 Send Test Email'
-              : `🚀 Send to ${selectedAudience?.count ?? 0} Users`}
+              ? 'Send Test Email'
+              : `Send to ${selectedAudience?.count ?? 0} Users`}
         </button>
       </div>
     </div>
   )
 }
 
-// ─── Main Admin Dashboard ──────────────────────────────────────────────────────
+// ─── Tab: Overview ───────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'users', label: 'Users' },
-  { id: 'revenue', label: 'Revenue' },
-  { id: 'activity', label: 'Activity' },
-  { id: 'campaigns', label: '📧 Campaigns' },
-]
+function OverviewTab({
+  stats,
+  onGoActivity,
+}: {
+  stats: DashboardStatsV2
+  onGoActivity: () => void
+}) {
+  const paidPct =
+    stats.users.total > 0 ? Math.round((stats.users.paid / stats.users.total) * 1000) / 10 : 0
+  const growthChart = fillUserGrowth(stats.userGrowth || [], 30)
+  const weeklyBars = (stats.revenue.weekly || []).slice(-8)
+  const teacherToolsUsed = Object.values(stats.teacherToolTotals || {}).reduce((a, b) => a + b, 0)
+  const capBytes = 500 * 1024 * 1024
+  const storagePct = Math.min(100, ((stats.library.storage || 0) / capBytes) * 100)
 
-const DEFAULT_STATS: AdminStats = {
-  users: { total: 0, today: 0, thisWeek: 0, thisMonth: 0, activeSubscriptions: 0, weeklyPlans: 0, monthlyPlans: 0, conversionRate: '0%' },
-  revenue: { total: 0, formatted: '₦0' },
-  activity: { totalCBT: 0, cbtToday: 0, totalStudySessions: 0, studySessionsToday: 0, totalFlashcardReviews: 0, activeStreaks: 0, totalNotes: 0 },
-  charts: { dailySignups: [], topSubjects: [] },
-  recentUsers: [],
-  recentTransactions: [],
-  extra: {
-    quizzes: { totalSessions: 0, sessionsToday: 0 },
-    content: { totalNotes: 0, flashcardDecks: 0 },
-    classes: { totalClasses: 0, totalReminders: 0 },
-  },
+  return (
+    <div>
+      <div className="admin-grid-kpi-4">
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">Total Users</span>
+          <span className="admin-kpi-value">{stats.users.total.toLocaleString()}</span>
+          <span className="admin-kpi-badge">+{stats.users.today} today</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">Total Revenue</span>
+          <span className="admin-kpi-value">{nairaFromKobo(stats.revenue.total)}</span>
+          <span className="admin-kpi-sub">This week: {nairaFromKobo(stats.revenue.week)}</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">CBT Tests Taken</span>
+          <span className="admin-kpi-value">{stats.cbt.total.toLocaleString()}</span>
+          <span className="admin-kpi-sub">Avg score: {stats.cbt.avgScore}%</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">Active Paid Users</span>
+          <span className="admin-kpi-value">{stats.users.paid.toLocaleString()}</span>
+          <span className="admin-kpi-sub">{paidPct}% of all users</span>
+        </div>
+      </div>
+
+      <div className="admin-grid-charts-2">
+        <div className="admin-chart-card-v2">
+          <h3 className="admin-chart-title-v2">User Growth (30 days)</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={growthChart}>
+              <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <Tooltip />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke="#5B4CF5"
+                fill="#EEF2FF"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="admin-chart-card-v2">
+          <h3 className="admin-chart-title-v2">Weekly Revenue (8 weeks)</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={weeklyBars}>
+              <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: number) => nairaFromKobo(v)} />
+              <Bar dataKey="total" fill="#5B4CF5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="admin-overview-row-3">
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Top Students</h3>
+          <div className="flex flex-col gap-2">
+            {(stats.topStudents || []).length === 0 && (
+              <p className="text-sm text-slate-500">No progress data yet.</p>
+            )}
+            {(stats.topStudents || []).map((s, i) => (
+              <div
+                key={`${s.userId}-${i}`}
+                className="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0"
+              >
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-800 block truncate">
+                    {s.user?.name || s.user?.email || s.userId}
+                  </span>
+                  <span className="text-xs text-slate-500">{s.xp.toLocaleString()} XP</span>
+                </div>
+                <span className="plan-badge-v2 teacher shrink-0">Lv {s.level}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Library</h3>
+          <p className="admin-kpi-value text-2xl">{stats.library.files.toLocaleString()} files</p>
+          <p className="admin-kpi-sub mb-1">{formatBytes(stats.library.storage)} used</p>
+          <div className="storage-bar-track">
+            <div className="storage-bar-fill" style={{ width: `${storagePct}%` }} />
+          </div>
+          <p className="text-xs text-slate-500 mt-2">vs 500 MB reference scale</p>
+          <div className="mt-4 space-y-2">
+            {(stats.library.byRole || []).map((r) => (
+              <div key={r._id} className="flex justify-between text-sm">
+                <span className="text-slate-600 capitalize">{r._id}</span>
+                <span className="font-semibold text-slate-800">
+                  {r.files} files · {formatBytes(r.bytes)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Quick Stats</h3>
+          <ul className="space-y-2 text-sm text-slate-700 m-0 p-0 list-none">
+            <li>
+              <strong>Teacher accounts:</strong> {stats.users.teachers}
+            </li>
+            <li>
+              <strong>Failed payments:</strong>{' '}
+              <span className={stats.failedPayments > 0 ? 'text-red-600 font-bold' : ''}>
+                {stats.failedPayments}
+              </span>{' '}
+              {stats.failedPayments > 0 && (
+                <button
+                  type="button"
+                  className="text-indigo-600 font-bold underline ml-1"
+                  onClick={onGoActivity}
+                >
+                  View activity
+                </button>
+              )}
+            </li>
+            <li>
+              <strong>Library files:</strong> {stats.library.files}
+            </li>
+            <li>
+              <strong>AI usage (sum):</strong> {(stats.aiUsageTotal ?? 0).toLocaleString()} prompts
+            </li>
+            <li>
+              <strong>Teacher tool runs:</strong> {teacherToolsUsed.toLocaleString()}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab: Users ──────────────────────────────────────────────────────────────
+
+function UsersTab({
+  onViewProfile,
+  onRefreshUsers,
+}: {
+  onViewProfile: (u: AdminUserRow) => void
+  onRefreshUsers: () => void
+}) {
+  const [users, setUsers] = useState<AdminUserRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [pages, setPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [planFilter, setPlanFilter] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [loading, setLoading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null)
+  const [freeTarget, setFreeTarget] = useState<AdminUserRow | null>(null)
+  const [freeDays, setFreeDays] = useState(7)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(null)
+    }
+    document.addEventListener('click', onDoc)
+    return () => document.removeEventListener('click', onDoc)
+  }, [])
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: '20',
+      sort,
+    })
+    if (search) params.append('search', search)
+    if (planFilter) params.append('plan', planFilter)
+
+    setLoading(true)
+    apiClient
+      .get(`/admin/users?${params}`)
+      .then((res) => {
+        if (res.data?.success) {
+          setUsers(res.data.users || [])
+          setTotal(res.data.total || 0)
+          setPages(res.data.pages || 1)
+        }
+      })
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false))
+  }, [page, search, planFilter, sort])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const exportCsv = async () => {
+    try {
+      const res = await apiClient.get('/admin/export-csv', { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'studyhelp_users.csv'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      alert('Export failed')
+    }
+  }
+
+  const quickAction = async (
+    action: 'ban_user' | 'give_free_access',
+    userId: string,
+    extra?: { days?: number }
+  ) => {
+    try {
+      const res = await apiClient.post('/admin/quick-action', {
+        action,
+        userId,
+        data: extra || {},
+      })
+      if (res.data?.success) {
+        onRefreshUsers()
+        load()
+      } else {
+        alert(res.data?.error || 'Failed')
+      }
+    } catch (e: unknown) {
+      alert((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
+    }
+  }
+
+  const confirmBan = async () => {
+    if (!banTarget) return
+    await quickAction('ban_user', banTarget._id)
+    setBanTarget(null)
+  }
+
+  const confirmFree = async () => {
+    if (!freeTarget) return
+    await quickAction('give_free_access', freeTarget._id, { days: freeDays })
+    setFreeTarget(null)
+  }
+
+  return (
+    <div>
+      <div className="admin-users-toolbar-v2">
+        <div className="grow">
+          <div className="admin-search-v2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              placeholder="Search name or email..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+        </div>
+        <select
+          className="admin-select-v2"
+          value={planFilter}
+          onChange={(e) => {
+            setPlanFilter(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="">All plans</option>
+          <option value="free">Free</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="teacher">Teachers</option>
+        </select>
+        <select
+          className="admin-select-v2"
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="name">Name A–Z</option>
+        </select>
+        <button type="button" className="refresh-btn" onClick={exportCsv}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
+
+      <div className="admin-card-v2" style={{ padding: 0, overflow: 'hidden' }}>
+        <table className="admin-table-v2">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Plan</th>
+              <th>Exam Type</th>
+              <th>Joined</th>
+              <th style={{ width: 100 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>
+                  Loading…
+                </td>
+              </tr>
+            ) : (
+              users.map((u) => (
+                <tr key={u._id}>
+                  <td className="font-semibold">{u.name || '—'}</td>
+                  <td>{u.email}</td>
+                  <td>
+                    <span className={`plan-badge-v2 ${planBadgeKey(u)}`}>{planBadgeLabel(u)}</span>
+                    {u.banned && (
+                      <span className="ml-2 text-xs font-bold text-red-600">BANNED</span>
+                    )}
+                  </td>
+                  <td className="text-slate-500">—</td>
+                  <td>
+                    {new Date(u.createdAt).toLocaleDateString('en-NG', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td>
+                    <div className="admin-menu-wrap" ref={menuOpen === u._id ? menuRef : undefined}>
+                      <button
+                        type="button"
+                        className="admin-kebab"
+                        aria-label="Actions"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMenuOpen(menuOpen === u._id ? null : u._id)
+                        }}
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      {menuOpen === u._id && (
+                        <div className="admin-dropdown-v2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(null)
+                              setFreeTarget(u)
+                            }}
+                          >
+                            Give Free Access
+                          </button>
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => {
+                              setMenuOpen(null)
+                              setBanTarget(u)
+                            }}
+                          >
+                            Ban User
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(null)
+                              onViewProfile(u)
+                            }}
+                          >
+                            View Profile
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination" style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span>
+          Page {page} of {pages} ({total} users)
+        </span>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => p + 1)}
+          disabled={page >= pages}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {banTarget && (
+        <div
+          className="admin-modal-v2-overlay"
+          onClick={() => setBanTarget(null)}
+          role="presentation"
+        >
+          <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
+            <h3>Ban user?</h3>
+            <p>
+              {banTarget.name || banTarget.email} will be marked as banned. You can unban from the API
+              or database if needed.
+            </p>
+            <div className="admin-modal-actions-v2">
+              <button type="button" className="cancel" onClick={() => setBanTarget(null)}>
+                Cancel
+              </button>
+              <button type="button" className="danger" onClick={confirmBan}>
+                Ban
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {freeTarget && (
+        <div
+          className="admin-modal-v2-overlay"
+          onClick={() => setFreeTarget(null)}
+          role="presentation"
+        >
+          <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
+            <h3>Give free access</h3>
+            <p>Grants active monthly plan benefits for the number of days below.</p>
+            <label className="text-sm font-bold text-slate-600">Days</label>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={freeDays}
+              onChange={(e) => setFreeDays(parseInt(e.target.value, 10) || 7)}
+            />
+            <div className="admin-modal-actions-v2">
+              <button type="button" className="cancel" onClick={() => setFreeTarget(null)}>
+                Cancel
+              </button>
+              <button type="button" className="confirm" onClick={confirmFree}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Tab: Revenue ────────────────────────────────────────────────────────────
+
+function RevenueTab({
+  stats,
+  onGoActivity,
+}: {
+  stats: DashboardStatsV2
+  onGoActivity: () => void
+}) {
+  const weekly12 = (stats.revenue.weekly || []).slice(-12)
+  const pieData = (stats.revenue.byPlan || []).filter((p) => p.total > 0)
+
+  return (
+    <div className="space-y-4">
+      <div className="admin-grid-kpi-4">
+        <div className="admin-kpi-card" style={{ gridColumn: 'span 2' }}>
+          <span className="admin-kpi-label">Total Revenue</span>
+          <span className="admin-kpi-value">{nairaFromKobo(stats.revenue.total)}</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">This Week</span>
+          <span className="admin-kpi-value text-2xl">{nairaFromKobo(stats.revenue.week)}</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">This Month</span>
+          <span className="admin-kpi-value text-2xl">{nairaFromKobo(stats.revenue.month)}</span>
+        </div>
+      </div>
+
+      {stats.failedPayments > 0 && (
+        <div className="admin-failed-alert">
+          {stats.failedPayments} failed payment{stats.failedPayments !== 1 ? 's' : ''} recorded.
+          <button type="button" onClick={onGoActivity}>
+            Review in Activity
+          </button>
+        </div>
+      )}
+
+      <div className="admin-grid-charts-2">
+        <div className="admin-chart-card-v2">
+          <h3 className="admin-chart-title-v2">Revenue by Plan</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="total"
+                nameKey="_id"
+                cx="50%"
+                cy="50%"
+                outerRadius={78}
+                label={(props) => String((props as { name?: string }).name ?? '')}
+              >
+                {pieData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={PLAN_PIE_COLORS[entry._id] || '#94A3B8'}
+                  />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v: number) => nairaFromKobo(v)} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="admin-chart-card-v2">
+          <h3 className="admin-chart-title-v2">Weekly Revenue (12 weeks)</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={weekly12}>
+              <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: number) => nairaFromKobo(v)} />
+              <Bar dataKey="total" fill="#5B4CF5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab: Activity feed ──────────────────────────────────────────────────────
+
+function ActivityTab() {
+  const [items, setItems] = useState<FeedItem[]>([])
+  const [hasMore, setHasMore] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const loadInitial = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await apiClient.get('/admin/activity-feed', { params: { limit: 20, offset: 0 } })
+      setItems(res.data?.feed || [])
+      setHasMore(!!res.data?.hasMore)
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadInitial()
+  }, [loadInitial])
+
+  useEffect(() => {
+    const id = setInterval(loadInitial, 30000)
+    return () => clearInterval(id)
+  }, [loadInitial])
+
+  const loadMore = async () => {
+    setLoading(true)
+    try {
+      const res = await apiClient.get('/admin/activity-feed', {
+        params: { limit: 20, offset: items.length },
+      })
+      const feed = res.data?.feed || []
+      setItems((prev) => [...prev, ...feed])
+      setHasMore(!!res.data?.hasMore)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      {loading && items.length === 0 ? (
+        <p className="text-slate-500">Loading feed…</p>
+      ) : (
+        items.map((item, i) => (
+          <div
+            key={`${item.type}-${item.time}-${i}`}
+            className={`activity-item-v2 ${item.type === 'signup' ? 'signup' : item.type === 'failed_payment' ? 'failed_payment' : 'payment'}`}
+          >
+            <span className="text-xl" aria-hidden>
+              {item.icon}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-800 m-0">{item.message}</p>
+              <p className="text-xs text-slate-500 m-0 mt-1">
+                {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
+              </p>
+            </div>
+          </div>
+        ))
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          className="refresh-btn mt-4"
+          onClick={loadMore}
+          disabled={loading}
+        >
+          {loading ? 'Loading…' : 'Load more'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+const SIDEBAR = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'users', label: 'Users', icon: Users },
+  { id: 'revenue', label: 'Revenue', icon: DollarSign },
+  { id: 'activity', label: 'Activity', icon: Activity },
+  { id: 'campaigns', label: 'Campaigns', icon: Mail },
+] as const
+
+const EMPTY_STATS: DashboardStatsV2 = {
+  users: { total: 0, today: 0, week: 0, month: 0, paid: 0, free: 0, teachers: 0 },
+  revenue: { total: 0, week: 0, month: 0, byPlan: [], weekly: [] },
+  cbt: { total: 0, week: 0, avgScore: 0 },
+  library: { files: 0, storage: 0, byRole: [] },
+  failedPayments: 0,
+  topStudents: [],
+  userGrowth: [],
+  teacherToolTotals: {},
+  aiUsageTotal: 0,
 }
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const [stats, setStats] = useState<AdminStats | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [stats, setStats] = useState<DashboardStatsV2 | null>(null)
+  const [activeTab, setActiveTab] = useState<(typeof SIDEBAR)[number]['id']>('overview')
   const [loading, setLoading] = useState(true)
   const [notAdmin, setNotAdmin] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date>(() => new Date())
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
-  const [selectedUser, setSelectedUser] = useState<AdminUser | OnlineUser | null>(null)
-  const [metricDrawer, setMetricDrawer] = useState<{
-    metric: string
-    filter: string
-    label: string
-  } | null>(null)
+  const [selectedUser, setSelectedUser] = useState<AdminUserRow | null>(null)
 
-  const fetchStats = async () => {
+  const fetchDashboard = async () => {
     try {
-      const res = await apiClient.get('/admin/stats')
-      if (res.data?.success) {
-        setStats(res.data.stats)
+      const res = await apiClient.get('/admin/dashboard-stats')
+      if (res.data && !res.data.error) {
+        setStats(res.data as DashboardStatsV2)
         setApiError(null)
       } else {
-        setStats(DEFAULT_STATS)
-        setApiError('API returned invalid data')
+        setStats(EMPTY_STATS)
+        setApiError('Invalid dashboard response')
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: unknown }; message?: string }
+      const axiosErr = err as { response?: { status?: number }; message?: string }
       const status = axiosErr.response?.status
-      const data = axiosErr.response?.data
-      setStats(DEFAULT_STATS)
-      if (status === 403) {
-        setNotAdmin(true)
-        setApiError(null)
-      } else if (status === 401) {
-        setApiError('Session expired. Please log in again.')
-      } else if (status && status >= 500) {
-        setApiError(`Server error (${status}). Check backend logs.`)
-      } else {
-        setApiError(
-          status
-            ? `Request failed (${status}). ${(data as { message?: string })?.message || axiosErr.message || 'Unknown error'}`
-            : `Connection failed: ${axiosErr.message || 'Admin API not configured'}`
-        )
-      }
-    }
-  }
-
-  const fetchOnlineUsers = async () => {
-    try {
-      const res = await apiClient.get('/admin/online-users')
-      if (res.data?.success) {
-        setOnlineUsers(res.data.users || [])
-      }
-    } catch {
-      setOnlineUsers([])
+      setStats(EMPTY_STATS)
+      if (status === 403) setNotAdmin(true)
+      else if (status === 401) setApiError('Session expired. Please log in again.')
+      else setApiError(axiosErr.message || 'Failed to load dashboard stats')
     }
   }
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([fetchStats(), fetchOnlineUsers()])
+    await fetchDashboard()
     setLastRefreshed(new Date())
-    setTimeout(() => setRefreshing(false), 800)
+    setTimeout(() => setRefreshing(false), 600)
   }
 
   useEffect(() => {
-    const isAdmin = user?.role === 'admin'
     if (!user) {
       setLoading(false)
       return
     }
-    if (!isAdmin) {
+    if (user.role !== 'admin') {
       setNotAdmin(true)
       setLoading(false)
       return
     }
-
-    const timeout = setTimeout(() => {
-      setStats((s) => s ?? DEFAULT_STATS)
-      setLoading(false)
-    }, 5000)
-
-    const run = async () => {
-      await fetchStats()
-      await fetchOnlineUsers()
-    }
-    run().finally(() => {
-      clearTimeout(timeout)
-      setLoading(false)
-    })
-
-    return () => clearTimeout(timeout)
-  }, [user])
-
-  // Auto-refresh online users every 60 seconds
-  useEffect(() => {
-    if (!user || user.role !== 'admin') return
-    const interval = setInterval(fetchOnlineUsers, 60000)
-    return () => clearInterval(interval)
+    fetchDashboard().finally(() => setLoading(false))
   }, [user])
 
   if (loading) {
@@ -1464,11 +1387,7 @@ export default function AdminDashboardPage() {
           <Shield size={40} color="#EF4444" />
           <h2>Access Denied</h2>
           <p>You do not have admin access.</p>
-          <button
-            type="button"
-            className="back-to-site"
-            onClick={() => router.push('/dashboard')}
-          >
+          <button type="button" className="back-to-site" onClick={() => router.push('/dashboard')}>
             Go Back
           </button>
         </div>
@@ -1477,356 +1396,79 @@ export default function AdminDashboardPage() {
   }
   if (!stats) return <div className="admin-loading">Loading...</div>
 
-  const totalUsers = Math.max(stats.users.total || 1, 1)
-  const freeCount = totalUsers - stats.users.activeSubscriptions
-
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="admin-page">
-        <BackButton label="Dashboard" href="/dashboard" />
-        {apiError && (
-          <div className="admin-api-error">
-            {apiError}
-          </div>
-        )}
+      <div className="admin-layout-v2">
+        <aside className="admin-sidebar-v2">
+          {SIDEBAR.map((t) => {
+            const Icon = t.icon
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`admin-sidebar-item-v2 ${activeTab === t.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(t.id)}
+              >
+                <Icon size={18} />
+                {t.label}
+              </button>
+            )
+          })}
+        </aside>
 
-        <div className="admin-header">
-          <div>
-            <h1>Admin Dashboard</h1>
-            <p>StudyHelp Platform Overview</p>
-          </div>
-          <div className="admin-header-right">
-            <span className="last-refreshed">
-              Updated{' '}
-              {lastRefreshed.toLocaleTimeString('en-NG', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            <button
-              type="button"
-              className={`refresh-btn ${refreshing ? 'spinning' : ''}`}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              title="Refresh data"
-            >
-              <RefreshCw size={16} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-            <span className="admin-badge">
-              <Shield size={14} /> Admin
-            </span>
-            <button
-              type="button"
-              className="back-to-site"
-              onClick={() => router.push('/dashboard')}
-            >
-              Back to Site
-            </button>
-          </div>
-        </div>
+        <main className="admin-content-v2">
+          <BackButton label="Dashboard" href="/dashboard" />
+          {apiError && <div className="admin-api-error">{apiError}</div>}
 
-        <div className="admin-tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`admin-tab ${activeTab === t.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'overview' && (
-          <div className="admin-overview">
-            <OnlineUsers users={onlineUsers} onClickUser={(u) => setSelectedUser(u)} />
-            <div className="admin-metrics">
-              <MetricCard
-                icon={<Users size={20} />}
-                label="Total Users"
-                value={stats.users.total}
-                sub={`+${stats.users.today} today`}
-                color="blue"
-                onClick={() => router.push('/dashboard/admin/logins-today')}
-              />
-              <MetricCard
-                icon={<DollarSign size={20} />}
-                label="Total Revenue"
-                value={stats.revenue.formatted}
-                sub={`${stats.users.activeSubscriptions} active plans`}
-                color="green"
-              />
-              <MetricCard
-                icon={<TrendingUp size={20} />}
-                label="Conversion Rate"
-                value={stats.users.conversionRate}
-                sub="free to paid"
-                color="purple"
-              />
-              <MetricCard
-                icon={<Activity size={20} />}
-                label="Total CBT Tests"
-                value={stats.activity.totalCBT}
-                sub={`${stats.activity.cbtToday} today`}
-                color="orange"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'cbt',
-                    filter: 'all',
-                    label: 'CBT Tests — All Time',
-                  })
-                }
-              />
-              <MetricCard
-                icon={<Clock size={20} />}
-                label="Study Sessions"
-                value={stats.activity.totalStudySessions}
-                sub={`${stats.activity.studySessionsToday} today`}
-                color="teal"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'sessions',
-                    filter: 'all',
-                    label: 'Study Sessions — All Time',
-                  })
-                }
-              />
-              <MetricCard
-                icon={<Zap size={20} />}
-                label="Flashcard Reviews"
-                value={stats.activity.totalFlashcardReviews}
-                sub="all time"
-                color="purple"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'flashcards',
-                    filter: 'all',
-                    label: 'Flashcard Reviews',
-                  })
-                }
-              />
-              <MetricCard
-                icon={<Award size={20} />}
-                label="Active Streaks"
-                value={stats.activity.activeStreaks}
-                sub="users on streak"
-                color="red"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'streaks',
-                    filter: 'all',
-                    label: 'Active Streaks',
-                  })
-                }
-              />
+          <div className="admin-topbar-v2">
+            <div>
+              <h1>Admin Dashboard</h1>
+              <p>StudyHelp platform overview</p>
             </div>
-
-            <div className="metric-filters-row">
+            <div className="admin-topbar-actions">
+              <span className="last-refreshed">
+                Updated{' '}
+                {lastRefreshed.toLocaleTimeString('en-NG', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
               <button
                 type="button"
-                className="metric-filter-chip"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'cbt',
-                    filter: 'today',
-                    label: 'CBT Tests Today',
-                  })
-                }
+                className={`refresh-btn ${refreshing ? 'spinning' : ''}`}
+                onClick={handleRefresh}
+                disabled={refreshing}
               >
-                {stats.activity.cbtToday} CBT today →
+                <RefreshCw size={16} />
+                {refreshing ? 'Refreshing…' : 'Refresh'}
               </button>
-              <button
-                type="button"
-                className="metric-filter-chip"
-                onClick={() =>
-                  setMetricDrawer({
-                    metric: 'sessions',
-                    filter: 'today',
-                    label: 'Study Sessions Today',
-                  })
-                }
-              >
-                {stats.activity.studySessionsToday} sessions today →
+              <span className="admin-badge">
+                <Shield size={14} /> Admin
+              </span>
+              <button type="button" className="back-to-site" onClick={() => router.push('/dashboard')}>
+                Back to Site
               </button>
-            </div>
-
-            <div className="admin-chart-card">
-              <h3>New Signups — Last 14 Days</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={stats.charts.dailySignups || []}>
-                  <XAxis
-                    dataKey="_id"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(d) => (typeof d === 'string' ? d.slice(5) : '')}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="admin-two-col">
-              <div className="admin-card">
-                <h3>Plan Distribution</h3>
-                <div className="plan-dist">
-                  <div className="plan-dist-row">
-                    <span>Free</span>
-                    <div className="dist-bar">
-                      <div
-                        className="dist-fill free"
-                        style={{
-                          width: `${((freeCount) / totalUsers) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span>{freeCount}</span>
-                  </div>
-                  <div className="plan-dist-row">
-                    <span>Weekly</span>
-                    <div className="dist-bar">
-                      <div
-                        className="dist-fill weekly"
-                        style={{
-                          width: `${(stats.users.weeklyPlans / totalUsers) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span>{stats.users.weeklyPlans}</span>
-                  </div>
-                  <div className="plan-dist-row">
-                    <span>Monthly</span>
-                    <div className="dist-bar">
-                      <div
-                        className="dist-fill monthly"
-                        style={{
-                          width: `${(stats.users.monthlyPlans / totalUsers) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span>{stats.users.monthlyPlans}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="admin-card">
-            <h3>Learning & Content Overview</h3>
-                <div className="subject-list">
-              <div className="subject-row">
-                <span className="subject-rank">1</span>
-                <span className="subject-name">Study Notes</span>
-                <span className="subject-count">
-                  {stats.activity.totalNotes} total
-                </span>
-              </div>
-              <div className="subject-row">
-                <span className="subject-rank">2</span>
-                <span className="subject-name">Flashcard Decks</span>
-                <span className="subject-count">
-                  {stats.extra?.content?.flashcardDecks ?? 0} decks
-                </span>
-              </div>
-              <div className="subject-row">
-                <span className="subject-rank">3</span>
-                <span className="subject-name">Top CBT Subjects</span>
-                <span className="subject-count">
-                  {(stats.charts.topSubjects || []).length} tracked
-                </span>
-              </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="admin-two-col">
-              <div className="admin-card">
-                <h3>Recent Signups</h3>
-                <div className="recent-list">
-                  {(stats.recentUsers || []).map((u) => (
-                    <div key={u._id} className="recent-user-row">
-                      <div className="recent-user-avatar">
-                        {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
-                      <div className="recent-user-info">
-                        <span className="recent-user-name">{u.name || 'Unknown'}</span>
-                        <span className="recent-user-email">{u.email}</span>
-                      </div>
-                      <span
-                        className={`plan-tag ${u.subscriptionStatus === 'active' ? 'paid' : 'free'}`}
-                      >
-                        {u.subscriptionPlan || 'free'}
-                      </span>
-                      <span className="recent-date">
-                        {new Date(u.createdAt).toLocaleDateString('en-NG', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </span>
-                    </div>
-                  ))}
-                  {(stats.recentUsers || []).length === 0 && (
-                    <p className="empty-state">No signups yet</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="admin-card">
-                <h3>Recent Payments</h3>
-                <div className="recent-list">
-                  {(stats.recentTransactions || []).map((t) => (
-                    <div key={t._id} className="recent-tx-row">
-                      <div className="tx-info">
-                        <span className="tx-name">{t.userId?.name || 'Unknown'}</span>
-                        <span className="tx-plan">{t.plan || '—'} plan</span>
-                      </div>
-                      <div className="tx-right">
-                        <span className="tx-amount">
-                          ₦{(t.amount || 0).toLocaleString()}
-                        </span>
-                        <span className="tx-date">
-                          {new Date(t.createdAt).toLocaleDateString('en-NG', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {(stats.recentTransactions || []).length === 0 && (
-                    <p className="empty-state">No payments yet</p>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
-        )}
 
-        {activeTab === 'users' && (
-          <AdminUsersTab onUserClick={(u) => setSelectedUser(u)} />
-        )}
-        {activeTab === 'revenue' && <AdminRevenueTab stats={stats} />}
-        {activeTab === 'activity' && <AdminActivityTab stats={stats} />}
-        {activeTab === 'campaigns' && <AdminCampaignsTab />}
+          {activeTab === 'overview' && (
+            <OverviewTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
+          )}
+          {activeTab === 'users' && (
+            <UsersTab
+              onViewProfile={(u) => setSelectedUser(u)}
+              onRefreshUsers={fetchDashboard}
+            />
+          )}
+          {activeTab === 'revenue' && (
+            <RevenueTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
+          )}
+          {activeTab === 'activity' && <ActivityTab />}
+          {activeTab === 'campaigns' && <AdminCampaignsTab />}
+        </main>
 
         {selectedUser && (
-          <UserActivityDrawer
-            userId={selectedUser._id}
-            onClose={() => setSelectedUser(null)}
-          />
-        )}
-
-        {metricDrawer && (
-          <MetricUsersDrawer
-            metric={metricDrawer.metric}
-            filter={metricDrawer.filter}
-            label={metricDrawer.label}
-            onClose={() => setMetricDrawer(null)}
-            onClickUser={(u) => {
-              setMetricDrawer(null)
-              setSelectedUser(u)
-            }}
-          />
+          <UserActivityDrawer userId={selectedUser._id} onClose={() => setSelectedUser(null)} />
         )}
       </div>
     </ProtectedRoute>
