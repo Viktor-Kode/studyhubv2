@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useDropzone } from 'react-dropzone'
 import {
@@ -302,6 +302,18 @@ export default function CommunityPage() {
   const [commentsByPostId, setCommentsByPostId] = useState<Record<string, any[]>>({})
   const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({})
 
+  // Your community points (for gamification)
+  const [myPointsLoading, setMyPointsLoading] = useState(true)
+  const [myPoints, setMyPoints] = useState<{
+    communityPoints: number
+    cbtPoints: number
+    totalPoints: number
+  } | null>(null)
+
+  // Like "bump" micro-interaction
+  const [likeBumpPostId, setLikeBumpPostId] = useState<string | null>(null)
+  const likeBumpTimerRef = useRef<number | null>(null)
+
   // Composer
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerType, setComposerType] = useState<'post' | 'poll'>('post')
@@ -438,6 +450,39 @@ export default function CommunityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject])
 
+  // Fetch my points once (from leaderboard endpoint).
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setMyPointsLoading(true)
+        const res = await communityApi.getLeaderboard()
+        const data = res.data as { myEntry?: any }
+        if (!alive) return
+        const entry = data?.myEntry
+        if (!entry) {
+          setMyPoints({ communityPoints: 0, cbtPoints: 0, totalPoints: 0 })
+          return
+        }
+        setMyPoints({
+          communityPoints: entry.communityPoints || 0,
+          cbtPoints: entry.cbtPoints || 0,
+          totalPoints: entry.totalPoints || 0,
+        })
+      } catch {
+        if (!alive) return
+        // Keep UI functional even if points fail.
+        setMyPoints({ communityPoints: 0, cbtPoints: 0, totalPoints: 0 })
+      } finally {
+        if (!alive) return
+        setMyPointsLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [user?.uid])
+
   const activeToday = useMemo(() => {
     const seen = new Set<string>()
     const list: { name: string }[] = []
@@ -451,8 +496,25 @@ export default function CommunityPage() {
     return list
   }, [posts])
 
+  const trendingSubjects = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of posts) {
+      const s = p.subject
+      if (!s || s === 'All') continue
+      counts[s] = (counts[s] || 0) + 1
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([subject, count]) => ({ subject, count }))
+  }, [posts])
+
   const handleLike = useCallback(
     async (postId: string) => {
+      if (likeBumpTimerRef.current) window.clearTimeout(likeBumpTimerRef.current)
+      setLikeBumpPostId(postId)
+      likeBumpTimerRef.current = window.setTimeout(() => setLikeBumpPostId(null), 500)
+
       setPosts((prev) =>
         prev.map((p) => {
           if (p._id !== postId) return p
@@ -468,6 +530,7 @@ export default function CommunityPage() {
         const res = await communityApi.likePost(postId)
         const data = res.data as { liked: boolean; likesCount: number }
         setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isLiked: data.liked, likesCount: data.likesCount } : p)))
+        showToast(data.liked ? 'Liked! +2 community pts' : 'Unliked. -2 community pts')
       } catch (e) {
         if (previous) {
           setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isLiked: previous.isLiked, likesCount: previous.likesCount } : p)))
@@ -624,6 +687,7 @@ export default function CommunityPage() {
           ...prev,
           [postId]: (prev[postId] || []).map((c) => (String(c._id).startsWith('temp-comment') ? data.comment : c)),
         }))
+        showToast('Comment added! +3 community pts')
       } catch {
         showToast('Something went wrong, try again')
         // If comment failed, keep optimistic (simple) or revert by reloading; here we revert by filtering temp.
@@ -727,6 +791,7 @@ export default function CommunityPage() {
         const res = await communityApi.createPost(payload)
         const data = res.data as { post: CommunityPost; success?: boolean }
         setPosts((prev) => prev.map((p) => (p._id === tempId ? { ...(data.post as any) } : p)))
+        showToast(`${composerType === 'poll' ? 'Poll created' : 'Posted'}! +5 community pts`)
       } catch {
         setPosts((prev) => prev.filter((p) => p._id !== tempId))
         showToast('Something went wrong, try again')
@@ -782,7 +847,7 @@ export default function CommunityPage() {
         }
 
         setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, poll: updatedPoll } : p)))
-        showToast('Voted!')
+        showToast('Voted! +1 community pts')
       } catch {
         showToast('Something went wrong, try again')
       }
@@ -957,6 +1022,55 @@ export default function CommunityPage() {
                   ))}
                   {activeToday.length === 0 && <div className="text-xs text-slate-500">No activity yet</div>}
                 </div>
+              </div>
+
+              {trendingSubjects.length > 0 && (
+                <div className="mt-6">
+                  <div className="text-sm font-black text-[#0F172A] dark:text-white mb-2">Trending now</div>
+                  <div className="flex flex-wrap gap-2">
+                    {trendingSubjects.map((t) => (
+                      <button
+                        key={t.subject}
+                        type="button"
+                        onClick={() => setSubject(t.subject)}
+                        className="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors whitespace-nowrap"
+                        style={{
+                          background: isDarkMode ? 'rgba(91,76,245,0.22)' : 'rgba(91,76,245,0.12)',
+                          color: isDarkMode ? '#A5B4FC' : '#5B4CF5',
+                          borderColor: isDarkMode ? 'rgba(91,76,245,0.35)' : 'rgba(232,234,237,1)',
+                        }}
+                      >
+                        {t.subject} · {t.count}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 rounded-[16px] border border-[#E8EAED] bg-white p-4 dark:bg-slate-900/60 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-black text-[#0F172A] dark:text-white">Your points</div>
+                  <div className="text-xs font-bold text-[#5B4CF5]">+XP</div>
+                </div>
+
+                {myPointsLoading ? (
+                  <div className="mt-3 space-y-2">
+                    <div className="h-4 bg-slate-100 dark:bg-gray-800 rounded w-2/3 animate-pulse" />
+                    <div className="h-3 bg-slate-100 dark:bg-gray-800 rounded w-1/2 animate-pulse" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-3 text-lg font-black text-[#0F172A] dark:text-white">
+                      {myPoints?.totalPoints?.toLocaleString() || 0} pts
+                    </div>
+                    <div
+                      className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-help"
+                      title={`CBT: ${(myPoints?.cbtPoints || 0).toLocaleString()} pts + Community: ${(myPoints?.communityPoints || 0).toLocaleString()} pts`}
+                    >
+                      CBT: {(myPoints?.cbtPoints || 0).toLocaleString()} + Community: {(myPoints?.communityPoints || 0).toLocaleString()}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </aside>
@@ -1346,7 +1460,7 @@ export default function CommunityPage() {
                       <div className="flex items-center gap-4">
                         <button
                           type="button"
-                        className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200"
+                          className={`flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 transition-transform ${likeBumpPostId === post._id ? 'scale-110' : 'scale-100'}`}
                           onClick={() => void handleLike(post._id)}
                         >
                           <Heart className={post.isLiked ? 'w-5 h-5 fill-[#DC2626] text-[#DC2626]' : 'w-5 h-5 text-[#DC2626]'} />
@@ -1354,7 +1468,7 @@ export default function CommunityPage() {
                         </button>
                         <button
                           type="button"
-                        className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200"
+                          className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                           onClick={() => void toggleComments(post._id)}
                         >
                           <MessageCircle className="w-5 h-5 text-[#5B4CF5]" />
