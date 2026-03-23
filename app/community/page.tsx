@@ -947,17 +947,13 @@ export default function CommunityPage() {
                     <div className="mt-4 flex flex-col sm:flex-row gap-3">
                       <div className="flex-1">
                         <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Subject</div>
-                        <select
-                          className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                        <input
                           value={composerSubject}
                           onChange={(e) => setComposerSubject(e.target.value)}
-                        >
-                          {SUBJECTS.filter((s) => s.id !== 'All').map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
+                          className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                          placeholder="Type a subject (e.g., Biology)"
+                          maxLength={40}
+                        />
                       </div>
 
                       <div className="flex-1">
@@ -1102,11 +1098,17 @@ export default function CommunityPage() {
                             {post.subject && (
                               <span
                                 className="text-[11px] font-bold px-2 py-1 rounded-full"
-                                style={{
-                                  background:
-                                    SUBJECTS.find((s) => s.id === post.subject)?.bg || '#EEF2FF',
-                                  color: SUBJECTS.find((s) => s.id === post.subject)?.text || '#4F46E5',
-                                }}
+                                style={(() => {
+                                  const def = SUBJECTS.find((s) => s.id === post.subject)
+                                  const bg = def?.bg || '#EEF2FF'
+                                  const text = def?.text || '#4F46E5'
+                                  const bgDark = def?.bgDark || 'rgba(79,70,229,0.18)'
+                                  const textDark = def?.textDark || '#A5B4FC'
+                                  return {
+                                    background: isDarkMode ? bgDark : bg,
+                                    color: isDarkMode ? textDark : text,
+                                  }
+                                })()}
                               >
                                 {post.subject}
                               </span>
@@ -1158,17 +1160,13 @@ export default function CommunityPage() {
 
                         <div>
                           <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Subject</div>
-                          <select
+                          <input
                             value={editSubject}
                             onChange={(e) => setEditSubject(e.target.value)}
                             className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
-                          >
-                            {SUBJECTS.filter((s) => s.id !== 'All').map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Type a subject (e.g., Biology)"
+                            maxLength={40}
+                          />
                         </div>
 
                         <div>
@@ -1361,14 +1359,6 @@ export default function CommunityPage() {
               </div>
             )}
           </main>
-
-          {/* RIGHT: Leaderboard */}
-          <aside className="w-full lg:w-[280px] lg:shrink-0">
-            <LeaderboardPanel
-              showToast={showToast}
-              api={communityApi}
-            />
-          </aside>
         </div>
 
         <ToastHost message={toast?.message || null} />
