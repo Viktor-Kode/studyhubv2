@@ -9,6 +9,7 @@ import {
   Trash2,
   Send,
   Pencil,
+  Bookmark,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -290,6 +291,9 @@ export default function CommunityPage() {
   ]
 
   const [subject, setSubject] = useState<string>('All')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [sortMode, setSortMode] = useState<'new' | 'hot'>('new')
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([])
 
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [page, setPage] = useState(1)
@@ -346,6 +350,28 @@ export default function CommunityPage() {
   useEffect(() => {
     setComposerSubject(subject === 'All' ? 'Mathematics' : subject)
   }, [subject])
+
+  // Bookmarks are client-side only (stored locally).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem('community_bookmarks_v1')
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) setBookmarkedIds(parsed.filter((x) => typeof x === 'string'))
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem('community_bookmarks_v1', JSON.stringify(bookmarkedIds))
+    } catch {
+      /* ignore */
+    }
+  }, [bookmarkedIds])
 
   const resetComposer = useCallback(() => {
     setComposerOpen(false)
@@ -509,6 +535,34 @@ export default function CommunityPage() {
       .map(([subject, count]) => ({ subject, count }))
   }, [posts])
 
+  const bookmarkedSet = useMemo(() => new Set(bookmarkedIds), [bookmarkedIds])
+
+  const computeHotScore = useCallback((p: CommunityPost) => {
+    const pollVotes =
+      p.poll?.options?.reduce((sum, o) => sum + (o.votes?.length || 0), 0) || 0
+    return p.likesCount * 2 + p.commentsCount * 3 + pollVotes
+  }, [])
+
+  const visiblePosts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    let list = posts
+
+    if (q) {
+      list = list.filter((p) => {
+        const hay = `${p.authorName || ''} ${p.subject || ''} ${p.content || ''}`.toLowerCase()
+        return hay.includes(q)
+      })
+    }
+
+    const sorted = [...list]
+    if (sortMode === 'hot') {
+      sorted.sort((a, b) => computeHotScore(b) - computeHotScore(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    } else {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    }
+    return sorted
+  }, [posts, searchQuery, sortMode, computeHotScore])
+
   const handleLike = useCallback(
     async (postId: string) => {
       if (likeBumpTimerRef.current) window.clearTimeout(likeBumpTimerRef.current)
@@ -550,6 +604,19 @@ export default function CommunityPage() {
       showToast('Something went wrong, try again')
     }
   }, [showToast])
+
+  const toggleBookmark = useCallback(
+    (postId: string) => {
+      setBookmarkedIds((prev) => {
+        const has = prev.includes(postId)
+        const next = has ? prev.filter((x) => x !== postId) : [...prev, postId]
+        // Immediate feedback feels snappy.
+        showToast(has ? 'Removed bookmark' : 'Saved bookmark')
+        return next
+      })
+    },
+    [showToast],
+  )
 
   const handleDelete = useCallback(
     async (postId: string) => {
@@ -1049,8 +1116,8 @@ export default function CommunityPage() {
 
               <div className="mt-6 rounded-[16px] border border-[#E8EAED] bg-white p-4 dark:bg-slate-900/60 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-black text-[#0F172A] dark:text-white">Your points</div>
-                  <div className="text-xs font-bold text-[#5B4CF5]">+XP</div>
+                  <div className="text-sm font-black text-[#0F172A] dark:text-white">My Community Points</div>
+                  <div className="text-xs font-bold text-[#5B4CF5]">+2/+3</div>
                 </div>
 
                 {myPointsLoading ? (
@@ -1061,17 +1128,24 @@ export default function CommunityPage() {
                 ) : (
                   <>
                     <div className="mt-3 text-lg font-black text-[#0F172A] dark:text-white">
-                      {myPoints?.totalPoints?.toLocaleString() || 0} pts
+                      {myPoints?.communityPoints?.toLocaleString() || 0} pts
                     </div>
                     <div
                       className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-help"
-                      title={`CBT: ${(myPoints?.cbtPoints || 0).toLocaleString()} pts + Community: ${(myPoints?.communityPoints || 0).toLocaleString()} pts`}
+                      title={`Community: ${(myPoints?.communityPoints || 0).toLocaleString()} pts (CBT points are separate)`}
                     >
-                      CBT: {(myPoints?.cbtPoints || 0).toLocaleString()} + Community: {(myPoints?.communityPoints || 0).toLocaleString()}
+                      Community: {(myPoints?.communityPoints || 0).toLocaleString()}
                     </div>
                   </>
                 )}
               </div>
+
+              {/* Optional extra: show total points subtly */}
+              {!myPointsLoading && (
+                <div className="mt-3 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Total points: {myPoints?.totalPoints?.toLocaleString() || 0} pts
+                </div>
+              )}
             </div>
           </aside>
 
@@ -1273,6 +1347,40 @@ export default function CommunityPage() {
             </div>
 
             {/* Feed */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search posts, subjects, or people..."
+                  className="w-full border border-[#E8EAED] rounded-[14px] px-4 py-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSortMode('new')}
+                  className={`min-h-[44px] px-4 rounded-[14px] border font-bold text-sm whitespace-nowrap ${
+                    sortMode === 'new'
+                      ? 'bg-[#5B4CF5] text-white border-[#5B4CF5]'
+                      : 'bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-slate-200 border-[#E8EAED] text-slate-700'
+                  }`}
+                >
+                  Newest
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('hot')}
+                  className={`min-h-[44px] px-4 rounded-[14px] border font-bold text-sm whitespace-nowrap ${
+                    sortMode === 'hot'
+                      ? 'bg-[#5B4CF5] text-white border-[#5B4CF5]'
+                      : 'bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-slate-200 border-[#E8EAED] text-slate-700'
+                  }`}
+                >
+                  Hot
+                </button>
+              </div>
+            </div>
             {initialLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -1291,7 +1399,12 @@ export default function CommunityPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {posts.map((post) => (
+                {visiblePosts.length === 0 ? (
+                  <div className="text-sm text-slate-500 text-center py-10 bg-white border border-[#E8EAED] rounded-[16px] dark:bg-slate-900/60 dark:border-gray-700 dark:text-slate-300">
+                    No results{searchQuery.trim() ? ` for “${searchQuery.trim()}”` : ''}.
+                  </div>
+                ) : (
+                  visiblePosts.map((post) => (
                   <div
                     key={post._id}
                     className="rounded-[16px] border border-[#E8EAED] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow p-4 dark:bg-slate-900/60 dark:border-gray-700"
@@ -1483,6 +1596,19 @@ export default function CommunityPage() {
                       >
                         🔗 Share
                       </button>
+
+                      <button
+                        type="button"
+                        className="text-sm font-bold flex items-center gap-2 hover:opacity-80"
+                        onClick={() => toggleBookmark(post._id)}
+                        aria-label="Bookmark post"
+                      >
+                        <Bookmark
+                          className="w-5 h-5"
+                          fill={bookmarkedSet.has(post._id) ? '#5B4CF5' : 'transparent'}
+                          color={bookmarkedSet.has(post._id) ? '#5B4CF5' : undefined}
+                        />
+                      </button>
                     </div>
 
                     {/* Inline comments */}
@@ -1547,7 +1673,8 @@ export default function CommunityPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
 
