@@ -9,7 +9,7 @@ import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
-    FiBarChart2, FiMenu, FiX, FiLogOut,
+    FiBarChart2, FiMenu, FiX, FiLogOut, FiAward,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
     FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield
 } from 'react-icons/fi'
@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student'] },
     { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student'] },
     { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student'] },
+    { href: '/community', label: 'Community', icon: FiAward, roles: ['student'] },
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
 
     // Teacher Only
