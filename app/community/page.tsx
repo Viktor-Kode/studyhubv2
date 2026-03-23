@@ -4,18 +4,38 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useDropzone } from 'react-dropzone'
 import {
-  Globe,
   Heart,
   MessageCircle,
   Trash2,
   Send,
   Pencil,
 } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  FiMenu,
+  FiX,
+  FiHome,
+  FiSettings,
+  FiBook,
+  FiBookOpen,
+  FiClock,
+  FiCalendar,
+  FiCreditCard,
+  FiBarChart2,
+  FiFileText,
+  FiAward,
+  FiSun,
+  FiMoon,
+} from 'react-icons/fi'
+import { BiCard } from 'react-icons/bi'
+import { MdQuiz, MdSchool } from 'react-icons/md'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
 import { communityApi, type CommunityPost } from '@/lib/api/communityApi'
 import { useToast } from '@/hooks/useToast'
+import { useThemeStore } from '@/lib/store/themeStore'
 
 type SubjectDef = {
   id: string
@@ -248,15 +268,26 @@ export default function CommunityPage() {
 
   const myUid = user?.uid || ''
 
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  useEffect(() => {
-    const root = document.documentElement
-    const sync = () => setIsDarkMode(root.classList.contains('dark'))
-    sync()
-    const obs = new MutationObserver(sync)
-    obs.observe(root, { attributes: true, attributeFilter: ['class'] })
-    return () => obs.disconnect()
-  }, [])
+  const { theme, toggleTheme } = useThemeStore()
+  const isDarkMode = theme === 'dark'
+
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const pathname = usePathname()
+
+  const navItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: FiHome },
+    { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
+    { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook },
+    { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen },
+    { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock },
+    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard },
+    { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar },
+    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard },
+    { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz },
+    { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2 },
+    { href: '/dashboard/question-history', label: 'Quiz History', icon: FiFileText },
+    { href: '/community', label: 'Community', icon: FiAward },
+  ]
 
   const [subject, setSubject] = useState<string>('All')
 
@@ -794,28 +825,91 @@ export default function CommunityPage() {
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
-      <div className="min-h-screen bg-[#F7F8FA] dark:bg-slate-950 dark:text-white py-6 px-4 pb-28">
-        <div className="flex items-center justify-between max-w-[1120px] mx-auto">
-          <div className="flex items-center gap-3">
-            <BackButton label="Back" href="/dashboard/student" />
-          </div>
-          <div className="flex items-center gap-2 font-black text-[#0F172A] dark:text-white">
-            <div className="p-2 rounded-2xl bg-violet-100 text-[#5B4CF5] shadow-[0_8px_20px_rgba(0,0,0,0.05)]">
-              <Globe className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <div className="text-base md:text-lg">StudyHelp Community</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <div className="text-xs font-bold text-slate-600 dark:text-slate-300">{user?.name}</div>
-            </div>
-            <AvatarCircle name={user?.name || 'Student'} size={38} />
-          </div>
-        </div>
+      <div className={`min-h-screen bg-[#F7F8FA] dark:bg-slate-950 dark:text-white ${isDarkMode ? 'dark' : ''}`}>
+        {/* Top navbar */}
+        <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 pt-[env(safe-area-inset-top)]">
+          <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition lg:hidden"
+                onClick={() => setSidebarOpen((v) => !v)}
+                aria-label="Open menu"
+              >
+                {sidebarOpen ? <FiX className="text-xl text-gray-700 dark:text-gray-300" /> : <FiMenu className="text-xl text-gray-700 dark:text-gray-300" />}
+              </button>
 
-        <div className="max-w-[1120px] mx-auto mt-6 flex flex-col lg:flex-row gap-6">
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <MdSchool className="text-white text-xl" />
+                </div>
+                <span className="font-bold text-lg hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  StudyHelp
+                </span>
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                {isDarkMode ? (
+                  <FiSun className="text-xl text-yellow-400" />
+                ) : (
+                  <FiMoon className="text-xl text-gray-600" />
+                )}
+              </button>
+
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-bold text-slate-600 dark:text-slate-300">{user?.name}</div>
+              </div>
+              <AvatarCircle name={user?.name || 'Student'} size={34} />
+            </div>
+          </div>
+        </nav>
+
+        {/* Mobile overlay */}
+        {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-[45] lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+        {/* Left sidebar */}
+        <aside
+          className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-[50] transition-transform duration-300 overflow-hidden
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            lg:translate-x-0
+          `}
+        >
+          <div className="h-full overflow-y-auto py-4">
+            <nav className="space-y-1 px-3 min-w-0">
+              {navItems.map((item) => {
+                const Icon = item.icon as any
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition min-w-0 ${
+                      isActive
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Icon className={`text-lg flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                    <span className="break-words min-w-0 flex-1">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        <main className="pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))] lg:pl-64 min-w-0 w-full overflow-x-hidden">
+          <div className="p-4 pb-28">
+            <div className="max-w-[1120px] mx-auto mt-6 flex flex-col lg:flex-row gap-6">
           {/* LEFT: Subject sidebar */}
           <aside className="w-full lg:w-[240px] lg:shrink-0">
             {/* Mobile chips */}
@@ -1359,9 +1453,11 @@ export default function CommunityPage() {
               </div>
             )}
           </main>
-        </div>
+            </div>
+          </div>
 
-        <ToastHost message={toast?.message || null} />
+          <ToastHost message={toast?.message || null} />
+        </main>
       </div>
     </ProtectedRoute>
   )
