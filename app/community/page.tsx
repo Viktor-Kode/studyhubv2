@@ -21,21 +21,23 @@ type SubjectDef = {
   label: string
   bg: string
   text: string
+  bgDark: string
+  textDark: string
 }
 
 const SUBJECTS: SubjectDef[] = [
-  { id: 'All', label: 'All', bg: '#EEF2FF', text: '#4F46E5' },
-  { id: 'Mathematics', label: 'Mathematics', bg: '#DBEAFE', text: '#1D4ED8' }, // blue
-  { id: 'English', label: 'English', bg: '#D1FAE5', text: '#065F46' }, // green
-  { id: 'Physics', label: 'Physics', bg: '#E9D5FF', text: '#6D28D9' }, // purple
-  { id: 'Chemistry', label: 'Chemistry', bg: '#FFEDD5', text: '#9A3412' }, // orange
-  { id: 'Biology', label: 'Biology', bg: '#DCFCE7', text: '#166534' }, // green
-  { id: 'Economics', label: 'Economics', bg: '#FEF3C7', text: '#92400E' }, // amber
-  { id: 'Government', label: 'Government', bg: '#E0E7FF', text: '#3730A3' }, // indigo
-  { id: 'Literature', label: 'Literature', bg: '#FCE7F3', text: '#9D174D' }, // pink
-  { id: 'Geography', label: 'Geography', bg: '#E0F2FE', text: '#0369A1' }, // sky
-  { id: 'Agric', label: 'Agric', bg: '#DCFCE7', text: '#15803D' }, // green
-  { id: 'Civic Ed', label: 'Civic Ed', bg: '#F1F5F9', text: '#334155' }, // slate
+  { id: 'All', label: 'All', bg: '#EEF2FF', text: '#4F46E5', bgDark: 'rgba(79,70,229,0.18)', textDark: '#A5B4FC' },
+  { id: 'Mathematics', label: 'Mathematics', bg: '#DBEAFE', text: '#1D4ED8', bgDark: 'rgba(29,78,216,0.22)', textDark: '#93C5FD' }, // blue
+  { id: 'English', label: 'English', bg: '#D1FAE5', text: '#065F46', bgDark: 'rgba(5,150,105,0.20)', textDark: '#6EE7B7' }, // green
+  { id: 'Physics', label: 'Physics', bg: '#E9D5FF', text: '#6D28D9', bgDark: 'rgba(109,40,217,0.20)', textDark: '#C4B5FD' }, // purple
+  { id: 'Chemistry', label: 'Chemistry', bg: '#FFEDD5', text: '#9A3412', bgDark: 'rgba(154,52,18,0.20)', textDark: '#FDBA74' }, // orange
+  { id: 'Biology', label: 'Biology', bg: '#DCFCE7', text: '#166534', bgDark: 'rgba(22,101,52,0.20)', textDark: '#86EFAC' }, // green
+  { id: 'Economics', label: 'Economics', bg: '#FEF3C7', text: '#92400E', bgDark: 'rgba(146,64,14,0.22)', textDark: '#FDE68A' }, // amber
+  { id: 'Government', label: 'Government', bg: '#E0E7FF', text: '#3730A3', bgDark: 'rgba(55,48,163,0.22)', textDark: '#C7D2FE' }, // indigo
+  { id: 'Literature', label: 'Literature', bg: '#FCE7F3', text: '#9D174D', bgDark: 'rgba(157,23,77,0.20)', textDark: '#F9A8D4' }, // pink
+  { id: 'Geography', label: 'Geography', bg: '#E0F2FE', text: '#0369A1', bgDark: 'rgba(3,105,161,0.22)', textDark: '#7DD3FC' }, // sky
+  { id: 'Agric', label: 'Agric', bg: '#DCFCE7', text: '#15803D', bgDark: 'rgba(21,128,61,0.20)', textDark: '#86EFAC' }, // green
+  { id: 'Civic Ed', label: 'Civic Ed', bg: '#F1F5F9', text: '#334155', bgDark: 'rgba(51,65,85,0.22)', textDark: '#CBD5E1' }, // slate
 ]
 
 function initials(name: string) {
@@ -70,16 +72,26 @@ function timeUntil(value: string | Date) {
   return s.replace(/^about\s+/i, '')
 }
 
-function SubjectPill({ subject, active, onClick }: { subject: SubjectDef; active: boolean; onClick: () => void }) {
+function SubjectPill({
+  subject,
+  active,
+  onClick,
+  isDark,
+}: {
+  subject: SubjectDef
+  active: boolean
+  isDark: boolean
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors whitespace-nowrap"
       style={{
-        background: active ? '#5B4CF5' : subject.bg,
-        color: active ? '#fff' : subject.text,
-        borderColor: active ? '#5B4CF5' : 'rgba(232,234,237,1)',
+        background: active ? '#5B4CF5' : isDark ? subject.bgDark : subject.bg,
+        color: active ? '#fff' : isDark ? subject.textDark : subject.text,
+        borderColor: active ? '#5B4CF5' : isDark ? 'rgba(148,163,184,0.35)' : 'rgba(232,234,237,1)',
       }}
     >
       {subject.label}
@@ -124,9 +136,9 @@ function PollCard({
   const votesTotal = options.reduce((sum, o) => sum + (o.votes?.length || 0), 0)
 
   return (
-    <div className="mt-3 rounded-[14px] border border-[#E8EAED] bg-white">
+    <div className="mt-3 rounded-[14px] border border-[#E8EAED] bg-white dark:bg-slate-900/60 dark:border-gray-700">
       <div className="px-4 py-3">
-        <div className="text-sm font-black text-[#0F172A] mb-3">{poll?.question}</div>
+        <div className="text-sm font-black text-[#0F172A] dark:text-white mb-3">{poll?.question}</div>
 
         {/* Before vote: radio selection */}
         {!isEnded && yourVoteIndex < 0 && (
@@ -139,7 +151,7 @@ function PollCard({
                   checked={idx === yourVoteIndex}
                   onChange={() => onVote(idx)}
                 />
-                <span className="text-sm text-[#0F172A]">{o.text}</span>
+                <span className="text-sm text-[#0F172A] dark:text-white">{o.text}</span>
               </label>
             ))}
           </div>
@@ -156,7 +168,7 @@ function PollCard({
                 const barColor = selected ? '#5B4CF5' : 'rgba(91,76,245,0.12)'
                 return (
                   <div key={idx} className="flex items-center gap-3">
-                    <div className="w-16 text-xs font-black text-slate-700">
+                  <div className="w-16 text-xs font-black text-slate-700 dark:text-slate-200">
                       {selected ? '●' : '○'} {o.text?.slice(0, 10)}
                     </div>
                     <div className="flex-1">
@@ -166,7 +178,7 @@ function PollCard({
                           style={{ width: `${pct}%`, background: barColor }}
                         />
                       </div>
-                      <div className="text-[11px] font-bold text-slate-500 mt-1">
+                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1">
                         {pct}% ({count} votes)
                       </div>
                     </div>
@@ -175,7 +187,7 @@ function PollCard({
               })}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
               <span className="font-bold">{votesTotal} votes</span>
               {endsAt && (
                 <span className="font-bold">
@@ -206,7 +218,7 @@ function PollCard({
                       checked={idx === yourVoteIndex}
                       onChange={() => onVote(idx)}
                     />
-                    <span className="text-sm text-[#0F172A]">{o.text}</span>
+                    <span className="text-sm text-[#0F172A] dark:text-white">{o.text}</span>
                   </label>
                 ))}
               </div>
@@ -234,6 +246,16 @@ export default function CommunityPage() {
   const { toast, showToast } = useToast(2000)
 
   const myUid = user?.uid || ''
+
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  useEffect(() => {
+    const root = document.documentElement
+    const sync = () => setIsDarkMode(root.classList.contains('dark'))
+    sync()
+    const obs = new MutationObserver(sync)
+    obs.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
 
   const [subject, setSubject] = useState<string>('All')
 
@@ -658,12 +680,12 @@ export default function CommunityPage() {
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
-      <div className="min-h-screen bg-[#F7F8FA] py-6 px-4 pb-28">
+      <div className="min-h-screen bg-[#F7F8FA] dark:bg-slate-950 dark:text-white py-6 px-4 pb-28">
         <div className="flex items-center justify-between max-w-[1120px] mx-auto">
           <div className="flex items-center gap-3">
             <BackButton label="Back" href="/dashboard/student" />
           </div>
-          <div className="flex items-center gap-2 font-black text-[#0F172A]">
+          <div className="flex items-center gap-2 font-black text-[#0F172A] dark:text-white">
             <div className="p-2 rounded-2xl bg-violet-100 text-[#5B4CF5] shadow-[0_8px_20px_rgba(0,0,0,0.05)]">
               <Globe className="w-5 h-5" />
             </div>
@@ -673,7 +695,7 @@ export default function CommunityPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:block text-right">
-              <div className="text-xs font-bold text-slate-600">{user?.name}</div>
+              <div className="text-xs font-bold text-slate-600 dark:text-slate-300">{user?.name}</div>
             </div>
             <AvatarCircle name={user?.name || 'Student'} size={38} />
           </div>
@@ -686,22 +708,39 @@ export default function CommunityPage() {
             <div className="lg:hidden overflow-x-auto pb-2">
               <div className="flex gap-2">
                 {SUBJECTS.map((s) => (
-                  <SubjectPill key={s.id} subject={s} active={subject === s.id} onClick={() => setSubject(s.id)} />
+                  <SubjectPill
+                    key={s.id}
+                    subject={s}
+                    active={subject === s.id}
+                    isDark={isDarkMode}
+                    onClick={() => setSubject(s.id)}
+                  />
                 ))}
               </div>
             </div>
 
-            <div className="hidden lg:block rounded-[16px] border border-[#E8EAED] bg-white p-4">
-              <div className="text-sm font-black text-[#0F172A] mb-3">Subjects</div>
+            <div className="hidden lg:block rounded-[16px] border border-[#E8EAED] bg-white p-4 dark:bg-slate-900/60 dark:border-gray-700">
+              <div className="text-sm font-black text-[#0F172A] dark:text-white mb-3">Subjects</div>
               <div className="space-y-2">
                 {SUBJECTS.filter((s) => s.id !== 'All').map((s) => (
-                  <SubjectPill key={s.id} subject={s} active={subject === s.id} onClick={() => setSubject(s.id)} />
+                  <SubjectPill
+                    key={s.id}
+                    subject={s}
+                    active={subject === s.id}
+                    isDark={isDarkMode}
+                    onClick={() => setSubject(s.id)}
+                  />
                 ))}
-                <SubjectPill subject={SUBJECTS[0]} active={subject === 'All'} onClick={() => setSubject('All')} />
+                <SubjectPill
+                  subject={SUBJECTS[0]}
+                  active={subject === 'All'}
+                  isDark={isDarkMode}
+                  onClick={() => setSubject('All')}
+                />
               </div>
 
               <div className="mt-6">
-                <div className="text-sm font-black text-[#0F172A] mb-2">Active Today</div>
+                <div className="text-sm font-black text-[#0F172A] dark:text-white mb-2">Active Today</div>
                 <div className="flex -space-x-2">
                   {activeToday.map((u, i) => (
                     <div key={`${u.name}-${i}`} className="border-2 border-[#F7F8FA] rounded-full">
@@ -718,7 +757,7 @@ export default function CommunityPage() {
           <main className="flex-1 w-full max-w-[680px] mx-auto lg:mx-0">
             {/* Create Post Box */}
             <div
-              className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] mb-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow"
+              className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] mb-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow dark:bg-slate-900/60 dark:border-gray-700"
               onClick={() => setComposerOpen(true)}
               role="button"
               tabIndex={0}
@@ -736,7 +775,7 @@ export default function CommunityPage() {
                       onChange={(e) => setComposerContent(e.target.value)}
                       maxLength={1000}
                       placeholder="Write your post..."
-                      className="w-full resize-none border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white"
+                      className="w-full resize-none border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                     />
                     <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
                       <span>
@@ -793,9 +832,9 @@ export default function CommunityPage() {
                     {/* Subject + Image */}
                     <div className="mt-4 flex flex-col sm:flex-row gap-3">
                       <div className="flex-1">
-                        <div className="text-xs font-bold text-slate-600 mb-2">Subject</div>
+                        <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Subject</div>
                         <select
-                          className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white"
+                          className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                           value={composerSubject}
                           onChange={(e) => setComposerSubject(e.target.value)}
                         >
@@ -808,10 +847,10 @@ export default function CommunityPage() {
                       </div>
 
                       <div className="flex-1">
-                        <div className="text-xs font-bold text-slate-600 mb-2">Image</div>
+                        <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Image</div>
                         <div
                           {...getRootProps()}
-                          className="border border-dashed border-[#E8EAED] rounded-[12px] p-3 text-sm bg-[#F7F8FA] cursor-pointer"
+                          className="border border-dashed border-[#E8EAED] rounded-[12px] p-3 text-sm bg-[#F7F8FA] dark:bg-slate-900/60 dark:border-gray-700 cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input {...getInputProps()} />
@@ -835,7 +874,7 @@ export default function CommunityPage() {
                               </button>
                             </div>
                           ) : (
-                            <div className="text-xs font-bold text-slate-600">Drag & drop, or click to upload</div>
+                            <div className="text-xs font-bold text-slate-600 dark:text-slate-300">Drag & drop, or click to upload</div>
                           )}
                           {composerImage && <div className="text-[11px] text-slate-500 mt-2">Max 5MB</div>}
                         </div>
@@ -846,17 +885,17 @@ export default function CommunityPage() {
                     {composerType === 'poll' && (
                       <div className="mt-4 space-y-3">
                         <div>
-                          <div className="text-xs font-bold text-slate-600 mb-2">Poll question</div>
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Poll question</div>
                           <input
                             value={pollQuestion}
                             onChange={(e) => setPollQuestion(e.target.value)}
-                            className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white"
+                            className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                             placeholder="Ask a question..."
                           />
                         </div>
 
                         <div>
-                          <div className="text-xs font-bold text-slate-600 mb-2">Options</div>
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Options</div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {pollOptions.map((v, idx) => (
                               <input
@@ -867,7 +906,7 @@ export default function CommunityPage() {
                                   next[idx] = e.target.value
                                   setPollOptions(next)
                                 }}
-                                className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white"
+                                className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                                 placeholder={`Option ${String.fromCharCode(65 + idx)}`}
                               />
                             ))}
@@ -875,12 +914,12 @@ export default function CommunityPage() {
                         </div>
 
                         <div>
-                          <div className="text-xs font-bold text-slate-600 mb-2">Expiry date</div>
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Expiry date</div>
                           <input
                             type="date"
                             value={pollEndsAt}
                             onChange={(e) => setPollEndsAt(e.target.value)}
-                            className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white"
+                            className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                           />
                         </div>
                       </div>
@@ -905,7 +944,7 @@ export default function CommunityPage() {
                           e.stopPropagation()
                           resetComposer()
                         }}
-                        className="min-h-[44px] rounded-[12px] border border-[#E8EAED] font-bold text-sm px-4 bg-white"
+                        className="min-h-[44px] rounded-[12px] border border-[#E8EAED] font-bold text-sm px-4 bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                       >
                         Cancel
                       </button>
@@ -919,14 +958,17 @@ export default function CommunityPage() {
             {initialLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="rounded-[16px] border border-[#E8EAED] bg-white p-4 animate-pulse">
+                  <div
+                    key={i}
+                    className="rounded-[16px] border border-[#E8EAED] bg-white p-4 animate-pulse dark:bg-slate-900/60 dark:border-gray-700"
+                  >
                     <div className="h-4 bg-slate-200 rounded w-2/3" />
                     <div className="h-3 bg-slate-200 rounded w-5/6 mt-3" />
                   </div>
                 ))}
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-sm text-slate-500 text-center py-10 bg-white border border-[#E8EAED] rounded-[16px]">
+              <div className="text-sm text-slate-500 text-center py-10 bg-white border border-[#E8EAED] rounded-[16px] dark:bg-slate-900/60 dark:border-gray-700 dark:text-slate-300">
                 No posts yet.
               </div>
             ) : (
@@ -934,7 +976,7 @@ export default function CommunityPage() {
                 {posts.map((post) => (
                   <div
                     key={post._id}
-                    className="rounded-[16px] border border-[#E8EAED] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow p-4"
+                    className="rounded-[16px] border border-[#E8EAED] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow p-4 dark:bg-slate-900/60 dark:border-gray-700"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
@@ -942,7 +984,7 @@ export default function CommunityPage() {
                         <AvatarCircle name={post.authorName} size={42} />
                         <div>
                           <div className="flex items-center gap-2">
-                            <div className="text-sm font-black text-[#0F172A]">{post.authorName}</div>
+                            <div className="text-sm font-black text-[#0F172A] dark:text-white">{post.authorName}</div>
                             {post.subject && (
                               <span
                                 className="text-[11px] font-bold px-2 py-1 rounded-full"
@@ -956,7 +998,7 @@ export default function CommunityPage() {
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-500 font-bold mt-1">{timeAgo(post.createdAt)}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">{timeAgo(post.createdAt)}</div>
                         </div>
                       </div>
 
@@ -973,7 +1015,7 @@ export default function CommunityPage() {
                     </div>
 
                     {/* Content */}
-                    <div className="mt-3 text-sm text-[#0F172A] leading-relaxed whitespace-pre-wrap">
+                    <div className="mt-3 text-sm text-[#0F172A] dark:text-white leading-relaxed whitespace-pre-wrap">
                       {post.content}
                     </div>
 
@@ -1003,7 +1045,7 @@ export default function CommunityPage() {
                       <div className="flex items-center gap-4">
                         <button
                           type="button"
-                          className="flex items-center gap-2 text-sm font-bold text-slate-700"
+                        className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                           onClick={() => void handleLike(post._id)}
                         >
                           <Heart className={post.isLiked ? 'w-5 h-5 fill-[#DC2626] text-[#DC2626]' : 'w-5 h-5 text-[#DC2626]'} />
@@ -1011,7 +1053,7 @@ export default function CommunityPage() {
                         </button>
                         <button
                           type="button"
-                          className="flex items-center gap-2 text-sm font-bold text-slate-700"
+                        className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                           onClick={() => void toggleComments(post._id)}
                         >
                           <MessageCircle className="w-5 h-5 text-[#5B4CF5]" />
@@ -1037,7 +1079,7 @@ export default function CommunityPage() {
                       }}
                     >
                       <div className="pb-4">
-                        <div className="text-sm font-black text-[#0F172A] mb-3">
+                        <div className="text-sm font-black text-[#0F172A] dark:text-white mb-3">
                           Comments
                         </div>
 
@@ -1050,12 +1092,12 @@ export default function CommunityPage() {
                                 <AvatarCircle name={c.authorName || 'Student'} size={34} />
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between gap-2">
-                                    <div className="text-xs font-black text-[#0F172A]">{c.authorName}</div>
-                                    <div className="text-[11px] text-slate-500 font-bold">{timeAgo(c.createdAt)}</div>
+                                    <div className="text-xs font-black text-[#0F172A] dark:text-white">{c.authorName}</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">{timeAgo(c.createdAt)}</div>
                                   </div>
-                                  <div className="text-sm text-slate-700 leading-relaxed mt-1">{c.content}</div>
+                                  <div className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed mt-1">{c.content}</div>
                                   <div className="mt-2 flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-600">
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300">
                                       <Heart className="w-4 h-4 text-[#DC2626]" />
                                       {(c.likes?.length || 0).toString()}
                                     </span>
@@ -1064,7 +1106,7 @@ export default function CommunityPage() {
                               </div>
                             ))}
                             {(commentsByPostId[post._id] || []).length === 0 && (
-                              <div className="text-sm text-slate-500 py-6">No comments yet.</div>
+                              <div className="text-sm text-slate-500 dark:text-slate-300 py-6">No comments yet.</div>
                             )}
                           </div>
                         )}
@@ -1075,7 +1117,7 @@ export default function CommunityPage() {
                             onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post._id]: e.target.value }))}
                             maxLength={500}
                             placeholder="Write a comment..."
-                            className="flex-1 border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white"
+                          className="flex-1 border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
                           />
                           <button
                             type="button"
@@ -1176,9 +1218,9 @@ function LeaderboardPanel({
   const rest = leaderboard.slice(3)
 
   return (
-    <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+    <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-slate-900/60 dark:border-gray-700">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-black text-[#0F172A]">Top Students This Week</div>
+        <div className="text-sm font-black text-[#0F172A] dark:text-white">Top Students This Week</div>
         <div className="text-xs font-bold text-slate-500">🏆</div>
       </div>
 
@@ -1198,16 +1240,16 @@ function LeaderboardPanel({
                 <div key={row.userId || row.name + idx} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="text-xs">{medal}</div>
-                    <div className="text-sm font-black truncate">{row.name}</div>
+                    <div className="text-sm font-black truncate text-[#0F172A] dark:text-white">{row.name}</div>
                   </div>
-                  <div className="text-sm font-black">{row.totalPoints.toLocaleString()} pts</div>
+                  <div className="text-sm font-black text-[#0F172A] dark:text-white">{row.totalPoints.toLocaleString()} pts</div>
                 </div>
               )
             })}
           </div>
 
           <div className="border-t border-[#E8EAED] pt-3 mt-3">
-            <div className="text-xs font-bold text-slate-600 mb-1">You</div>
+            <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">You</div>
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-black">
                 #{myRank} — {myEntry?.totalPoints?.toLocaleString() || '0'} pts
