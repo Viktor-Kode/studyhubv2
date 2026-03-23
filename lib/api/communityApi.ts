@@ -39,6 +39,8 @@ export const communityApi = {
   likePost: (id: string) => apiClient.post(`/community/posts/${id}/like`),
 
   deletePost: (id: string) => apiClient.delete(`/community/posts/${id}`),
+  updatePost: (id: string, payload: { content?: string; subject?: string | null; imageUrl?: string | null }) =>
+    apiClient.patch(`/community/posts/${id}`, payload),
 
   getComments: (id: string) => apiClient.get(`/community/posts/${id}/comments`),
 

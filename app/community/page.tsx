@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Trash2,
   Send,
+  Pencil,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
@@ -280,6 +281,15 @@ export default function CommunityPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
 
+  // Edit existing post (author-only)
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [editSubject, setEditSubject] = useState<string>('Mathematics')
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(null)
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null)
+  const [editingImageUploading, setEditingImageUploading] = useState(false)
+
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState<string[]>(['', '', '', ''])
   const [pollEndsAt, setPollEndsAt] = useState<string>('') // YYYY-MM-DD
@@ -306,6 +316,42 @@ export default function CommunityPage() {
     setPollEndsAt('')
     setUploadingImage(false)
   }, [])
+
+  const startEditPost = useCallback((post: CommunityPost) => {
+    if (editImagePreviewUrl) URL.revokeObjectURL(editImagePreviewUrl)
+    setEditingPostId(post._id)
+    setEditContent(post.content || '')
+    setEditSubject(post.subject || 'Mathematics')
+    setEditImageFile(null)
+    setEditImagePreviewUrl(null)
+    setEditImageUrl(post.imageUrl || null)
+    setEditingImageUploading(false)
+  }, [editImagePreviewUrl])
+
+  const cancelEditPost = useCallback(() => {
+    if (editImagePreviewUrl) URL.revokeObjectURL(editImagePreviewUrl)
+    setEditingPostId(null)
+    setEditContent('')
+    setEditSubject('Mathematics')
+    setEditImageFile(null)
+    setEditImagePreviewUrl(null)
+    setEditImageUrl(null)
+    setEditingImageUploading(false)
+  }, [editImagePreviewUrl])
+
+  const handleEditImagePick = useCallback(
+    (file: File | null) => {
+      // Revoke previous preview URL to avoid leaks
+      if (editImagePreviewUrl) URL.revokeObjectURL(editImagePreviewUrl)
+      setEditImageFile(file)
+      if (!file) {
+        setEditImagePreviewUrl(null)
+        return
+      }
+      setEditImagePreviewUrl(URL.createObjectURL(file))
+    },
+    [editImagePreviewUrl],
+  )
 
   const onDrop = useCallback((accepted: File[]) => {
     const file = accepted?.[0]
@@ -427,6 +473,74 @@ export default function CommunityPage() {
       }
     },
     [posts, showToast],
+  )
+
+  const submitEdit = useCallback(
+    async (postId: string) => {
+      const trimmed = editContent.trim()
+      if (!trimmed) return
+
+      const prev = posts.find((p) => p._id === postId)
+      if (!prev) return
+
+      let nextImageUrl: string | null = editImageFile ? null : editImageUrl
+      if (editImageFile) {
+        // Upload selected image before updating the post
+        setEditingImageUploading(true)
+        try {
+          const res = await communityApi.uploadImage(editImageFile)
+          const data = res.data as { imageUrl?: string }
+          nextImageUrl = data.imageUrl || null
+        } catch (e: any) {
+          showToast(e?.message || 'Something went wrong, try again')
+          return
+        } finally {
+          setEditingImageUploading(false)
+        }
+      }
+
+      const payload = {
+        content: trimmed,
+        subject: editSubject ? editSubject : null,
+        imageUrl: nextImageUrl,
+      }
+
+      // Optimistic update
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p._id === postId
+            ? {
+                ...p,
+                content: payload.content,
+                subject: payload.subject,
+                imageUrl: payload.imageUrl,
+              }
+            : p,
+        ),
+      )
+
+      try {
+        const res = await communityApi.updatePost(postId, payload)
+        const data = res.data as { post: CommunityPost }
+        setPosts((prevPosts) => prevPosts.map((p) => (p._id === postId ? data.post : p)))
+        showToast('Post updated')
+        setEditingPostId(null)
+      } catch {
+        // Revert on error
+        if (prev) {
+          setPosts((prevPosts) => prevPosts.map((p) => (p._id === postId ? prev : p)))
+        }
+        showToast('Something went wrong, try again')
+      }
+    },
+    [
+      editContent,
+      editSubject,
+      editImageFile,
+      editImageUrl,
+      posts,
+      showToast,
+    ],
   )
 
   const toggleComments = useCallback(
@@ -1003,24 +1117,119 @@ export default function CommunityPage() {
                       </div>
 
                       {post.authorId === myUid && (
-                        <button
-                          type="button"
-                          className="text-red-600 hover:opacity-80"
-                          onClick={() => void handleDelete(post._id)}
-                          aria-label="Delete post"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {editingPostId !== post._id && (
+                            <button
+                              type="button"
+                              className="text-[#5B4CF5] hover:opacity-80"
+                              onClick={() => startEditPost(post)}
+                              aria-label="Edit post"
+                            >
+                              <Pencil className="w-5 h-5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="text-red-600 hover:opacity-80"
+                            onClick={() => void handleDelete(post._id)}
+                            aria-label="Delete post"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       )}
                     </div>
 
                     {/* Content */}
-                    <div className="mt-3 text-sm text-[#0F172A] dark:text-white leading-relaxed whitespace-pre-wrap">
-                      {post.content}
-                    </div>
+                    {editingPostId === post._id ? (
+                      <div className="mt-3 space-y-3">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          maxLength={1000}
+                          className="w-full resize-none border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                          rows={4}
+                        />
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span>
+                            {editContent.length}/{1000}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Subject</div>
+                          <select
+                            value={editSubject}
+                            onChange={(e) => setEditSubject(e.target.value)}
+                            className="w-full border border-[#E8EAED] rounded-[12px] p-3 outline-none text-sm bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                          >
+                            {SUBJECTS.filter((s) => s.id !== 'All').map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Image</div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="block w-full text-xs text-slate-600 dark:text-slate-300"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null
+                              handleEditImagePick(file)
+                            }}
+                          />
+                          {(editImagePreviewUrl || editImageUrl) && (
+                            <div className="mt-3 flex items-start gap-3">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={editImagePreviewUrl || editImageUrl || ''}
+                                alt="Edit preview"
+                                className="w-16 h-16 rounded-lg object-cover border border-[#E8EAED]"
+                              />
+                              <button
+                                type="button"
+                                className="text-xs font-bold text-red-600"
+                                onClick={() => {
+                                  handleEditImagePick(null)
+                                  setEditImageUrl(null)
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            disabled={editingImageUploading || !editContent.trim()}
+                            onClick={() => void submitEdit(post._id)}
+                            className="flex-1 min-h-[44px] rounded-[12px] font-bold text-sm px-4 py-2 bg-[#5B4CF5] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {editingImageUploading ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditPost}
+                            className="min-h-[44px] rounded-[12px] border border-[#E8EAED] font-bold text-sm px-4 bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-sm text-[#0F172A] dark:text-white leading-relaxed whitespace-pre-wrap">
+                        {post.content}
+                      </div>
+                    )}
 
                     {/* Image */}
-                    {post.imageUrl && (
+                    {editingPostId !== post._id && post.imageUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={post.imageUrl}
