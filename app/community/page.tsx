@@ -1219,8 +1219,8 @@ function LeaderboardPanel({
 
   return (
     <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-slate-900/60 dark:border-gray-700">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-black text-[#0F172A] dark:text-white">Top Students This Week</div>
+        <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-black text-[#0F172A] dark:text-white">Leaderboard</div>
         <div className="text-xs font-bold text-slate-500">🏆</div>
       </div>
 

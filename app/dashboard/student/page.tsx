@@ -262,7 +262,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div className="max-w-md">
-          <ProgressWidget onViewFull={() => router.push('/community')} />
+          <ProgressWidget onViewFull={() => router.push('/dashboard/student/community')} />
         </div>
 
         {/* Stats Grid */}
