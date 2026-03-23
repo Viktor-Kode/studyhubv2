@@ -1,5 +1,6 @@
 'use client'
 
+import { useId } from 'react'
 import { Trophy, Zap, Flame } from 'lucide-react'
 import { useProgress } from '@/hooks/useProgress'
 type Props = {
@@ -10,6 +11,7 @@ const R = 40
 const CIRC = 2 * Math.PI * R
 
 export default function ProgressWidget({ onViewFull }: Props) {
+  const ringGradId = useId().replace(/:/g, '')
   const { progress, loading } = useProgress()
   if (loading || !progress) return <div className="pw-skeleton" aria-hidden />
 
@@ -34,7 +36,7 @@ export default function ProgressWidget({ onViewFull }: Props) {
         <div className="pw-ring-wrap" aria-hidden>
           <svg className="pw-ring-svg" viewBox="0 0 108 108" width="108" height="108">
             <defs>
-              <linearGradient id="pw-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id={ringGradId} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#5B4CF5" />
                 <stop offset="100%" stopColor="#8B5CF6" />
               </linearGradient>
@@ -45,6 +47,7 @@ export default function ProgressWidget({ onViewFull }: Props) {
               cx="54"
               cy="54"
               r={R}
+              stroke={`url(#${ringGradId})`}
               strokeDasharray={CIRC}
               strokeDashoffset={dashOffset}
             />
