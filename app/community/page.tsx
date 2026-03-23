@@ -34,7 +34,12 @@ import { MdQuiz, MdSchool } from 'react-icons/md'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
-import { communityApi, type CommunityPost } from '@/lib/api/communityApi'
+import {
+  communityApi,
+  type CommunityPost,
+  type CommunityGroup,
+  type CommunityGroupMessage,
+} from '@/lib/api/communityApi'
 import { useToast } from '@/hooks/useToast'
 import { useThemeStore } from '@/lib/store/themeStore'
 
@@ -313,6 +318,16 @@ export default function CommunityPage() {
     cbtPoints: number
     totalPoints: number
   } | null>(null)
+  const [communitySection, setCommunitySection] = useState<'feed' | 'groups'>('feed')
+  const [groups, setGroups] = useState<CommunityGroup[]>([])
+  const [groupsLoading, setGroupsLoading] = useState(false)
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [groupMessages, setGroupMessages] = useState<Record<string, CommunityGroupMessage[]>>({})
+  const [groupMessageDraft, setGroupMessageDraft] = useState('')
+  const [createGroupName, setCreateGroupName] = useState('')
+  const [createGroupDescription, setCreateGroupDescription] = useState('')
+  const [memberSearchQuery, setMemberSearchQuery] = useState('')
+  const [memberSearchResults, setMemberSearchResults] = useState<Array<{ uid: string; name: string; email: string; avatar: string }>>([])
 
   // Like "bump" micro-interaction
   const [likeBumpPostId, setLikeBumpPostId] = useState<string | null>(null)
@@ -508,6 +523,131 @@ export default function CommunityPage() {
       alive = false
     }
   }, [user?.uid])
+
+  const loadGroups = useCallback(async () => {
+    try {
+      setGroupsLoading(true)
+      const res = await communityApi.getGroups()
+      const data = res.data as { groups?: CommunityGroup[] }
+      const next = data.groups || []
+      setGroups(next)
+      if (!selectedGroupId && next.length) setSelectedGroupId(next[0]._id)
+    } catch {
+      showToast('Something went wrong, try again')
+    } finally {
+      setGroupsLoading(false)
+    }
+  }, [selectedGroupId, showToast])
+
+  useEffect(() => {
+    if (communitySection !== 'groups') return
+    void loadGroups()
+  }, [communitySection, loadGroups])
+
+  const selectedGroup = useMemo(
+    () => groups.find((g) => g._id === selectedGroupId) || null,
+    [groups, selectedGroupId],
+  )
+
+  const loadGroupMessages = useCallback(
+    async (groupId: string) => {
+      try {
+        const res = await communityApi.getGroupMessages(groupId)
+        const data = res.data as { messages?: CommunityGroupMessage[] }
+        setGroupMessages((prev) => ({ ...prev, [groupId]: data.messages || [] }))
+      } catch {
+        showToast('Something went wrong, try again')
+      }
+    },
+    [showToast],
+  )
+
+  useEffect(() => {
+    if (!selectedGroupId || communitySection !== 'groups') return
+    void loadGroupMessages(selectedGroupId)
+  }, [selectedGroupId, communitySection, loadGroupMessages])
+
+  useEffect(() => {
+    let alive = true
+    if (communitySection !== 'groups') return
+    const q = memberSearchQuery.trim()
+    if (q.length < 2) {
+      setMemberSearchResults([])
+      return
+    }
+    ;(async () => {
+      try {
+        const res = await communityApi.searchUsers(q)
+        const data = res.data as { users?: Array<{ uid: string; name: string; email: string; avatar: string }> }
+        if (!alive) return
+        setMemberSearchResults(data.users || [])
+      } catch {
+        if (!alive) return
+        setMemberSearchResults([])
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [communitySection, memberSearchQuery])
+
+  const handleCreateGroup = useCallback(async () => {
+    const name = createGroupName.trim()
+    if (!name) return
+    try {
+      const res = await communityApi.createGroup({
+        name,
+        description: createGroupDescription.trim() || undefined,
+      })
+      const data = res.data as { group?: CommunityGroup }
+      if (data.group) {
+        setGroups((prev) => [data.group!, ...prev])
+        setSelectedGroupId(data.group._id)
+      }
+      setCreateGroupName('')
+      setCreateGroupDescription('')
+      showToast('Study group created')
+    } catch {
+      showToast('Something went wrong, try again')
+    }
+  }, [createGroupName, createGroupDescription, showToast])
+
+  const handleAddMember = useCallback(
+    async (uid: string) => {
+      if (!selectedGroupId) return
+      try {
+        const res = await communityApi.addGroupMember(selectedGroupId, uid)
+        const data = res.data as { group?: CommunityGroup }
+        if (data.group) {
+          setGroups((prev) => prev.map((g) => (g._id === selectedGroupId ? data.group! : g)))
+          showToast('Member added')
+        }
+      } catch {
+        showToast('Something went wrong, try again')
+      }
+    },
+    [selectedGroupId, showToast],
+  )
+
+  const handleSendGroupMessage = useCallback(async () => {
+    const txt = groupMessageDraft.trim()
+    if (!txt || !selectedGroupId) return
+    try {
+      const res = await communityApi.sendGroupMessage(selectedGroupId, txt)
+      const data = res.data as { message?: CommunityGroupMessage }
+      setGroupMessageDraft('')
+      if (data.message) {
+        setGroupMessages((prev) => ({
+          ...prev,
+          [selectedGroupId]: [...(prev[selectedGroupId] || []), data.message!],
+        }))
+      } else {
+        void loadGroupMessages(selectedGroupId)
+      }
+    } catch {
+      showToast('Something went wrong, try again')
+    }
+  }, [groupMessageDraft, selectedGroupId, loadGroupMessages, showToast])
 
   const activeToday = useMemo(() => {
     const seen = new Set<string>()
@@ -1346,7 +1486,29 @@ export default function CommunityPage() {
               </div>
             </div>
 
+            <div className="mb-4 flex items-center gap-2 rounded-[14px] border border-[#E8EAED] bg-white p-2 dark:bg-slate-900/60 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setCommunitySection('feed')}
+                className={`px-4 py-2 rounded-[10px] text-sm font-bold ${
+                  communitySection === 'feed' ? 'bg-[#5B4CF5] text-white' : 'text-slate-700 dark:text-slate-200'
+                }`}
+              >
+                Feed
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommunitySection('groups')}
+                className={`px-4 py-2 rounded-[10px] text-sm font-bold ${
+                  communitySection === 'groups' ? 'bg-[#5B4CF5] text-white' : 'text-slate-700 dark:text-slate-200'
+                }`}
+              >
+                Study Groups
+              </button>
+            </div>
+
             {/* Feed */}
+            <div className={communitySection === 'feed' ? '' : 'hidden'}>
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <input
@@ -1693,6 +1855,135 @@ export default function CommunityPage() {
                 </button>
               </div>
             )}
+            </div>
+
+            <div className={communitySection === 'groups' ? 'space-y-4' : 'hidden'}>
+              <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 dark:bg-slate-900/60 dark:border-gray-700">
+                <div className="text-sm font-black text-[#0F172A] dark:text-white mb-3">Create Study Group</div>
+                <div className="grid gap-3">
+                  <input
+                    value={createGroupName}
+                    onChange={(e) => setCreateGroupName(e.target.value)}
+                    placeholder="Group name (e.g. WAEC Chemistry Squad)"
+                    className="w-full border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                  />
+                  <textarea
+                    value={createGroupDescription}
+                    onChange={(e) => setCreateGroupDescription(e.target.value)}
+                    placeholder="What this group is for"
+                    rows={2}
+                    className="w-full border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleCreateGroup()}
+                    disabled={!createGroupName.trim()}
+                    className="min-h-[44px] rounded-[12px] font-bold text-sm px-4 py-2 bg-[#5B4CF5] text-white disabled:opacity-50"
+                  >
+                    Create Group
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
+                <div className="rounded-[16px] border border-[#E8EAED] bg-white p-3 dark:bg-slate-900/60 dark:border-gray-700">
+                  <div className="text-xs font-bold text-slate-500 dark:text-slate-300 mb-2">Your groups</div>
+                  {groupsLoading ? (
+                    <div className="text-sm text-slate-500">Loading...</div>
+                  ) : groups.length === 0 ? (
+                    <div className="text-sm text-slate-500">No groups yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {groups.map((g) => (
+                        <button
+                          key={g._id}
+                          type="button"
+                          onClick={() => setSelectedGroupId(g._id)}
+                          className={`w-full text-left rounded-[10px] px-3 py-2 text-sm font-bold border ${
+                            selectedGroupId === g._id
+                              ? 'bg-[#5B4CF5] text-white border-[#5B4CF5]'
+                              : 'border-[#E8EAED] text-slate-700 dark:text-slate-200 dark:border-gray-700'
+                          }`}
+                        >
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 dark:bg-slate-900/60 dark:border-gray-700">
+                  {!selectedGroup ? (
+                    <div className="text-sm text-slate-500">Pick a group to start discussing.</div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <div className="text-sm font-black text-[#0F172A] dark:text-white">{selectedGroup.name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-300">{selectedGroup.members.length} members</div>
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <input
+                          value={memberSearchQuery}
+                          onChange={(e) => setMemberSearchQuery(e.target.value)}
+                          placeholder="Search students to add..."
+                          className="w-full border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                        />
+                        {memberSearchResults.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-36 overflow-y-auto">
+                            {memberSearchResults.map((u) => (
+                              <div key={u.uid} className="flex items-center justify-between gap-2 text-xs border border-[#E8EAED] dark:border-gray-700 rounded-[10px] px-2 py-1">
+                                <span className="font-bold text-slate-700 dark:text-slate-200">{u.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleAddMember(u.uid)}
+                                  className="text-[#5B4CF5] font-bold"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border border-[#E8EAED] dark:border-gray-700 rounded-[12px] p-3 h-72 overflow-y-auto space-y-3">
+                        {(groupMessages[selectedGroup._id] || []).map((m) => (
+                          <div key={m._id} className={`text-sm ${m.authorId === myUid ? 'text-right' : 'text-left'}`}>
+                            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-300 mb-1">{m.authorName}</div>
+                            <div className="inline-block rounded-[10px] px-3 py-2 bg-[#EEF2FF] dark:bg-slate-800 text-[#0F172A] dark:text-slate-100">
+                              {m.content}
+                            </div>
+                          </div>
+                        ))}
+                        {(groupMessages[selectedGroup._id] || []).length === 0 && (
+                          <div className="text-sm text-slate-500">No messages yet.</div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2">
+                        <input
+                          value={groupMessageDraft}
+                          onChange={(e) => setGroupMessageDraft(e.target.value)}
+                          placeholder="Share ideas, plans, past questions..."
+                          className="flex-1 border border-[#E8EAED] rounded-[12px] px-3 py-2 text-sm outline-none bg-white dark:bg-slate-900/60 dark:border-gray-700 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleSendGroupMessage()}
+                          disabled={!groupMessageDraft.trim()}
+                          className="min-h-[44px] rounded-[12px] px-4 font-bold text-sm bg-[#5B4CF5] text-white disabled:opacity-50"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </main>
             </div>
           </div>

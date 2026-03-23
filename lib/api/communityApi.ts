@@ -20,6 +20,26 @@ export type CommunityPost = {
   createdAt: string
 }
 
+export type CommunityGroup = {
+  _id: string
+  name: string
+  description?: string
+  createdBy: string
+  members: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type CommunityGroupMessage = {
+  _id: string
+  groupId: string
+  authorId: string
+  authorName: string
+  authorAvatar?: string | null
+  content: string
+  createdAt: string
+}
+
 export const communityApi = {
   getPosts: (params?: { page?: number; limit?: number; subject?: string }) =>
     apiClient.get('/community/posts', { params }),
@@ -51,6 +71,17 @@ export const communityApi = {
     apiClient.post(`/community/posts/${id}/vote`, { optionIndex }),
 
   getLeaderboard: () => apiClient.get('/community/leaderboard'),
+
+  // Groups
+  searchUsers: (q: string) => apiClient.get('/community/users/search', { params: { q } }),
+  getGroups: () => apiClient.get('/community/groups'),
+  createGroup: (payload: { name: string; description?: string; memberIds?: string[] }) =>
+    apiClient.post('/community/groups', payload),
+  addGroupMember: (groupId: string, userId: string) =>
+    apiClient.post(`/community/groups/${groupId}/members`, { userId }),
+  getGroupMessages: (groupId: string) => apiClient.get(`/community/groups/${groupId}/messages`),
+  sendGroupMessage: (groupId: string, content: string) =>
+    apiClient.post(`/community/groups/${groupId}/messages`, { content }),
 
   uploadImage: (file: File) => {
     const formData = new FormData()
