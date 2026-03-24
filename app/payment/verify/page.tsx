@@ -10,9 +10,10 @@ import Link from 'next/link'
 function VerifyContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const transactionId = searchParams.get('transaction_id')
-    const txRef = searchParams.get('tx_ref')
-    const statusParam = searchParams.get('status')
+    const transactionId =
+        searchParams.get('transaction_id') || searchParams.get('transactionId')
+    const txRef = searchParams.get('tx_ref') || searchParams.get('txRef')
+    const statusParam = (searchParams.get('status') || '').toLowerCase()
     const { refreshUser } = useAuthStore()
     const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
     const [message, setMessage] = useState('Verifying your payment...')
@@ -30,26 +31,27 @@ function VerifyContent() {
 
         const verify = async () => {
             try {
-                if (statusParam === 'successful') {
-                    const data = await paymentApi.verifyPayment(transactionId, txRef)
-                    if (data.success) {
-                        await refreshUser()
-                        setStatus('success')
-                        setMessage(data.message || 'Your plan has been upgraded successfully!')
-                    } else {
-                        setStatus('failed')
-                        setMessage(data.error || 'Payment verification failed.')
-                    }
-                } else if (statusParam === 'cancelled') {
+                if (statusParam === 'cancelled') {
                     setStatus('failed')
                     setMessage('Payment was cancelled.')
+                    return
+                }
+
+                // Server verifies with Flutterwave — do not rely on `status` alone (case,
+                // missing param, or provider-specific values like completed/pending).
+                const data = await paymentApi.verifyPayment(transactionId, txRef)
+                if (data.success) {
+                    await refreshUser()
+                    setStatus('success')
+                    setMessage(data.message || 'Your plan has been upgraded successfully!')
                 } else {
                     setStatus('failed')
-                    setMessage('Payment was not successful.')
+                    setMessage(data.error || 'Payment verification failed.')
                 }
             } catch (err: any) {
                 setStatus('failed')
-                setMessage(err.response?.data?.error || err.message || 'Verification error occurred.')
+                const apiErr = err.response?.data?.error || err.response?.data?.message
+                setMessage(apiErr || err.message || 'Verification error occurred.')
             }
         }
 
