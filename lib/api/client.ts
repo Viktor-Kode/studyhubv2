@@ -29,7 +29,8 @@ apiClient.interceptors.request.use(
     if (
       url.includes('/teacher') ||
       url.includes('/teacher-tools') ||
-      url.includes('/generate-topic-questions')
+      url.includes('/generate-topic-questions') ||
+      url.includes('/community/upload-image')
     ) {
       config.timeout = 120000 // 2 minutes
     }

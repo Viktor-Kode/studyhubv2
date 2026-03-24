@@ -28,17 +28,30 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
   const query = req.nextUrl.searchParams.toString()
   const url = `${base}/${pathAfterApi}${query ? `?${query}` : ''}`
 
+  const incomingContentType = req.headers.get('content-type')
   const headers: Record<string, string> = {
-    'content-type': req.headers.get('content-type') || 'application/json',
     accept: req.headers.get('accept') || 'application/json',
+  }
+  // Preserve multipart boundary and other charsets; only default for JSON-ish requests
+  if (incomingContentType) {
+    headers['content-type'] = incomingContentType
+  } else if (!['GET', 'HEAD'].includes(req.method)) {
+    headers['content-type'] = 'application/json'
   }
   const auth = req.headers.get('authorization')
   if (auth) headers.authorization = auth
 
+  // Multipart and other binary bodies must not go through .text() — that corrupts uploads.
+  let body: ArrayBuffer | undefined
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    const buf = await req.arrayBuffer()
+    body = buf.byteLength ? buf : undefined
+  }
+
   const init: RequestInit = {
     method: req.method,
     headers,
-    body: ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text(),
+    body,
     redirect: 'manual',
     cache: 'no-store',
   }
