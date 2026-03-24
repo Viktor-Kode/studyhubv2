@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { paymentApi } from '@/lib/api/paymentApi'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -16,6 +16,7 @@ function VerifyContent() {
     const { refreshUser } = useAuthStore()
     const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
     const [message, setMessage] = useState('Verifying your payment...')
+    const verifyStarted = useRef(false)
 
     useEffect(() => {
         if (!transactionId || !txRef) {
@@ -23,6 +24,9 @@ function VerifyContent() {
             setMessage('No payment reference found.')
             return
         }
+
+        if (verifyStarted.current) return
+        verifyStarted.current = true
 
         const verify = async () => {
             try {
