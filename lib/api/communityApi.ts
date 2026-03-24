@@ -8,12 +8,15 @@ export type CommunityPost = {
   content: string
   imageUrl: string | null
   subject: string | null
-  type: 'post' | 'poll'
+  type: 'post' | 'poll' | 'question'
   likesCount: number
   commentsCount: number
   isLiked: boolean
+  isTrending?: boolean
   authorRole?: string | null
   authorIsVerified?: boolean
+  bestAnswerCommentId?: string | null
+  title?: string | null
   poll?: {
     question: string | null
     options: { text: string | null; votes: string[] }[]
@@ -69,9 +72,14 @@ export const communityApi = {
   addComment: (id: string, content: string) =>
     apiClient.post(`/community/posts/${id}/comments`, { content }),
 
+  markBestAnswer: (id: string, commentId: string) =>
+    apiClient.post(`/community/posts/${id}/best-answer`, { commentId }),
+
   votePoll: (id: string, optionIndex: number) =>
     apiClient.post(`/community/posts/${id}/vote`, { optionIndex }),
 
+  getTrending: () => apiClient.get('/community/trending'),
+  getMe: () => apiClient.get('/community/me'),
   getLeaderboard: () => apiClient.get('/community/leaderboard'),
 
   // Groups
