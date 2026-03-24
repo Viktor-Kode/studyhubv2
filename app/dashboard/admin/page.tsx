@@ -839,6 +839,7 @@ function UsersTab({
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null)
   const [freeTarget, setFreeTarget] = useState<AdminUserRow | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<AdminUserRow | null>(null)
   const [freeDays, setFreeDays] = useState(7)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -892,7 +893,7 @@ function UsersTab({
   }
 
   const quickAction = async (
-    action: 'ban_user' | 'give_free_access',
+    action: 'ban_user' | 'give_free_access' | 'revoke_gifted_access',
     userId: string,
     extra?: { days?: number }
   ) => {
@@ -933,6 +934,16 @@ function UsersTab({
     await quickAction('give_free_access', freeTarget._id, { days: freeDays })
     setFreeTarget(null)
   }
+
+  const confirmRevokeGift = async () => {
+    if (!revokeTarget) return
+    await quickAction('revoke_gifted_access', revokeTarget._id)
+    setRevokeTarget(null)
+  }
+
+  const hasActiveStudentPlan = (u: AdminUserRow) =>
+    u.subscriptionStatus === 'active' &&
+    (u.subscriptionPlan === 'weekly' || u.subscriptionPlan === 'monthly')
 
   return (
     <div>
@@ -1055,6 +1066,17 @@ function UsersTab({
                           >
                             Give Free Access
                           </button>
+                          {hasActiveStudentPlan(u) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuOpen(null)
+                                setRevokeTarget(u)
+                              }}
+                            >
+                              Cancel gifted access
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="danger"
@@ -1154,6 +1176,31 @@ function UsersTab({
               </button>
               <button type="button" className="confirm" onClick={confirmFree}>
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {revokeTarget && (
+        <div
+          className="admin-modal-v2-overlay"
+          onClick={() => setRevokeTarget(null)}
+          role="presentation"
+        >
+          <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
+            <h3>Cancel gifted access?</h3>
+            <p>
+              {revokeTarget.name || revokeTarget.email} will lose their active student plan (weekly or
+              monthly) immediately and return to the free tier. Only use this if you granted access by
+              mistake. If they paid for a plan, check their payments before continuing.
+            </p>
+            <div className="admin-modal-actions-v2">
+              <button type="button" className="cancel" onClick={() => setRevokeTarget(null)}>
+                Back
+              </button>
+              <button type="button" className="danger" onClick={confirmRevokeGift}>
+                Remove access
               </button>
             </div>
           </div>
