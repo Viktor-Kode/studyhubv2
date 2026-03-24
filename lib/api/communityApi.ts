@@ -53,7 +53,7 @@ export const communityApi = {
     content: string
     subject?: string | null
     imageUrl?: string | null
-    type?: 'post' | 'poll'
+    type?: 'post' | 'poll' | 'question'
     poll?: {
       question: string
       options: { text: string }[]
@@ -64,8 +64,15 @@ export const communityApi = {
   likePost: (id: string) => apiClient.post(`/community/posts/${id}/like`),
 
   deletePost: (id: string) => apiClient.delete(`/community/posts/${id}`),
-  updatePost: (id: string, payload: { content?: string; subject?: string | null; imageUrl?: string | null }) =>
-    apiClient.patch(`/community/posts/${id}`, payload),
+  updatePost: (
+    id: string,
+    payload: {
+      content?: string
+      subject?: string | null
+      imageUrl?: string | null
+      pollOptions?: string[]
+    }
+  ) => apiClient.put(`/community/posts/${id}`, payload),
 
   getComments: (id: string) => apiClient.get(`/community/posts/${id}/comments`),
 

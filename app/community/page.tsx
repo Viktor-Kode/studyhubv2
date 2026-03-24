@@ -6,8 +6,8 @@ import { formatDistanceToNow } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Bell,
   BarChart2,
+  Bell,
   CheckCircle2,
   Crown,
   FileText,
@@ -16,10 +16,13 @@ import {
   Lightbulb,
   Medal,
   MessageSquare,
+  MoreVertical,
+  Pencil,
   Plus,
   Send,
   Share2,
   ThumbsUp,
+  Trash2,
   User,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -78,6 +81,11 @@ const rankFromPoints = (totalPoints: number) => {
 
 const timeAgo = (dateString: string) => formatDistanceToNow(new Date(dateString), { addSuffix: true })
 
+const trendingScore = (post: CommunityPost) => post.likesCount + post.commentsCount * 2
+
+const pollVotesTotal = (post: CommunityPost) =>
+  post.poll?.options?.reduce((sum, o) => sum + (o.votes?.length || 0), 0) || 0
+
 const initials = (name: string) =>
   name
     .split(' ')
@@ -119,6 +127,14 @@ export default function CommunityPage() {
   const [expandedLeaderboard, setExpandedLeaderboard] = useState(false)
   const [likeEffectPost, setLikeEffectPost] = useState<string | null>(null)
   const [streakPulse, setStreakPulse] = useState(false)
+  const [menuPostId, setMenuPostId] = useState<string | null>(null)
+  const [editingPost, setEditingPost] = useState<CommunityPost | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [editSubject, setEditSubject] = useState('')
+  const [editPollOptionTexts, setEditPollOptionTexts] = useState<string[]>([])
+  const [editSaving, setEditSaving] = useState(false)
+  const [deletingPost, setDeletingPost] = useState<CommunityPost | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setImageFile(acceptedFiles[0] || null)
@@ -131,8 +147,12 @@ export default function CommunityPage() {
   })
 
   const selectedSubjectPosts = useMemo(() => {
-    if (subject === 'All') return posts
-    return posts.filter((post) => post.subject === subject)
+    const base = subject === 'All' ? posts : posts.filter((post) => post.subject === subject)
+    return [...base].sort((a, b) => {
+      const d = trendingScore(b) - trendingScore(a)
+      if (d !== 0) return d
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
   }, [posts, subject])
 
   const loadAll = useCallback(async () => {
@@ -154,13 +174,7 @@ export default function CommunityPage() {
         null
       const myRank = leaderboardData.myRank || 0
 
-      const nextTrending = [...nextPosts]
-        .sort((a, b) => {
-          const aScore = a.likesCount + a.commentsCount * 2
-          const bScore = b.likesCount + b.commentsCount * 2
-          return bScore - aScore
-        })
-        .slice(0, 5)
+      const nextTrending = [...nextPosts].sort((a, b) => trendingScore(b) - trendingScore(a)).slice(0, 5)
 
       setPosts(nextPosts)
       setTrending(nextTrending)
@@ -279,11 +293,12 @@ export default function CommunityPage() {
           post._id === postId ? { ...post, isLiked: nextLiked, likesCount: Math.max(0, post.likesCount + (nextLiked ? 1 : -1)) } : post,
         ),
       )
-      setLikeEffectPost(postId)
-      window.setTimeout(() => setLikeEffectPost(null), 650)
+      if (nextLiked) {
+        setLikeEffectPost(postId)
+        window.setTimeout(() => setLikeEffectPost(null), 650)
+      }
       try {
         await communityApi.likePost(postId)
-        showToast(nextLiked ? '+2 points for receiving a like' : 'Like removed')
       } catch {
         setPosts((prev) =>
           prev.map((post) =>
@@ -295,6 +310,101 @@ export default function CommunityPage() {
     },
     [posts, showToast],
   )
+
+  const openEditModal = useCallback((post: CommunityPost) => {
+    setEditingPost(post)
+    setEditContent(post.content || '')
+    setEditSubject(post.subject || '')
+    setEditPollOptionTexts(
+      post.type === 'poll' && post.poll?.options?.length
+        ? post.poll.options.map((o) => (o.text || '').trim())
+        : ['', ''],
+    )
+    setMenuPostId(null)
+  }, [])
+
+  const saveEditedPost = useCallback(async () => {
+    if (!editingPost) return
+    const trimmed = editContent.trim()
+    if (!trimmed) {
+      showToast('Content is required')
+      return
+    }
+    const votesTotal = pollVotesTotal(editingPost)
+    let pollOptionsPayload: string[] | undefined
+    if (editingPost.type === 'poll' && votesTotal === 0) {
+      const cleaned = editPollOptionTexts.map((x) => x.trim()).filter(Boolean)
+      if (cleaned.length < 2) {
+        showToast('Poll needs at least two options')
+        return
+      }
+      pollOptionsPayload = cleaned.slice(0, 4)
+    }
+
+    const prevSnapshot = editingPost
+    setEditSaving(true)
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p._id !== editingPost._id) return p
+        const next: CommunityPost = {
+          ...p,
+          content: trimmed,
+          subject: editSubject || null,
+        }
+        if (p.type === 'poll' && p.poll) {
+          next.poll = {
+            ...p.poll,
+            question: trimmed,
+            ...(pollOptionsPayload
+              ? { options: pollOptionsPayload.map((text) => ({ text, votes: [] as string[] })) }
+              : {}),
+          }
+        }
+        return next
+      }),
+    )
+    try {
+      const res = await communityApi.updatePost(editingPost._id, {
+        content: trimmed,
+        subject: editSubject || null,
+        ...(pollOptionsPayload ? { pollOptions: pollOptionsPayload } : {}),
+      })
+      const updated = res.data?.post as CommunityPost | undefined
+      if (updated) {
+        setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)))
+      }
+      showToast('Post updated')
+      setEditingPost(null)
+    } catch {
+      setPosts((prev) => prev.map((p) => (p._id === prevSnapshot._id ? prevSnapshot : p)))
+      showToast('Failed to update post')
+    } finally {
+      setEditSaving(false)
+    }
+  }, [editContent, editPollOptionTexts, editSubject, editingPost, showToast])
+
+  const confirmDeletePost = useCallback(async () => {
+    if (!deletingPost) return
+    const id = deletingPost._id
+    const snapshot = deletingPost
+    setDeleteBusy(true)
+    setPosts((prev) => prev.filter((p) => p._id !== id))
+    setDeletingPost(null)
+    try {
+      await communityApi.deletePost(id)
+      showToast('Post deleted')
+      setCommentsByPost((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+    } catch {
+      setPosts((prev) => [snapshot, ...prev])
+      showToast('Failed to delete post')
+    } finally {
+      setDeleteBusy(false)
+    }
+  }, [deletingPost, showToast])
 
   const loadComments = useCallback(
     async (postId: string) => {
@@ -541,9 +651,9 @@ export default function CommunityPage() {
                     return (
                       <article key={post._id} id={`post-${post._id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:scale-[1.005] dark:border-slate-800 dark:bg-slate-900">
                         <div className="mb-3 flex items-start justify-between gap-3">
-                          <div>
-                            <div className="mb-1 flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100">{initials(post.authorName || 'S')}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100">{initials(post.authorName || 'S')}</div>
                               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{post.authorName}</p>
                               <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">{rankFromPoints((me?.totalPoints || 0) + 1)}</span>
                               {post.isTrending && (
@@ -555,6 +665,41 @@ export default function CommunityPage() {
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{timeAgo(post.createdAt)}</p>
                           </div>
+                          {isOwner && (
+                            <div className="relative shrink-0">
+                              <button
+                                type="button"
+                                aria-label="Post actions"
+                                onClick={() => setMenuPostId((id) => (id === post._id ? null : post._id))}
+                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                              >
+                                <MoreVertical className="h-5 w-5" />
+                              </button>
+                              {menuPostId === post._id && (
+                                <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditModal(post)}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    Edit post
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeletingPost(post)
+                                      setMenuPostId(null)
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete post
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {post.type === 'question' && (
@@ -589,10 +734,21 @@ export default function CommunityPage() {
                           </div>
                         )}
 
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-                          <button onClick={() => void toggleLike(post._id)} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                            <ThumbsUp className="h-4 w-4" />
-                            {post.likesCount}
+                        <div className="relative mt-3 flex flex-wrap items-center gap-3 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => void toggleLike(post._id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 font-semibold transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <ThumbsUp
+                              className={`h-4 w-4 shrink-0 transition-colors ${
+                                post.isLiked
+                                  ? 'fill-red-500 stroke-red-500 text-red-500'
+                                  : 'fill-transparent stroke-slate-400 text-slate-400 dark:stroke-slate-500 dark:text-slate-500'
+                              }`}
+                              strokeWidth={post.isLiked ? 2 : 1.75}
+                            />
+                            <span className={post.isLiked ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-300'}>{post.likesCount}</span>
                           </button>
                           <button onClick={() => void toggleCommentSection(post._id)} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                             <MessageSquare className="h-4 w-4" />
@@ -606,9 +762,13 @@ export default function CommunityPage() {
 
                         <AnimatePresence>
                           {likeEffectPost === post._id && (
-                            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: -10 }} exit={{ opacity: 0, y: -20 }} className="pointer-events-none mt-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600">
-                              <Plus className="h-4 w-4" />
-                              2
+                            <motion.div
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: -14 }}
+                              exit={{ opacity: 0, y: -24 }}
+                              className="pointer-events-none absolute left-0 top-full mt-0 inline-flex items-center gap-0.5 text-sm font-bold text-red-500"
+                            >
+                              +2
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -706,6 +866,150 @@ export default function CommunityPage() {
           </div>
         </div>
       </div>
+
+      {editingPost && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-post-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setEditingPost(null)
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h2 id="edit-post-title" className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+              <Pencil className="h-5 w-5 text-indigo-600" />
+              Edit post
+            </h2>
+            <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">Subject</label>
+            <select
+              value={editSubject || ''}
+              onChange={(e) => setEditSubject(e.target.value)}
+              className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="">All / none</option>
+              {SUBJECTS.filter((s) => s !== 'All').map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">
+              {editingPost.type === 'poll' ? 'Poll question' : 'Content'}
+            </label>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="mb-4 min-h-32 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            />
+            {editingPost.type === 'poll' && editingPost.poll && (
+              <div className="mb-4 space-y-2">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Poll options</p>
+                {pollVotesTotal(editingPost) > 0 ? (
+                  <ul className="space-y-2">
+                    {editingPost.poll.options.map((opt, i) => (
+                      <li
+                        key={i}
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      >
+                        {opt.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <>
+                    {editPollOptionTexts.map((opt, i) => (
+                      <input
+                        key={i}
+                        value={opt}
+                        onChange={(e) =>
+                          setEditPollOptionTexts((prev) => prev.map((t, j) => (j === i ? e.target.value : t)))
+                        }
+                        className="w-full rounded-xl border border-slate-200 p-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                        placeholder={`Option ${i + 1}`}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      disabled={editPollOptionTexts.length >= 4}
+                      onClick={() => setEditPollOptionTexts((prev) => [...prev, ''])}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add option
+                    </button>
+                    {editPollOptionTexts.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setEditPollOptionTexts((prev) => prev.slice(0, -1))}
+                        className="ml-3 text-xs font-semibold text-slate-600 dark:text-slate-400"
+                      >
+                        Remove last option
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingPost(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={editSaving}
+                onClick={() => void saveEditedPost()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
+              >
+                {editSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingPost && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-post-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeletingPost(null)
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h2 id="delete-post-title" className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete post
+            </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">Are you sure? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingPost(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => void confirmDeletePost()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+              >
+                {deleteBusy ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastHost message={toast?.message || null} />
     </ProtectedRoute>
   )
