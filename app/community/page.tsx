@@ -1,48 +1,37 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { formatDistanceToNow } from 'date-fns'
-import ReactMarkdown from 'react-markdown'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   BarChart2,
   Bell,
   CheckCircle2,
-  Crown,
   FileText,
   Flame,
+  Hash,
   HelpCircle,
   Lightbulb,
   Medal,
-  MessageSquare,
-  MoreVertical,
-  Pencil,
   Plus,
-  Send,
-  Share2,
-  ThumbsUp,
+  Pencil,
+  Search,
   Trash2,
-  User,
+  Users,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { CommunityPostCard, type CommunityComment } from '@/components/community/CommunityPostCard'
 import { useAuthStore } from '@/lib/store/authStore'
 import { communityApi, type CommunityPost } from '@/lib/api/communityApi'
+import { initials, pollVotesTotal, rankFromPoints } from '@/lib/community/utils'
 import { useToast } from '@/hooks/useToast'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 
 type FeedTab = 'post' | 'question' | 'poll'
 
-type CommunityComment = {
-  _id: string
-  postId: string
-  authorId: string
-  authorName: string
-  content: string
-  createdAt: string
-  rank?: string
-}
-
-type CommunityMe = {
+type FeedMeStats = {
   rank: string
   streak: number
   totalPoints: number
@@ -71,29 +60,6 @@ const SUBJECTS = [
   'Geography',
 ]
 
-const rankFromPoints = (totalPoints: number) => {
-  if (totalPoints >= 2000) return 'Campus Champion'
-  if (totalPoints >= 1000) return 'Top Scholar'
-  if (totalPoints >= 500) return 'Serious Scholar'
-  if (totalPoints >= 200) return 'Active Learner'
-  return 'Beginner'
-}
-
-const timeAgo = (dateString: string) => formatDistanceToNow(new Date(dateString), { addSuffix: true })
-
-const trendingScore = (post: CommunityPost) => post.likesCount + post.commentsCount * 2
-
-const pollVotesTotal = (post: CommunityPost) =>
-  post.poll?.options?.reduce((sum, o) => sum + (o.votes?.length || 0), 0) || 0
-
-const initials = (name: string) =>
-  name
-    .split(' ')
-    .map((x) => x[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-
 function ToastHost({ message }: { message: string | null }) {
   if (!message) return null
   return (
@@ -118,7 +84,18 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [trending, setTrending] = useState<CommunityPost[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
-  const [me, setMe] = useState<CommunityMe | null>(null)
+  const [me, setMe] = useState<FeedMeStats | null>(null)
+  const [communityStats, setCommunityStats] = useState<{
+    totalMembers: number
+    postsToday: number
+    activeUsers: number
+  } | null>(null)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [sortMode, setSortMode] = useState<'feed' | 'newest' | 'trending'>('feed')
+  const [extraTags, setExtraTags] = useState('')
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityComment[]>>({})
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
@@ -146,21 +123,26 @@ export default function CommunityPage() {
     maxFiles: 1,
   })
 
-  const selectedSubjectPosts = useMemo(() => {
-    const base = subject === 'All' ? posts : posts.filter((post) => post.subject === subject)
-    return [...base].sort((a, b) => {
-      const d = trendingScore(b) - trendingScore(a)
-      if (d !== 0) return d
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-  }, [posts, subject])
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 320)
+    return () => window.clearTimeout(t)
+  }, [searchInput])
 
   const loadAll = useCallback(async () => {
     try {
       setLoading(true)
-      const [postsRes, leaderboardRes] = await Promise.all([
-        communityApi.getPosts(),
+      const [postsRes, leaderboardRes, trendRes, statsRes, meRes] = await Promise.all([
+        communityApi.getPosts({
+          subject: subject === 'All' ? undefined : subject,
+          tag: tagFilter || undefined,
+          q: debouncedSearch || undefined,
+          sort: sortMode,
+          limit: 30,
+        }),
         communityApi.getLeaderboard(),
+        communityApi.getTrending().catch(() => ({ data: { posts: [] } })),
+        communityApi.getStats().catch(() => ({ data: {} })),
+        communityApi.getMe().catch(() => ({ data: null })),
       ])
 
       const postsData = postsRes.data || {}
@@ -174,23 +156,27 @@ export default function CommunityPage() {
         null
       const myRank = leaderboardData.myRank || 0
 
-      const nextTrending = [...nextPosts].sort((a, b) => trendingScore(b) - trendingScore(a)).slice(0, 5)
+      const apiMe = meRes.data?.me
+      const streak = apiMe?.streak ?? myEntry?.streak ?? 0
 
       setPosts(nextPosts)
-      setTrending(nextTrending)
+      setTrending((trendRes.data?.posts as CommunityPost[]) || [])
       setLeaderboard(leaderboardData.leaderboard || [])
       setMe({
-        rank: myEntry?.rank || rankFromPoints(myEntry?.totalPoints || 0),
-        streak: myEntry?.streak || 0,
-        totalPoints: myEntry?.totalPoints || 0,
+        rank: apiMe?.rank || myEntry?.rank || rankFromPoints(myEntry?.totalPoints || 0),
+        streak,
+        totalPoints: apiMe?.totalPoints ?? myEntry?.totalPoints ?? 0,
         leaderboardPosition: myRank,
       })
+      const statsPayload = statsRes.data as { stats?: { totalMembers: number; postsToday: number; activeUsers: number } } | undefined
+      setCommunityStats(statsPayload?.stats ?? null)
+      setUnreadNotifications(apiMe?.unreadNotifications ?? 0)
     } catch {
       showToast('Failed to load community data')
     } finally {
       setLoading(false)
     }
-  }, [myUid, showToast])
+  }, [debouncedSearch, myUid, showToast, sortMode, subject, tagFilter])
 
   useEffect(() => {
     void loadAll()
@@ -206,6 +192,12 @@ export default function CommunityPage() {
   const createPost = useCallback(async () => {
     const content = selectedTab === 'post' ? postText.trim() : selectedTab === 'question' ? questionText.trim() : pollQuestion.trim()
     if (!content) return
+
+    const tagList = extraTags
+      .split(/[,]+/)
+      .map((x) => x.trim().replace(/^#/, '').toLowerCase())
+      .filter(Boolean)
+      .slice(0, 8)
 
     let pollPayload: { question: string; options: { text: string }[]; endsAt: string } | undefined
     if (selectedTab === 'poll') {
@@ -230,10 +222,13 @@ export default function CommunityPage() {
       content,
       imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
       subject: subject === 'All' ? null : subject,
+      tags: tagList,
       type: selectedTab,
       likesCount: 0,
       commentsCount: 0,
       isLiked: false,
+      isBookmarked: false,
+      isPinned: false,
       createdAt: new Date().toISOString(),
       poll:
         selectedTab === 'poll'
@@ -263,6 +258,7 @@ export default function CommunityPage() {
         subject: subject === 'All' ? undefined : subject,
         imageUrl,
         poll: pollPayload,
+        ...(tagList.length ? { tags: tagList } : {}),
       })
       const created = response.data?.post
       if (created) {
@@ -273,6 +269,7 @@ export default function CommunityPage() {
       setPollQuestion('')
       setPollOptions(['', ''])
       setImageFile(null)
+      setExtraTags('')
       showToast('+5 points for creating a post')
       await loadAll()
     } catch {
@@ -281,7 +278,7 @@ export default function CommunityPage() {
     } finally {
       setSubmitting(false)
     }
-  }, [selectedTab, postText, questionText, pollQuestion, pollOptions, myUid, user?.name, imageFile, subject, showToast, loadAll])
+  }, [selectedTab, postText, questionText, pollQuestion, pollOptions, myUid, user?.name, imageFile, subject, extraTags, showToast, loadAll])
 
   const toggleLike = useCallback(
     async (postId: string) => {
@@ -507,6 +504,48 @@ export default function CommunityPage() {
     [myUid, posts, showToast],
   )
 
+  const toggleBookmark = useCallback(
+    async (postId: string) => {
+      const current = posts.find((p) => p._id === postId)
+      if (!current) return
+      const next = !current.isBookmarked
+      setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isBookmarked: next } : p)))
+      try {
+        await communityApi.toggleBookmark(postId)
+        showToast(next ? 'Saved to bookmarks' : 'Removed from bookmarks')
+      } catch {
+        setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isBookmarked: current.isBookmarked } : p)))
+        showToast('Could not update bookmark')
+      }
+    },
+    [posts, showToast],
+  )
+
+  const submitReport = useCallback(
+    async (postId: string, reason: string) => {
+      await communityApi.reportPost(postId, { reason })
+      showToast('Thanks — report submitted for review')
+    },
+    [showToast],
+  )
+
+  const togglePin = useCallback(
+    async (postId: string) => {
+      const current = posts.find((p) => p._id === postId)
+      if (!current) return
+      const nextPinned = !current.isPinned
+      setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isPinned: nextPinned } : p)))
+      try {
+        await communityApi.pinPost(postId, nextPinned)
+        showToast(nextPinned ? 'Post pinned' : 'Post unpinned')
+      } catch {
+        setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, isPinned: current.isPinned } : p)))
+        showToast('Could not update pin')
+      }
+    },
+    [posts, showToast],
+  )
+
   const displayedLeaderboard = expandedLeaderboard ? leaderboard : leaderboard.slice(0, 10)
 
   return (
@@ -514,12 +553,57 @@ export default function CommunityPage() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-4 pb-16 pt-6 dark:from-slate-950 dark:to-slate-900">
         <div className="mx-auto max-w-7xl">
           <header className="mb-6 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">StudyHelp Community</h1>
+              <div className="relative w-full max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search posts, people, tags…"
+                  className="h-10 w-full pl-9"
+                  aria-label="Search community"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {(['feed', 'newest', 'trending'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setSortMode(mode)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+                      sortMode === mode
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+                {tagFilter && (
+                  <Badge variant="outline" className="gap-1">
+                    <Hash className="h-3 w-3" />
+                    {tagFilter}
+                    <button type="button" className="ml-1 font-bold" onClick={() => setTagFilter(null)} aria-label="Clear tag">
+                      ×
+                    </button>
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                  <User className="h-5 w-5" />
-                </div>
+                <Link
+                  href="/community/profile"
+                  className="flex items-center gap-2 rounded-xl px-1 py-0.5 outline-none ring-indigo-500/0 transition hover:bg-slate-100 focus-visible:ring-2 dark:hover:bg-slate-800"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                    {initials(user?.name || 'Student')}
+                  </div>
+                  <span className="hidden max-w-[140px] truncate text-sm font-semibold text-slate-800 dark:text-slate-100 sm:inline">
+                    {user?.name || 'Profile'}
+                  </span>
+                </Link>
                 <div className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-xs font-semibold text-white">
                   {me?.rank || 'Beginner'}
                 </div>
@@ -530,9 +614,18 @@ export default function CommunityPage() {
                   <Flame className="h-4 w-4" />
                   {me?.streak || 0}
                 </motion.div>
-                <button className="rounded-full p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                <Link
+                  href="/community/notifications"
+                  className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  aria-label="Notifications"
+                >
                   <Bell className="h-5 w-5" />
-                </button>
+                  {unreadNotifications > 0 && (
+                    <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
               </div>
             </div>
           </header>
@@ -545,7 +638,10 @@ export default function CommunityPage() {
                   {SUBJECTS.map((item) => (
                     <button
                       key={item}
-                      onClick={() => setSubject(item)}
+                      onClick={() => {
+                        setSubject(item)
+                        setTagFilter(null)
+                      }}
                       className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         subject === item
                           ? 'border-indigo-600 bg-indigo-600 text-white'
@@ -566,6 +662,31 @@ export default function CommunityPage() {
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300">Don&apos;t break it! Next milestone in {Math.max(1, 7 - ((me?.streak || 0) % 7))} days.</p>
               </div>
+
+              {communityStats && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <Users className="h-4 w-4 text-indigo-600" />
+                    Community stats
+                  </div>
+                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                    <li className="flex justify-between">
+                      <span>Members</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
+                        {communityStats.totalMembers.toLocaleString()}
+                      </span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Posts today</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{communityStats.postsToday}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Active (24h)</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{communityStats.activeUsers}</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </aside>
 
             <main className="space-y-4">
@@ -619,6 +740,16 @@ export default function CommunityPage() {
                   </div>
                 )}
 
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">Tags (optional)</label>
+                  <Input
+                    value={extraTags}
+                    onChange={(e) => setExtraTags(e.target.value)}
+                    placeholder="#biology, exam — or type #hashtag in the post body"
+                    className="text-sm"
+                  />
+                </div>
+
                 <div className="mt-3 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700" {...getRootProps()}>
                   <input {...getInputProps()} />
                   <p className="text-xs text-slate-500 dark:text-slate-300">{isDragActive ? 'Drop image here' : imageFile ? imageFile.name : 'Drop image or click to upload'}</p>
@@ -635,187 +766,64 @@ export default function CommunityPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
                   Loading feed...
                 </div>
-              ) : selectedSubjectPosts.length === 0 ? (
+              ) : posts.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
                   <Lightbulb className="mx-auto mb-3 h-8 w-8 text-indigo-500" />
-                  <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">No discussions yet. Be the first to ask a question and earn points.</p>
-                  <button onClick={() => setSelectedTab('post')} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
-                    Create a post
-                  </button>
+                  <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+                    {debouncedSearch
+                      ? 'No posts match your search.'
+                      : 'No discussions yet. Be the first to ask a question and earn points.'}
+                  </p>
+                  {!debouncedSearch && (
+                    <button onClick={() => setSelectedTab('post')} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
+                      Create a post
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {selectedSubjectPosts.map((post) => {
-                    const comments = commentsByPost[post._id] || []
-                    const isOwner = post.authorId === myUid
-                    return (
-                      <article key={post._id} id={`post-${post._id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:scale-[1.005] dark:border-slate-800 dark:bg-slate-900">
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex flex-wrap items-center gap-2">
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100">{initials(post.authorName || 'S')}</div>
-                              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{post.authorName}</p>
-                              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">{rankFromPoints((me?.totalPoints || 0) + 1)}</span>
-                              {post.isTrending && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
-                                  <Flame className="h-3.5 w-3.5" />
-                                  Trending
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{timeAgo(post.createdAt)}</p>
-                          </div>
-                          {isOwner && (
-                            <div className="relative shrink-0">
-                              <button
-                                type="button"
-                                aria-label="Post actions"
-                                onClick={() => setMenuPostId((id) => (id === post._id ? null : post._id))}
-                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                              >
-                                <MoreVertical className="h-5 w-5" />
-                              </button>
-                              {menuPostId === post._id && (
-                                <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditModal(post)}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                    Edit post
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setDeletingPost(post)
-                                      setMenuPostId(null)
-                                    }}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete post
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {post.type === 'question' && (
-                          <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-200">
-                            <HelpCircle className="h-3.5 w-3.5" />
-                            Question
-                          </div>
-                        )}
-
-                        <div className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-200">
-                          <ReactMarkdown>{post.content || ''}</ReactMarkdown>
-                        </div>
-
-                        {post.type === 'poll' && post.poll && (
-                          <div className="mt-3 space-y-2">
-                            {post.poll.options.map((option, index) => {
-                              const votes = option.votes?.length || 0
-                              const totalVotes = post.poll?.options.reduce((sum, item) => sum + (item.votes?.length || 0), 0) || 0
-                              const width = totalVotes > 0 ? (votes / totalVotes) * 100 : 0
-                              return (
-                                <button key={`${post._id}-${index}`} onClick={() => void votePoll(post._id, index)} className="w-full rounded-xl border border-slate-200 p-2 text-left text-xs dark:border-slate-700">
-                                  <div className="mb-1 flex items-center justify-between">
-                                    <span>{option.text}</span>
-                                    <span>{votes}</span>
-                                  </div>
-                                  <div className="h-2 rounded bg-slate-100 dark:bg-slate-800">
-                                    <motion.div initial={false} animate={{ width: `${width}%` }} className="h-2 rounded bg-indigo-500" />
-                                  </div>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
-
-                        <div className="relative mt-3 flex flex-wrap items-center gap-3 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => void toggleLike(post._id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 font-semibold transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <ThumbsUp
-                              className={`h-4 w-4 shrink-0 transition-colors ${
-                                post.isLiked
-                                  ? 'fill-red-500 stroke-red-500 text-red-500'
-                                  : 'fill-transparent stroke-slate-400 text-slate-400 dark:stroke-slate-500 dark:text-slate-500'
-                              }`}
-                              strokeWidth={post.isLiked ? 2 : 1.75}
-                            />
-                            <span className={post.isLiked ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-300'}>{post.likesCount}</span>
-                          </button>
-                          <button onClick={() => void toggleCommentSection(post._id)} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                            <MessageSquare className="h-4 w-4" />
-                            {post.commentsCount}
-                          </button>
-                          <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/community#post-${post._id}`)} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                            <Share2 className="h-4 w-4" />
-                            Share
-                          </button>
-                        </div>
-
-                        <AnimatePresence>
-                          {likeEffectPost === post._id && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: -14 }}
-                              exit={{ opacity: 0, y: -24 }}
-                              className="pointer-events-none absolute left-0 top-full mt-0 inline-flex items-center gap-0.5 text-sm font-bold text-red-500"
-                            >
-                              +2
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        {openComments[post._id] && (
-                          <div className="mt-4 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                            <div className="mb-3 space-y-3">
-                              {comments.map((comment) => {
-                                const isBestAnswer = post.bestAnswerCommentId === comment._id
-                                return (
-                                  <div key={comment._id} className={`rounded-lg border p-2 ${isBestAnswer ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' : 'border-slate-200 dark:border-slate-700'}`}>
-                                    <div className="mb-1 flex items-center justify-between">
-                                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{comment.authorName}</p>
-                                      {isBestAnswer && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                          <Crown className="h-3.5 w-3.5" />
-                                          Best answer
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-slate-600 dark:text-slate-300">{comment.content}</p>
-                                    {isOwner && post.type === 'question' && !isBestAnswer && (
-                                      <button onClick={() => void markBestAnswer(post._id, comment._id)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600">
-                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                        Mark best answer
-                                      </button>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                value={commentDrafts[post._id] || ''}
-                                onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post._id]: e.target.value }))}
-                                placeholder="Write a comment..."
-                                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                              />
-                              <button onClick={() => void addComment(post._id)} className="rounded-lg bg-indigo-600 p-2 text-white">
-                                <Send className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </article>
-                    )
-                  })}
+                  {posts.map((post) => (
+                    <CommunityPostCard
+                      key={post._id}
+                      post={post}
+                      myUid={myUid}
+                      isAdmin={user?.role === 'admin'}
+                      rankBadge={rankFromPoints((me?.totalPoints || 0) + 1)}
+                      comments={commentsByPost[post._id] || []}
+                      commentsOpen={!!openComments[post._id]}
+                      commentDraft={commentDrafts[post._id] || ''}
+                      onToggleComments={() => void toggleCommentSection(post._id)}
+                      onCommentDraftChange={(value) =>
+                        setCommentDrafts((prev) => ({ ...prev, [post._id]: value }))
+                      }
+                      onSubmitComment={() => void addComment(post._id)}
+                      likeEffectActive={likeEffectPost === post._id}
+                      onLike={() => void toggleLike(post._id)}
+                      onVotePoll={(optionIndex) => void votePoll(post._id, optionIndex)}
+                      onShare={() =>
+                        void navigator.clipboard.writeText(
+                          `${window.location.origin}/community#post-${post._id}`,
+                        )
+                      }
+                      menuPostId={menuPostId}
+                      onMenuToggle={() =>
+                        setMenuPostId((id) => (id === post._id ? null : post._id))
+                      }
+                      onEdit={() => openEditModal(post)}
+                      onDelete={() => {
+                        setDeletingPost(post)
+                        setMenuPostId(null)
+                      }}
+                      onMarkBestAnswer={(commentId) => void markBestAnswer(post._id, commentId)}
+                      onToggleBookmark={() => void toggleBookmark(post._id)}
+                      onReport={(reason) => void submitReport(post._id, reason)}
+                      onTogglePin={() => void togglePin(post._id)}
+                      onTagClick={(tag) => {
+                        setTagFilter(tag)
+                        setSubject('All')
+                      }}
+                    />
+                  ))}
                 </div>
               )}
             </main>
@@ -830,13 +838,22 @@ export default function CommunityPage() {
                   {displayedLeaderboard.map((row, index) => {
                     const rowId = row.userId || row.uid
                     const isMe = rowId === myUid
+                    const profileHref =
+                      rowId && !isMe
+                        ? `/community/profile?user=${encodeURIComponent(String(rowId))}`
+                        : '/community/profile'
                     return (
                       <div key={`${rowId || row.name}-${index}`} className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-xs ${isMe ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-slate-50 dark:bg-slate-800'}`}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-600 dark:text-slate-300">{index + 1}</span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100">{row.name || row.username || 'User'}</span>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className="shrink-0 font-semibold text-slate-600 dark:text-slate-300">{index + 1}</span>
+                          <Link
+                            href={profileHref}
+                            className="truncate font-semibold text-slate-800 hover:text-indigo-600 dark:text-slate-100 dark:hover:text-indigo-400"
+                          >
+                            {row.name || row.username || 'User'}
+                          </Link>
                         </div>
-                        <span className="font-semibold text-slate-600 dark:text-slate-300">{row.totalPoints}</span>
+                        <span className="shrink-0 font-semibold text-slate-600 dark:text-slate-300">{row.totalPoints}</span>
                       </div>
                     )
                   })}
