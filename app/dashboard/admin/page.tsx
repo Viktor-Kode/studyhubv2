@@ -35,6 +35,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { apiClient } from '@/lib/api/client'
+import { PLANS } from '@/lib/config/plans'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ interface FeedItem {
 }
 
 const PLAN_PIE_COLORS: Record<string, string> = {
+  daily: '#EA580C',
   weekly: '#3B82F6',
   monthly: '#10B981',
   addon: '#F59E0B',
@@ -141,8 +143,9 @@ function fillUserGrowth(raw: Array<{ _id: string; count: number }>, days = 30) {
   return out
 }
 
-function planBadgeKey(u: AdminUserRow): 'free' | 'weekly' | 'monthly' | 'teacher' {
+function planBadgeKey(u: AdminUserRow): 'free' | 'daily' | 'weekly' | 'monthly' | 'teacher' {
   if (u.role === 'teacher') return 'teacher'
+  if (u.subscriptionStatus === 'active' && u.subscriptionPlan === 'daily') return 'daily'
   if (u.subscriptionStatus === 'active' && u.subscriptionPlan === 'weekly') return 'weekly'
   if (u.subscriptionStatus === 'active' && u.subscriptionPlan === 'monthly') return 'monthly'
   return 'free'
@@ -151,6 +154,7 @@ function planBadgeKey(u: AdminUserRow): 'free' | 'weekly' | 'monthly' | 'teacher
 function planBadgeLabel(u: AdminUserRow): string {
   const k = planBadgeKey(u)
   if (k === 'teacher') return 'Teacher'
+  if (k === 'daily') return 'Daily'
   if (k === 'weekly') return 'Weekly'
   if (k === 'monthly') return 'Monthly'
   return 'Free'
@@ -840,7 +844,9 @@ function UsersTab({
   const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null)
   const [freeTarget, setFreeTarget] = useState<AdminUserRow | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<AdminUserRow | null>(null)
-  const [freeDays, setFreeDays] = useState(7)
+  type FreeGiftPlanKey = 'daily' | 'weekly' | 'monthly'
+  const [freeGiftPlan, setFreeGiftPlan] = useState<FreeGiftPlanKey>('monthly')
+  const [freeDays, setFreeDays] = useState(30)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -850,6 +856,12 @@ function UsersTab({
     document.addEventListener('click', onDoc)
     return () => document.removeEventListener('click', onDoc)
   }, [])
+
+  useEffect(() => {
+    if (!freeTarget) return
+    setFreeGiftPlan('monthly')
+    setFreeDays(PLANS.monthly.durationDays ?? 30)
+  }, [freeTarget])
 
   const load = useCallback(() => {
     const params = new URLSearchParams({
@@ -895,7 +907,7 @@ function UsersTab({
   const quickAction = async (
     action: 'ban_user' | 'give_free_access' | 'revoke_gifted_access',
     userId: string,
-    extra?: { days?: number }
+    extra?: { days?: number; plan?: FreeGiftPlanKey }
   ) => {
     try {
       const res = await apiClient.post('/admin/quick-action', {
@@ -931,7 +943,7 @@ function UsersTab({
 
   const confirmFree = async () => {
     if (!freeTarget) return
-    await quickAction('give_free_access', freeTarget._id, { days: freeDays })
+    await quickAction('give_free_access', freeTarget._id, { days: freeDays, plan: freeGiftPlan })
     setFreeTarget(null)
   }
 
@@ -943,7 +955,9 @@ function UsersTab({
 
   const hasActiveStudentPlan = (u: AdminUserRow) =>
     u.subscriptionStatus === 'active' &&
-    (u.subscriptionPlan === 'weekly' || u.subscriptionPlan === 'monthly')
+    (u.subscriptionPlan === 'daily' ||
+      u.subscriptionPlan === 'weekly' ||
+      u.subscriptionPlan === 'monthly')
 
   return (
     <div>
@@ -971,6 +985,7 @@ function UsersTab({
         >
           <option value="">All plans</option>
           <option value="free">Free</option>
+          <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="teacher">Teachers</option>
@@ -1161,14 +1176,32 @@ function UsersTab({
         >
           <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
             <h3>Give free access</h3>
-            <p>Grants active monthly plan benefits for the number of days below.</p>
-            <label className="text-sm font-bold text-slate-600">Days</label>
+            <p>
+              Choose which plan limits to apply (daily / weekly / monthly), then how long access lasts.
+              Defaults match each plan length (1, 7, or 30 days); you can override the duration.
+            </p>
+            <label className="text-sm font-bold text-slate-600">Plan tier</label>
+            <select
+              className="admin-select-v2 w-full mt-1 mb-3"
+              value={freeGiftPlan}
+              onChange={(e) => {
+                const p = e.target.value as FreeGiftPlanKey
+                setFreeGiftPlan(p)
+                const d = PLANS[p].durationDays ?? 1
+                setFreeDays(d)
+              }}
+            >
+              <option value="daily">Daily (weekly-class limits, default 1 day)</option>
+              <option value="weekly">Weekly limits (default 7 days)</option>
+              <option value="monthly">Monthly limits (default 30 days)</option>
+            </select>
+            <label className="text-sm font-bold text-slate-600">Duration (days)</label>
             <input
               type="number"
               min={1}
               max={365}
               value={freeDays}
-              onChange={(e) => setFreeDays(parseInt(e.target.value, 10) || 7)}
+              onChange={(e) => setFreeDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
             />
             <div className="admin-modal-actions-v2">
               <button type="button" className="cancel" onClick={() => setFreeTarget(null)}>
@@ -1191,8 +1224,9 @@ function UsersTab({
           <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
             <h3>Cancel gifted access?</h3>
             <p>
-              {revokeTarget.name || revokeTarget.email} will lose their active student plan (weekly or
-              monthly) immediately and return to the free tier. Only use this if you granted access by
+              {revokeTarget.name || revokeTarget.email} will lose their active student plan (daily,
+              weekly, or monthly) immediately and return to the free tier. Only use this if you granted
+              access by
               mistake. If they paid for a plan, check their payments before continuing.
             </p>
             <div className="admin-modal-actions-v2">

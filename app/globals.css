@@ -7518,6 +7518,10 @@ html {
   background: #f1f5f9;
   color: #64748b;
 }
+.plan-badge-v2.daily {
+  background: #fff7ed;
+  color: #c2410c;
+}
 .plan-badge-v2.weekly {
   background: #eff6ff;
   color: #2563eb;
