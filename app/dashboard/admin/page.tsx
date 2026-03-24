@@ -91,6 +91,7 @@ interface AdminUserRow {
   phoneNumber?: string
   teacherPlan?: string
   banned?: boolean
+  isVerified?: boolean
 }
 
 interface FeedItem {
@@ -912,6 +913,15 @@ function UsersTab({
     }
   }
 
+  const toggleVerified = async (user: AdminUserRow) => {
+    try {
+      await apiClient.patch(`/admin/users/${user._id}/verify`, { isVerified: !user.isVerified })
+      load()
+    } catch (e: unknown) {
+      alert((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
+    }
+  }
+
   const confirmBan = async () => {
     if (!banTarget) return
     await quickAction('ban_user', banTarget._id)
@@ -1000,6 +1010,9 @@ function UsersTab({
                     {u.banned && (
                       <span className="ml-2 text-xs font-bold text-red-600">BANNED</span>
                     )}
+                    {u.isVerified && (
+                      <span className="ml-2 text-xs font-bold text-emerald-700">VERIFIED</span>
+                    )}
                   </td>
                   <td className="text-slate-500">—</td>
                   <td>
@@ -1024,6 +1037,15 @@ function UsersTab({
                       </button>
                       {menuOpen === u._id && (
                         <div className="admin-dropdown-v2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(null)
+                              void toggleVerified(u)
+                            }}
+                          >
+                            {u.isVerified ? 'Remove Verification' : 'Mark as Verified'}
+                          </button>
                           <button
                             type="button"
                             onClick={() => {

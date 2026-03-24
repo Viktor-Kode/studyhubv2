@@ -1096,7 +1096,7 @@ export default function CommunityPage() {
   const canLoadMore = page < totalPages
 
   return (
-    <ProtectedRoute allowedRoles={['student']}>
+          <ProtectedRoute allowedRoles={['student', 'admin']}>
       <div className={`min-h-screen bg-[#F7F8FA] dark:bg-slate-950 dark:text-white ${isDarkMode ? 'dark' : ''}`}>
         {/* Top navbar */}
         <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 pt-[env(safe-area-inset-top)]">
@@ -1578,6 +1578,11 @@ export default function CommunityPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <div className="text-sm font-black text-[#0F172A] dark:text-white">{post.authorName}</div>
+                            {post.authorRole === 'admin' && post.authorIsVerified && (
+                              <span className="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                                Verified Admin
+                              </span>
+                            )}
                             {post.subject && (
                               <span
                                 className="text-[11px] font-bold px-2 py-1 rounded-full"

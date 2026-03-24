@@ -12,6 +12,8 @@ export type CommunityPost = {
   likesCount: number
   commentsCount: number
   isLiked: boolean
+  authorRole?: string | null
+  authorIsVerified?: boolean
   poll?: {
     question: string | null
     options: { text: string | null; votes: string[] }[]

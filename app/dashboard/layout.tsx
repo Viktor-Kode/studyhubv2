@@ -53,6 +53,8 @@ const navItems: NavItem[] = [
 
     // Admin only
     { href: '/dashboard/admin', label: 'Admin Dashboard', icon: FiShield, roles: ['admin'] },
+    { href: '/community', label: 'Community', icon: FiAward, roles: ['admin'] },
+    { href: '/dashboard/admin/logins', label: 'Dashboard Logins', icon: FiClock, roles: ['admin'] },
 ]
 
 export default function DashboardLayout({
