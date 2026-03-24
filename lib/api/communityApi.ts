@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client'
+import { getFirebaseToken } from '@/lib/store/authStore'
 
 export type CommunityPost = {
   _id: string
@@ -192,9 +193,42 @@ export const communityApi = {
   sendGroupMessage: (groupId: string, content: string) =>
     apiClient.post(`/community/groups/${groupId}/messages`, { content }),
 
-  uploadImage: (file: File) => {
-    const formData = new FormData()
-    formData.append('image', file)
-    return apiClient.post('/community/upload-image', formData)
+  /** Uses fetch so multipart boundaries are always correct (axios + default JSON Content-Type often breaks multer). */
+  uploadImage: async (file: File) => {
+    const postOnce = async (forceRefresh: boolean) => {
+      const token = await getFirebaseToken(forceRefresh)
+      const headers: HeadersInit = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+
+      const formData = new FormData()
+      formData.append('image', file)
+
+      return fetch('/api/backend/community/upload-image', {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+    }
+
+    let res = await postOnce(false)
+    if (res.status === 401) {
+      res = await postOnce(true)
+    }
+
+    const data = (await res.json().catch(() => ({}))) as {
+      success?: boolean
+      imageUrl?: string
+      error?: string
+      message?: string
+    }
+
+    if (!res.ok) {
+      const msg = data.error || data.message || `Upload failed (${res.status})`
+      const err = new Error(msg) as Error & { response?: { status: number; data: unknown } }
+      err.response = { status: res.status, data }
+      throw err
+    }
+
+    return { data }
   },
 }

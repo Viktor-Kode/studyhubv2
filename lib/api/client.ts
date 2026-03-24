@@ -20,9 +20,15 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    // For FormData, remove Content-Type so the browser sets multipart/form-data with boundary
+    // For FormData, strip Content-Type so the runtime sets multipart/form-data with boundary.
+    // Axios 1.x uses AxiosHeaders; delete on plain object is not always enough.
     if (config.data instanceof FormData) {
-      delete config.headers['Content-Type']
+      const h = config.headers
+      if (h && typeof (h as { delete?: (k: string, rewrite?: boolean) => void }).delete === 'function') {
+        ;(h as { delete: (k: string, rewrite?: boolean) => void }).delete('Content-Type', true)
+      } else {
+        delete (h as Record<string, unknown>)['Content-Type']
+      }
     }
     // Teacher endpoints (AI generation, document parsing) need longer timeout
     const url = config.url || ''
