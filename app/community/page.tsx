@@ -138,36 +138,45 @@ export default function CommunityPage() {
   const loadAll = useCallback(async () => {
     try {
       setLoading(true)
-      const [postsRes, trendingRes, meRes, leaderboardRes] = await Promise.all([
+      const [postsRes, leaderboardRes] = await Promise.all([
         communityApi.getPosts(),
-        communityApi.getTrending(),
-        communityApi.getMe(),
         communityApi.getLeaderboard(),
       ])
 
       const postsData = postsRes.data || {}
-      const trendingData = trendingRes.data || {}
-      const meData = meRes.data || {}
       const leaderboardData = leaderboardRes.data || {}
       const nextPosts = postsData.posts || []
-      const nextTrending = trendingData.posts || trendingData.trending || []
-      const mePayload = meData.me || meData
+      const myEntry =
+        leaderboardData.myEntry ||
+        (leaderboardData.leaderboard || []).find(
+          (row: LeaderboardRow) => (row.userId || row.uid) === myUid,
+        ) ||
+        null
+      const myRank = leaderboardData.myRank || 0
+
+      const nextTrending = [...nextPosts]
+        .sort((a, b) => {
+          const aScore = a.likesCount + a.commentsCount * 2
+          const bScore = b.likesCount + b.commentsCount * 2
+          return bScore - aScore
+        })
+        .slice(0, 5)
 
       setPosts(nextPosts)
       setTrending(nextTrending)
       setLeaderboard(leaderboardData.leaderboard || [])
       setMe({
-        rank: mePayload.rank || rankFromPoints(mePayload.totalPoints || 0),
-        streak: mePayload.streak || 0,
-        totalPoints: mePayload.totalPoints || 0,
-        leaderboardPosition: mePayload.leaderboardPosition || 0,
+        rank: myEntry?.rank || rankFromPoints(myEntry?.totalPoints || 0),
+        streak: myEntry?.streak || 0,
+        totalPoints: myEntry?.totalPoints || 0,
+        leaderboardPosition: myRank,
       })
     } catch {
       showToast('Failed to load community data')
     } finally {
       setLoading(false)
     }
-  }, [showToast])
+  }, [myUid, showToast])
 
   useEffect(() => {
     void loadAll()
