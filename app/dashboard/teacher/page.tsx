@@ -232,9 +232,9 @@ export default function TeacherDashboardPage() {
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-100 mb-1">Questions Generated</p>
+                <p className="text-sm text-white/90 mb-1">Questions Generated</p>
                 <p className="text-3xl font-bold">{stats.questionsGenerated}</p>
-                <p className="text-xs text-blue-100 mt-1">Total questions</p>
+                <p className="text-xs text-white/80 mt-1">Total questions</p>
               </div>
               <div className="bg-white/20 rounded-full p-3">
                 <FaQuestionCircle className="text-3xl" />
@@ -245,9 +245,9 @@ export default function TeacherDashboardPage() {
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-xl p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-100 mb-1">Active Classes</p>
+                <p className="text-sm text-white/90 mb-1">Active Classes</p>
                 <p className="text-3xl font-bold">{stats.activeClasses}</p>
-                <p className="text-xs text-purple-100 mt-1">Classes managed</p>
+                <p className="text-xs text-white/80 mt-1">Classes managed</p>
               </div>
               <div className="bg-white/20 rounded-full p-3">
                 <FaUsers className="text-3xl" />

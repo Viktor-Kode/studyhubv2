@@ -286,7 +286,7 @@ export default function StudentDashboardPage() {
             <div className={`rounded-xl p-6 text-white shadow-lg ${stats.studyStreak > 0 && !stats.studiedToday ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-2 border-amber-400' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-100 mb-1">Study Streak</p>
+                    <p className="text-sm text-white/90 mb-1">Study Streak</p>
                   <p className="text-3xl font-bold">{stats.studyStreak}</p>
                   <p className="text-xs text-white/80 mt-1">
                     {stats.studyStreak === 0 && 'Do any activity to start'}
@@ -330,9 +330,9 @@ export default function StudentDashboardPage() {
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex-1">
-                  <p className="text-sm text-purple-100 mb-1">Flashcards Created</p>
+                  <p className="text-sm text-white/90 mb-1">Flashcards Created</p>
                   <p className="text-3xl font-bold">{stats.totalFlashcards}</p>
-                  <p className="text-xs text-purple-100 mt-1">{stats.masteredCards} mastered</p>
+                  <p className="text-xs text-white/80 mt-1">{stats.masteredCards} mastered</p>
                 </div>
                 <div className="bg-white/20 rounded-full p-3 ml-4">
                   <BiCard className="text-3xl" />
@@ -459,10 +459,10 @@ export default function StudentDashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-bold">AI Assistant</h3>
-                  <p className="text-xs text-blue-100">Powered by DeepSeek</p>
+                  <p className="text-xs text-white/80">Powered by DeepSeek</p>
                 </div>
               </div>
-              <p className="text-sm mb-4 text-blue-50">Ask anything about your studies, questions, or concepts.</p>
+              <p className="text-sm mb-4 text-white/90">Ask anything about your studies, questions, or concepts.</p>
               <Link
                 href="/dashboard/chat"
                 data-tour="student-ai-assistant"
