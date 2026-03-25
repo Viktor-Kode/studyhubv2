@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'framer-motion'
 import {
@@ -22,12 +22,13 @@ import {
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { CommunityPostCard, type CommunityComment } from '@/components/community/CommunityPostCard'
-import { useAuthStore } from '@/lib/store/authStore'
+import { getFirebaseToken, useAuthStore } from '@/lib/store/authStore'
 import { communityApi, type CommunityPost } from '@/lib/api/communityApi'
 import { initials, pollVotesTotal, rankFromPoints } from '@/lib/community/utils'
 import { useToast } from '@/hooks/useToast'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { useCommunityRealtime } from '@/hooks/useCommunityRealtime'
 
 type FeedTab = 'post' | 'question' | 'poll'
 
@@ -82,6 +83,9 @@ export default function CommunityPage() {
   const [pollOptions, setPollOptions] = useState(['', ''])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [posts, setPosts] = useState<CommunityPost[]>([])
+  const [newPostsBanner, setNewPostsBanner] = useState(0)
+  const [pendingNewPosts, setPendingNewPosts] = useState<CommunityPost[]>([])
+  const pendingIdsRef = useRef<Set<string>>(new Set())
   const [trending, setTrending] = useState<CommunityPost[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
   const [me, setMe] = useState<FeedMeStats | null>(null)
@@ -113,6 +117,68 @@ export default function CommunityPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [deletingPost, setDeletingPost] = useState<CommunityPost | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+
+  const getToken = useCallback(async () => {
+    return await getFirebaseToken()
+  }, [])
+
+  const handleNewPosts = useCallback(
+    (newPosts: CommunityPost[]) => {
+      // Keep polling silent by staging new posts until the user clicks the banner.
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p._id))
+        const fresh = newPosts.filter((p) => !existingIds.has(p._id) && !pendingIdsRef.current.has(p._id))
+        if (!fresh.length) return prev
+
+        setNewPostsBanner((n) => n + fresh.length)
+        setPendingNewPosts((pendingPrev) => {
+          const toAdd = fresh.filter((p) => !pendingIdsRef.current.has(p._id))
+          toAdd.forEach((p) => pendingIdsRef.current.add(p._id))
+          return [...toAdd, ...pendingPrev]
+        })
+
+        return prev
+      })
+    },
+    [],
+  )
+
+  const handleUpdatedPosts = useCallback(
+    (updatedPosts: { _id: string; likes: string[]; commentsCount: number }[]) => {
+      if (!myUid) return
+
+      setPosts((prev) =>
+        prev.map((post) => {
+          const update = updatedPosts.find((u) => u._id === post._id)
+          if (!update) return post
+          const likes = update.likes || []
+          return {
+            ...post,
+            isLiked: likes.includes(myUid),
+            likesCount: likes.length,
+            commentsCount: update.commentsCount,
+          }
+        }),
+      )
+    },
+    [myUid],
+  )
+
+  useCommunityRealtime<CommunityPost>({
+    getToken,
+    enabled: true,
+    onNewPosts: handleNewPosts,
+    onUpdatedPosts: handleUpdatedPosts,
+  })
+
+  const loadNewPosts = () => {
+    if (!pendingNewPosts.length) return
+    setPosts((prev) => [...pendingNewPosts, ...prev])
+    setPendingNewPosts([])
+    pendingIdsRef.current = new Set()
+    setNewPostsBanner(0)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setImageFile(acceptedFiles[0] || null)
@@ -774,6 +840,12 @@ export default function CommunityPage() {
                   </button>
                 </div>
               </section>
+
+              {newPostsBanner > 0 && (
+                <button type="button" onClick={loadNewPosts} className="community-new-posts-banner">
+                  ↑ {newPostsBanner} new {newPostsBanner === 1 ? 'post' : 'posts'} — Click to load
+                </button>
+              )}
 
               {loading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">

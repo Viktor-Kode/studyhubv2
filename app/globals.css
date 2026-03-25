@@ -7740,3 +7740,38 @@ html {
   border-radius: 20px;
   transition: width 0.3s ease;
 }
+
+.community-new-posts-banner {
+  position: sticky;
+  top: 70px;
+  z-index: 100;
+  width: 100%;
+  padding: 10px 20px;
+  background: #5B4CF5;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(91, 76, 245, 0.35);
+  transition: opacity 0.2s;
+  margin-bottom: 12px;
+  animation: slide-down 0.3s ease;
+}
+
+.community-new-posts-banner:hover {
+  opacity: 0.92;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
