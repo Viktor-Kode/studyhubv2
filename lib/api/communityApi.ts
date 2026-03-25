@@ -170,10 +170,19 @@ export const communityApi = {
 
   pinPost: (id: string, pinned: boolean) => apiClient.post(`/community/posts/${id}/pin`, { pinned }),
 
-  getComments: (id: string) => apiClient.get(`/community/posts/${id}/comments`),
+  getComments: (id: string, params?: { parentId?: string | null }) =>
+    apiClient.get(`/community/posts/${id}/comments`, params?.parentId ? { params: { parentId: params.parentId } } : {}),
 
-  addComment: (id: string, content: string) =>
-    apiClient.post(`/community/posts/${id}/comments`, { content }),
+  addComment: (id: string, content: string, parentId?: string | null) =>
+    apiClient.post(`/community/posts/${id}/comments`, parentId ? { content, parentId } : { content }),
+
+  toggleCommentLike: (postId: string, commentId: string) =>
+    apiClient.post(`/community/posts/${postId}/comments/${commentId}/like`),
+
+  updateComment: (postId: string, commentId: string, content: string) =>
+    apiClient.put(`/community/posts/${postId}/comments/${commentId}`, { content }),
+
+  deleteComment: (postId: string, commentId: string) => apiClient.delete(`/community/posts/${postId}/comments/${commentId}`),
 
   markBestAnswer: (id: string, commentId: string) =>
     apiClient.post(`/community/posts/${id}/best-answer`, { commentId }),

@@ -99,6 +99,7 @@ export default function CommunityPage() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityComment[]>>({})
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
+  const [commentsLoadingByPost, setCommentsLoadingByPost] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [expandedLeaderboard, setExpandedLeaderboard] = useState(false)
@@ -406,10 +407,13 @@ export default function CommunityPage() {
   const loadComments = useCallback(
     async (postId: string) => {
       try {
+        setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: true }))
         const response = await communityApi.getComments(postId)
         setCommentsByPost((prev) => ({ ...prev, [postId]: response.data?.comments || [] }))
       } catch {
         showToast('Failed to load comments')
+      } finally {
+        setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: false }))
       }
     },
     [showToast],
@@ -434,9 +438,13 @@ export default function CommunityPage() {
         postId,
         authorId: myUid,
         authorName: user?.name || 'Student',
+        authorAvatar: null,
+        authorRank: me?.rank || 'Beginner',
+        parentId: null,
         content,
         createdAt: new Date().toISOString(),
-        rank: me?.rank,
+        likesCount: 0,
+        isLiked: false,
       }
       const prevComments = commentsByPost[postId] || []
       setCommentsByPost((prev) => ({ ...prev, [postId]: [...prevComments, optimistic] }))
@@ -787,10 +795,13 @@ export default function CommunityPage() {
                       key={post._id}
                       post={post}
                       myUid={myUid}
+                      myName={user?.name || 'Student'}
+                      myRank={me?.rank || 'Beginner'}
                       isAdmin={user?.role === 'admin'}
                       rankBadge={rankFromPoints((me?.totalPoints || 0) + 1)}
                       comments={commentsByPost[post._id] || []}
                       commentsOpen={!!openComments[post._id]}
+                      commentsLoading={!!commentsLoadingByPost[post._id]}
                       commentDraft={commentDrafts[post._id] || ''}
                       onToggleComments={() => void toggleCommentSection(post._id)}
                       onCommentDraftChange={(value) =>
@@ -822,6 +833,7 @@ export default function CommunityPage() {
                         setTagFilter(tag)
                         setSubject('All')
                       }}
+                      onToast={showToast}
                     />
                   ))}
                 </div>

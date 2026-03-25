@@ -72,6 +72,7 @@ function CommunityProfileInner() {
 
   const [tab, setTab] = useState<ActivityTab>('posts')
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityComment[]>>({})
+  const [commentsLoadingByPost, setCommentsLoadingByPost] = useState<Record<string, boolean>>({})
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
   const [menuPostId, setMenuPostId] = useState<string | null>(null)
@@ -191,10 +192,13 @@ function CommunityProfileInner() {
   const loadComments = useCallback(
     async (postId: string) => {
       try {
+        setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: true }))
         const response = await communityApi.getComments(postId)
         setCommentsByPost((prev) => ({ ...prev, [postId]: response.data?.comments || [] }))
       } catch {
         showToast('Failed to load comments')
+      } finally {
+        setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: false }))
       }
     },
     [showToast],
@@ -558,10 +562,13 @@ function CommunityProfileInner() {
                       key={post._id}
                       post={post}
                       myUid={myUid}
+                      myName={user?.name || 'Student'}
+                      myRank={rankBadgeForCards}
                       showOwnerMenu={false}
                       rankBadge={rankBadgeForCards}
                       comments={commentsByPost[post._id] || []}
                       commentsOpen={!!openComments[post._id]}
+                      commentsLoading={!!commentsLoadingByPost[post._id]}
                       commentDraft={commentDrafts[post._id] || ''}
                       onToggleComments={() => void toggleCommentSection(post._id)}
                       onCommentDraftChange={(value) =>
@@ -584,6 +591,7 @@ function CommunityProfileInner() {
                       onDelete={() => {}}
                       onMarkBestAnswer={(commentId) => void markBestAnswer(post._id, commentId)}
                       onToggleBookmark={() => void toggleBookmark(post._id)}
+                      onToast={showToast}
                     />
                   ))}
                 </div>
