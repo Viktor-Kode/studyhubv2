@@ -192,16 +192,13 @@ export default function ChatPage() {
   const renderEmptyState = () => (
     <div className="flex h-full items-center justify-center">
       <div className="text-center px-6">
-        <div
-          className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ backgroundColor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-        >
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm dark:bg-slate-900">
           <HiOutlineSparkles size={28} color={PURPLE} />
         </div>
-        <h2 className="mb-1 text-xl font-semibold text-gray-900">
+        <h2 className="mb-1 text-xl font-semibold text-gray-900 dark:text-white">
           Hi there 👋
         </h2>
-        <p className="mb-6 text-sm text-gray-500">
+        <p className="mb-6 text-sm text-gray-500 dark:text-slate-300">
           I&apos;m your AI tutor. Ask me anything about your subjects.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -215,7 +212,7 @@ export default function ChatPage() {
               key={example}
               type="button"
               onClick={() => handleSend(example)}
-              className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+              className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
             >
               {example}
@@ -243,7 +240,7 @@ export default function ChatPage() {
             >
               {message.content}
             </div>
-            <div className="mt-1 text-xs text-gray-400">{time}</div>
+            <div className="mt-1 text-xs text-gray-400 dark:text-slate-400">{time}</div>
           </div>
         </div>
       )
@@ -259,20 +256,16 @@ export default function ChatPage() {
         </div>
         <div className="relative max-w-[80%]">
           <div
-            className="rounded-2xl border px-4 py-3 text-sm text-gray-800 bg-white"
-            style={{
-              borderColor: '#E8EAED',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-gray-800 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             <button
               type="button"
               onClick={() => handleCopy(message)}
-              className="absolute right-3 top-3 text-gray-300 hover:text-gray-500"
+              className="absolute right-3 top-3 text-gray-300 hover:text-gray-500 dark:text-slate-500 dark:hover:text-slate-300"
             >
               {copiedId === message.id ? <FiCheck size={14} /> : <FiCopy size={14} />}
             </button>
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex, rehypeHighlight]}
@@ -281,7 +274,7 @@ export default function ChatPage() {
               </ReactMarkdown>
             </div>
           </div>
-          <div className="mt-1 text-xs text-gray-400">{time}</div>
+          <div className="mt-1 text-xs text-gray-400 dark:text-slate-400">{time}</div>
 
           {message.followUps && message.followUps.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -290,7 +283,7 @@ export default function ChatPage() {
                   key={q}
                   type="button"
                   onClick={() => handleFollowUpClick(q)}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   {q}
                 </button>
@@ -304,17 +297,14 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div
-        className="flex min-h-screen flex-col"
-        style={{ backgroundColor: '#F7F8FA' }}
-      >
+      <div className="flex min-h-screen flex-col bg-[#F7F8FA] dark:bg-slate-950">
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-4 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BackButton label="Dashboard" href="/dashboard" />
               <Link
                 href="/dashboard/student"
-                className="hidden items-center gap-2 text-xs text-gray-500 hover:text-gray-700 sm:flex"
+                className="hidden items-center gap-2 text-xs text-gray-500 hover:text-gray-700 dark:text-slate-300 dark:hover:text-slate-100 sm:flex"
               >
                 <HiOutlineArrowLeft />
                 Back to student dashboard
@@ -323,19 +313,15 @@ export default function ChatPage() {
           </div>
 
           <div
-            className="mb-3 flex items-center justify-between rounded-2xl border bg-white px-4 py-3"
-            style={{
-              borderColor: '#E8EAED',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}
+            className="mb-3 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
                     AI Tutor
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-slate-300">
                     {currentTopic ? `Discussing: ${currentTopic}` : 'Ask anything about your subjects.'}
                   </span>
                 </div>
@@ -348,19 +334,12 @@ export default function ChatPage() {
                       key={subject}
                       type="button"
                       onClick={() => setSelectedSubject(subject)}
-                      className="whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium"
-                      style={
-                        active
-                          ? {
-                              backgroundColor: PURPLE,
-                              color: 'white',
-                            }
-                          : {
-                              border: '1px solid rgba(148, 163, 184, 0.7)',
-                              color: '#4B5563',
-                              backgroundColor: 'white',
-                            }
-                      }
+                  className={[
+                    'whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition',
+                    active
+                      ? 'bg-[#5B4CF5] text-white'
+                      : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+                  ].join(' ')}
                     >
                       {subject}
                     </button>
@@ -373,7 +352,7 @@ export default function ChatPage() {
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:border-red-200 hover:text-red-600"
+                className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:text-slate-300 dark:hover:text-red-400"
               >
                 <FiTrash2 size={13} />
                 {showClearConfirm ? 'Tap again to confirm' : 'Clear chat'}
@@ -382,8 +361,7 @@ export default function ChatPage() {
           </div>
 
           <div
-            className="relative mb-3 flex-1 overflow-hidden rounded-2xl border bg-transparent"
-            style={{ borderColor: '#E8EAED' }}
+            className="relative mb-3 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-transparent dark:border-slate-800"
           >
             <div className="absolute inset-0 flex flex-col">
               <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
@@ -402,11 +380,7 @@ export default function ChatPage() {
                         </div>
                         <div className="max-w-[80%]">
                           <div
-                            className="inline-flex items-center gap-1 rounded-2xl border bg-white px-4 py-3"
-                            style={{
-                              borderColor: '#E8EAED',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                            }}
+                            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                           >
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0.15s]" />
@@ -423,11 +397,7 @@ export default function ChatPage() {
           </div>
 
           <div
-            className="sticky bottom-0 mt-auto w-full rounded-2xl border bg-white px-3 py-2 sm:px-4 sm:py-3"
-            style={{
-              borderColor: '#E8EAED',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}
+            className="sticky bottom-0 mt-auto w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-3"
           >
             <div className="flex items-end gap-2">
               <textarea
@@ -438,7 +408,7 @@ export default function ChatPage() {
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder="Ask anything... e.g. Explain photosynthesis in simple terms"
-                className="max-h-32 flex-1 resize-none border-none bg-transparent px-1 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
+                className="max-h-32 flex-1 resize-none border-none bg-transparent px-1 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               <button
                 type="button"
@@ -455,11 +425,11 @@ export default function ChatPage() {
               </button>
             </div>
             <div className="mt-1 flex justify-between">
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 dark:text-slate-400">
                 Press Enter to send • Shift+Enter for new line
               </span>
               {characterCount > 200 && (
-                <span className="text-xs text-gray-400">{characterCount} characters</span>
+                <span className="text-xs text-gray-400 dark:text-slate-400">{characterCount} characters</span>
               )}
             </div>
           </div>

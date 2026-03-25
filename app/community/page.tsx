@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import { motion } from 'framer-motion'
 import {
   BarChart2,
+  ChevronLeft,
   Bell,
   CheckCircle2,
   FileText,
@@ -629,7 +630,16 @@ export default function CommunityPage() {
         <div className="mx-auto max-w-7xl">
           <header className="mb-6 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">StudyHelp Community</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to dashboard
+                </Link>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">StudyHelp Community</h1>
+              </div>
               <div className="relative w-full max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input

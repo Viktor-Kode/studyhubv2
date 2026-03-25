@@ -72,7 +72,7 @@ export default function TeacherToolsLayout({ children }: { children: React.React
         style={{ top: 'var(--nav-height, 4rem)' }}
       >
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="font-bold text-base">Teacher Tools</h2>
+          <h2 className="font-bold text-base text-gray-900 dark:text-white">Teacher Tools</h2>
           <div className={`plan-indicator mt-2 text-xs font-semibold px-2 py-1 rounded-full inline-block
             ${teacherPlan === 'free' ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'}`}>
             {isPaid ? 'Unlimited ✓' : '3 free uses per tool'}
@@ -91,14 +91,11 @@ export default function TeacherToolsLayout({ children }: { children: React.React
                 href={`/dashboard/teacher/tools/${tool.id}`}
                 onClick={() => setSidebarOpen(false)}
                 className={`sidebar-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg w-full text-left transition-colors
-                  ${isActive ? 'bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}
+                  ${isActive ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}
                   ${isLocked ? 'opacity-60 pointer-events-none' : ''}`}
               >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: isActive ? tool.bg : 'transparent' }}
-                >
-                  <Icon size={17} color={isActive ? tool.color : '#6B7280'} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-white/80 dark:bg-black/10' : ''}`}>
+                  <Icon size={17} className={isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-300'} />
                 </div>
                 <span className="flex-1 text-sm">{tool.label}</span>
                 {isLocked && <Lock size={13} className="text-gray-400 flex-shrink-0" />}
@@ -110,10 +107,10 @@ export default function TeacherToolsLayout({ children }: { children: React.React
             href="/dashboard/teacher/tools/saved"
             onClick={() => setSidebarOpen(false)}
             className={`sidebar-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg w-full text-left transition-colors
-              ${toolFromPath === 'saved' ? 'bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              ${toolFromPath === 'saved' ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-100">
-              <FolderOpen size={17} color="#0F172A" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-700">
+              <FolderOpen size={17} className="text-gray-700 dark:text-gray-100" />
             </div>
             <span className="flex-1 text-sm">My Saved</span>
           </Link>
@@ -122,10 +119,10 @@ export default function TeacherToolsLayout({ children }: { children: React.React
             href="/dashboard/teacher/question-generator"
             onClick={() => setSidebarOpen(false)}
             className={`sidebar-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg w-full text-left transition-colors
-              ${pathname.includes('question-generator') ? 'bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              ${pathname.includes('question-generator') ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-100">
-              <FileText size={17} color="#0F172A" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-700">
+              <FileText size={17} className="text-gray-700 dark:text-gray-100" />
             </div>
             <span className="flex-1 text-sm">Question Generator</span>
           </Link>
@@ -140,7 +137,7 @@ export default function TeacherToolsLayout({ children }: { children: React.React
             </div>
             <Link
               href="/dashboard/upgrade?plan=teacher"
-              className="block w-full py-2 text-center bg-white text-gray-900 rounded-lg text-sm font-bold"
+              className="block w-full py-2 text-center bg-white text-gray-900 rounded-lg text-sm font-bold dark:bg-white dark:text-gray-900"
             >
               Upgrade Now
             </Link>
