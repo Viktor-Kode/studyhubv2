@@ -166,7 +166,8 @@ export default function CommunityPage() {
 
   useCommunityRealtime<CommunityPost>({
     getToken,
-    enabled: true,
+    // Avoid staging duplicates while the initial feed is still loading.
+    enabled: !!myUid && !loading,
     onNewPosts: handleNewPosts,
     onUpdatedPosts: handleUpdatedPosts,
   })
