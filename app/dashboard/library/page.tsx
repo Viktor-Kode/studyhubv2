@@ -25,18 +25,18 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 
-// Colour palette for books
+// 3D book cover palette (monochrome shades only)
 const BOOK_COLORS = [
-  { bg: '#4F46E5', light: '#EEF2FF', label: 'Indigo' },
-  { bg: '#DC2626', light: '#FEF2F2', label: 'Red' },
-  { bg: '#059669', light: '#ECFDF5', label: 'Green' },
-  { bg: '#D97706', light: '#FEF3C7', label: 'Amber' },
-  { bg: '#7C3AED', light: '#F5F3FF', label: 'Purple' },
-  { bg: '#0891B2', light: '#ECFEFF', label: 'Cyan' },
-  { bg: '#BE185D', light: '#FDF2F8', label: 'Pink' },
-  { bg: '#EA580C', light: '#FFF7ED', label: 'Orange' },
-  { bg: '#0D9488', light: '#F0FDFA', label: 'Teal' },
-  { bg: '#4338CA', light: '#EEF2FF', label: 'Blue' },
+  { bg: '#0F172A', light: '#FFFFFF', label: 'Primary' },
+  { bg: '#1E293B', light: '#F7F7F7', label: 'Slate' },
+  { bg: '#334155', light: '#F7F7F7', label: 'Steel' },
+  { bg: '#475569', light: '#F7F7F7', label: 'Gray' },
+  { bg: '#64748B', light: '#F7F7F7', label: 'Muted' },
+  { bg: '#374151', light: '#F7F7F7', label: 'Dark Gray' },
+  { bg: '#1F2937', light: '#F7F7F7', label: 'Near-black' },
+  { bg: '#111827', light: '#F7F7F7', label: 'Charcoal' },
+  { bg: '#292524', light: '#F7F7F7', label: 'Warm Gray' },
+  { bg: '#1C1917', light: '#F7F7F7', label: 'Deep Charcoal' },
 ]
 
 const getToken = async () => {
@@ -65,9 +65,9 @@ const ConfirmDialog = ({
     <div className="lib-confirm-modal" onClick={(e) => e.stopPropagation()}>
       <div
         className="lib-confirm-icon"
-        style={{ background: danger ? '#FEF2F2' : '#EEF2FF' }}
+        style={{ background: '#F7F7F7' }}
       >
-        {danger ? <Trash2 size={22} color="#DC2626" /> : <BookOpen size={22} color="#4F46E5" />}
+        {danger ? <Trash2 size={22} color="#0F172A" /> : <BookOpen size={22} color="#0F172A" />}
       </div>
       <h3 className="lib-confirm-title">{title}</h3>
       <p className="lib-confirm-message">{message}</p>
@@ -112,8 +112,8 @@ const NewFolderDialog = ({
   return (
     <div className="lib-overlay" onClick={onCancel}>
       <div className="lib-confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="lib-confirm-icon" style={{ background: '#EEF2FF' }}>
-          <FolderOpen size={22} color="#4F46E5" />
+        <div className="lib-confirm-icon" style={{ background: '#F7F7F7' }}>
+          <FolderOpen size={22} color="#0F172A" />
         </div>
         <h3 className="lib-confirm-title">New Folder</h3>
         <p className="lib-confirm-message">Give your folder a name</p>
@@ -318,8 +318,8 @@ const LibraryPage = () => {
           >
             <Star
               size={16}
-              fill={showFavourites ? '#F59E0B' : 'none'}
-              color={showFavourites ? '#F59E0B' : '#6B7280'}
+              fill={showFavourites ? '#0F172A' : 'none'}
+              color={showFavourites ? '#0F172A' : '#6B7280'}
             />
             <span>{showFavourites ? 'Starred' : 'All'}</span>
           </button>
@@ -334,12 +334,7 @@ const LibraryPage = () => {
                 className="lib-storage-fill"
                 style={{
                   width: `${Math.min(storage.percentage, 100)}%`,
-                  background:
-                    storage.percentage >= 90
-                      ? '#DC2626'
-                      : storage.percentage >= 70
-                        ? '#D97706'
-                        : '#4F46E5',
+                  background: '#0F172A',
                 }}
               />
             </div>
@@ -604,8 +599,8 @@ const BookCard = ({
   return (
     <div className="relative group bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-lg hover:-translate-y-1">
       {material.isFavourite && (
-        <div className="absolute -top-2 -right-2 bg-yellow-100 p-1.5 rounded-full z-10 shadow-sm border border-yellow-200">
-          <Star size={14} fill="#F59E0B" color="#F59E0B" />
+        <div className="absolute -top-2 -right-2 bg-gray-100 dark:bg-gray-700 p-1.5 rounded-full z-10 shadow-sm border border-gray-200 dark:border-gray-600">
+          <Star size={14} fill="#0F172A" color="#0F172A" />
         </div>
       )}
 
@@ -614,17 +609,17 @@ const BookCard = ({
         className="w-full aspect-[3/4] rounded-xl mb-4 relative overflow-hidden cursor-pointer group/inner shadow-sm"
         onClick={onRead}
         style={{
-          background: `linear-gradient(135deg, ${material.color}11 0%, ${material.color}05 100%)`,
-          border: `1px solid ${material.color}33`,
+          background: `linear-gradient(135deg, ${colorObj.bg}11 0%, ${colorObj.bg}05 100%)`,
+          border: `1px solid ${colorObj.bg}33`,
         }}
       >
         <div
           className="absolute inset-x-0 top-0 h-1.5"
-          style={{ background: material.color }}
+          style={{ background: colorObj.bg }}
         />
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <div className="p-4 bg-white dark:bg-gray-900 rounded-full shadow-sm mb-3 group-hover/inner:scale-110 transition-transform">
-            <FileText size={28} color={material.color} strokeWidth={1.5} />
+            <FileText size={28} color={colorObj.bg} strokeWidth={1.5} />
           </div>
           <p className="font-bold text-gray-900 dark:text-white text-[15px] leading-tight line-clamp-3 mb-2">
             {material.title}
@@ -632,7 +627,7 @@ const BookCard = ({
           {material.subject && (
             <span
               className="text-xs font-semibold px-2.5 py-1 rounded-md"
-              style={{ color: material.color, background: `${material.color}15` }}
+              style={{ color: colorObj.bg, background: `${colorObj.bg}15` }}
             >
               {material.subject}
             </span>
@@ -650,7 +645,7 @@ const BookCard = ({
           <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gray-200 dark:bg-gray-700 z-10">
             <div
               className="h-full"
-              style={{ width: `${material.readProgress}%`, background: material.color }}
+              style={{ width: `${material.readProgress}%`, background: colorObj.bg }}
             />
           </div>
         )}
@@ -660,7 +655,7 @@ const BookCard = ({
         <div className="flex flex-col">
           <span className="text-[11px] text-gray-400 font-medium">{sizeMB} MB</span>
           {material.readProgress > 0 && (
-            <span className="text-[11px] font-bold" style={{ color: material.color }}>
+            <span className="text-[11px] font-bold" style={{ color: colorObj.bg }}>
               {material.readProgress}% Read
             </span>
           )}
@@ -668,19 +663,23 @@ const BookCard = ({
         <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
           <button
             onClick={onToggleFav}
-            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-yellow-500 transition-colors"
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
-            <Star size={16} fill={material.isFavourite ? '#F59E0B' : 'none'} color={material.isFavourite ? '#F59E0B' : 'currentColor'} />
+            <Star
+              size={16}
+              fill={material.isFavourite ? '#0F172A' : 'none'}
+              color={material.isFavourite ? '#0F172A' : 'currentColor'}
+            />
           </button>
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-indigo-500 transition-colors"
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <Edit2 size={16} />
           </button>
           <button
             onClick={onDelete}
-            className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/40 text-gray-400 hover:text-red-500 transition-colors"
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <Trash2 size={16} />
           </button>
@@ -707,7 +706,7 @@ const UploadModal = ({
     subject: '',
     folder: 'General',
     tags: '',
-    color: '#4F46E5',
+    color: '#0F172A',
   })
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -823,7 +822,7 @@ const UploadModal = ({
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
             <div className="lib-drop-icon">
-              <Upload size={32} color="#4F46E5" />
+              <Upload size={32} color="#0F172A" />
             </div>
             <p className="lib-drop-title">Drop your PDF here</p>
             <p className="lib-drop-sub">or click to browse files</p>
@@ -1011,7 +1010,7 @@ const EditModal = ({
     subject: material.subject || '',
     folder: material.folder || 'General',
     tags: material.tags?.join(', ') || '',
-    color: material.color || '#4F46E5',
+    color: BOOK_COLORS.find((c) => c.bg === material.color)?.bg || '#0F172A',
   })
   const [saving, setSaving] = useState(false)
 

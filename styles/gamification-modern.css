@@ -1,12 +1,12 @@
 /* Gamification Phase 1 — design tokens & modern UI */
 
 :root {
-  --gw-primary: #5b4cf5;
-  --gw-primary-soft: #6d5cf6;
-  --gw-accent: #f59e0b;
-  --gw-bg: #f8fafc;
-  --gw-text: #0f172a;
-  --gw-text-muted: #64748b;
+  --gw-primary: #5B4CF5;
+  --gw-primary-soft: #5B4CF5;
+  --gw-accent: #D97706;
+  --gw-bg: #F7F8FA;
+  --gw-text: #0F172A;
+  --gw-text-muted: #6B7280;
   --gw-card-shadow: 0 8px 20px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
   --gw-radius-lg: 20px;
   --gw-radius-md: 12px;
@@ -108,7 +108,7 @@
 .gw-toast-confetti span:nth-child(1) {
   left: 10%;
   top: 20%;
-  background: #f59e0b;
+  background: #D97706;
   animation-delay: 0s;
 }
 .gw-toast-confetti span:nth-child(2) {
@@ -120,19 +120,19 @@
 .gw-toast-confetti span:nth-child(3) {
   left: 50%;
   top: 10%;
-  background: #10b981;
+  background: #16A34A;
   animation-delay: 0.1s;
 }
 .gw-toast-confetti span:nth-child(4) {
   left: 30%;
   top: 60%;
-  background: #ec4899;
+  background: #5B4CF5;
   animation-delay: 0.08s;
 }
 .gw-toast-confetti span:nth-child(5) {
   left: 70%;
   top: 70%;
-  background: #f59e0b;
+  background: #D97706;
   animation-delay: 0.12s;
 }
 
@@ -577,7 +577,7 @@
 }
 
 .gw-podium-slot--gold {
-  background: linear-gradient(165deg, #fcd34d 0%, #d97706 45%, #b45309 100%);
+  background: linear-gradient(165deg, #D97706 0%, #D97706 45%, #D97706 100%);
   min-height: 168px;
   animation: gw-pulse-rank 2.4s ease-in-out infinite;
 }
@@ -588,7 +588,7 @@
 }
 
 .gw-podium-slot--bronze {
-  background: linear-gradient(165deg, #fdba74 0%, #ea580c 50%, #c2410c 100%);
+  background: linear-gradient(165deg, #D97706 0%, #D97706 50%, #D97706 100%);
   min-height: 120px;
 }
 
@@ -832,13 +832,13 @@
   border: 2px solid transparent;
   background:
     linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(135deg, var(--gw-primary), var(--gw-accent), #8b5cf6) border-box;
+    linear-gradient(135deg, var(--gw-primary), var(--gw-accent), var(--gw-primary)) border-box;
 }
 
 .dark .gw-badge-card--earned {
   background:
     linear-gradient(rgb(17 24 39), rgb(17 24 39)) padding-box,
-    linear-gradient(135deg, var(--gw-primary), var(--gw-accent), #8b5cf6) border-box;
+    linear-gradient(135deg, var(--gw-primary), var(--gw-accent), var(--gw-primary)) border-box;
 }
 
 .gw-badge-card--locked {
@@ -905,7 +905,7 @@
 .gw-share-hero {
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(145deg, #5b4cf5 0%, #7c3aed 50%, #8b5cf6 100%);
+  background: linear-gradient(145deg, #5B4CF5 0%, #5B4CF5 50%, #5B4CF5 100%);
   padding: 20px;
   box-shadow: var(--gw-card-shadow);
   color: #fff;

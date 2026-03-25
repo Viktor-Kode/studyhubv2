@@ -9,17 +9,18 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { getFirebaseToken } from '@/lib/store/authStore'
 
+// 3D book cover palette (monochrome shades only)
 const BOOK_COLORS = [
-  { bg: '#4F46E5', light: '#EEF2FF', label: 'Indigo' },
-  { bg: '#DC2626', light: '#FEF2F2', label: 'Red' },
-  { bg: '#059669', light: '#ECFDF5', label: 'Green' },
-  { bg: '#D97706', light: '#FEF3C7', label: 'Amber' },
-  { bg: '#7C3AED', light: '#F5F3FF', label: 'Purple' },
-  { bg: '#0891B2', light: '#ECFEFF', label: 'Cyan' },
-  { bg: '#BE185D', light: '#FDF2F8', label: 'Pink' },
-  { bg: '#EA580C', light: '#FFF7ED', label: 'Orange' },
-  { bg: '#0D9488', light: '#F0FDFA', label: 'Teal' },
-  { bg: '#4338CA', light: '#EEF2FF', label: 'Blue' },
+  { bg: '#0F172A', light: '#FFFFFF', label: 'Primary' },
+  { bg: '#1E293B', light: '#F7F7F7', label: 'Slate' },
+  { bg: '#334155', light: '#F7F7F7', label: 'Steel' },
+  { bg: '#475569', light: '#F7F7F7', label: 'Gray' },
+  { bg: '#64748B', light: '#F7F7F7', label: 'Muted' },
+  { bg: '#374151', light: '#F7F7F7', label: 'Dark Gray' },
+  { bg: '#1F2937', light: '#F7F7F7', label: 'Near-black' },
+  { bg: '#111827', light: '#F7F7F7', label: 'Charcoal' },
+  { bg: '#292524', light: '#F7F7F7', label: 'Warm Gray' },
+  { bg: '#1C1917', light: '#F7F7F7', label: 'Deep Charcoal' },
 ]
 
 const getToken = async () => {

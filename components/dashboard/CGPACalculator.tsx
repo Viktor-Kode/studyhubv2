@@ -79,17 +79,17 @@ export default function CGPACalculator({ className = '' }: CGPACalculatorProps) 
 
     const getClass = (gpa: number) => {
       if (scale === '5.0') {
-        if (gpa >= 4.5) return { label: 'First Class', color: '#059669' }
-        if (gpa >= 3.5) return { label: 'Second Class Upper', color: '#4F46E5' }
-        if (gpa >= 2.4) return { label: 'Second Class Lower', color: '#D97706' }
-        if (gpa >= 1.5) return { label: 'Third Class', color: '#DC2626' }
-        return { label: 'Fail', color: '#991B1B' }
+        if (gpa >= 4.5) return { label: 'First Class', color: '#0F172A' }
+        if (gpa >= 3.5) return { label: 'Second Class Upper', color: '#0F172A' }
+        if (gpa >= 2.4) return { label: 'Second Class Lower', color: '#0F172A' }
+        if (gpa >= 1.5) return { label: 'Third Class', color: '#0F172A' }
+        return { label: 'Fail', color: '#0F172A' }
       } else {
-        if (gpa >= 3.7) return { label: 'First Class', color: '#059669' }
-        if (gpa >= 3.0) return { label: 'Second Class Upper', color: '#4F46E5' }
-        if (gpa >= 2.0) return { label: 'Second Class Lower', color: '#D97706' }
-        if (gpa >= 1.0) return { label: 'Third Class', color: '#DC2626' }
-        return { label: 'Fail', color: '#991B1B' }
+        if (gpa >= 3.7) return { label: 'First Class', color: '#0F172A' }
+        if (gpa >= 3.0) return { label: 'Second Class Upper', color: '#0F172A' }
+        if (gpa >= 2.0) return { label: 'Second Class Lower', color: '#0F172A' }
+        if (gpa >= 1.0) return { label: 'Third Class', color: '#0F172A' }
+        return { label: 'Fail', color: '#0F172A' }
       }
     }
 

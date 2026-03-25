@@ -62,7 +62,7 @@ input, select, textarea {
   background: none;
   border: none;
   cursor: pointer;
-  color: #4F46E5;
+  color: #5B4CF5;
   font-size: 14px;
   font-weight: 600;
   padding: 8px 0;
@@ -72,7 +72,7 @@ input, select, textarea {
 }
 .back-button:hover { opacity: 0.7; }
 .back-button:active { opacity: 0.5; }
-.dark .back-button { color: #818cf8; }
+.dark .back-button { color: #5B4CF5; }
 
 @layer base {
   html {
@@ -452,7 +452,7 @@ section {
   left: 0;
   width: 0;
   height: 1px;
-  background: #00ffff;
+  background: #0F172A;
   transition: width 0.3s ease-out;
 }
 
@@ -487,20 +487,20 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+  background: linear-gradient(to bottom, #5B4CF5, #5B4CF5);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #7c3aed);
+  background: linear-gradient(to bottom, #5B4CF5, #5B4CF5);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #1e40af, #6d28d9);
+  background: linear-gradient(to bottom, #5B4CF5, #5B4CF5);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #1e3a8a, #5b21b6);
+  background: linear-gradient(to bottom, #5B4CF5, #5B4CF5);
 }
 
 /* Flip Card Styles */
@@ -901,51 +901,51 @@ html {
 }
 
 .option-btn:hover {
-  border-color: #4f46e5;
-  background: #eef2ff;
+  border-color: #5B4CF5;
+  background: #F7F8FA;
 }
 .dark .option-btn:hover {
-  border-color: #6366f1;
-  background: #3730a3;
+  border-color: #5B4CF5;
+  background: #0F172A;
 }
 
 .option-btn.selected {
-  border-color: #4f46e5;
-  background: #eef2ff;
+  border-color: #5B4CF5;
+  background: #F7F8FA;
 }
 .dark .option-btn.selected {
-  border-color: #6366f1;
-  background: #3730a3;
+  border-color: #5B4CF5;
+  background: #0F172A;
 }
 
 .option-btn.correct {
-  border-color: #10b981;
-  background: #ecfdf5;
-  color: #065f46;
+  border-color: #16A34A;
+  background: #F7F8FA;
+  color: #16A34A;
 }
 .dark .option-btn.correct {
-  border-color: #10b981;
-  background: #064e3b;
-  color: #d1fae5;
+  border-color: #16A34A;
+  background: #0F172A;
+  color: #16A34A;
 }
 
 .option-btn.wrong {
-  border-color: #ef4444;
-  background: #fef2f2;
-  color: #991b1b;
+  border-color: #DC2626;
+  background: #F7F8FA;
+  color: #DC2626;
 }
 .dark .option-btn.wrong {
-  border-color: #ef4444;
-  background: #7f1d1d;
-  color: #fecaca;
+  border-color: #DC2626;
+  background: #0F172A;
+  color: #DC2626;
 }
 
 .option-letter {
   font-weight: 700;
-  color: #4f46e5;
+  color: #5B4CF5;
   min-width: 20px;
 }
-.dark .option-letter { color: #818cf8; }
+.dark .option-letter { color: #5B4CF5; }
 
 /* Question navigator */
 .question-navigator {
@@ -981,24 +981,24 @@ html {
 }
 
 .nav-btn.answered {
-  background: #4f46e5;
+  background: #0F172A;
   color: white;
-  border-color: #4f46e5;
+  border-color: #0F172A;
 }
 
 .nav-btn.current {
-  border-color: #f59e0b;
-  color: #f59e0b;
+  border-color: #5B4CF5;
+  color: #5B4CF5;
 }
-.dark .nav-btn.current { color: #fbbf24; }
+.dark .nav-btn.current { color: #5B4CF5; }
 
 .nav-btn.skipped {
-  background: #fef3c7;
-  border-color: #f59e0b;
+  background: #F7F8FA;
+  border-color: #D97706;
 }
 .dark .nav-btn.skipped {
-  background: #78350f;
-  border-color: #f59e0b;
+  background: #0F172A;
+  border-color: #D97706;
 }
 
 /* Bottom navigation */
@@ -1033,12 +1033,12 @@ html {
 }
 
 .nav-next {
-  background: #4f46e5;
+  background: #0F172A;
   color: white;
 }
 
 .nav-submit {
-  background: #ef4444;
+  background: #0F172A;
   color: white;
 }
 
@@ -1120,9 +1120,9 @@ html {
   display: block;
   font-size: 22px;
   font-weight: 800;
-  color: #4F46E5;
+  color: #5B4CF5;
 }
-.dark .result-stat .num { color: #818CF8; }
+.dark .result-stat .num { color: #5B4CF5; }
 
 .result-stat .label {
   font-size: 11px;
@@ -1149,9 +1149,9 @@ html {
 }
 .dark .answer-card { background: #1f2937; border-color: #374151; }
 
-.answer-card.correct { border-left: 4px solid #10B981; }
-.answer-card.wrong { border-left: 4px solid #EF4444; }
-.answer-card.skipped { border-left: 4px solid #F59E0B; }
+.answer-card.correct { border-left: 4px solid #16A34A; }
+.answer-card.wrong { border-left: 4px solid #DC2626; }
+.answer-card.skipped { border-left: 4px solid #D97706; }
 
 .answer-card-header {
   display: flex;
@@ -1177,12 +1177,12 @@ html {
   font-weight: 700;
   flex-shrink: 0;
 }
-.badge-correct { background: #ECFDF5; color: #059669; }
-.dark .badge-correct { background: #064e3b; color: #6ee7b7; }
-.badge-wrong { background: #FEE2E2; color: #DC2626; }
-.dark .badge-wrong { background: #7f1d1d; color: #fca5a5; }
-.badge-skipped { background: #FEF3C7; color: #D97706; }
-.dark .badge-skipped { background: #78350f; color: #fcd34d; }
+.badge-correct { background: #F7F8FA; color: #16A34A; }
+.dark .badge-correct { background: #0F172A; color: #16A34A; }
+.badge-wrong { background: #F7F8FA; color: #DC2626; }
+.dark .badge-wrong { background: #0F172A; color: #DC2626; }
+.badge-skipped { background: #F7F8FA; color: #D97706; }
+.dark .badge-skipped { background: #0F172A; color: #D97706; }
 
 .answer-question-text {
   font-size: 15px;
@@ -1220,18 +1220,18 @@ html {
 .dark .answer-option { background: #374151; }
 
 .answer-option.correct-opt {
-  background: #ECFDF5;
-  color: #065F46;
+  background: #F7F8FA;
+  color: #16A34A;
   font-weight: 600;
 }
-.dark .answer-option.correct-opt { background: #064e3b; color: #6ee7b7; }
+.dark .answer-option.correct-opt { background: #0F172A; color: #16A34A; }
 
 .answer-option.user-wrong {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: #F7F8FA;
+  color: #DC2626;
   text-decoration: line-through;
 }
-.dark .answer-option.user-wrong { background: #7f1d1d; color: #fca5a5; }
+.dark .answer-option.user-wrong { background: #0F172A; color: #DC2626; }
 
 .answer-opt-key {
   font-weight: 700;
@@ -1240,18 +1240,18 @@ html {
 }
 
 .answer-explanation {
-  background: #FFFBEB;
-  border-left: 3px solid #F59E0B;
+  background: #F7F8FA;
+  border-left: 3px solid #D97706;
   padding: 12px;
   border-radius: 0 8px 8px 0;
   font-size: 13px;
-  color: #92400E;
+  color: #D97706;
   line-height: 1.6;
   word-break: break-word;
   overflow-wrap: anywhere;
   white-space: normal;
 }
-.dark .answer-explanation { background: #78350f; border-color: #f59e0b; color: #fde68a; }
+.dark .answer-explanation { background: #0F172A; border-color: #D97706; color: #D97706; }
 
 /* Mobile breakpoint */
 @media (max-width: 640px) {

@@ -21,11 +21,12 @@ import {
 import { apiClient } from '@/lib/api/client'
 
 const ASSESSMENT_TYPES = [
-  { value: 'exam', label: 'Exam', color: '#DC2626' },
-  { value: 'test', label: 'Test', color: '#D97706' },
-  { value: 'assignment', label: 'Assignment', color: '#4F46E5' },
-  { value: 'classwork', label: 'Classwork', color: '#059669' },
-  { value: 'quiz', label: 'Quiz', color: '#7C3AED' },
+  // Monochrome assessment accents (no red/amber/green/purple).
+  { value: 'exam', label: 'Exam', color: '#0F172A' },
+  { value: 'test', label: 'Test', color: '#0F172A' },
+  { value: 'assignment', label: 'Assignment', color: '#0F172A' },
+  { value: 'classwork', label: 'Classwork', color: '#0F172A' },
+  { value: 'quiz', label: 'Quiz', color: '#0F172A' },
 ]
 
 const QUESTION_TYPES = [
@@ -193,14 +194,14 @@ export default function QuestionGeneratorPage() {
 
         <div className="teacher-stats">
           <div className="tstat-card">
-            <BookOpen size={18} color="#4F46E5" />
+            <BookOpen size={18} color="#0F172A" />
             <div>
               <span className="tstat-num">{questionSets.length}</span>
               <span className="tstat-label">Total Sets</span>
             </div>
           </div>
           <div className="tstat-card">
-            <Award size={18} color="#059669" />
+            <Award size={18} color="#0F172A" />
             <div>
               <span className="tstat-num">
                 {questionSets.filter((s) => s.status === 'published').length}
@@ -209,7 +210,7 @@ export default function QuestionGeneratorPage() {
             </div>
           </div>
           <div className="tstat-card">
-            <FileText size={18} color="#D97706" />
+            <FileText size={18} color="#0F172A" />
             <div>
               <span className="tstat-num">
                 {questionSets.filter((s) => s.status === 'draft').length}
@@ -388,7 +389,7 @@ function GenerateTab({ onGenerated }: { onGenerated: (set: QuestionSet) => void 
         />
         {file ? (
           <div className="file-selected">
-            <FileText size={32} color="#4F46E5" />
+            <FileText size={32} color="#0F172A" />
             <div>
               <span className="file-name">{file.name}</span>
               <span className="file-size">{(file.size / 1024).toFixed(0)} KB</span>

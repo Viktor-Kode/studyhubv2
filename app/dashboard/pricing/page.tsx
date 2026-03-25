@@ -62,9 +62,9 @@ export default function PricingPage() {
                     <div className="text-center mb-16">
                         <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                             {isTeacherFlow ? (
-                              <>Teacher <span className="text-blue-600">Plans</span></>
+                              <>Teacher <span className="text-gray-900 dark:text-white">Plans</span></>
                             ) : (
-                              <>Simple, Transparent <span className="text-blue-600">Pricing</span></>
+                              <>Simple, Transparent <span className="text-gray-900 dark:text-white">Pricing</span></>
                             )}
                         </h1>
                         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -126,12 +126,12 @@ export default function PricingPage() {
                             <div
                                 key={meta.type}
                                 className={`flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl border-2 transition-all duration-300 hover:scale-105 ${meta.highlight
-                                    ? 'border-emerald-500 ring-4 ring-emerald-500/10 scale-105 z-10'
-                                    : 'border-transparent hover:border-blue-500/50'
+                                    ? 'border-gray-300 ring-4 ring-gray-300/30 scale-105 z-10'
+                                    : 'border-transparent hover:border-gray-300/70'
                                     }`}
                             >
                                 {meta.highlight && (
-                                    <div className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest py-1.5 text-center rounded-t-lg">
+                                    <div className="bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-1.5 text-center rounded-t-lg">
                                         Most Popular
                                     </div>
                                 )}
@@ -139,7 +139,7 @@ export default function PricingPage() {
                                 <div className="p-8">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{planName}</h3>
-                                        <div className={`p-2 rounded-lg bg-${meta.color}-100 dark:bg-${meta.color}-900/30 text-${meta.color}-600`}>
+                                        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">
                                             {meta.type === 'addon' ? <FiZap className="text-xl" /> : <FiAward className="text-xl" />}
                                         </div>
                                     </div>
@@ -159,10 +159,10 @@ export default function PricingPage() {
                                         onClick={() => price !== '₦0' && handleSubscribe(meta.type)}
                                         disabled={price === '₦0' || loadingPlan !== null}
                                         className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${meta.highlight
-                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                            ? 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
                                             : price === '₦0'
                                                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
+                                                : 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
                                             } disabled:opacity-50`}
                                     >
                                         {loadingPlan === meta.type ? (
@@ -176,9 +176,9 @@ export default function PricingPage() {
                                         {features.map((feature, idx) => (
                                             <li key={idx} className="flex items-start gap-3">
                                                 {feature.included ? (
-                                                    <FiCheck className="text-green-500 mt-1 flex-shrink-0" />
+                                                    <FiCheck className="text-gray-900 dark:text-white mt-1 flex-shrink-0" />
                                                 ) : (
-                                                    <FiX className="text-red-300 dark:text-gray-600 mt-1 flex-shrink-0" />
+                                                    <FiX className="text-gray-500 dark:text-gray-300 mt-1 flex-shrink-0" />
                                                 )}
                                                 <span className={`text-sm ${feature.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 line-through'}`}>
                                                     {feature.text}
@@ -215,7 +215,7 @@ export default function PricingPage() {
                                             className="h-full transition-all"
                                             style={{
                                                 width: `${(status.usage.ai.used / Math.max(status.usage.ai.limit, 1)) * 100}%`,
-                                                backgroundColor: status.usage.ai.used >= status.usage.ai.limit ? '#EF4444' : '#4F46E5'
+                                                backgroundColor: status.usage.ai.used >= status.usage.ai.limit ? '#D97706' : '#0F172A'
                                             }}
                                         />
                                     </div>
@@ -227,7 +227,7 @@ export default function PricingPage() {
                                     <span className="text-sm font-medium">📇 Flashcard Sets</span>
                                     <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-purple-500 transition-all"
+                                            className="h-full bg-gray-900 dark:bg-white transition-all"
                                             style={{
                                                 width: `${(status.usage.flashcards.used / Math.max(status.usage.flashcards.limit, 1)) * 100}%`
                                             }}

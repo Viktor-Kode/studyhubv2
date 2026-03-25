@@ -10,7 +10,7 @@ export default function ErrorPage({ searchParams }: { searchParams: { [key: stri
         <li>Set NEXTAUTH_SECRET.</li>
         <li>Google callback URL: /api/auth/callback/google</li>
       </ul>
-      <a href="/auth/login" style={{ color: '#2563eb' }}>Back to login</a>
+      <a href="/auth/login" style={{ color: '#5B4CF5' }}>Back to login</a>
     </div>
   )
 }
