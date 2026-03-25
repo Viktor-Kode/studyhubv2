@@ -378,7 +378,7 @@ export default function StudentDashboardPage() {
             </div>
 
             {/* Quick Access */}
-            <div>
+            <div data-tour="student-quick-access">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FiGrid className="text-blue-500" />
                 Quick Access
@@ -463,7 +463,11 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
               <p className="text-sm mb-4 text-blue-50">Ask anything about your studies, questions, or concepts.</p>
-              <Link href="/dashboard/chat" className="block w-full py-2 bg-white text-blue-600 rounded-xl font-bold text-center text-sm hover:bg-blue-50 transition-colors">
+              <Link
+                href="/dashboard/chat"
+                data-tour="student-ai-assistant"
+                className="block w-full py-2 bg-white text-blue-600 rounded-xl font-bold text-center text-sm hover:bg-blue-50 transition-colors"
+              >
                 Start Chatting
               </Link>
             </div>

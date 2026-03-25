@@ -447,6 +447,7 @@ const LibraryPage = () => {
                   <p>Upload your first PDF to get started</p>
                   <button
                     className="lib-upload-btn"
+                    data-tour="library-upload"
                     onClick={() => setShowUpload(true)}
                     type="button"
                   >
@@ -470,6 +471,7 @@ const LibraryPage = () => {
 
               <button
                 className="lib-add-card"
+                data-tour="library-add-material"
                 onClick={() => setShowUpload(true)}
                 type="button"
               >

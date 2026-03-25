@@ -849,6 +849,7 @@ export default function CBTPage() {
                       <button
                         onClick={handleStartTest}
                         disabled={loading}
+                        data-tour="cbt-start"
                         className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
                                bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 
                                text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-blue-500/20 
@@ -949,6 +950,7 @@ export default function CBTPage() {
 
                 <button
                   onClick={startActualTest}
+                  data-tour="cbt-start"
                   className="w-full flex items-center justify-center gap-3 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition shadow-xl shadow-blue-500/20"
                 >
                   Confirm & Start Exam

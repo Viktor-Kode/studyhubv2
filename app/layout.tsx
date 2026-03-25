@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import ThemeProvider from '@/components/ThemeProvider'
 
 import Providers from '@/components/Providers'
+import HelpWidgetLayer from '@/components/help/HelpWidgetLayer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -63,7 +64,10 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <HelpWidgetLayer />
+            {children}
+          </ThemeProvider>
         </Providers>
       </body>
     </html>

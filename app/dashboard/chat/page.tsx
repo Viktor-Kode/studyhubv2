@@ -433,6 +433,7 @@ export default function ChatPage() {
               <textarea
                 ref={textareaRef}
                 value={input}
+                data-tour="ai-tutor-input"
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
@@ -441,6 +442,7 @@ export default function ChatPage() {
               />
               <button
                 type="button"
+                data-tour="ai-tutor-send"
                 onClick={() => handleSend()}
                 disabled={!input.trim() || isSending}
                 className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"

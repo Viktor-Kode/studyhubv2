@@ -764,7 +764,12 @@ export default function CommunityPage() {
                 </div>
 
                 <div className="mt-3 flex justify-end">
-                  <button disabled={submitting} onClick={() => void createPost()} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60">
+                  <button
+                    disabled={submitting}
+                    onClick={() => void createPost()}
+                    data-tour="community-create-post"
+                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
+                  >
                     {submitting ? 'Posting...' : 'Publish'}
                   </button>
                 </div>
@@ -783,7 +788,11 @@ export default function CommunityPage() {
                       : 'No discussions yet. Be the first to ask a question and earn points.'}
                   </p>
                   {!debouncedSearch && (
-                    <button onClick={() => setSelectedTab('post')} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
+                    <button
+                      onClick={() => setSelectedTab('post')}
+                      data-tour="community-create-post"
+                      className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+                    >
                       Create a post
                     </button>
                   )}
