@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 const iconFor = (type: string) => {
   switch (type) {
     case 'like':
+    case 'comment_like':
       return ThumbsUp
     case 'comment':
     case 'mention':
@@ -85,6 +86,8 @@ export default function CommunityNotificationsPage() {
                 const label =
                   n.type === 'like'
                     ? `${n.actorName || 'Someone'} liked your post`
+                    : n.type === 'comment_like'
+                      ? `${n.actorName || 'Someone'} liked your comment`
                     : n.type === 'comment'
                       ? `${n.actorName || 'Someone'} commented on your post`
                       : n.type === 'mention'
