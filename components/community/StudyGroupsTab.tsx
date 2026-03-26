@@ -320,25 +320,25 @@ export function StudyGroupsTab({ myUid, showToast }: Props) {
               <button
                 type="button"
                 onClick={() => setNewVisibility('public')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-3 py-2 text-sm font-semibold transition-colors ${
                   newVisibility === 'public'
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200'
-                    : 'border-slate-200 dark:border-slate-700'
+                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm dark:border-indigo-500 dark:bg-indigo-600 dark:text-white'
+                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <Globe className="h-4 w-4" />
+                <Globe className="h-4 w-4 shrink-0 opacity-90" />
                 Public
               </button>
               <button
                 type="button"
                 onClick={() => setNewVisibility('private')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-3 py-2 text-sm font-semibold transition-colors ${
                   newVisibility === 'private'
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200'
-                    : 'border-slate-200 dark:border-slate-700'
+                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm dark:border-indigo-500 dark:bg-indigo-600 dark:text-white'
+                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <Lock className="h-4 w-4" />
+                <Lock className="h-4 w-4 shrink-0 opacity-90" />
                 Private
               </button>
             </div>

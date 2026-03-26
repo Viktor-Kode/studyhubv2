@@ -601,15 +601,31 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
             ) : null}
           </div>
           {own && (
-            <button
-              type="button"
-              className="group-msg-kebab"
-              aria-label="Message actions"
-              title="Message actions"
-              onClick={(e) => openKebab(e, msg)}
-            >
-              <MoreVertical className="h-4 w-4" strokeWidth={2} />
-            </button>
+            <div className="flex shrink-0 flex-col gap-0.5 self-center">
+              {canEditMessage(msg) ? (
+                <button
+                  type="button"
+                  className="group-msg-kebab"
+                  aria-label="Edit message"
+                  title="Edit message"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openEditModal(msg)
+                  }}
+                >
+                  <Edit2 className="h-4 w-4" strokeWidth={2} />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="group-msg-kebab"
+                aria-label="Message actions"
+                title="Message actions"
+                onClick={(e) => openKebab(e, msg)}
+              >
+                <MoreVertical className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
           )}
         </div>
       </div>
