@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
-  ChevronRight, Shield
+  ChevronRight, Shield, LifeBuoy,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
@@ -12,6 +12,7 @@ import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
+import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 
@@ -511,6 +512,67 @@ function NotificationsSection({
   )
 }
 
+// ─── Help & Support (floating widgets) ───────────────────────────────────────
+
+function HelpSupportSection({ onSaved }: { onSaved: () => void }) {
+  const {
+    tourButtonVisible,
+    chatbotVisible,
+    setTourHidden,
+    setChatbotHidden,
+  } = useHelpWidgets()
+
+  const toggleTour = () => {
+    void setTourHidden(tourButtonVisible)
+    onSaved()
+  }
+
+  const toggleChat = () => {
+    void setChatbotHidden(chatbotVisible)
+    onSaved()
+  }
+
+  return (
+    <div className="settings-section">
+      <h3 className="section-title">Help &amp; Support</h3>
+      <p className="field-hint mb-4" style={{ marginTop: '-0.5rem' }}>
+        Control the floating tour button (bottom-left) and help chat (bottom-right). Preferences are saved on this device and to your account when signed in.
+      </p>
+
+      <div className="toggle-list">
+        <div className="toggle-row">
+          <div className="toggle-info">
+            <span className="toggle-label">Show tour button</span>
+            <span className="toggle-desc">Opens the onboarding tour for the current page</span>
+          </div>
+          <button
+            type="button"
+            className={`toggle-switch ${tourButtonVisible ? 'on' : 'off'}`}
+            onClick={toggleTour}
+            aria-pressed={tourButtonVisible}
+          >
+            <div className="toggle-thumb" />
+          </button>
+        </div>
+        <div className="toggle-row">
+          <div className="toggle-info">
+            <span className="toggle-label">Show help chatbot</span>
+            <span className="toggle-desc">Quick answers about using StudyHelp</span>
+          </div>
+          <button
+            type="button"
+            className={`toggle-switch ${chatbotVisible ? 'on' : 'off'}`}
+            onClick={toggleChat}
+            aria-pressed={chatbotVisible}
+          >
+            <div className="toggle-thumb" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Appearance Section ────────────────────────────────────────────────────────
 
 function AppearanceSection({ onSaved }: { onSaved: () => void }) {
@@ -712,6 +774,7 @@ const SECTIONS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'account', label: 'Account & Security', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'help', label: 'Help & Support', icon: LifeBuoy },
   { id: 'appearance', label: 'Appearance', icon: Sun },
   { id: 'danger', label: 'Danger Zone', icon: Trash2 },
 ]
@@ -783,6 +846,7 @@ export default function SettingsPage() {
             {activeSection === 'notifications' && (
               <NotificationsSection user={user} onSaved={showSaved} />
             )}
+            {activeSection === 'help' && <HelpSupportSection onSaved={showSaved} />}
             {activeSection === 'appearance' && (
               <AppearanceSection onSaved={showSaved} />
             )}

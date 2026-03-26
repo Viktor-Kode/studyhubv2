@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, Send } from 'lucide-react'
+import { ChevronDown, CircleOff, MessageCircle, Send, X } from 'lucide-react'
 import QuickReplies from './QuickReplies'
 import MessageBubble from './MessageBubble'
 import { deepseekAsk } from '@/lib/services/deepseek'
+import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 
 const FIXED_ANSWERS = {
   'how do i take a cbt test':
@@ -36,10 +37,8 @@ function tryFixedAnswer(userText) {
   const norm = normalizeText(userText)
   if (!norm) return null
 
-  // Exact match first
   if (Object.prototype.hasOwnProperty.call(FIXED_ANSWERS, norm)) return FIXED_ANSWERS[norm]
 
-  // Fallback: allow "how do I take a cbt test?" style messages
   for (const key of Object.keys(FIXED_ANSWERS)) {
     if (norm === key) return FIXED_ANSWERS[key]
     if (norm.includes(key)) return FIXED_ANSWERS[key]
@@ -86,6 +85,7 @@ const SYSTEM_PROMPT = `You are the StudyHelp onboarding assistant. Answer ONLY q
 If the user asks something unrelated (like learning topics or general knowledge), politely redirect them to the **AI Tutor** instead of answering the topic.`
 
 export default function HelpChatbot() {
+  const { chatbotVisible, hideChatbot, showChatbot } = useHelpWidgets()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -96,13 +96,12 @@ export default function HelpChatbot() {
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
-    // Welcome message
     if (messages.length === 0) {
       setMessages([
         {
           id: `welcome-${Date.now()}`,
           role: 'bot',
-          content: "Hi! 👋 I'm your StudyHelp guide. How can I help you?",
+          content: "Hi! I'm your StudyHelp guide. How can I help you?",
         },
       ])
     }
@@ -110,7 +109,6 @@ export default function HelpChatbot() {
   }, [])
 
   useEffect(() => {
-    // Slight bounce on first load for attention.
     setShowBounce(true)
     const t = window.setTimeout(() => setShowBounce(false), 1600)
     return () => window.clearTimeout(t)
@@ -174,50 +172,94 @@ export default function HelpChatbot() {
 
   const typingDots = (
     <div className="mb-3 flex justify-start">
-      <div className="rounded-2xl bg-gray-100 px-4 py-3 text-sm text-gray-900 border border-gray-200">
+      <div className="rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-900">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
         </div>
       </div>
     </div>
   )
 
+  if (!chatbotVisible) {
+    return (
+      <div className="fixed bottom-6 right-6 z-[1250]">
+        <button
+          type="button"
+          aria-label="Show help chat"
+          title="Show help chat"
+          onClick={() => void showChatbot()}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-[#5B4CF5] shadow-md transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700"
+        >
+          <MessageCircle className="h-5 w-5" strokeWidth={2} />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <>
       {!isOpen && (
-        <button
-          type="button"
-          aria-label="Open help chat"
-          onClick={() => setIsOpen(true)}
-          className={`fixed bottom-6 right-6 z-[1250] flex h-14 w-14 items-center justify-center rounded-full bg-[#5B4CF5] text-white shadow-xl hover:bg-[#4F3FE5] transition select-none ${
-            showBounce ? 'animate-bounce' : ''
-          }`}
-        >
-          <span className="text-2xl leading-none">💬</span>
-        </button>
+        <div className="fixed bottom-6 right-6 z-[1250]">
+          <div className="group relative inline-block">
+            <button
+              type="button"
+              aria-label="Open help chat"
+              onClick={() => setIsOpen(true)}
+              className={`relative flex h-14 w-14 items-center justify-center rounded-full bg-[#5B4CF5] text-white shadow-xl transition select-none hover:bg-[#4F3FE5] ${
+                showBounce ? 'animate-bounce' : ''
+              }`}
+            >
+              <MessageCircle className="h-7 w-7" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              aria-label="Hide help chat"
+              title="Hide help chat"
+              onClick={(e) => {
+                e.stopPropagation()
+                void hideChatbot()
+              }}
+              className="absolute -right-1 -top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-slate-800 text-white opacity-100 shadow-md transition hover:bg-slate-900 md:opacity-0 md:group-hover:opacity-100"
+            >
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
       )}
 
       {isOpen && (
         <div className="fixed bottom-6 right-6 z-[1250]">
-          <div className="mb-3 w-[340px] h-[480px] overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-100 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 bg-[#5B4CF5] text-white">
-              <div className="flex items-center gap-2 font-bold">
-                <span>🤖</span>
-                <span>StudyHelp Help</span>
+          <div className="mb-3 flex h-[480px] w-[340px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl">
+            <div className="flex items-center justify-between bg-[#5B4CF5] px-3 py-3 text-white">
+              <div className="flex min-w-0 items-center gap-2 font-bold">
+                <MessageCircle className="h-5 w-5 shrink-0" />
+                <span className="truncate">StudyHelp Help</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-lg p-2 hover:bg-white/10 transition"
-                aria-label="Close help chat"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg p-2 transition hover:bg-white/10"
+                  aria-label="Minimize help chat"
+                  title="Minimize"
+                >
+                  <ChevronDown size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void hideChatbot()}
+                  className="rounded-lg p-2 transition hover:bg-white/10"
+                  aria-label="Hide help chat from bar"
+                  title="Hide help chat"
+                >
+                  <CircleOff size={18} />
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 bg-gray-50">
+            <div className="flex-1 overflow-y-auto bg-gray-50 p-3">
               {messages.map((m) => (
                 <MessageBubble key={m.id} role={m.role} content={m.content} />
               ))}
@@ -228,7 +270,7 @@ export default function HelpChatbot() {
             <div className="px-3 pb-3">
               <QuickReplies replies={quickReplies} onPick={(r) => void send(r)} />
 
-              <div className="mt-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 flex items-end gap-2">
+              <div className="mt-2 flex items-end gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -245,7 +287,7 @@ export default function HelpChatbot() {
                   type="button"
                   disabled={isDisabled}
                   onClick={() => void send(input)}
-                  className="mb-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#5B4CF5] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#4F3FE5] transition"
+                  className="mb-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#5B4CF5] text-white transition hover:bg-[#4F3FE5] disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Send message"
                 >
                   <Send size={16} />
@@ -253,18 +295,8 @@ export default function HelpChatbot() {
               </div>
             </div>
           </div>
-
-          <div className="flex justify-end mt-2">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="hidden"
-              aria-hidden
-            />
-          </div>
         </div>
       )}
     </>
   )
 }
-

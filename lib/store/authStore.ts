@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AppRole, AppUser } from '@/lib/types/auth'
+import { LS_CHAT_HIDDEN, LS_TOUR_HIDDEN } from '@/lib/store/helpWidgetsStore'
 
 interface AuthState {
   user: AppUser | null
@@ -26,7 +27,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   logout: () => {
     if (typeof window !== 'undefined') {
+      const tour = localStorage.getItem(LS_TOUR_HIDDEN)
+      const chat = localStorage.getItem(LS_CHAT_HIDDEN)
       localStorage.clear()
+      if (tour != null) localStorage.setItem(LS_TOUR_HIDDEN, tour)
+      if (chat != null) localStorage.setItem(LS_CHAT_HIDDEN, chat)
     }
     set({ user: null, isAuthenticated: false, isLoading: false })
   },
@@ -36,7 +41,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const { apiClient } = await import('@/lib/api/client')
       const response = await apiClient.get('/users/me')
       if (response.data?.data?.user) {
-        set({ user: response.data.data.user, isAuthenticated: true })
+        const u = response.data.data.user
+        set({ user: u, isAuthenticated: true })
+        const { useHelpWidgetsStore } = await import('@/lib/store/helpWidgetsStore')
+        useHelpWidgetsStore.getState().applyServerPreferences(u.preferences)
       }
     } catch (err) {
       console.error('[refreshUser] Failed:', err)

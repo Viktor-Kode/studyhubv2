@@ -7,6 +7,10 @@ export interface AppUser {
     role: AppRole
     avatar?: string
     provider?: 'google' | 'password'
+    preferences?: {
+        hideTourButton?: boolean
+        hideChatbot?: boolean
+    }
     plan?: {
         type: 'free' | 'starter' | 'growth' | 'premium'
         testsAllowed: number
