@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, Bell, Medal, MessageSquare, Sparkles, ThumbsUp } from 'lucide-react'
+import { ArrowLeft, Bell, CheckCheck, Loader2, Medal, MessageSquare, Sparkles, ThumbsUp } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { communityApi, type CommunityNotificationItem } from '@/lib/api/communityApi'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/useToast'
 
 const iconFor = (type: string) => {
   switch (type) {
@@ -25,9 +26,22 @@ const iconFor = (type: string) => {
   }
 }
 
+function ToastLine({ message }: { message: string | null }) {
+  if (!message) return null
+  return (
+    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-xl">
+      {message}
+    </div>
+  )
+}
+
 export default function CommunityNotificationsPage() {
+  const { toast, showToast } = useToast(2200)
   const [items, setItems] = useState<CommunityNotificationItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [markAllBusy, setMarkAllBusy] = useState(false)
+
+  const unreadCount = items.filter((n) => !n.read).length
 
   const load = useCallback(async () => {
     try {
@@ -42,6 +56,19 @@ export default function CommunityNotificationsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const markAllRead = async () => {
+    if (unreadCount === 0) return
+    setMarkAllBusy(true)
+    try {
+      await communityApi.markAllNotificationsRead()
+      setItems((prev) => prev.map((x) => ({ ...x, read: true })))
+    } catch {
+      showToast('Could not mark all as read')
+    } finally {
+      setMarkAllBusy(false)
+    }
+  }
 
   const open = async (n: CommunityNotificationItem) => {
     if (!n.read) {
@@ -70,7 +97,22 @@ export default function CommunityNotificationsPage() {
               Back to Community
             </Link>
           </div>
-          <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">Notifications</h1>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</h1>
+            {!loading && items.length > 0 && unreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                disabled={markAllBusy}
+                className="shrink-0 gap-2"
+                onClick={() => void markAllRead()}
+              >
+                {markAllBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+                Mark all as read
+              </Button>
+            )}
+          </div>
 
           {loading ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
@@ -134,6 +176,7 @@ export default function CommunityNotificationsPage() {
           )}
         </div>
       </div>
+      <ToastLine message={toast?.message || null} />
     </ProtectedRoute>
   )
 }

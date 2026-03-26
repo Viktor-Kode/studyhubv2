@@ -136,6 +136,8 @@ export const communityApi = {
   getNotifications: (params?: { limit?: number }) =>
     apiClient.get('/community/notifications', { params }),
   markNotificationRead: (id: string) => apiClient.put(`/community/notifications/${id}/read`),
+  markAllNotificationsRead: () =>
+    apiClient.put<{ success: boolean; modifiedCount?: number }>('/community/notifications/read-all'),
 
   createPost: (payload: {
     content: string
