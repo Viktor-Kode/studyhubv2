@@ -65,6 +65,8 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   const [emojiFor, setEmojiFor] = useState<GroupChatMessage | null>(null)
   const [pendingBelow, setPendingBelow] = useState(false)
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 })
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+  const [leaveBusy, setLeaveBusy] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const sinceRef = useRef<string>(new Date().toISOString())
@@ -288,14 +290,18 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     }
   }
 
-  const leaveGroup = async () => {
+  const confirmLeaveGroup = async () => {
+    setLeaveBusy(true)
     try {
       await studyGroupsApi.leave(gid)
+      setLeaveConfirmOpen(false)
       showToast('Left group')
       onBack()
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
       showToast(msg || 'Could not leave')
+    } finally {
+      setLeaveBusy(false)
     }
   }
 
@@ -626,7 +632,7 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
           {member && (
             <button
               type="button"
-              onClick={() => void leaveGroup()}
+              onClick={() => setLeaveConfirmOpen(true)}
               className="w-full rounded-xl border border-red-200 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/40"
             >
               Leave group
@@ -703,6 +709,46 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
                 {em}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {leaveConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leave-group-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setLeaveConfirmOpen(false)
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h2 id="leave-group-title" className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+              <UserMinus className="h-5 w-5 text-red-500" aria-hidden />
+              Leave group?
+            </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+              You will stop seeing messages and the leaderboard for <span className="font-semibold">{group.name}</span>.
+              If you are the last member, the group will be deleted.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLeaveConfirmOpen(false)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={leaveBusy}
+                onClick={() => void confirmLeaveGroup()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+              >
+                {leaveBusy ? 'Leaving…' : 'Leave group'}
+              </button>
+            </div>
           </div>
         </div>
       )}
