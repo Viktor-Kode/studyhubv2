@@ -15,6 +15,7 @@ import {
   FileText,
   Library,
   Loader2,
+  MessageSquare,
   MoreVertical,
   Reply,
   Send,
@@ -26,10 +27,12 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  Wrench,
   X,
 } from 'lucide-react'
 import { studyGroupsApi, type GroupChatMessage, type StudyGroup, type StudyGroupMember } from '@/lib/api/studyGroupsApi'
 import { useGroupReadReceipts } from '@/hooks/useGroupReadReceipts'
+import { GroupStudyToolsPanel } from '@/components/community/GroupStudyToolsPanel'
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '🔥', '👏', '💡']
 const EDIT_WINDOW_MS = 5 * 60 * 1000
@@ -57,6 +60,8 @@ function seenReaderNames(seenBy: string[] | undefined, members: StudyGroupMember
     .map((id) => members.find((m) => m.userId === id)?.name)
     .filter((n): n is string => Boolean(n))
 }
+
+type GroupMainTab = 'chat' | 'members' | 'leaderboard' | 'tools'
 
 type Props = {
   group: StudyGroup
@@ -105,6 +110,7 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [kebabFor, setKebabFor] = useState<GroupChatMessage | null>(null)
   const [kebabPos, setKebabPos] = useState({ x: 0, y: 0 })
+  const [mainTab, setMainTab] = useState<GroupMainTab>('chat')
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const sinceRef = useRef<string>(new Date().toISOString())
@@ -116,7 +122,7 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
 
   useGroupReadReceipts({
     groupId: gid,
-    enabled: member && !loading,
+    enabled: member && !loading && mainTab === 'chat',
     scrollRef,
     messageCount: messages.length,
     debounceMs: 2500,
@@ -189,12 +195,13 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   }, [])
 
   useEffect(() => {
+    if (mainTab !== 'chat') return
     if (!stickBottomRef.current || !scrollRef.current) return
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages])
+  }, [messages, mainTab])
 
   useEffect(() => {
-    if (!member || loading) return
+    if (!member || loading || mainTab !== 'chat') return
     const poll = async () => {
       try {
         const res = await studyGroupsApi.getMessages(gid, { limit: 50 })
@@ -219,7 +226,7 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     const id = window.setInterval(poll, 8000)
     void poll()
     return () => window.clearInterval(id)
-  }, [gid, member, loading])
+  }, [gid, member, loading, mainTab])
 
   useEffect(() => {
     const close = () => {
@@ -644,13 +651,44 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
             <button
               type="button"
               className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 lg:hidden"
-              aria-label="Members and leaderboard"
-              onClick={() => setMembersOpen(true)}
+              aria-label="Group info and join code"
+              title="Group info"
+              onClick={() => mainTab === 'chat' && setMembersOpen(true)}
+              disabled={mainTab !== 'chat'}
             >
               <Users className="h-5 w-5" />
             </button>
           </div>
 
+          <div className="group-main-tabs flex gap-1 overflow-x-auto border-b border-slate-100 px-3 pb-2 pt-1 dark:border-slate-800">
+            {(
+              [
+                ['chat', 'Chat', MessageSquare],
+                ['members', 'Members', Users],
+                ['leaderboard', 'Leaderboard', Trophy],
+                ['tools', 'Study Tools', Wrench],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setMainTab(id)
+                  if (id === 'members') setMembersOpen(false)
+                }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                  mainTab === id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {mainTab === 'chat' ? (
           <div className="group-chat-messages relative" ref={scrollRef}>
             {member && hasOlder && (
               <div className="mb-3 flex justify-center">
@@ -704,8 +742,64 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
               </button>
             )}
           </div>
+          ) : mainTab === 'members' ? (
+            <div className="flex flex-1 flex-col overflow-y-auto p-4">
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Members</h3>
+              <ul className="space-y-2">
+                {sortedMembers.map((m) => (
+                  <li key={m.userId} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                    <span className="truncate font-medium text-slate-900 dark:text-white">
+                      {m.name}
+                      {m.role === 'admin' ? <Crown className="ml-1 inline h-3.5 w-3.5 text-amber-500" /> : null}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400">{m.points ?? 0} pts</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : mainTab === 'leaderboard' ? (
+            <div className="flex flex-1 flex-col overflow-y-auto p-4">
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Leaderboard</h3>
+              <div className="space-y-1">
+                {sortedMembers.map((m, rank) => {
+                  const isMe = m.userId === myUid
+                  const trophy =
+                    rank === 0 ? (
+                      <Trophy className="mx-auto h-4 w-4 text-amber-500" />
+                    ) : rank === 1 ? (
+                      <Trophy className="mx-auto h-4 w-4 text-slate-400" />
+                    ) : rank === 2 ? (
+                      <Trophy className="mx-auto h-4 w-4 text-amber-700" />
+                    ) : (
+                      <span className="group-leaderboard-rank">{rank + 1}</span>
+                    )
+                  return (
+                    <div key={m.userId} className={`group-leaderboard-item ${isMe ? 'me' : ''}`}>
+                      <div className="group-leaderboard-rank-icon">{trophy}</div>
+                      <span className="group-leaderboard-name truncate">
+                        {m.name}
+                        {m.role === 'admin' ? <Crown className="ml-1 inline h-3.5 w-3.5 text-amber-500" /> : null}
+                      </span>
+                      <span className="group-leaderboard-points shrink-0">{m.points ?? 0} pts</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4">
+              <GroupStudyToolsPanel
+                groupId={gid}
+                group={group}
+                myUid={myUid}
+                member={member}
+                showToast={showToast}
+                onPointsUpdated={() => void refreshGroup()}
+              />
+            </div>
+          )}
 
-          {member && (
+          {member && mainTab === 'chat' && (
             <div className="group-chat-input-bar">
               <button
                 type="button"
@@ -754,41 +848,12 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
           )}
         </div>
 
-        <aside className={`group-members-panel ${membersOpen ? 'open' : ''}`}>
+        <aside className={`group-members-panel ${membersOpen ? 'open' : ''} ${mainTab !== 'chat' ? 'hidden' : ''}`}>
           <div className="flex items-center justify-between lg:hidden">
-            <span className="text-sm font-bold text-slate-900 dark:text-white">Members</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">Group</span>
             <button type="button" onClick={() => setMembersOpen(false)} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close">
               <X className="h-5 w-5" />
             </button>
-          </div>
-
-          <div>
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Leaderboard</h3>
-            <div className="space-y-1">
-              {sortedMembers.map((m, rank) => {
-                const isMe = m.userId === myUid
-                const trophy =
-                  rank === 0 ? (
-                    <Trophy className="mx-auto h-4 w-4 text-amber-500" />
-                  ) : rank === 1 ? (
-                    <Trophy className="mx-auto h-4 w-4 text-slate-400" />
-                  ) : rank === 2 ? (
-                    <Trophy className="mx-auto h-4 w-4 text-amber-700" />
-                  ) : (
-                    <span className="group-leaderboard-rank">{rank + 1}</span>
-                  )
-                return (
-                  <div key={m.userId} className={`group-leaderboard-item ${isMe ? 'me' : ''}`}>
-                    <div className="group-leaderboard-rank-icon">{trophy}</div>
-                    <span className="group-leaderboard-name truncate">
-                      {m.name}
-                      {m.role === 'admin' ? <Crown className="ml-1 inline h-3.5 w-3.5 text-amber-500" /> : null}
-                    </span>
-                    <span className="group-leaderboard-points shrink-0">{m.points ?? 0} pts</span>
-                  </div>
-                )
-              })}
-            </div>
           </div>
 
           {member && group.joinCode && (

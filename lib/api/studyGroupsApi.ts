@@ -29,6 +29,52 @@ export type StudyGroup = {
   updatedAt?: string
 }
 
+export type GroupGoal = {
+  _id: string
+  groupId: string
+  title: string
+  description?: string
+  dueDate?: string | null
+  completed: boolean
+  completedBy?: string | null
+  createdBy: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type GroupTopic = {
+  _id: string
+  groupId: string
+  topic: string
+  assignedTo?: string | null
+  status: 'pending' | 'in-progress' | 'completed'
+  notes?: string
+  createdBy: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type GroupQuizDoc = {
+  _id: string
+  groupId: string
+  question: string
+  options: string[]
+  correctOption: number
+  explanation?: string
+  createdBy: string
+  createdAt?: string
+  answeredBy: { userId: string; answer: number; correct: boolean; answeredAt: string }[]
+}
+
+export type GroupWhiteboardDoc = {
+  _id?: string
+  groupId: string
+  content: string
+  version: number
+  lastEditedBy?: string | null
+  lastEditedAt?: string | null
+}
+
 export type GroupChatMessage = {
   _id: string
   groupId: string
@@ -95,4 +141,44 @@ export const studyGroupsApi = {
 
   askAi: (id: string, body: { question: string; subject?: string }) =>
     apiClient.post<{ message: GroupChatMessage }>(`/study-groups/${id}/ask-ai`, body),
+
+  listGoals: (id: string) => apiClient.get<GroupGoal[]>(`/study-groups/${id}/goals`),
+
+  createGoal: (id: string, body: { title: string; description?: string; dueDate?: string | null }) =>
+    apiClient.post<GroupGoal>(`/study-groups/${id}/goals`, body),
+
+  updateGoal: (id: string, goalId: string, body: Partial<{ title: string; description: string; dueDate: string | null; completed: boolean }>) =>
+    apiClient.put<GroupGoal>(`/study-groups/${id}/goals/${goalId}`, body),
+
+  deleteGoal: (id: string, goalId: string) => apiClient.delete<{ success: boolean }>(`/study-groups/${id}/goals/${goalId}`),
+
+  listTopics: (id: string) => apiClient.get<GroupTopic[]>(`/study-groups/${id}/topics`),
+
+  createTopic: (id: string, body: { topic: string; assignedTo?: string; notes?: string }) =>
+    apiClient.post<GroupTopic>(`/study-groups/${id}/topics`, body),
+
+  updateTopic: (
+    id: string,
+    topicId: string,
+    body: Partial<{ topic: string; notes: string; assignedTo: string | null; status: GroupTopic['status']; claim: boolean }>,
+  ) => apiClient.put<GroupTopic>(`/study-groups/${id}/topics/${topicId}`, body),
+
+  deleteTopic: (id: string, topicId: string) => apiClient.delete<{ success: boolean }>(`/study-groups/${id}/topics/${topicId}`),
+
+  listQuizzes: (id: string) => apiClient.get<GroupQuizDoc[]>(`/study-groups/${id}/quizzes`),
+
+  createQuiz: (
+    id: string,
+    body: { question: string; options: string[]; correctOption: number; explanation?: string },
+  ) => apiClient.post<GroupQuizDoc>(`/study-groups/${id}/quizzes`, body),
+
+  generateQuizAi: (id: string) => apiClient.post<GroupQuizDoc>(`/study-groups/${id}/quizzes/ai`, {}),
+
+  answerQuiz: (id: string, quizId: string, body: { answer: number }) =>
+    apiClient.post<GroupQuizDoc>(`/study-groups/${id}/quizzes/${quizId}/answer`, body),
+
+  getWhiteboard: (id: string) => apiClient.get<GroupWhiteboardDoc>(`/study-groups/${id}/whiteboard`),
+
+  updateWhiteboard: (id: string, body: { content: string; version: number }) =>
+    apiClient.put<GroupWhiteboardDoc>(`/study-groups/${id}/whiteboard`, body),
 }
