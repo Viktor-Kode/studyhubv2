@@ -212,10 +212,118 @@
   border-top-color: #334155;
 }
 
+.group-msg-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+
+.group-msg.own .group-msg-inner {
+  flex-direction: row-reverse;
+}
+
+.group-msg.other .group-msg-inner {
+  flex-direction: row;
+}
+
+.group-msg-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.group-msg-kebab {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.group-msg-kebab:hover {
+  opacity: 1;
+  background: #f1f5f9;
+}
+
+.dark .group-msg-kebab:hover {
+  background: #1e293b;
+}
+
+.group-msg-own-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+  padding-right: 2px;
+}
+
+.message-seen {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.message-seen .seen-icon {
+  stroke-width: 2;
+}
+
+.message-seen.seen .seen-icon {
+  color: #5b4cf5;
+}
+
+.dark .message-seen.seen .seen-icon {
+  color: #a78bfa;
+}
+
+.message-edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-right: 2px;
+}
+
+.message-edit-indicator svg {
+  width: 10px;
+  height: 10px;
+}
+
+.message-deleted {
+  font-style: italic;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dark .message-deleted {
+  color: #94a3b8;
+}
+
+.group-msg.own .group-msg-bubble.message-deleted {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
 .group-msg {
   display: flex;
   flex-direction: column;
   max-width: 72%;
+}
+
+.group-msg.group-msg-with-actions {
+  max-width: 78%;
 }
 
 .group-msg.own {
@@ -502,6 +610,25 @@
 
 .dark .group-msg-ctx-menu button:hover {
   background: #1e293b;
+}
+
+.group-msg-ctx-menu-icons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: auto;
+  max-width: min(280px, calc(100vw - 24px));
+  gap: 2px;
+  padding: 6px;
+}
+
+.group-msg-ctx-menu-icons button {
+  width: 40px;
+  min-width: 40px;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
 }
 
 .group-emoji-picker {

@@ -7,15 +7,21 @@ import {
   ArrowLeft,
   BookOpen,
   Bot,
+  CheckCheck,
   Copy,
   Crown,
+  Edit2,
   FileQuestion,
   FileText,
   Library,
   Loader2,
+  MoreVertical,
+  Reply,
   Send,
   Settings,
+  SmilePlus,
   Timer,
+  Trash2,
   Trophy,
   UserMinus,
   UserPlus,
@@ -23,9 +29,34 @@ import {
   X,
 } from 'lucide-react'
 import { studyGroupsApi, type GroupChatMessage, type StudyGroup, type StudyGroupMember } from '@/lib/api/studyGroupsApi'
-import { initials } from '@/lib/community/utils'
+import { useGroupReadReceipts } from '@/hooks/useGroupReadReceipts'
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '🔥', '👏', '💡']
+const EDIT_WINDOW_MS = 5 * 60 * 1000
+
+function mergeRecentMessages(prev: GroupChatMessage[], fresh: GroupChatMessage[]): GroupChatMessage[] {
+  if (!fresh.length) return prev
+  const oldestFresh = fresh[0].createdAt
+  const older = prev.filter((m) => new Date(m.createdAt) < new Date(oldestFresh))
+  const map = new Map<string, GroupChatMessage>()
+  older.forEach((m) => map.set(m._id, m))
+  fresh.forEach((m) => map.set(m._id, m))
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
+}
+
+function canEditMessage(msg: GroupChatMessage) {
+  if (msg.type !== 'text' || msg.isDeleted || msg.editedAt) return false
+  return Date.now() - new Date(msg.createdAt).getTime() <= EDIT_WINDOW_MS
+}
+
+function seenReaderNames(seenBy: string[] | undefined, members: StudyGroupMember[], myUid: string) {
+  const ids = (seenBy || []).filter((id) => id && id !== myUid)
+  return ids
+    .map((id) => members.find((m) => m.userId === id)?.name)
+    .filter((n): n is string => Boolean(n))
+}
 
 type Props = {
   group: StudyGroup
@@ -67,6 +98,13 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 })
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
   const [leaveBusy, setLeaveBusy] = useState(false)
+  const [editingMessage, setEditingMessage] = useState<GroupChatMessage | null>(null)
+  const [editDraft, setEditDraft] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<GroupChatMessage | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [kebabFor, setKebabFor] = useState<GroupChatMessage | null>(null)
+  const [kebabPos, setKebabPos] = useState({ x: 0, y: 0 })
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const sinceRef = useRef<string>(new Date().toISOString())
@@ -75,6 +113,14 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   const stickBottomRef = useRef(true)
 
   const gid = group._id
+
+  useGroupReadReceipts({
+    groupId: gid,
+    enabled: member && !loading,
+    scrollRef,
+    messageCount: messages.length,
+    debounceMs: 2500,
+  })
 
   const refreshGroup = useCallback(async () => {
     try {
@@ -151,25 +197,21 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     if (!member || loading) return
     const poll = async () => {
       try {
-        const res = await studyGroupsApi.getUpdates(gid, { since: sinceRef.current })
-        const data = res.data
-        const incoming = data?.newMessages || []
-        const ts = data?.timestamp || new Date().toISOString()
-        if (incoming.length) {
-          const fresh = incoming.filter((m) => !idsRef.current.has(m._id))
-          if (fresh.length) {
-            fresh.forEach((m) => idsRef.current.add(m._id))
-            setMessages((prev) => {
-              const merged = [...prev, ...fresh].sort(
-                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-              )
-              return merged
-            })
-            if (!stickBottomRef.current) setPendingBelow(true)
-            void refreshGroup()
+        const res = await studyGroupsApi.getMessages(gid, { limit: 50 })
+        const fresh = Array.isArray(res.data) ? res.data : []
+        if (!fresh.length) return
+        fresh.forEach((m) => idsRef.current.add(m._id))
+        const last = fresh[fresh.length - 1]
+        if (last) sinceRef.current = last.createdAt
+        setMessages((prev) => {
+          const prevLastId = prev[prev.length - 1]?._id
+          const next = mergeRecentMessages(prev, fresh)
+          const nextLastId = next[next.length - 1]?._id
+          if (nextLastId && nextLastId !== prevLastId && !stickBottomRef.current) {
+            window.setTimeout(() => setPendingBelow(true), 0)
           }
-        }
-        sinceRef.current = ts
+          return next
+        })
       } catch {
         /* silent */
       }
@@ -177,12 +219,13 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     const id = window.setInterval(poll, 8000)
     void poll()
     return () => window.clearInterval(id)
-  }, [gid, member, loading, refreshGroup])
+  }, [gid, member, loading])
 
   useEffect(() => {
     const close = () => {
       setCtx(null)
       setEmojiFor(null)
+      setKebabFor(null)
     }
     window.addEventListener('click', close)
     return () => window.removeEventListener('click', close)
@@ -265,6 +308,7 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   }
 
   const toggleReaction = async (msg: GroupChatMessage, emoji: string) => {
+    if (msg.isDeleted) return
     try {
       const res = await studyGroupsApi.toggleReaction(gid, msg._id, emoji)
       const updated = res.data as GroupChatMessage
@@ -274,6 +318,76 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     } catch {
       showToast('Could not update reaction')
     }
+  }
+
+  const openEditModal = (msg: GroupChatMessage) => {
+    setEditingMessage(msg)
+    setEditDraft((msg.content || '').trim())
+    setCtx(null)
+    setKebabFor(null)
+    setEmojiFor(null)
+  }
+
+  const saveEdit = async () => {
+    if (!editingMessage) return
+    const text = editDraft.trim()
+    if (!text) return
+    const mid = editingMessage._id
+    setEditBusy(true)
+    const snapshot = messages
+    const optimistic: GroupChatMessage = {
+      ...editingMessage,
+      content: text,
+      editedAt: new Date().toISOString(),
+    }
+    setMessages((prev) => prev.map((m) => (m._id === mid ? optimistic : m)))
+    try {
+      const res = await studyGroupsApi.editMessage(gid, mid, { content: text })
+      const updated = res.data as GroupChatMessage
+      setMessages((prev) => prev.map((m) => (m._id === updated._id ? updated : m)))
+      setEditingMessage(null)
+      setEditDraft('')
+    } catch (e: unknown) {
+      setMessages(snapshot)
+      const err = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      showToast(err || 'Could not edit message')
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
+  const confirmDeleteMessage = async () => {
+    if (!deleteTarget) return
+    const mid = deleteTarget._id
+    setDeleteBusy(true)
+    const snapshot = messages
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === mid ? { ...m, isDeleted: true, deletedAt: new Date().toISOString(), content: ' ', reactions: [] } : m,
+      ),
+    )
+    try {
+      const res = await studyGroupsApi.deleteMessage(gid, mid)
+      const updated = res.data as GroupChatMessage
+      setMessages((prev) => prev.map((m) => (m._id === updated._id ? updated : m)))
+      setDeleteTarget(null)
+    } catch (e: unknown) {
+      setMessages(snapshot)
+      const err = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      showToast(err || 'Could not delete message')
+      setDeleteTarget(null)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
+  const openKebab = (e: React.MouseEvent, msg: GroupChatMessage) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setKebabPos({ x: e.clientX, y: e.clientY })
+    setKebabFor(msg)
+    setCtx(null)
+    setEmojiFor(null)
   }
 
   const joinGroup = async () => {
@@ -324,14 +438,14 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
   }
 
   const onMsgContextMenu = (e: React.MouseEvent, msg: GroupChatMessage) => {
-    if (msg.type !== 'text') return
+    if (msg.type !== 'text' || msg.isDeleted) return
     e.preventDefault()
     openMenu(e, msg)
   }
 
   const startLongPress = (msg: GroupChatMessage) => {
     longPressRef.current = setTimeout(() => {
-      if (msg.type === 'text') {
+      if (msg.type === 'text' && !msg.isDeleted) {
         setCtx({ x: window.innerWidth / 2, y: 120, msg })
       }
     }, 550)
@@ -367,7 +481,12 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
 
     if (msg.type === 'ai') {
       return (
-        <div key={msg._id} className="group-msg other group-msg-ai max-w-[90%]">
+        <div
+          key={msg._id}
+          className="group-msg other group-msg-ai max-w-[90%]"
+          data-group-read-track="1"
+          data-created-at={msg.createdAt}
+        >
           {showHeader && (
             <div className="group-msg-meta">
               <Bot className="h-3.5 w-3.5 text-violet-600" />
@@ -392,45 +511,100 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
     }
 
     const own = msg.authorId === myUid
+    const readTrack = !msg.isDeleted ? { 'data-group-read-track': '1' as const, 'data-created-at': msg.createdAt } : {}
+    const readers = seenReaderNames(msg.seenBy, group.members || [], myUid)
+    const seen = own && readers.length > 0
+
     return (
       <div
         key={msg._id}
-        className={`group-msg ${own ? 'own' : 'other'}`}
+        className={`group-msg group-msg-with-actions ${own ? 'own' : 'other'}`}
         onContextMenu={(e) => onMsgContextMenu(e, msg)}
         onTouchStart={() => startLongPress(msg)}
         onTouchEnd={endLongPress}
         onTouchMove={endLongPress}
+        {...readTrack}
       >
-        {showHeader && (
-          <div className="group-msg-meta">
-            {!own && <span className="font-medium text-slate-600 dark:text-slate-300">{msg.authorName}</span>}
-            <span>{formatTime(msg.createdAt)}</span>
+        <div className="group-msg-inner">
+          {!own && (
+            <button
+              type="button"
+              className="group-msg-kebab"
+              aria-label="Message actions"
+              title="Message actions"
+              onClick={(e) => openKebab(e, msg)}
+            >
+              <MoreVertical className="h-4 w-4" strokeWidth={2} />
+            </button>
+          )}
+          <div className="group-msg-body">
+            {showHeader && (
+              <div className="group-msg-meta">
+                {!own && <span className="font-medium text-slate-600 dark:text-slate-300">{msg.authorName}</span>}
+                <span>{formatTime(msg.createdAt)}</span>
+              </div>
+            )}
+            {msg.replyTo ? (
+              <div className="mb-1 max-w-full rounded-lg border border-slate-200/80 bg-slate-100/80 px-2 py-1 text-left text-[11px] text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <span className="font-semibold">{msg.replyTo.authorName}</span>
+                <span className="line-clamp-2 block opacity-90">{msg.replyTo.preview}</span>
+              </div>
+            ) : null}
+            {msg.isDeleted ? (
+              <div className="group-msg-bubble message-deleted">
+                <Trash2 className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                <span>Message deleted</span>
+              </div>
+            ) : (
+              <div className="group-msg-bubble whitespace-pre-wrap break-words">{msg.content}</div>
+            )}
+            {!msg.isDeleted && msg.reactions?.length ? (
+              <div className={`group-msg-reactions ${own ? 'justify-end' : ''}`}>
+                {msg.reactions.map((r) => (
+                  <button
+                    key={r.emoji}
+                    type="button"
+                    className="group-msg-reaction-pill"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void toggleReaction(msg, r.emoji)
+                    }}
+                  >
+                    {r.emoji} {(r.users || []).length}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {own && !msg.isDeleted ? (
+              <div className="group-msg-own-footer">
+                {msg.editedAt ? (
+                  <span className="message-edit-indicator" title="Edited">
+                    <Edit2 className="shrink-0" aria-hidden />
+                  </span>
+                ) : null}
+                {seen ? (
+                  <span
+                    className="message-seen seen"
+                    title={readers.length ? `Seen by ${readers.join(', ')}` : 'Seen'}
+                  >
+                    <CheckCheck className="seen-icon h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-        )}
-        {msg.replyTo ? (
-          <div className="mb-1 max-w-full rounded-lg border border-slate-200/80 bg-slate-100/80 px-2 py-1 text-left text-[11px] text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
-            <span className="font-semibold">{msg.replyTo.authorName}</span>
-            <span className="line-clamp-2 block opacity-90">{msg.replyTo.preview}</span>
-          </div>
-        ) : null}
-        <div className="group-msg-bubble whitespace-pre-wrap break-words">{msg.content}</div>
-        {msg.reactions?.length ? (
-          <div className="group-msg-reactions justify-end">
-            {msg.reactions.map((r) => (
-              <button
-                key={r.emoji}
-                type="button"
-                className="group-msg-reaction-pill"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  void toggleReaction(msg, r.emoji)
-                }}
-              >
-                {r.emoji} {(r.users || []).length}
-              </button>
-            ))}
-          </div>
-        ) : null}
+          {own && (
+            <button
+              type="button"
+              className="group-msg-kebab"
+              aria-label="Message actions"
+              title="Message actions"
+              onClick={(e) => openKebab(e, msg)}
+            >
+              <MoreVertical className="h-4 w-4" strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -662,33 +836,134 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
 
       {ctx && (
         <div
-          className="group-msg-ctx-menu"
-          style={{ left: Math.min(ctx.x, typeof window !== 'undefined' ? window.innerWidth - 160 : ctx.x), top: ctx.y }}
+          className="group-msg-ctx-menu group-msg-ctx-menu-icons"
+          style={{ left: Math.min(ctx.x, typeof window !== 'undefined' ? window.innerWidth - 200 : ctx.x), top: ctx.y }}
           role="menu"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button
             type="button"
+            title="Reply"
+            aria-label="Reply"
             onClick={(e) => {
               e.stopPropagation()
               setReplyTo(ctx.msg)
               setCtx(null)
             }}
           >
-            Reply
+            <Reply className="h-4 w-4" strokeWidth={2} />
           </button>
+          {!ctx.msg.isDeleted ? (
+            <button
+              type="button"
+              title="React"
+              aria-label="React"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPickerPos({ x: ctx.x, y: ctx.y })
+                setEmojiFor(ctx.msg)
+                setCtx(null)
+              }}
+            >
+              <SmilePlus className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+          {ctx.msg.authorId === myUid && canEditMessage(ctx.msg) ? (
+            <button
+              type="button"
+              title="Edit message"
+              aria-label="Edit message"
+              onClick={(e) => {
+                e.stopPropagation()
+                openEditModal(ctx.msg)
+              }}
+            >
+              <Edit2 className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+          {ctx.msg.authorId === myUid && !ctx.msg.isDeleted && ctx.msg.type === 'text' ? (
+            <button
+              type="button"
+              title="Delete message"
+              aria-label="Delete message"
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleteTarget(ctx.msg)
+                setCtx(null)
+              }}
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {kebabFor && (
+        <div
+          className="group-msg-ctx-menu group-msg-ctx-menu-icons"
+          style={{
+            left: Math.min(kebabPos.x, typeof window !== 'undefined' ? window.innerWidth - 200 : kebabPos.x),
+            top: kebabPos.y + 4,
+          }}
+          role="menu"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
+            title="Reply"
+            aria-label="Reply"
             onClick={(e) => {
               e.stopPropagation()
-              setPickerPos({ x: ctx.x, y: ctx.y })
-              setEmojiFor(ctx.msg)
-              setCtx(null)
+              setReplyTo(kebabFor)
+              setKebabFor(null)
             }}
           >
-            React
+            <Reply className="h-4 w-4" strokeWidth={2} />
           </button>
+          {!kebabFor.isDeleted ? (
+            <button
+              type="button"
+              title="React"
+              aria-label="React"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPickerPos({ x: kebabPos.x, y: kebabPos.y })
+                setEmojiFor(kebabFor)
+                setKebabFor(null)
+              }}
+            >
+              <SmilePlus className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+          {kebabFor.authorId === myUid && canEditMessage(kebabFor) ? (
+            <button
+              type="button"
+              title="Edit message"
+              aria-label="Edit message"
+              onClick={(e) => {
+                e.stopPropagation()
+                openEditModal(kebabFor)
+              }}
+            >
+              <Edit2 className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+          {kebabFor.authorId === myUid && !kebabFor.isDeleted && kebabFor.type === 'text' ? (
+            <button
+              type="button"
+              title="Delete message"
+              aria-label="Delete message"
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleteTarget(kebabFor)
+                setKebabFor(null)
+              }}
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -709,6 +984,90 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
                 {em}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {editingMessage && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-msg-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !editBusy) setEditingMessage(null)
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h2 id="edit-msg-title" className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+              <Edit2 className="h-5 w-5 text-indigo-600" aria-hidden />
+              Edit message
+            </h2>
+            <textarea
+              value={editDraft}
+              onChange={(e) => setEditDraft(e.target.value)}
+              rows={4}
+              maxLength={1000}
+              className="mb-4 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={editBusy}
+                onClick={() => !editBusy && setEditingMessage(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={editBusy || !editDraft.trim()}
+                onClick={() => void saveEdit()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {editBusy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-msg-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !deleteBusy) setDeleteTarget(null)
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h2 id="delete-msg-title" className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+              <Trash2 className="h-5 w-5 text-red-500" aria-hidden />
+              Delete this message?
+            </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+              It will be removed for everyone in this group.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => !deleteBusy && setDeleteTarget(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => void confirmDeleteMessage()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+              >
+                {deleteBusy ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

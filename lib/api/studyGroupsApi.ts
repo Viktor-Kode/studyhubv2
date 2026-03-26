@@ -24,6 +24,7 @@ export type StudyGroup = {
   messagesCount?: number
   lastActivity?: string
   isPinned?: boolean
+  lastRead?: { userId: string; lastReadAt: string }[]
   createdAt?: string
   updatedAt?: string
 }
@@ -44,6 +45,10 @@ export type GroupChatMessage = {
   }
   createdAt: string
   updatedAt?: string
+  editedAt?: string | null
+  isDeleted?: boolean
+  deletedAt?: string | null
+  seenBy?: string[]
 }
 
 export const studyGroupsApi = {
@@ -75,6 +80,15 @@ export const studyGroupsApi = {
 
   toggleReaction: (id: string, messageId: string, emoji: string) =>
     apiClient.patch<GroupChatMessage>(`/study-groups/${id}/messages/${messageId}/reactions`, { emoji }),
+
+  editMessage: (id: string, messageId: string, body: { content: string }) =>
+    apiClient.put<GroupChatMessage>(`/study-groups/${id}/messages/${messageId}`, body),
+
+  deleteMessage: (id: string, messageId: string) =>
+    apiClient.delete<GroupChatMessage>(`/study-groups/${id}/messages/${messageId}`),
+
+  markRead: (id: string, body: { lastReadAt: string }) =>
+    apiClient.post<{ success: boolean }>(`/study-groups/${id}/mark-read`, body),
 
   getUpdates: (id: string, params?: { since?: string }) =>
     apiClient.get<{ newMessages: GroupChatMessage[]; timestamp: string }>(`/study-groups/${id}/updates`, { params }),
