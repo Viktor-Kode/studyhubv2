@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle } from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
-import { apiClient } from '@/lib/api/client'
+import { getFirebaseToken } from '@/lib/store/authStore'
 
 import './PdfCbt.css'
 
@@ -140,7 +140,16 @@ export default function PdfCbtPage() {
     try {
       const formData = new FormData()
       formData.append('pdf', file)
-      const { data } = await apiClient.post('/pdf-cbt/extract', formData)
+      const token = await getFirebaseToken()
+      const response = await fetch('/api/backend/pdf-cbt/extract', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to extract questions.')
+      }
       const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({
         question: String(q.question || ''),
         options: {
