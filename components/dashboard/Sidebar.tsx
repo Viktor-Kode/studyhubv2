@@ -14,6 +14,7 @@ import {
   FaCalendar,
   FaLaptop,
   FaBook,
+  FaFileAlt,
   FaUsers,
   FaFilePdf,
   FaQuestionCircle,
@@ -36,6 +37,7 @@ const studentMenuItems = [
   { href: '/dashboard/cgpa', icon: FaCalculator, label: 'CGPA Calculator' },
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
   { href: '/dashboard/cbt', icon: FaLaptop, label: 'CBT Practice' },
+  { href: '/dashboard/student/pdf-cbt', icon: FaFileAlt, label: 'PDF to CBT' },
   { href: '/dashboard/flip-cards', icon: FaBook, label: 'Flip Cards' },
   { href: '/dashboard/analytics', icon: FaChartBar, label: 'Analytics' },
 ]
