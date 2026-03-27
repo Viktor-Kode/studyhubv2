@@ -46,6 +46,7 @@ export default function PdfCbtPage() {
   const [extracting, setExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
 
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
   const [questionsToUse, setQuestionsToUse] = useState<PdfQuestion[]>([])
@@ -109,6 +110,11 @@ export default function PdfCbtPage() {
     if (candidate.size > 20 * 1024 * 1024) {
       setError('PDF exceeds 20MB limit.')
       return
+    }
+    if (candidate.size > 5 * 1024 * 1024) {
+      setWarning('Large PDF detected. For best results, upload a PDF with 30 pages or less. We will extract from the most relevant sections.')
+    } else {
+      setWarning('')
     }
     setFile(candidate)
   }
@@ -213,6 +219,7 @@ export default function PdfCbtPage() {
             <span className="pcbt-drop-limit">PDF only · Max 20MB</span>
             <input ref={fileInputRef} type="file" accept=".pdf" hidden onChange={handleFileSelect} />
           </div>
+          {warning && <div className="pcbt-warning">⚠️ {warning}</div>}
 
           {file && (
             <div className="pcbt-settings">
@@ -441,6 +448,7 @@ export default function PdfCbtPage() {
                 onClick={() => {
                   setStage('upload')
                   setFile(null)
+                  setWarning('')
                   setExtractedData(null)
                   setQuestionsToUse([])
                   setAnswers({})
