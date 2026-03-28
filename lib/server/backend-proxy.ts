@@ -66,6 +66,26 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
       headers: { 'content-type': 'application/json' },
     })
   }
+
+  // PDFs and other binaries must not go through .text() — that corrupts the body
+  const isBinary =
+    contentType.includes('application/pdf') ||
+    contentType.includes('octet-stream') ||
+    contentType.startsWith('image/') ||
+    contentType.includes('application/zip')
+
+  if (isBinary) {
+    const buf = await resp.arrayBuffer()
+    const outHeaders = new Headers()
+    outHeaders.set('content-type', contentType)
+    const cd = resp.headers.get('content-disposition')
+    if (cd) outHeaders.set('content-disposition', cd)
+    return new Response(buf, {
+      status: resp.status,
+      headers: outHeaders,
+    })
+  }
+
   const text = await resp.text()
   return new Response(text, { status: resp.status })
 }

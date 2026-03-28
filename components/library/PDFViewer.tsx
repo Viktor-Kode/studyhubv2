@@ -7,6 +7,7 @@ import {
   Download,
   Maximize2,
   Minimize2,
+  Pencil,
   Trash2,
   X,
 } from 'lucide-react'
@@ -28,11 +29,18 @@ type LibraryDocument = {
 type Props = {
   documentItem: LibraryDocument
   onClose: () => void
+  onEditDetails?: () => void
   onDeleted: (id: string) => void
   onProgressSaved: (id: string, currentPage: number, percentage: number) => void
 }
 
-export default function PDFViewer({ documentItem, onClose, onDeleted, onProgressSaved }: Props) {
+export default function PDFViewer({
+  documentItem,
+  onClose,
+  onEditDetails,
+  onDeleted,
+  onProgressSaved,
+}: Props) {
   const [numPages, setNumPages] = useState<number>(documentItem.pages || 0)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -127,6 +135,7 @@ export default function PDFViewer({ documentItem, onClose, onDeleted, onProgress
   }
 
   const handleDelete = async () => {
+    if (!confirm(`Delete “${documentItem.title}”? This cannot be undone.`)) return
     const token = await getFirebaseToken()
     const res = await fetch(`/api/backend/library/documents/${documentItem._id}`, {
       method: 'DELETE',
@@ -141,23 +150,58 @@ export default function PDFViewer({ documentItem, onClose, onDeleted, onProgress
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/60 p-2 sm:p-6">
-      <div className={`h-full rounded-2xl bg-white ${isFullscreen ? 'w-full' : 'mx-auto max-w-6xl'}`}>
-        <div className="flex items-center justify-between border-b px-3 py-3 sm:px-5">
+      <div
+        className={`h-full rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 ${isFullscreen ? 'w-full' : 'mx-auto max-w-6xl'}`}
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-5">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold sm:text-base">{documentItem.title}</p>
-            <p className="text-xs text-slate-500">{percentage}% read</p>
+            <p className="truncate text-sm font-semibold text-slate-900 dark:text-white sm:text-base">{documentItem.title}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{percentage}% read</p>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <button className="rounded-lg p-2 hover:bg-slate-100" onClick={onClose} type="button"><X size={18} /></button>
-            <a href={documentItem.fileUrl} target="_blank" rel="noreferrer" className="rounded-lg p-2 hover:bg-slate-100"><Download size={18} /></a>
-            <button className="rounded-lg p-2 hover:bg-slate-100" onClick={handleDelete} type="button"><Trash2 size={18} /></button>
-            <button className="rounded-lg p-2 hover:bg-slate-100" onClick={() => setIsFullscreen((v) => !v)} type="button">
+            {onEditDetails && (
+              <button
+                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                onClick={onEditDetails}
+                type="button"
+                title="Edit title & subject"
+              >
+                <Pencil size={18} />
+              </button>
+            )}
+            <button
+              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              onClick={onClose}
+              type="button"
+            >
+              <X size={18} />
+            </button>
+            <a
+              href={documentItem.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <Download size={18} />
+            </a>
+            <button
+              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-red-400 dark:hover:bg-slate-800"
+              onClick={handleDelete}
+              type="button"
+            >
+              <Trash2 size={18} />
+            </button>
+            <button
+              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              onClick={() => setIsFullscreen((v) => !v)}
+              type="button"
+            >
               {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
           </div>
         </div>
 
-        <div className="h-[calc(100%-114px)] overflow-auto bg-slate-100 p-3 sm:p-6">
+        <div className="h-[calc(100%-114px)] overflow-auto bg-slate-100 p-3 dark:bg-slate-950 sm:p-6">
           <Document
             file={fileSource}
             onLoadSuccess={({ numPages: pages }) => {
@@ -165,24 +209,34 @@ export default function PDFViewer({ documentItem, onClose, onDeleted, onProgress
               setCurrentPage((prev) => Math.min(prev, pages))
             }}
           >
-            <div className="mx-auto w-fit rounded-md bg-white p-2 shadow">
+            <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
               <Page pageNumber={currentPage} width={pageWidth} />
             </div>
           </Document>
         </div>
 
-        <div className="border-t px-3 py-3 sm:px-5">
-          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div className="border-t border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-5">
+          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div className="h-full transition-all" style={{ width: `${percentage}%`, background: documentItem.coverColor || '#5B4CF5' }} />
           </div>
           <div className="flex items-center justify-between">
-            <button className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm disabled:opacity-50" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} type="button">
+            <button
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+              type="button"
+            >
               <ChevronLeft size={16} /> Prev
             </button>
-            <div className="text-sm text-slate-600">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
               Page {currentPage} / {numPages || '-'} {isSaving ? '• Saving...' : ''}
             </div>
-            <button className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm disabled:opacity-50" onClick={() => goToPage(currentPage + 1)} disabled={!numPages || currentPage >= numPages} type="button">
+            <button
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={!numPages || currentPage >= numPages}
+              type="button"
+            >
               Next <ChevronRight size={16} />
             </button>
           </div>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FileText, Search, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { FileText, Pencil, Search, Trash2, Upload } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import dynamic from 'next/dynamic'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -9,7 +9,7 @@ import { getFirebaseToken } from '@/lib/store/authStore'
 
 const PDFViewer = dynamic(() => import('@/components/library/PDFViewer'), { ssr: false })
 
-type LibraryDocument = {
+export type LibraryDocument = {
   _id: string
   title: string
   subject?: string
@@ -32,6 +32,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<LibraryDocument | null>(null)
+  const [editingDocument, setEditingDocument] = useState<LibraryDocument | null>(null)
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -60,56 +61,121 @@ export default function LibraryPage() {
     })
   }, [documents, search])
 
+  const handleDeleteFromGrid = async (doc: LibraryDocument, e: MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm(`Delete “${doc.title}”? This cannot be undone.`)) return
+    try {
+      const token = await getFirebaseToken()
+      const res = await fetch(`/api/backend/library/documents/${doc._id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      const data = await res.json()
+      if (data?.success) {
+        setDocuments((prev) => prev.filter((d) => d._id !== doc._id))
+        if (selectedDocument?._id === doc._id) setSelectedDocument(null)
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   return (
     <ProtectedRoute>
       <div className="mx-auto w-full max-w-7xl p-4 sm:p-6">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Study Library</h1>
-            <p className="text-sm text-slate-500">Upload PDFs, read in-app, and track progress.</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Study Library</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Upload PDFs, read in-app, and track progress.</p>
           </div>
-          <button onClick={() => setShowUpload(true)} type="button" className="inline-flex items-center gap-2 rounded-xl bg-[#5B4CF5] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+          <button
+            onClick={() => setShowUpload(true)}
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#5B4CF5] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
             <Upload size={16} /> Upload
           </button>
         </div>
 
         <div className="relative mb-6">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title or subject..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none ring-[#5B4CF5]/30 transition focus:ring"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 transition focus:ring dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </div>
 
         {loading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-48 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+              <div
+                key={i}
+                className="h-48 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
+              />
             ))}
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <FileText size={38} className="mx-auto mb-3 text-slate-300" />
-            <h2 className="text-lg font-semibold text-slate-900">No documents yet</h2>
-            <p className="mt-1 text-sm text-slate-500">Upload a PDF to start building your study library.</p>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-600 dark:bg-slate-800/80">
+            <FileText size={38} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">No documents yet</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Upload a PDF to start building your study library.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {filteredDocuments.map((doc) => (
-              <article key={doc._id} className="overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-[#5B4CF5] hover:shadow-[0_4px_16px_rgba(91,76,245,0.12)]">
+              <article
+                key={doc._id}
+                className="overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-[#5B4CF5] hover:shadow-[0_4px_16px_rgba(91,76,245,0.12)] dark:border-slate-700 dark:bg-slate-800 dark:hover:border-[#7c6cf0] dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+              >
                 <div className="h-2" style={{ backgroundColor: doc.coverColor || DEFAULT_COVER }} />
                 <div className="p-4">
-                  <FileText size={22} className="mb-3 text-slate-700" />
-                  <h3 className="mb-1 line-clamp-2 text-base font-bold text-slate-900">{doc.title}</h3>
-                  <p className="mb-3 line-clamp-1 text-xs text-slate-400">{doc.subject || 'General'}</p>
-                  <p className="mb-2 text-xs font-medium text-slate-600">Progress: {doc.progress?.percentage || 0}%</p>
-                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full transition-all" style={{ width: `${doc.progress?.percentage || 0}%`, background: doc.coverColor || DEFAULT_COVER }} />
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <FileText size={22} className="shrink-0 text-slate-700 dark:text-slate-300" />
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        title="Edit"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingDocument(doc)
+                        }}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Delete"
+                        onClick={(e) => void handleDeleteFromGrid(doc, e)}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <h3 className="mb-1 line-clamp-2 text-base font-bold text-slate-900 dark:text-white">{doc.title}</h3>
+                  <p className="mb-3 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{doc.subject || 'General'}</p>
+                  <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    Progress: {doc.progress?.percentage || 0}%
+                  </p>
+                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                    <div
+                      className="h-full transition-all"
+                      style={{ width: `${doc.progress?.percentage || 0}%`, background: doc.coverColor || DEFAULT_COVER }}
+                    />
                   </div>
                   <div className="flex justify-end">
-                    <button type="button" onClick={() => setSelectedDocument(doc)} className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#5B4CF5] hover:bg-[#5B4CF5]/10">Open</button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDocument(doc)}
+                      className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#5B4CF5] hover:bg-[#5B4CF5]/10 dark:text-[#a599ff] dark:hover:bg-[#5B4CF5]/20"
+                    >
+                      Open
+                    </button>
                   </div>
                 </div>
               </article>
@@ -127,10 +193,26 @@ export default function LibraryPage() {
           />
         )}
 
+        {editingDocument && (
+          <EditDocumentModal
+            document={editingDocument}
+            onClose={() => setEditingDocument(null)}
+            onSaved={(updated) => {
+              setDocuments((prev) => prev.map((d) => (d._id === updated._id ? { ...d, ...updated } : d)))
+              setSelectedDocument((sel) => (sel && sel._id === updated._id ? { ...sel, ...updated } : sel))
+              setEditingDocument(null)
+            }}
+          />
+        )}
+
         {selectedDocument && (
           <PDFViewer
             documentItem={selectedDocument}
             onClose={() => setSelectedDocument(null)}
+            onEditDetails={() => {
+              setEditingDocument(selectedDocument)
+              setSelectedDocument(null)
+            }}
             onDeleted={(id) => setDocuments((prev) => prev.filter((doc) => doc._id !== id))}
             onProgressSaved={(id, currentPage, percentage) => {
               setDocuments((prev) =>
@@ -145,6 +227,105 @@ export default function LibraryPage() {
         )}
       </div>
     </ProtectedRoute>
+  )
+}
+
+function EditDocumentModal({
+  document,
+  onClose,
+  onSaved,
+}: {
+  document: LibraryDocument
+  onClose: () => void
+  onSaved: (doc: LibraryDocument) => void
+}) {
+  const [title, setTitle] = useState(document.title)
+  const [subject, setSubject] = useState(document.subject || '')
+  const [coverColor, setCoverColor] = useState(document.coverColor || DEFAULT_COVER)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const save = async () => {
+    if (!title.trim()) return setError('Title is required.')
+    setSaving(true)
+    setError('')
+    try {
+      const token = await getFirebaseToken()
+      const res = await fetch(`/api/backend/library/documents/${document._id}`, {
+        method: 'PUT',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          subject: subject.trim(),
+          coverColor,
+        }),
+      })
+      const data = await res.json()
+      if (data?.success && data.document) {
+        onSaved(data.document as LibraryDocument)
+      } else {
+        setError(data?.error || 'Could not save changes.')
+      }
+    } catch {
+      setError('Network error.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[65] bg-black/55 p-3" onClick={onClose}>
+      <div
+        className="mx-auto mt-8 w-full max-w-xl rounded-2xl bg-white p-5 dark:bg-slate-800 dark:ring-1 dark:ring-slate-700"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Edit document</h3>
+        <div className="grid gap-3">
+          <input
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 focus:ring dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+          />
+          <input
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 focus:ring dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject (optional)"
+          />
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 dark:text-slate-400">Cover color</span>
+            <input
+              type="color"
+              value={coverColor}
+              onChange={(e) => setCoverColor(e.target.value)}
+              className="h-9 w-14 cursor-pointer rounded border border-slate-200 p-1 dark:border-slate-600"
+            />
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-300"
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-xl bg-[#5B4CF5] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            onClick={() => void save()}
+            disabled={saving}
+            type="button"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -218,24 +399,47 @@ function UploadModal({
 
   return (
     <div className="fixed inset-0 z-[65] bg-black/55 p-3" onClick={onClose}>
-      <div className="mx-auto mt-8 w-full max-w-xl rounded-2xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
-        <h3 className="mb-4 text-lg font-semibold text-slate-900">Upload Document</h3>
-        <div {...getRootProps()} className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center ${isDragActive ? 'border-[#5B4CF5] bg-[#5B4CF5]/5' : 'border-slate-300'}`}>
+      <div
+        className="mx-auto mt-8 w-full max-w-xl rounded-2xl bg-white p-5 dark:bg-slate-800 dark:ring-1 dark:ring-slate-700"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Upload Document</h3>
+        <div
+          {...getRootProps()}
+          className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center dark:border-slate-600 ${
+            isDragActive ? 'border-[#5B4CF5] bg-[#5B4CF5]/5 dark:bg-[#5B4CF5]/10' : 'border-slate-300'
+          }`}
+        >
           <input {...getInputProps()} />
-          <Upload size={28} className="mx-auto mb-2 text-slate-500" />
-          <p className="text-sm font-medium text-slate-700">Drag and drop PDF, or click to choose</p>
-          {file && <p className="mt-2 text-xs text-slate-500">{file.name}</p>}
+          <Upload size={28} className="mx-auto mb-2 text-slate-500 dark:text-slate-400" />
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Drag and drop PDF, or click to choose</p>
+          {file && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{file.name}</p>}
         </div>
 
         <div className="mt-4 grid gap-3">
-          <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-[#5B4CF5]/30 focus:ring" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
-          <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-[#5B4CF5]/30 focus:ring" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject (optional)" />
+          <input
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 focus:ring dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+          />
+          <input
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 focus:ring dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject (optional)"
+          />
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600">Cover color</span>
-            <input type="color" value={coverColor} onChange={(e) => setCoverColor(e.target.value)} className="h-9 w-14 cursor-pointer rounded border border-slate-200 p-1" />
+            <span className="text-sm text-slate-600 dark:text-slate-400">Cover color</span>
+            <input
+              type="color"
+              value={coverColor}
+              onChange={(e) => setCoverColor(e.target.value)}
+              className="h-9 w-14 cursor-pointer rounded border border-slate-200 p-1 dark:border-slate-600"
+            />
           </div>
           {uploading && (
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
               <div className="h-full bg-[#5B4CF5] transition-all" style={{ width: `${progress}%` }} />
             </div>
           )}
@@ -243,8 +447,19 @@ function UploadModal({
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700" onClick={onClose} type="button">Cancel</button>
-          <button className="rounded-xl bg-[#5B4CF5] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" onClick={upload} disabled={uploading} type="button">
+          <button
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-300"
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-xl bg-[#5B4CF5] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            onClick={upload}
+            disabled={uploading}
+            type="button"
+          >
             {uploading ? `Uploading ${progress}%` : 'Upload'}
           </button>
         </div>
