@@ -2938,6 +2938,65 @@ html {
 .toggle-switch.on .toggle-thumb { left: 23px; }
 .toggle-switch.off .toggle-thumb { left: 3px; }
 
+.settings-push-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+}
+.dark .settings-push-row {
+  background: #1F2937;
+  border-color: #374151;
+}
+.settings-push-row h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.dark .settings-push-row h4 { color: #F9FAFB; }
+.settings-push-row .settings-push-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #6B7280;
+  line-height: 1.45;
+}
+.dark .settings-push-row .settings-push-desc { color: #9CA3AF; }
+.settings-notif-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1.5px solid #E5E7EB;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.dark .settings-notif-btn {
+  background: #111827;
+  border-color: #4B5563;
+  color: #E5E7EB;
+}
+.settings-notif-btn:hover:not(:disabled) { opacity: 0.92; }
+.settings-notif-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.settings-notif-btn.enabled {
+  background: #EEF2FF;
+  border-color: #4F46E5;
+  color: #4F46E5;
+}
+.dark .settings-notif-btn.enabled {
+  background: rgba(79, 70, 229, 0.2);
+  border-color: #818CF8;
+  color: #A5B4FC;
+}
+
 .theme-options, .font-size-options { display: flex; gap: 10px; flex-wrap: wrap; }
 .theme-btn, .font-size-btn {
   display: flex;

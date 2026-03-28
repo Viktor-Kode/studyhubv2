@@ -11,6 +11,7 @@ export interface AppUser {
         hideTourButton?: boolean
         hideChatbot?: boolean
     }
+    notificationsEnabled?: boolean
     plan?: {
         type: 'free' | 'starter' | 'growth' | 'premium'
         testsAllowed: number

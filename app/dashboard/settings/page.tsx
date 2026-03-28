@@ -430,16 +430,24 @@ function NotificationsSection({
   user,
   onSaved,
 }: {
-  user: { phoneNumber?: string; phone?: string } | null
+  user: { phoneNumber?: string; phone?: string; notificationsEnabled?: boolean } | null
   onSaved: () => void
 }) {
   const [prefs, setPrefs] = useState(DEFAULT_PREFS)
   const [loading, setLoading] = useState(false)
   const [profilePhone, setProfilePhone] = useState('')
+  const [pushEnabled, setPushEnabled] = useState(!!user?.notificationsEnabled)
+  const [pushLoading, setPushLoading] = useState(false)
 
   useEffect(() => {
     loadPrefs()
   }, [])
+
+  useEffect(() => {
+    if (typeof user?.notificationsEnabled === 'boolean') {
+      setPushEnabled(user.notificationsEnabled)
+    }
+  }, [user?.notificationsEnabled])
 
   const loadPrefs = async () => {
     try {
@@ -448,7 +456,37 @@ function NotificationsSection({
       if (np) setPrefs((p) => ({ ...p, ...np }))
       const phone = res.data?.profile?.phone
       if (phone) setProfilePhone(phone)
+      const ne = res.data?.profile?.notificationsEnabled
+      if (typeof ne === 'boolean') setPushEnabled(ne)
     } catch {}
+  }
+
+  const handlePushToggle = async () => {
+    setPushLoading(true)
+    try {
+      if (!pushEnabled) {
+        const { enablePushNotifications } = await import('@/lib/services/pushNotifications')
+        const result = await enablePushNotifications()
+        if (result.success) {
+          setPushEnabled(true)
+          await useAuthStore.getState().refreshUser()
+          onSaved()
+          alert('Notifications enabled. You can get updates even when the app is closed.')
+        } else if (result.reason === 'Permission denied') {
+          alert('Please allow notifications in your browser settings and try again.')
+        } else {
+          alert(result.reason || 'Could not enable push notifications.')
+        }
+      } else {
+        const { disablePushNotifications } = await import('@/lib/services/pushNotifications')
+        await disablePushNotifications()
+        setPushEnabled(false)
+        await useAuthStore.getState().refreshUser()
+        onSaved()
+      }
+    } finally {
+      setPushLoading(false)
+    }
   }
 
   const handleSave = async () => {
@@ -472,6 +510,23 @@ function NotificationsSection({
   return (
     <div className="settings-section">
       <h3 className="section-title">Notifications</h3>
+
+      <div className="settings-push-row">
+        <div>
+          <h4>Push notifications</h4>
+          <p className="settings-push-desc">
+            Get alerts for likes, comments, CBT results and more — even when the app is closed (browser or installed PWA).
+          </p>
+        </div>
+        <button
+          type="button"
+          className={`settings-notif-btn ${pushEnabled ? 'enabled' : ''}`}
+          onClick={() => void handlePushToggle()}
+          disabled={pushLoading}
+        >
+          {pushLoading ? 'Loading…' : pushEnabled ? '🔔 Enabled' : '🔕 Enable'}
+        </button>
+      </div>
 
       {!hasPhone && (
         <div className="warning-banner">

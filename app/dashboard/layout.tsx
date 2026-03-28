@@ -18,6 +18,7 @@ import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 interface NavItem {
     href: string
@@ -141,6 +142,8 @@ export default function DashboardLayout({
 
                         {/* Right: User Menu + Theme Toggle */}
                         <div className="flex items-center gap-3">
+
+                            <NotificationBell />
 
                             {/* Theme Toggle */}
                             <button

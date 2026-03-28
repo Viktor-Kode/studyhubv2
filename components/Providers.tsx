@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import AuthSync from './AuthSync'
 import IOSInstallBanner from './IOSInstallBanner'
+import NotifToast from '@/components/notifications/NotifToast'
 import { UpgradeProvider } from '@/context/UpgradeContext'
 import UpgradeHandlerSetup from './UpgradeHandlerSetup'
 
@@ -92,6 +93,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 <AuthSync />
                 <IOSInstallBanner />
                 <UpgradeHandlerSetup />
+                <NotifToast />
                 {children}
             </UpgradeProvider>
         </QueryClientProvider>
