@@ -5,13 +5,17 @@ import type { AppUser } from '@/lib/types/auth'
 import './onboarding.css'
 
 function getSteps(user: AppUser) {
-  const subj = user.onboarding?.subjects?.[0] || 'your subjects'
+  const isUni = user.onboarding?.studentType === 'university'
+  const subj = user.onboarding?.subjects?.[0] || (isUni ? 'your course' : 'your subjects')
+
   return [
     {
       id: 'cbt',
       icon: '📝',
-      title: 'Take your first CBT practice test',
-      description: `Practice ${subj} past questions`,
+      title: isUni ? 'Practice past exam questions' : 'Take your first CBT practice test',
+      description: isUni
+        ? `Practice ${user.onboarding?.subjects?.[0] || 'your course'} questions`
+        : `Practice ${subj} past questions`,
       link: '/dashboard/cbt',
       done: user.progress?.hasCompletedCBT,
       cta: 'Start Practice →',
@@ -20,8 +24,10 @@ function getSteps(user: AppUser) {
     {
       id: 'ai_tutor',
       icon: '🤖',
-      title: 'Ask the AI Tutor a question',
-      description: 'Get instant explanations on any topic',
+      title: isUni ? 'Ask AI to explain a concept' : 'Ask the AI Tutor a question',
+      description: isUni
+        ? 'Get explanations for complex university topics'
+        : 'Get instant explanations on any topic',
       link: '/dashboard/chat',
       done: user.progress?.hasUsedAITutor,
       cta: 'Ask AI Tutor →',
@@ -30,8 +36,10 @@ function getSteps(user: AppUser) {
     {
       id: 'library',
       icon: '📚',
-      title: 'Upload a study material',
-      description: 'Add a textbook or past question PDF to your library',
+      title: isUni ? 'Upload your lecture notes or textbook' : 'Upload a study material',
+      description: isUni
+        ? 'Read and track your course materials in one place'
+        : 'Add a textbook or past question PDF to your library',
       link: '/dashboard/library',
       done: user.progress?.hasUploadedLibrary,
       cta: 'Upload PDF →',
@@ -40,18 +48,22 @@ function getSteps(user: AppUser) {
     {
       id: 'community',
       icon: '🌐',
-      title: 'Join the community',
-      description: 'Connect with other students and share study tips',
+      title: isUni ? 'Join a study group' : 'Join the community',
+      description: isUni
+        ? 'Study with coursemates and share resources'
+        : 'Connect with other students and share study tips',
       link: '/community',
       done: user.progress?.hasJoinedCommunity,
-      cta: 'Visit Community →',
+      cta: isUni ? 'Find a Group →' : 'Visit Community →',
       color: '#D97706',
     },
     {
       id: 'flashcard',
       icon: '🃏',
-      title: 'Create a flashcard',
-      description: 'Build your first card or generate a deck with AI',
+      title: isUni ? 'Create flashcards for key concepts' : 'Create a flashcard',
+      description: isUni
+        ? 'Build cards for definitions, cases, or formulae'
+        : 'Build your first card or generate a deck with AI',
       link: '/dashboard/flip-cards',
       done: user.progress?.hasCreatedFlashcard,
       cta: 'Open Flashcards →',

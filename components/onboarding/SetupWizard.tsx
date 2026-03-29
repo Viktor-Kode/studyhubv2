@@ -2,33 +2,153 @@
 
 import { useState } from 'react'
 import { apiClient } from '@/lib/api/client'
-import type { AppUser } from '@/lib/types/auth'
+import type { AppUser, OnboardingStudentType } from '@/lib/types/auth'
 import './onboarding.css'
 
-const ALL_SUBJECTS = [
-  'Mathematics',
-  'English Language',
-  'Biology',
-  'Chemistry',
-  'Physics',
-  'Economics',
-  'Government',
-  'Literature in English',
-  'Geography',
-  'Agricultural Science',
-  'Civic Education',
-  'Further Mathematics',
-  'Commerce',
-  'Accounting',
-  'Christian Religious Studies',
-  'Islamic Religious Studies',
-  'French',
-  'History',
+const STUDENT_TYPE_OPTIONS: {
+  label: string
+  value: OnboardingStudentType
+  desc: string
+}[] = [
+  {
+    label: '🏫 Secondary School',
+    value: 'secondary',
+    desc: 'JSS1 — SS3, preparing for WAEC, NECO, JAMB',
+  },
+  {
+    label: '🎓 University Student',
+    value: 'university',
+    desc: 'Undergraduate or postgraduate student',
+  },
+  {
+    label: '📚 JAMB / Post-UTME',
+    value: 'jamb',
+    desc: 'Waiting for admission, preparing for post-UTME',
+  },
+  {
+    label: '🔄 Remedial / Resit',
+    value: 'remedial',
+    desc: 'Resitting exams or on remedial programme',
+  },
 ]
 
-const EXAM_OPTIONS = ['UTME / JAMB', 'WAEC', 'NECO', 'NABTEB', 'Post-UTME', 'GCE']
+function getExamOptions(studentType: OnboardingStudentType | '') {
+  if (studentType === 'university') {
+    return [
+      { label: '📝 Semester Exams', value: 'Semester Exams' },
+      { label: '🔬 Practicals', value: 'Practicals' },
+      { label: '📖 Carry-over Papers', value: 'Carry-over Papers' },
+      { label: '🎓 Final Year / Project', value: 'Final Year' },
+      { label: '🏥 Professional (MDCN, NLE)', value: 'Professional Exams' },
+      { label: '📊 Postgraduate (Masters/PhD)', value: 'Postgraduate' },
+    ]
+  }
+  if (studentType === 'jamb') {
+    return [
+      { label: 'UTME / JAMB', value: 'UTME' },
+      { label: 'Post-UTME', value: 'Post-UTME' },
+      { label: 'Direct Entry', value: 'Direct Entry' },
+      { label: 'WAEC (as backup)', value: 'WAEC' },
+    ]
+  }
+  return [
+    { label: 'UTME / JAMB', value: 'UTME' },
+    { label: 'WAEC', value: 'WAEC' },
+    { label: 'NECO', value: 'NECO' },
+    { label: 'NABTEB', value: 'NABTEB' },
+    { label: 'GCE', value: 'GCE' },
+    { label: 'Common Entrance', value: 'Common Entrance' },
+  ]
+}
+
+function getSubjectList(studentType: OnboardingStudentType | '') {
+  if (studentType === 'university') {
+    return [
+      'Anatomy',
+      'Physiology',
+      'Biochemistry',
+      'Pharmacology',
+      'Pathology',
+      'Microbiology',
+      'Immunology',
+      'Surgery',
+      'Medicine',
+      'Nursing',
+      'Engineering Mathematics',
+      'Thermodynamics',
+      'Fluid Mechanics',
+      'Electrical Circuits',
+      'Structural Analysis',
+      'Programming / Coding',
+      'Microeconomics',
+      'Macroeconomics',
+      'Statistics',
+      'Business Law',
+      'Accounting',
+      'Finance',
+      'Marketing',
+      'Management',
+      'Constitutional Law',
+      'Criminal Law',
+      'Contract Law',
+      'Tort Law',
+      'Philosophy',
+      'Sociology',
+      'Psychology',
+      'Mass Communication',
+      'English Literature',
+      'Linguistics',
+      'History',
+      'Research Methods',
+      'GST / Use of English',
+      'ICT / Computer Science',
+    ]
+  }
+  return [
+    'Mathematics',
+    'English Language',
+    'Biology',
+    'Chemistry',
+    'Physics',
+    'Economics',
+    'Government',
+    'Literature in English',
+    'Geography',
+    'Agricultural Science',
+    'Civic Education',
+    'Further Mathematics',
+    'Commerce',
+    'Accounting',
+    'Christian Religious Studies',
+    'Islamic Religious Studies',
+    'French',
+    'History',
+  ]
+}
+
+function getGoalOptions(studentType: OnboardingStudentType | '') {
+  if (studentType === 'university') {
+    return [
+      { label: '🎓 Graduate with First Class', value: 'First Class' },
+      { label: '📈 Improve my CGPA', value: 'Improve CGPA' },
+      { label: '🔄 Clear my carry-overs', value: 'Clear carry-overs' },
+      { label: '🏥 Pass professional exams', value: 'Pass professional exams' },
+      { label: '🎯 Prepare for final year', value: 'Final year prep' },
+      { label: '📚 Stay on top of coursework', value: 'Stay on top' },
+    ]
+  }
+  return [
+    { label: '🎓 Get into university', value: 'Get into university' },
+    { label: '📜 Pass my WAEC/NECO', value: 'Pass WAEC/NECO' },
+    { label: '🏆 Score 300+ in JAMB', value: 'Score 300+ in JAMB' },
+    { label: '📚 Improve my grades', value: 'Improve grades' },
+    { label: '🔄 Resit my exams', value: 'Resit exams' },
+    { label: '✨ Just exploring', value: 'Exploring' },
+  ]
+}
 
 type WizardAnswers = {
+  studentType: OnboardingStudentType | ''
   examType: string
   subjects: string[]
   goal: string
@@ -44,6 +164,7 @@ export default function SetupWizard({
 }) {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<WizardAnswers>({
+    studentType: '',
     examType: '',
     subjects: [],
     goal: '',
@@ -53,18 +174,26 @@ export default function SetupWizard({
   const [error, setError] = useState('')
 
   const firstName = user.name?.split(' ')[0] || 'there'
-  const lastStepIndex = 3
-  const progressPct = lastStepIndex > 0 ? (step / lastStepIndex) * 100 : 0
+  const lastStepIndex = 4
+  const progressPct = (step / lastStepIndex) * 100
 
-  const postOnboarding = async (body: WizardAnswers) => {
+  const examOptions = getExamOptions(answers.studentType)
+  const subjectList = getSubjectList(answers.studentType)
+  const goalOptions = getGoalOptions(answers.studentType)
+
+  const postOnboarding = async (body: WizardAnswers & { studentType: OnboardingStudentType }) => {
     await apiClient.post('/users/onboarding', body)
   }
 
   const handleComplete = async () => {
+    if (!answers.studentType) return
     setSaving(true)
     setError('')
     try {
-      await postOnboarding(answers)
+      await postOnboarding({
+        ...answers,
+        studentType: answers.studentType,
+      })
       onComplete()
     } catch (e) {
       console.error(e)
@@ -79,6 +208,7 @@ export default function SetupWizard({
     setError('')
     try {
       await postOnboarding({
+        studentType: 'secondary',
         examType: '',
         subjects: [],
         goal: 'Exploring',
@@ -104,8 +234,10 @@ export default function SetupWizard({
           <div className="wizard-step">
             <div className="wizard-emoji">👋</div>
             <h2>Welcome to StudyHelp, {firstName}!</h2>
-            <p>Let&apos;s set up your account in 3 quick steps so we can personalise your experience.</p>
-            <p className="wizard-time">⏱️ Takes less than 1 minute</p>
+            <p>
+              Let&apos;s set you up in a few quick steps so we can personalise your experience.
+            </p>
+            <p className="wizard-time">⏱️ Takes less than 2 minutes</p>
             {error ? <p className="text-red-500 text-sm">{error}</p> : null}
             <button type="button" className="wizard-btn-primary" onClick={() => setStep(1)}>
               Let&apos;s Go →
@@ -118,17 +250,25 @@ export default function SetupWizard({
 
         {step === 1 && (
           <div className="wizard-step">
-            <h2>What exam are you preparing for?</h2>
-            <p>We&apos;ll show you the most relevant past questions</p>
-            <div className="wizard-options-grid">
-              {EXAM_OPTIONS.map((exam) => (
+            <div className="wizard-emoji">🎓</div>
+            <h2>Which best describes you?</h2>
+            <p>We&apos;ll personalise your experience based on your level</p>
+            <div className="wizard-student-type-grid">
+              {STUDENT_TYPE_OPTIONS.map((opt) => (
                 <button
-                  key={exam}
+                  key={opt.value}
                   type="button"
-                  className={`wizard-option ${answers.examType === exam ? 'selected' : ''}`}
-                  onClick={() => setAnswers((a) => ({ ...a, examType: exam }))}
+                  className={`wizard-option-card ${answers.studentType === opt.value ? 'selected' : ''}`}
+                  onClick={() =>
+                    setAnswers((a) => ({
+                      ...a,
+                      studentType: opt.value,
+                      examType: '',
+                    }))
+                  }
                 >
-                  {exam}
+                  <span className="woc-label">{opt.label}</span>
+                  <span className="woc-desc">{opt.desc}</span>
                 </button>
               ))}
             </div>
@@ -140,7 +280,7 @@ export default function SetupWizard({
                 type="button"
                 className="wizard-btn-primary"
                 onClick={() => setStep(2)}
-                disabled={!answers.examType}
+                disabled={!answers.studentType}
               >
                 Next →
               </button>
@@ -150,10 +290,46 @@ export default function SetupWizard({
 
         {step === 2 && (
           <div className="wizard-step">
-            <h2>Which subjects are you studying?</h2>
+            <h2>What are you preparing for?</h2>
+            <p>We&apos;ll highlight the most relevant tools and content</p>
+            <div className="wizard-options-grid">
+              {examOptions.map((exam) => (
+                <button
+                  key={exam.value}
+                  type="button"
+                  className={`wizard-option ${answers.examType === exam.value ? 'selected' : ''}`}
+                  onClick={() => setAnswers((a) => ({ ...a, examType: exam.value }))}
+                >
+                  {exam.label}
+                </button>
+              ))}
+            </div>
+            <div className="wizard-nav">
+              <button type="button" className="wizard-btn-secondary" onClick={() => setStep(1)}>
+                ← Back
+              </button>
+              <button
+                type="button"
+                className="wizard-btn-primary"
+                onClick={() => setStep(3)}
+                disabled={!answers.examType}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="wizard-step">
+            <h2>
+              {answers.studentType === 'university'
+                ? 'Which courses or topics are you studying?'
+                : 'Which subjects are you studying?'}
+            </h2>
             <p>Select all that apply — you can change these later</p>
             <div className="wizard-subjects-grid">
-              {ALL_SUBJECTS.map((sub) => (
+              {subjectList.map((sub) => (
                 <button
                   key={sub}
                   type="button"
@@ -173,13 +349,13 @@ export default function SetupWizard({
             </div>
             <p className="wizard-selected-count">{answers.subjects.length} selected</p>
             <div className="wizard-nav">
-              <button type="button" className="wizard-btn-secondary" onClick={() => setStep(1)}>
+              <button type="button" className="wizard-btn-secondary" onClick={() => setStep(2)}>
                 ← Back
               </button>
               <button
                 type="button"
                 className="wizard-btn-primary"
-                onClick={() => setStep(3)}
+                onClick={() => setStep(4)}
                 disabled={answers.subjects.length === 0}
               >
                 Next →
@@ -188,18 +364,11 @@ export default function SetupWizard({
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="wizard-step">
             <h2>What&apos;s your main goal?</h2>
             <div className="wizard-options-grid">
-              {[
-                { label: '🎓 Get into university', value: 'Get into university' },
-                { label: '📜 Pass my WAEC/NECO', value: 'Pass WAEC/NECO' },
-                { label: '🏆 Score 300+ in JAMB', value: 'Score 300+ in JAMB' },
-                { label: '📚 Improve my grades', value: 'Improve grades' },
-                { label: '🔄 Resit my exams', value: 'Resit exams' },
-                { label: '✨ Just exploring', value: 'Exploring' },
-              ].map((g) => (
+              {goalOptions.map((g) => (
                 <button
                   key={g.value}
                   type="button"
@@ -227,7 +396,7 @@ export default function SetupWizard({
 
             {error ? <p className="text-red-500 text-sm">{error}</p> : null}
             <div className="wizard-nav">
-              <button type="button" className="wizard-btn-secondary" onClick={() => setStep(2)}>
+              <button type="button" className="wizard-btn-secondary" onClick={() => setStep(3)}>
                 ← Back
               </button>
               <button

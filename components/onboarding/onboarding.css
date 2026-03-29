@@ -283,6 +283,90 @@
   width: auto;
 }
 
+/* Student type option cards */
+.wizard-student-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .wizard-student-type-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wizard-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  border: 2px solid #e8eaed;
+  border-radius: 14px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.dark .wizard-option-card {
+  background: #334155;
+  border-color: #475569;
+}
+
+.wizard-option-card:hover {
+  border-color: #5b4cf5;
+  background: #f8f7ff;
+}
+
+.dark .wizard-option-card:hover {
+  background: #3b3566;
+}
+
+.wizard-option-card.selected {
+  border-color: #5b4cf5;
+  background: #eef2ff;
+}
+
+.dark .wizard-option-card.selected {
+  background: #312e81;
+}
+
+.woc-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dark .woc-label {
+  color: #f8fafc;
+}
+
+.woc-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.wizard-option-card.selected .woc-label {
+  color: #5b4cf5;
+}
+
+.dark .wizard-option-card.selected .woc-label {
+  color: #c4b5fd;
+}
+
+.wizard-option-card.selected .woc-desc {
+  color: #818cf8;
+}
+
+.dark .wizard-option-card.selected .woc-desc {
+  color: #a5b4fc;
+}
+
 /* ══ NEXT STEPS CARD ════════════════════════════════ */
 .next-steps-card {
   background: white;

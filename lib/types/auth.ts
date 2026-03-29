@@ -1,7 +1,10 @@
 export type AppRole = 'student' | 'teacher' | 'admin'
 
+export type OnboardingStudentType = 'secondary' | 'university' | 'jamb' | 'remedial'
+
 export interface UserOnboarding {
     completed: boolean
+    studentType?: OnboardingStudentType
     examType?: string
     subjects?: string[]
     goal?: string
