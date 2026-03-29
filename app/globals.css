@@ -2571,11 +2571,30 @@ html {
   color: #34d399;
 }
 
-.settings-layout {
-  display: grid;
-  grid-template-columns: 200px 1fr;
+/* Settings: mobile = stacked; desktop = sidebar | content inside .settings-desktop-wrap */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-desktop-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .settings-desktop-wrap {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
 }
 
 .settings-sidebar {
@@ -3289,13 +3308,12 @@ html {
 }
 
 @media (max-width: 767px) {
-  .settings-layout { grid-template-columns: 1fr; }
   .settings-content { padding: 16px; }
   .theme-btn, .font-size-btn { flex: 1; }
 }
 
 @media (min-width: 768px) {
-  .settings-mobile-nav { display: none; }
+  .settings-mobile-nav { display: none !important; }
 }
 
 /* ─── Admin Dashboard ────────────────────────────────────────────────────────── */

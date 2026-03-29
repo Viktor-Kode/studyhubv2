@@ -5,6 +5,8 @@ export interface AppUser {
     email: string
     name: string
     schoolName?: string
+    /** Class / level, e.g. SS2, 100 Level */
+    classLevel?: string
     role: AppRole
     avatar?: string
     provider?: 'google' | 'password'

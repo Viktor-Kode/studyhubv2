@@ -27,6 +27,7 @@ function ProfileSection({
     displayName: '',
     phone: '',
     schoolName: '',
+    classLevel: '',
   })
   const [loading, setLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -45,6 +46,7 @@ function ProfileSection({
         displayName: p.name ?? user.name ?? '',
         phone: p.phone ?? '',
         schoolName: p.schoolName ?? '',
+        classLevel: p.classLevel ?? '',
       })
       setAvatarPreview(p.avatar ?? user.avatar ?? null)
     } catch {
@@ -52,6 +54,7 @@ function ProfileSection({
         displayName: user.name ?? '',
         phone: '',
         schoolName: '',
+        classLevel: '',
       })
       setAvatarPreview(user.avatar ?? null)
     }
@@ -103,6 +106,7 @@ function ProfileSection({
           name: form.displayName,
           phone: form.phone,
           schoolName: form.schoolName.trim(),
+          classLevel: form.classLevel.trim(),
           avatar: avatarPreview,
         },
       })
@@ -111,6 +115,7 @@ function ProfileSection({
         name: form.displayName,
         avatar: avatarPreview ?? undefined,
         schoolName: form.schoolName.trim() || undefined,
+        classLevel: form.classLevel.trim() || undefined,
       })
       onSaved()
     } catch (err: any) {
@@ -186,6 +191,17 @@ function ProfileSection({
             placeholder="e.g. Lagos State Senior Secondary School"
           />
           <span className="field-hint">Shown on your dashboard profile</span>
+        </div>
+
+        <div className="form-group">
+          <label>Class / level</label>
+          <input
+            className="settings-input"
+            value={form.classLevel}
+            onChange={(e) => setForm({ ...form, classLevel: e.target.value })}
+            placeholder="e.g. SS2, JSS 3, 100 Level, Year 12"
+          />
+          <span className="field-hint">Your current class or year — shown on your dashboard</span>
         </div>
 
         <button
@@ -782,7 +798,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        <div className="settings-layout">
+        <div className="settings-stack">
           <div className="settings-mobile-nav md:hidden">
             <label className="settings-mobile-label" htmlFor="settings-section-select">
               Section
@@ -805,30 +821,31 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          <div className="settings-sidebar hidden md:block">
-            {SECTIONS.map((s) => (
+          <div className="settings-desktop-wrap">
+            <aside className="settings-sidebar hidden md:block">
+              {SECTIONS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
+                  onClick={() => setActiveSection(s.id)}
+                >
+                  <s.icon size={18} />
+                  <span>{s.label}</span>
+                  <ChevronRight size={15} className="nav-arrow" />
+                </button>
+              ))}
               <button
-                key={s.id}
                 type="button"
-                className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
-                onClick={() => setActiveSection(s.id)}
+                className="settings-nav-item logout"
+                onClick={handleLogout}
               >
-                <s.icon size={18} />
-                <span>{s.label}</span>
-                <ChevronRight size={15} className="nav-arrow" />
+                <LogOut size={18} />
+                <span>Log Out</span>
               </button>
-            ))}
-            <button
-              type="button"
-              className="settings-nav-item logout"
-              onClick={handleLogout}
-            >
-              <LogOut size={18} />
-              <span>Log Out</span>
-            </button>
-          </div>
+            </aside>
 
-          <div className="settings-content">
+            <div className="settings-content">
             {activeSection === 'profile' && (
               <ProfileSection user={user} onSaved={() => { showSaved(); useAuthStore.getState().refreshUser() }} />
             )}
@@ -843,6 +860,7 @@ export default function SettingsPage() {
               <AppearanceSection onSaved={showSaved} />
             )}
             {activeSection === 'danger' && <DangerSection />}
+            </div>
           </div>
         </div>
       </div>

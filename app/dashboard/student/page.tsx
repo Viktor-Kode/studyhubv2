@@ -235,10 +235,20 @@ export default function StudentDashboardPage() {
               {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Student'}!
             </h1>
           </div>
-          {user?.schoolName ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-1 flex items-center gap-1.5">
-              <MdSchool className="text-lg text-indigo-500 shrink-0" />
-              <span>{user.schoolName}</span>
+          {(user?.schoolName || user?.classLevel) ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {user?.schoolName ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <MdSchool className="text-lg text-indigo-500 shrink-0" />
+                  <span>{user.schoolName}</span>
+                </span>
+              ) : null}
+              {user?.classLevel ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <MdClass className="text-lg text-violet-500 shrink-0" />
+                  <span>{user.classLevel}</span>
+                </span>
+              ) : null}
             </p>
           ) : null}
           <p className="text-gray-600 dark:text-gray-400 mt-1 mb-4">
