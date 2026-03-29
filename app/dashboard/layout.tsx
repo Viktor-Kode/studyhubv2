@@ -253,8 +253,8 @@ export default function DashboardLayout({
                                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden min-w-0">
                                     <div className="relative z-10 flex flex-col items-center text-center">
                                         <FiCpu className="text-3xl mb-2 opacity-90" />
-                                        <h3 className="font-bold text-sm mb-1">Get the app</h3>
-                                        <p className="text-xs text-blue-100 mb-3 break-words overflow-hidden">
+                                        <h3 className="font-bold text-sm mb-1 text-white">Get the app</h3>
+                                        <p className="text-xs text-white/95 mb-3 break-words overflow-hidden leading-snug [text-shadow:0_1px_2px_rgba(0,0,0,0.2)]">
                                             {isInstallable
                                                 ? 'Install StudyHelp to access your dashboard faster from your home screen.'
                                                 : 'On this device, use your browser menu and choose "Add to Home Screen" to install StudyHelp.'}
