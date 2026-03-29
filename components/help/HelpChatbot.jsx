@@ -85,7 +85,7 @@ const SYSTEM_PROMPT = `You are the StudyHelp onboarding assistant. Answer ONLY q
 If the user asks something unrelated (like learning topics or general knowledge), politely redirect them to the **AI Tutor** instead of answering the topic.`
 
 export default function HelpChatbot() {
-  const { chatbotVisible, hideChatbot, showChatbot } = useHelpWidgets()
+  const { chatbotVisible, hideChatbot } = useHelpWidgets()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -183,19 +183,7 @@ export default function HelpChatbot() {
   )
 
   if (!chatbotVisible) {
-    return (
-      <div className="fixed bottom-6 right-6 z-[1250]">
-        <button
-          type="button"
-          aria-label="Show help chat"
-          title="Show help chat"
-          onClick={() => void showChatbot()}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-[#5B4CF5] shadow-md transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700"
-        >
-          <MessageCircle className="h-5 w-5" strokeWidth={2} />
-        </button>
-      </div>
-    )
+    return null
   }
 
   return (

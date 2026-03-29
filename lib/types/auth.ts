@@ -4,6 +4,7 @@ export interface AppUser {
     uid: string
     email: string
     name: string
+    schoolName?: string
     role: AppRole
     avatar?: string
     provider?: 'google' | 'password'

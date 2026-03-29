@@ -235,6 +235,12 @@ export default function StudentDashboardPage() {
               {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Student'}!
             </h1>
           </div>
+          {user?.schoolName ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-1 flex items-center gap-1.5">
+              <MdSchool className="text-lg text-indigo-500 shrink-0" />
+              <span>{user.schoolName}</span>
+            </p>
+          ) : null}
           <p className="text-gray-600 dark:text-gray-400 mt-1 mb-4">
             Have a productive learning session today.
             {!loading && stats.studyStreak >= 1 && stats.studiedToday && (

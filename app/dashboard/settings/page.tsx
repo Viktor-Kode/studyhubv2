@@ -16,11 +16,6 @@ import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 
-const AVAILABLE_SUBJECTS = [
-  'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology', 'Economics',
-  'Government', 'Literature', 'Geography', 'Commerce', 'Accounting', 'Agriculture'
-]
-
 function ProfileSection({
   user,
   onSaved,
@@ -31,9 +26,7 @@ function ProfileSection({
   const [form, setForm] = useState({
     displayName: '',
     phone: '',
-    examTarget: 'JAMB',
-    targetYear: String(new Date().getFullYear() + 1),
-    subjects: [] as string[],
+    schoolName: '',
   })
   const [loading, setLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -51,30 +44,17 @@ function ProfileSection({
       setForm({
         displayName: p.name ?? user.name ?? '',
         phone: p.phone ?? '',
-        examTarget: p.examTarget ?? 'JAMB',
-        targetYear: String(p.targetYear ?? new Date().getFullYear() + 1),
-        subjects: p.subjects ?? [],
+        schoolName: p.schoolName ?? '',
       })
       setAvatarPreview(p.avatar ?? user.avatar ?? null)
     } catch {
       setForm({
         displayName: user.name ?? '',
         phone: '',
-        examTarget: 'JAMB',
-        targetYear: String(new Date().getFullYear() + 1),
-        subjects: [],
+        schoolName: '',
       })
       setAvatarPreview(user.avatar ?? null)
     }
-  }
-
-  const toggleSubject = (subject: string) => {
-    setForm((prev) => ({
-      ...prev,
-      subjects: prev.subjects.includes(subject)
-        ? prev.subjects.filter((s) => s !== subject)
-        : [...prev.subjects, subject],
-    }))
   }
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,9 +102,7 @@ function ProfileSection({
         profile: {
           name: form.displayName,
           phone: form.phone,
-          examTarget: form.examTarget,
-          targetYear: Number(form.targetYear),
-          subjects: form.subjects,
+          schoolName: form.schoolName.trim(),
           avatar: avatarPreview,
         },
       })
@@ -132,6 +110,7 @@ function ProfileSection({
         ...user!,
         name: form.displayName,
         avatar: avatarPreview ?? undefined,
+        schoolName: form.schoolName.trim() || undefined,
       })
       onSaved()
     } catch (err: any) {
@@ -199,78 +178,14 @@ function ProfileSection({
         </div>
 
         <div className="form-group">
-          <label>Target Exam</label>
-          <select
+          <label>School name</label>
+          <input
             className="settings-input"
-            value={form.examTarget}
-            onChange={(e) => setForm({ ...form, examTarget: e.target.value })}
-          >
-            <optgroup label="Secondary School">
-              <option value="JAMB">JAMB (UTME)</option>
-              <option value="WAEC">WAEC (SSCE)</option>
-              <option value="NECO">NECO</option>
-              <option value="NABTEB">NABTEB</option>
-              <option value="JAMB+WAEC">JAMB + WAEC (Both)</option>
-            </optgroup>
-            <optgroup label="University Admission">
-              <option value="Post-UTME">Post-UTME (General)</option>
-              <option value="Post-UTME-UNILAG">Post-UTME — UNILAG</option>
-              <option value="Post-UTME-OAU">Post-UTME — OAU</option>
-              <option value="Post-UTME-UI">Post-UTME — UI</option>
-              <option value="Post-UTME-UNILORIN">Post-UTME — UNILORIN</option>
-              <option value="Post-UTME-UNIBEN">Post-UTME — UNIBEN</option>
-              <option value="Post-UTME-UNN">Post-UTME — UNN</option>
-              <option value="Post-UTME-ABU">Post-UTME — ABU</option>
-              <option value="Post-UTME-LASU">Post-UTME — LASU</option>
-              <option value="Post-UTME-CU">Post-UTME — Covenant</option>
-              <option value="Post-UTME-BABCOCK">Post-UTME — Babcock</option>
-            </optgroup>
-            <optgroup label="University Student">
-              <option value="100L">100 Level (First Year)</option>
-              <option value="200L">200 Level</option>
-              <option value="300L">300 Level</option>
-              <option value="400L">400 Level</option>
-              <option value="500L">500 Level</option>
-              <option value="Postgraduate">Postgraduate</option>
-            </optgroup>
-            <optgroup label="Professional">
-              <option value="ICAN">ICAN</option>
-              <option value="ACCA">ACCA</option>
-              <option value="CIBN">CIBN</option>
-              <option value="NLE">NLE (Nursing)</option>
-              <option value="MDCN">MDCN (Medical)</option>
-            </optgroup>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Target Year</label>
-          <select
-            className="settings-input"
-            value={form.targetYear}
-            onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
-          >
-            {[2025, 2026, 2027, 2028].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>My Subjects</label>
-          <div className="subjects-grid">
-            {AVAILABLE_SUBJECTS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`subject-chip ${form.subjects.includes(s) ? 'selected' : ''}`}
-                onClick={() => toggleSubject(s)}
-              >
-                {form.subjects.includes(s) && <Check size={12} />}
-                {s}
-              </button>
-            ))}
-          </div>
+            value={form.schoolName}
+            onChange={(e) => setForm({ ...form, schoolName: e.target.value })}
+            placeholder="e.g. Lagos State Senior Secondary School"
+          />
+          <span className="field-hint">Shown on your dashboard profile</span>
         </div>
 
         <button
@@ -591,14 +506,14 @@ function HelpSupportSection({ onSaved }: { onSaved: () => void }) {
     <div className="settings-section">
       <h3 className="section-title">Help &amp; Support</h3>
       <p className="field-hint mb-4" style={{ marginTop: '-0.5rem' }}>
-        Control the floating tour button (bottom-left) and help chat (bottom-right). Preferences are saved on this device and to your account when signed in.
+        Turn on to show the tour or help chat buttons on screen. By default they stay hidden; only enable them when you want quick access.
       </p>
 
       <div className="toggle-list">
         <div className="toggle-row">
           <div className="toggle-info">
             <span className="toggle-label">Show tour button</span>
-            <span className="toggle-desc">Opens the onboarding tour for the current page</span>
+            <span className="toggle-desc">Floating button (bottom-left) to start the page tour</span>
           </div>
           <button
             type="button"
@@ -868,7 +783,29 @@ export default function SettingsPage() {
         </div>
 
         <div className="settings-layout">
-          <div className="settings-sidebar">
+          <div className="settings-mobile-nav md:hidden">
+            <label className="settings-mobile-label" htmlFor="settings-section-select">
+              Section
+            </label>
+            <select
+              id="settings-section-select"
+              className="settings-section-select"
+              value={activeSection}
+              onChange={(e) => setActiveSection(e.target.value)}
+            >
+              {SECTIONS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="settings-mobile-logout" onClick={handleLogout}>
+              <LogOut size={18} />
+              Log Out
+            </button>
+          </div>
+
+          <div className="settings-sidebar hidden md:block">
             {SECTIONS.map((s) => (
               <button
                 key={s.id}

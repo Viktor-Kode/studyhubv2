@@ -13,6 +13,8 @@ export default function HelpWidgetLayer() {
   const pathname = usePathname()
   const { isAuthenticated, isLoading } = useAuthStore()
   const initFromStorage = useHelpWidgetsStore((s) => s.initFromStorage)
+  const tourHidden = useHelpWidgetsStore((s) => s.tourHidden)
+  const widgetsInitialized = useHelpWidgetsStore((s) => s.initialized)
 
   const [tourOpen, setTourOpen] = useState(false)
   const [tourSteps, setTourSteps] = useState([])
@@ -45,6 +47,8 @@ export default function HelpWidgetLayer() {
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) return
+    if (!widgetsInitialized) return
+    if (tourHidden) return
     if (autoStartedRef.current) return
 
     try {
@@ -61,7 +65,7 @@ export default function HelpWidgetLayer() {
     // Start after layout paints to ensure selectors exist.
     window.setTimeout(() => startTourForCurrentPath(), 600)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading, pathname])
+  }, [isAuthenticated, isLoading, pathname, tourHidden, widgetsInitialized])
 
   if (isLoading || !isAuthenticated) return null
 

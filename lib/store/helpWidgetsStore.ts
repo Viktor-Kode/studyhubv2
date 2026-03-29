@@ -8,21 +8,26 @@ export type HelpWidgetServerPrefs = {
   hideChatbot?: boolean
 }
 
+/** Default: hidden (no floating button) until user turns visibility on. */
 function readTourHidden(): boolean {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return true
   try {
-    return localStorage.getItem(LS_TOUR_HIDDEN) === 'true'
+    const v = localStorage.getItem(LS_TOUR_HIDDEN)
+    if (v === null) return true
+    return v === 'true'
   } catch {
-    return false
+    return true
   }
 }
 
 function readChatHidden(): boolean {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return true
   try {
-    return localStorage.getItem(LS_CHAT_HIDDEN) === 'true'
+    const v = localStorage.getItem(LS_CHAT_HIDDEN)
+    if (v === null) return true
+    return v === 'true'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -66,8 +71,8 @@ type HelpWidgetsState = {
 }
 
 export const useHelpWidgetsStore = create<HelpWidgetsState>((set, get) => ({
-  tourHidden: false,
-  chatbotHidden: false,
+  tourHidden: true,
+  chatbotHidden: true,
   initialized: false,
 
   initFromStorage: () => {

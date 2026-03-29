@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 
 export default function HelpButton({ onClick, tooltip = 'Take a tour' }) {
-  const { tourButtonVisible, hideTourButton, showTourButton } = useHelpWidgets()
+  const { tourButtonVisible, hideTourButton } = useHelpWidgets()
   const [isHovered, setIsHovered] = useState(false)
   const [showPulse, setShowPulse] = useState(false)
 
@@ -22,19 +22,7 @@ export default function HelpButton({ onClick, tooltip = 'Take a tour' }) {
   }, [])
 
   if (!tourButtonVisible) {
-    return (
-      <div className="fixed bottom-6 left-6 z-[1250]">
-        <button
-          type="button"
-          onClick={() => void showTourButton()}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-lg font-black text-[#5B4CF5] shadow-md transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700"
-          aria-label="Show tour button"
-          title="Show tour button"
-        >
-          ?
-        </button>
-      </div>
-    )
+    return null
   }
 
   return (
