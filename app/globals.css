@@ -2539,10 +2539,17 @@ html {
 
 /* ─── Settings Page ───────────────────────────────────────────────────────────── */
 .settings-page {
-  max-width: 900px;
+  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 20px;
   overflow-x: hidden;
+  box-sizing: border-box;
+}
+@media (min-width: 1024px) {
+  .settings-page {
+    padding: 24px 32px 32px;
+  }
 }
 .settings-header {
   display: flex;
@@ -2591,8 +2598,8 @@ html {
 @media (min-width: 768px) {
   .settings-desktop-wrap {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 20px;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 28px 36px;
     align-items: start;
   }
 }
@@ -2643,8 +2650,15 @@ html {
   background: white;
   border-radius: 14px;
   border: 1.5px solid #E5E7EB;
-  padding: 24px;
+  padding: 24px 28px;
   min-height: 400px;
+  width: 100%;
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .settings-content {
+    padding: 28px 36px;
+  }
 }
 .dark .settings-content {
   background: #1F2937;

@@ -235,7 +235,7 @@ export default function StudentDashboardPage() {
               {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'Student'}!
             </h1>
           </div>
-          {(user?.schoolName || user?.classLevel) ? (
+          {(user?.schoolName || user?.classLevel || user?.courseOfStudy) ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               {user?.schoolName ? (
                 <span className="inline-flex items-center gap-1.5">
@@ -247,6 +247,12 @@ export default function StudentDashboardPage() {
                 <span className="inline-flex items-center gap-1.5">
                   <MdClass className="text-lg text-violet-500 shrink-0" />
                   <span>{user.classLevel}</span>
+                </span>
+              ) : null}
+              {user?.courseOfStudy ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <FiBook className="text-lg text-emerald-600 shrink-0" />
+                  <span>Studying {user.courseOfStudy}</span>
                 </span>
               ) : null}
             </p>

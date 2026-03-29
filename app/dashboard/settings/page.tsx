@@ -28,6 +28,7 @@ function ProfileSection({
     phone: '',
     schoolName: '',
     classLevel: '',
+    courseOfStudy: '',
   })
   const [loading, setLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -47,6 +48,7 @@ function ProfileSection({
         phone: p.phone ?? '',
         schoolName: p.schoolName ?? '',
         classLevel: p.classLevel ?? '',
+        courseOfStudy: p.courseOfStudy ?? '',
       })
       setAvatarPreview(p.avatar ?? user.avatar ?? null)
     } catch {
@@ -55,6 +57,7 @@ function ProfileSection({
         phone: '',
         schoolName: '',
         classLevel: '',
+        courseOfStudy: '',
       })
       setAvatarPreview(user.avatar ?? null)
     }
@@ -107,6 +110,7 @@ function ProfileSection({
           phone: form.phone,
           schoolName: form.schoolName.trim(),
           classLevel: form.classLevel.trim(),
+          courseOfStudy: form.courseOfStudy.trim(),
           avatar: avatarPreview,
         },
       })
@@ -116,6 +120,7 @@ function ProfileSection({
         avatar: avatarPreview ?? undefined,
         schoolName: form.schoolName.trim() || undefined,
         classLevel: form.classLevel.trim() || undefined,
+        courseOfStudy: form.courseOfStudy.trim() || undefined,
       })
       onSaved()
     } catch (err: any) {
@@ -202,6 +207,19 @@ function ProfileSection({
             placeholder="e.g. SS2, JSS 3, 100 Level, Year 12"
           />
           <span className="field-hint">Your current class or year — shown on your dashboard</span>
+        </div>
+
+        <div className="form-group">
+          <label>
+            Course / program <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            className="settings-input"
+            value={form.courseOfStudy}
+            onChange={(e) => setForm({ ...form, courseOfStudy: e.target.value })}
+            placeholder="e.g. Medicine, Computer Science, Law — if you are in university"
+          />
+          <span className="field-hint">What you are studying at university; leave blank if not applicable</span>
         </div>
 
         <button
