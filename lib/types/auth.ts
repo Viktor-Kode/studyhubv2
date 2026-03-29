@@ -1,5 +1,22 @@
 export type AppRole = 'student' | 'teacher' | 'admin'
 
+export interface UserOnboarding {
+    completed: boolean
+    examType?: string
+    subjects?: string[]
+    goal?: string
+    studyHoursPerDay?: string
+    completedAt?: string | null
+}
+
+export interface UserProgressFlags {
+    hasCompletedCBT?: boolean
+    hasUsedAITutor?: boolean
+    hasUploadedLibrary?: boolean
+    hasJoinedCommunity?: boolean
+    hasCreatedFlashcard?: boolean
+}
+
 export interface AppUser {
     uid: string
     email: string
@@ -27,4 +44,6 @@ export interface AppUser {
         allSubjects: boolean
         expiresAt: string | null
     }
+    onboarding?: UserOnboarding
+    progress?: UserProgressFlags
 }

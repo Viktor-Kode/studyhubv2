@@ -7,13 +7,6 @@ export const studentDashboardSteps = [
     position: 'bottom',
   },
   {
-    target: '[data-tour="student-getting-started"]',
-    title: 'Pick your first step',
-    description:
-      'Most people begin with exam practice (CBT), a quick question to the AI tutor, or the question generator. Tap one to try it.',
-    position: 'bottom',
-  },
-  {
     target: '[data-tour="student-quick-access"]',
     title: 'Quick Access',
     description: 'Jump straight to the tools you use most: CBT, Community, Library, and more.',

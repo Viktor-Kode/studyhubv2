@@ -42,9 +42,27 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const response = await apiClient.get('/users/me')
       if (response.data?.data?.user) {
         const u = response.data.data.user
-        set({ user: u, isAuthenticated: true })
+        const prev = useAuthStore.getState().user
+        const merged: AppUser = {
+          ...(prev || { uid: '', email: '', name: '', role: 'student' as AppRole }),
+          uid: u.uid || prev?.uid || '',
+          email: u.email ?? prev?.email ?? '',
+          name: u.name ?? prev?.name ?? '',
+          role: (u.role as AppRole) ?? prev?.role ?? 'student',
+          schoolName: u.schoolName ?? prev?.schoolName,
+          classLevel: u.classLevel ?? prev?.classLevel,
+          courseOfStudy: u.courseOfStudy ?? prev?.courseOfStudy,
+          avatar: prev?.avatar,
+          provider: prev?.provider,
+          preferences: u.preferences ?? prev?.preferences,
+          notificationsEnabled: u.notificationsEnabled ?? prev?.notificationsEnabled,
+          plan: u.plan ?? prev?.plan,
+          onboarding: u.onboarding ?? prev?.onboarding,
+          progress: u.progress ?? prev?.progress,
+        }
+        set({ user: merged, isAuthenticated: true })
         const { useHelpWidgetsStore } = await import('@/lib/store/helpWidgetsStore')
-        useHelpWidgetsStore.getState().applyServerPreferences(u.preferences)
+        useHelpWidgetsStore.getState().applyServerPreferences(merged.preferences)
       }
     } catch (err) {
       console.error('[refreshUser] Failed:', err)

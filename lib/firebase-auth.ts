@@ -170,6 +170,7 @@ export function subscribeToAuthState(
                 if (appUser) {
                     setUser(appUser)
                 }
+                await useAuthStore.getState().refreshUser()
             } catch (err) {
                 console.error('[AuthState] Firestore sync failed:', err)
             }

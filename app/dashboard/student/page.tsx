@@ -16,7 +16,7 @@ import {
   FiBook, FiClock, FiCreditCard, FiBarChart2,
   FiCalendar, FiGrid, FiTrendingUp, FiAward,
   FiCheckCircle, FiArrowRight, FiZap, FiBell,
-  FiTarget, FiLoader, FiStar, FiX
+  FiTarget, FiLoader, FiStar
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool, MdClass } from 'react-icons/md'
 import { BiCard, BiTimer, BiBrain } from 'react-icons/bi'
@@ -26,8 +26,8 @@ import { reminderService, Reminder } from '@/lib/services/reminderService'
 import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 import { paymentApi } from '@/lib/api/paymentApi'
 import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
-
-const GETTING_STARTED_LS_KEY = 'studyhelp_dismiss_getting_started'
+import SetupWizard from '@/components/onboarding/SetupWizard'
+import NextStepsCard from '@/components/onboarding/NextStepsCard'
 
 export default function StudentDashboardPage() {
   const router = useRouter()
@@ -55,26 +55,6 @@ export default function StudentDashboardPage() {
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
   const [nextClass, setNextClass] = useState<TimetableSlot | null>(null)
   const [nextClassId, setNextClassId] = useState<string | null>(null)
-  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(false)
-
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(GETTING_STARTED_LS_KEY) === '1') {
-        setGettingStartedDismissed(true)
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  const dismissGettingStarted = () => {
-    try {
-      localStorage.setItem(GETTING_STARTED_LS_KEY, '1')
-    } catch {
-      // ignore
-    }
-    setGettingStartedDismissed(true)
-  }
 
   const loadDashboardData = async () => {
     try {
@@ -155,6 +135,10 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     loadDashboardData()
+  }, [user?.uid])
+
+  useEffect(() => {
+    if (user?.uid) void useAuthStore.getState().refreshUser()
   }, [user?.uid])
 
   useEffect(() => {
@@ -244,78 +228,19 @@ export default function StudentDashboardPage() {
     return colors[color] || colors.blue
   }
 
-  const showGettingStarted =
-    !loading &&
-    !gettingStartedDismissed &&
-    stats.cbtExamsTaken === 0 &&
-    stats.completedSessions === 0 &&
-    stats.totalFlashcards === 0 &&
-    activities.length === 0
-
   return (
     <ProtectedRoute allowedRoles={['student']}>
       <div className="space-y-8">
-        <WhatsAppChannelBanner />
-
-        {showGettingStarted && (
-          <div
-            data-tour="student-getting-started"
-            className="relative rounded-2xl border border-blue-200 dark:border-blue-800/80 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/40 p-5 sm:p-6 shadow-sm"
-          >
-            <button
-              type="button"
-              onClick={dismissGettingStarted}
-              className="absolute top-3 right-3 p-2 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-white/60 dark:hover:bg-gray-800/80 transition-colors"
-              aria-label="Dismiss getting started tips"
-            >
-              <FiX className="text-lg" />
-            </button>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1 pr-10">
-              Not sure what to do next?
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-2xl">
-              Start with one of these — you can always open any tool from the left menu later.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Link
-                href="/dashboard/cbt"
-                className="flex flex-col rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 p-4 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400 mb-1">
-                  Past questions
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  Practice CBT exams
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">WAEC, JAMB, NECO style</span>
-              </Link>
-              <Link
-                href="/dashboard/chat"
-                className="flex flex-col rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 p-4 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 mb-1">
-                  Get unstuck
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  Ask the AI tutor
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Explain a topic or question</span>
-              </Link>
-              <Link
-                href="/dashboard/question-bank"
-                className="flex flex-col rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 p-4 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-1">
-                  Custom drill
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  Generate practice questions
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">AI-built for your subject</span>
-              </Link>
-            </div>
-          </div>
+        {user && user.onboarding?.completed === false && (
+          <SetupWizard
+            user={user}
+            onComplete={() => void useAuthStore.getState().refreshUser()}
+          />
         )}
+
+        {user?.onboarding?.completed && user ? <NextStepsCard user={user} /> : null}
+
+        <WhatsAppChannelBanner />
 
         {/* Welcome Section */}
         <div className="mb-4" data-tour="student-welcome">
