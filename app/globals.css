@@ -3906,6 +3906,78 @@ html {
 }
 .amount-badge { font-size: 13px; font-weight: 700; color: #059669; }
 
+/* Admin user day log */
+.day-log-toolbar { margin-bottom: 16px; }
+.day-log-date-label {
+  display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #6B7280;
+}
+.dark .day-log-date-label { color: #9CA3AF; }
+.day-log-date-input {
+  max-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #111827;
+}
+.dark .day-log-date-input { background: #374151; border-color: #4B5563; color: #F9FAFB; }
+.day-log-hint {
+  font-size: 11px; color: #9CA3AF; line-height: 1.45; margin: 10px 0 0;
+}
+.day-session-banner {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.dark .day-session-banner { background: #064E3B33; border-color: #047857; }
+.day-session-banner p { margin: 4px 0 0; font-size: 13px; color: #166534; }
+.dark .day-session-banner p { color: #A7F3D0; }
+.day-log-empty-note { font-size: 12px; color: #9CA3AF; margin-bottom: 12px; line-height: 1.4; }
+.day-counts-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 14px;
+}
+.day-count-chip {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #F3F4F6;
+  color: #4B5563;
+  font-weight: 600;
+}
+.dark .day-count-chip { background: #374151; color: #D1D5DB; }
+.day-timeline { display: flex; flex-direction: column; gap: 0; }
+.day-timeline-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+.dark .day-timeline-row { border-color: #374151; }
+.day-kind-pill {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 6px; flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.day-kind-session { background: #EEF2FF; color: #4338CA; }
+.day-kind-cbt { background: #FEF3C7; color: #B45309; }
+.day-kind-study { background: #DBEAFE; color: #1D4ED8; }
+.day-kind-quiz { background: #E0E7FF; color: #3730A3; }
+.day-kind-pay { background: #D1FAE5; color: #047857; }
+.day-kind-note { background: #FCE7F3; color: #9D174D; }
+.day-kind-flash { background: #FFEDD5; color: #C2410C; }
+.day-kind-reminder { background: #F3E8FF; color: #6B21A8; }
+.day-kind-chat { background: #ECFDF5; color: #15803D; }
+.day-kind-library { background: #F1F5F9; color: #334155; }
+.day-kind-default { background: #F3F4F6; color: #4B5563; }
+.day-timeline-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.day-timeline-time { font-size: 12px; font-weight: 700; color: #6B7280; font-variant-numeric: tabular-nums; }
+.dark .day-timeline-time { color: #9CA3AF; }
+.day-timeline-label { font-size: 13px; color: #111827; line-height: 1.35; }
+.dark .day-timeline-label { color: #F3F4F6; }
+
 @media (max-width: 640px) {
   .activity-drawer { max-width: 100%; }
   .drawer-meta { grid-template-columns: 1fr 1fr; }

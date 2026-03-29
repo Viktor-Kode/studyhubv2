@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import {
   LayoutDashboard,
   Users,
@@ -104,6 +104,22 @@ interface FeedItem {
   icon: string
 }
 
+interface DayTimelineItem {
+  at: string
+  kind: string
+  label: string
+  detail?: Record<string, unknown>
+}
+
+interface UserDayActivityResponse {
+  success?: boolean
+  date?: string
+  dayBoundaryUtc?: boolean
+  dailySession?: { firstAt?: string; lastAt?: string; dayKey?: string } | null
+  timeline?: DayTimelineItem[]
+  counts?: Record<string, number>
+}
+
 const PLAN_PIE_COLORS: Record<string, string> = {
   daily: '#EA580C',
   weekly: '#3B82F6',
@@ -168,6 +184,41 @@ function getTimeAgo(date: string | Date | null | undefined): string {
   return `${Math.floor(seconds / 60)} mins ago`
 }
 
+const DAY_TAB_LABELS: Record<string, string> = {
+  overview: 'Overview',
+  daylog: 'Day log',
+  cbt: 'CBT',
+  sessions: 'Sessions',
+  payments: 'Payments',
+}
+
+function dayKindClass(kind: string): string {
+  switch (kind) {
+    case 'app_session':
+      return 'day-kind-session'
+    case 'cbt':
+      return 'day-kind-cbt'
+    case 'study':
+      return 'day-kind-study'
+    case 'quiz':
+      return 'day-kind-quiz'
+    case 'payment':
+      return 'day-kind-pay'
+    case 'note':
+      return 'day-kind-note'
+    case 'flashcard':
+      return 'day-kind-flash'
+    case 'reminder':
+      return 'day-kind-reminder'
+    case 'ai_chat':
+      return 'day-kind-chat'
+    case 'library':
+      return 'day-kind-library'
+    default:
+      return 'day-kind-default'
+  }
+}
+
 // ─── User Activity Drawer ─────────────────────────────────────────────────────
 
 function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () => void }) {
@@ -206,6 +257,10 @@ function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () =
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [dayDate, setDayDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dayData, setDayData] = useState<UserDayActivityResponse | null>(null)
+  const [dayLoading, setDayLoading] = useState(false)
+  const [dayError, setDayError] = useState('')
 
   useEffect(() => {
     const fetchUserActivity = async () => {
@@ -222,6 +277,31 @@ function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () =
     }
     fetchUserActivity()
   }, [userId])
+
+  useEffect(() => {
+    if (activeTab !== 'daylog') return
+    let cancelled = false
+    const loadDay = async () => {
+      setDayLoading(true)
+      setDayError('')
+      try {
+        const res = await apiClient.get<UserDayActivityResponse>(`/admin/users/${userId}/activity/day`, {
+          params: { date: dayDate },
+        })
+        if (cancelled) return
+        if (res.data?.success) setDayData(res.data)
+        else setDayError('Could not load day activity')
+      } catch {
+        if (!cancelled) setDayError('Could not load day activity')
+      } finally {
+        if (!cancelled) setDayLoading(false)
+      }
+    }
+    loadDay()
+    return () => {
+      cancelled = true
+    }
+  }, [userId, activeTab, dayDate])
 
   return (
     <div className="drawer-overlay" onClick={onClose} role="presentation">
@@ -296,14 +376,14 @@ function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () =
             </div>
 
             <div className="drawer-tabs">
-              {['overview', 'cbt', 'sessions', 'payments'].map((t) => (
+              {(['overview', 'daylog', 'cbt', 'sessions', 'payments'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
                   className={`drawer-tab ${activeTab === t ? 'active' : ''}`}
                   onClick={() => setActiveTab(t)}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {DAY_TAB_LABELS[t]}
                 </button>
               ))}
             </div>
@@ -351,6 +431,94 @@ function UserActivityDrawer({ userId, onClose }: { userId: string; onClose: () =
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'daylog' && (
+              <div className="drawer-content day-log-tab">
+                <div className="day-log-toolbar">
+                  <label className="day-log-date-label">
+                    <span>UTC date</span>
+                    <input
+                      type="date"
+                      className="day-log-date-input"
+                      value={dayDate}
+                      onChange={(e) => setDayDate(e.target.value)}
+                    />
+                  </label>
+                  <p className="day-log-hint">
+                    Session times are recorded on first authenticated API call per UTC day. Events below merge
+                    CBT, study, quizzes, payments, notes, flashcards, reminders, library, and AI chats for
+                    that day.
+                  </p>
+                </div>
+
+                {dayLoading ? (
+                  <div className="drawer-loading">Loading day activity…</div>
+                ) : dayError ? (
+                  <p className="empty-state">{dayError}</p>
+                ) : dayData ? (
+                  <>
+                    {dayData.dailySession && (
+                      <div className="day-session-banner">
+                        <span className="meta-label">Session window (UTC)</span>
+                        <p>
+                          First activity{' '}
+                          <strong>
+                            {dayData.dailySession.firstAt
+                              ? format(new Date(dayData.dailySession.firstAt), 'HH:mm:ss')
+                              : '—'}
+                          </strong>
+                          {' · '}
+                          Last{' '}
+                          <strong>
+                            {dayData.dailySession.lastAt
+                              ? format(new Date(dayData.dailySession.lastAt), 'HH:mm:ss')
+                              : '—'}
+                          </strong>
+                        </p>
+                      </div>
+                    )}
+                    {!dayData.dailySession && (
+                      <p className="day-log-empty-note">
+                        No session ping for this UTC day (tracking started recently, or the user did not hit
+                        the API that day).
+                      </p>
+                    )}
+
+                    {dayData.counts && Object.keys(dayData.counts).length > 0 && (
+                      <div className="day-counts-row">
+                        {Object.entries(dayData.counts).map(([k, v]) => (
+                          <span key={k} className="day-count-chip">
+                            {k}: {v}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {!dayData.timeline?.length ? (
+                      <p className="empty-state">No recorded events for this date.</p>
+                    ) : (
+                      <div className="day-timeline">
+                        {dayData.timeline.map((item, idx) => (
+                          <div key={`${item.kind}-${idx}-${item.at}`} className="day-timeline-row">
+                            <span className={`day-kind-pill ${dayKindClass(item.kind)}`}>{item.kind}</span>
+                            <div className="day-timeline-main">
+                              <span className="day-timeline-time">
+                                {item.at
+                                  ? format(new Date(item.at), 'HH:mm:ss')
+                                  : '—'}
+                              </span>
+                              <span className="day-timeline-label">{item.label}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="empty-state">Select a date to load activity.</p>
                 )}
               </div>
             )}
