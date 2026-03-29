@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
+import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -68,12 +69,21 @@ function extractTopicFromMessage(message: string): string | null {
 }
 
 export default function ChatPage() {
+  const profileClassLevel = useAuthStore((s) => s.user?.classLevel)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject>('Maths')
+  const [studyTopic, setStudyTopic] = useState('')
+  const [studentClass, setStudentClass] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+
+  useEffect(() => {
+    if (profileClassLevel) {
+      setStudentClass((prev) => (prev.trim() ? prev : profileClassLevel))
+    }
+  }, [profileClassLevel])
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -108,8 +118,14 @@ export default function ChatPage() {
       createdAt: new Date().toISOString(),
     }
 
-    const subjectTag = selectedSubject ? `[Subject: ${selectedSubject}] ` : ''
-    const payloadMessage = `${subjectTag}${content}`
+    const contextParts = [
+      `Subject: ${selectedSubject}.`,
+      studyTopic.trim() ? `Topic the student wants to learn: ${studyTopic.trim()}.` : '',
+      studentClass.trim() ? `Class / level: ${studentClass.trim()}.` : '',
+    ].filter(Boolean)
+    const tutorContext =
+      contextParts.join(' ') ||
+      'General tutoring. Ask the student to set subject, topic, and class above if helpful.'
 
     const chatHistoryPayload = messages.map((m) => ({
       role: m.role,
@@ -122,8 +138,8 @@ export default function ChatPage() {
 
     try {
       const res = await apiClient.post('/ai/chat', {
-        message: payloadMessage,
-        context: '',
+        message: content,
+        context: tutorContext,
         chatHistory: chatHistoryPayload,
       })
 
@@ -198,8 +214,10 @@ export default function ChatPage() {
         <h2 className="mb-1 text-xl font-semibold text-gray-900 dark:text-white">
           Hi there 👋
         </h2>
-        <p className="mb-6 text-sm text-gray-500 dark:text-slate-300">
-          I&apos;m your AI tutor. Ask me anything about your subjects.
+        <p className="mb-2 text-sm text-gray-500 dark:text-slate-300">
+          I&apos;m your AI tutor. Set your <strong className="text-gray-700 dark:text-slate-200">subject</strong>,{' '}
+          <strong className="text-gray-700 dark:text-slate-200">topic</strong>, and{' '}
+          <strong className="text-gray-700 dark:text-slate-200">class</strong> above, then type your question below.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {[
@@ -322,29 +340,69 @@ export default function ChatPage() {
                     AI Tutor
                   </span>
                   <span className="text-xs text-gray-500 dark:text-slate-300">
-                    {currentTopic ? `Discussing: ${currentTopic}` : 'Ask anything about your subjects.'}
+                    {currentTopic
+                      ? `Discussing: ${currentTopic}`
+                      : 'Choose subject, topic & class—then ask your question.'}
                   </span>
                 </div>
               </div>
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {SUBJECTS.map((subject) => {
-                  const active = subject === selectedSubject
-                  return (
-                    <button
-                      key={subject}
-                      type="button"
-                      onClick={() => setSelectedSubject(subject)}
-                  className={[
-                    'whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition',
-                    active
-                      ? 'bg-[#5B4CF5] text-white'
-                      : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
-                  ].join(' ')}
-                    >
-                      {subject}
-                    </button>
-                  )
-                })}
+
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <label
+                    htmlFor="ai-tutor-subject"
+                    className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400"
+                  >
+                    Subject
+                  </label>
+                  <select
+                    id="ai-tutor-subject"
+                    data-tour="ai-tutor-subject"
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value as Subject)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none ring-[#5B4CF5] focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    {SUBJECTS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1 sm:col-span-1">
+                  <label
+                    htmlFor="ai-tutor-topic"
+                    className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400"
+                  >
+                    Topic
+                  </label>
+                  <input
+                    id="ai-tutor-topic"
+                    type="text"
+                    data-tour="ai-tutor-topic"
+                    value={studyTopic}
+                    onChange={(e) => setStudyTopic(e.target.value)}
+                    placeholder="e.g. Quadratic equations, Cell division"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none ring-[#5B4CF5] focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <label
+                    htmlFor="ai-tutor-class"
+                    className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400"
+                  >
+                    Class
+                  </label>
+                  <input
+                    id="ai-tutor-class"
+                    type="text"
+                    data-tour="ai-tutor-class"
+                    value={studentClass}
+                    onChange={(e) => setStudentClass(e.target.value)}
+                    placeholder="e.g. SS2, JSS 3, 200 Level"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none ring-[#5B4CF5] focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                </div>
               </div>
             </div>
 
