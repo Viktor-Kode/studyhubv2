@@ -254,6 +254,18 @@ export default function StudentDashboardPage() {
     return colors[color] || colors.blue
   }
 
+  const fallbackClassesFromOnboarding = (() => {
+    const selectedSubjects = user?.onboarding?.subjects || []
+    const selectedExams = user?.onboarding?.examTypes || (user?.onboarding?.examType ? [user.onboarding.examType] : [])
+    if (!selectedSubjects.length) return []
+    return selectedSubjects.map((subject, index) => ({
+      id: `onboarding-${subject}-${index}`,
+      name: `${subject} Practice Class`,
+      subject,
+      examLabel: selectedExams.join(', '),
+    }))
+  })()
+
   return (
     <ProtectedRoute allowedRoles={['student']}>
       <div className="space-y-8">
@@ -460,6 +472,26 @@ export default function StudentDashboardPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{cls.subject}</p>
                       <Link href={`/dashboard/timetable?classId=${cls.id}`} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
                         View Timetable <FiArrowRight />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : fallbackClassesFromOnboarding.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fallbackClassesFromOnboarding.map((cls) => (
+                    <div key={cls.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                          <FiBook className="text-emerald-600" />
+                        </div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{cls.subject}</p>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Suggested from your onboarding subjects{cls.examLabel ? ` (${cls.examLabel})` : ''}.
+                      </p>
+                      <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                        Create Class Timetable <FiArrowRight />
                       </Link>
                     </div>
                   ))}

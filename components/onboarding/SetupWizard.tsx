@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiClient } from '@/lib/api/client'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import type { AppUser, OnboardingStudentType } from '@/lib/types/auth'
 import './onboarding.css'
 
@@ -202,7 +203,26 @@ export default function SetupWizard({
   }
 
   const postOnboarding = async (body: OnboardingPayload) => {
-    await apiClient.post('/users/onboarding', body)
+    const token = await getFirebaseToken()
+    if (!token) {
+      throw new Error('You are not signed in. Please log in again and retry onboarding.')
+    }
+
+    // Try supported backend variants for compatibility across deployments.
+    const endpoints = ['/users/onboarding', '/user/onboard']
+    let lastError: unknown = null
+    for (const endpoint of endpoints) {
+      try {
+        await apiClient.post(endpoint, body)
+        return
+      } catch (e: any) {
+        lastError = e
+        // If endpoint is missing, try next path.
+        if (e?.response?.status === 404) continue
+        throw e
+      }
+    }
+    throw lastError || new Error('Onboarding endpoint not found on server.')
   }
 
   const handleExamToggle = (exam: string) => {
