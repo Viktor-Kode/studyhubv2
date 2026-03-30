@@ -7,19 +7,30 @@ interface CalculatorProps {
 }
 
 const toRad = (deg: number) => (deg * Math.PI) / 180
+const toDeg = (rad: number) => (rad * 180) / Math.PI
 
 const CBTCalculator = ({ onClose }: CalculatorProps) => {
   const [display, setDisplay] = useState('0')
   const [expression, setExpression] = useState('')
+  const [mode, setMode] = useState<'basic' | 'scientific'>('basic')
   const [isRad, setIsRad] = useState(true) // radians/degrees
   const [waitingForOperand, setWaitingForOperand] = useState(false)
   const [history, setHistory] = useState<string[]>([])
 
-  const calculate = useCallback((expr: string) => {
+  const calculate = useCallback((rawExpr: string) => {
     try {
-      // Safer evaluation than eval (still limited to this component)
+      const normalized = rawExpr
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/−/g, '-')
+        .replace(/\s+/g, '')
+        // Support simple percent usage like 25% => 0.25
+        .replace(/(\d+(\.\d+)?)%/g, '($1/100)')
+
+      if (!/^[0-9+\-*/().%]*$/.test(normalized)) return 'Error'
+
       // eslint-disable-next-line no-new-func
-      const result = Function('"use strict"; return (' + expr + ')')()
+      const result = Function('"use strict"; return (' + normalized + ')')()
       return Number.isFinite(result) ? parseFloat(Number(result).toPrecision(10)) : 'Error'
     } catch {
       return 'Error'
@@ -36,7 +47,12 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
   }
 
   const handleOperator = (op: string) => {
-    setExpression(display + ' ' + op + ' ')
+    if (display === 'Error') return
+    if (waitingForOperand) {
+      setExpression((prev) => prev.replace(/[+\-*/]\s*$/, `${op} `))
+      return
+    }
+    setExpression((prev) => `${prev}${display} ${op} `)
     setWaitingForOperand(true)
   }
 
@@ -51,16 +67,36 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
       case 'sin': result = Math.sin(angle); break
       case 'cos': result = Math.cos(angle); break
       case 'tan': result = Math.tan(angle); break
-      case 'asin': result = isRad ? Math.asin(val) : (Math.asin(val) * 180) / Math.PI; break
-      case 'acos': result = isRad ? Math.acos(val) : (Math.acos(val) * 180) / Math.PI; break
-      case 'atan': result = isRad ? Math.atan(val) : (Math.atan(val) * 180) / Math.PI; break
-      case 'log': result = Math.log10(val); break
-      case 'ln': result = Math.log(val); break
-      case 'sqrt': result = Math.sqrt(val); break
+      case 'asin':
+        if (val < -1 || val > 1) return setDisplay('Error')
+        result = isRad ? Math.asin(val) : toDeg(Math.asin(val))
+        break
+      case 'acos':
+        if (val < -1 || val > 1) return setDisplay('Error')
+        result = isRad ? Math.acos(val) : toDeg(Math.acos(val))
+        break
+      case 'atan':
+        result = isRad ? Math.atan(val) : toDeg(Math.atan(val))
+        break
+      case 'log':
+        if (val <= 0) return setDisplay('Error')
+        result = Math.log10(val)
+        break
+      case 'ln':
+        if (val <= 0) return setDisplay('Error')
+        result = Math.log(val)
+        break
+      case 'sqrt':
+        if (val < 0) return setDisplay('Error')
+        result = Math.sqrt(val)
+        break
       case 'cbrt': result = Math.cbrt(val); break
       case 'sq': result = val * val; break
       case 'cube': result = val * val * val; break
-      case 'inv': result = 1 / val; break
+      case 'inv':
+        if (val === 0) return setDisplay('Error')
+        result = 1 / val
+        break
       case 'exp': result = Math.exp(val); break
       case 'abs': result = Math.abs(val); break
       case 'fact': {
@@ -87,8 +123,9 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
   }
 
   const handleEquals = () => {
+    if (display === 'Error') return
     const fullExpr = expression + display
-    const result = calculate(fullExpr.replace('×', '*').replace('÷', '/'))
+    const result = calculate(fullExpr)
     setHistory(prev => [`${fullExpr} = ${result}`, ...prev.slice(0, 4)])
     setDisplay(String(result))
     setExpression('')
@@ -102,10 +139,16 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
   }
 
   const handleBackspace = () => {
+    if (waitingForOperand) return
     setDisplay(display.length > 1 ? display.slice(0, -1) : '0')
   }
 
   const handleDecimal = () => {
+    if (waitingForOperand) {
+      setDisplay('0.')
+      setWaitingForOperand(false)
+      return
+    }
     if (!display.includes('.')) setDisplay(display + '.')
   }
 
@@ -149,14 +192,14 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
       { label: '+/-', action: handleSign, class: 'op' },
       { label: '⌫', action: handleBackspace, class: 'op' },
       { label: '÷', action: () => handleOperator('/'), class: 'operator' },
-      { label: '(', action: () => setExpression(expression + display + ' * ('), class: 'op' }
+      { label: '(', action: () => { setExpression((prev) => `${prev}(`); setWaitingForOperand(true) }, class: 'op' }
     ],
     [
       { label: '7', action: () => handleNumber('7'), class: 'num' },
       { label: '8', action: () => handleNumber('8'), class: 'num' },
       { label: '9', action: () => handleNumber('9'), class: 'num' },
       { label: '×', action: () => handleOperator('*'), class: 'operator' },
-      { label: ')', action: () => setDisplay(display + ')'), class: 'op' }
+      { label: ')', action: () => { setExpression((prev) => `${prev}${display})`); setDisplay('0'); setWaitingForOperand(true) }, class: 'op' }
     ],
     [
       { label: '4', action: () => handleNumber('4'), class: 'num' },
@@ -175,7 +218,40 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
     [
       { label: '0', action: () => handleNumber('0'), class: 'num wide' },
       { label: '.', action: handleDecimal, class: 'num' },
-      { label: 'EXP', action: () => handleOperator('e'), class: 'op' }
+      { label: '%', action: () => setDisplay(String(parseFloat(display) / 100)), class: 'op' }
+    ]
+  ]
+
+  const basicButtons: { label: string; action: () => void; class: string }[][] = [
+    [
+      { label: 'AC', action: handleClear, class: 'clear' },
+      { label: '+/-', action: handleSign, class: 'op' },
+      { label: '⌫', action: handleBackspace, class: 'op' },
+      { label: '÷', action: () => handleOperator('/'), class: 'operator' },
+    ],
+    [
+      { label: '7', action: () => handleNumber('7'), class: 'num' },
+      { label: '8', action: () => handleNumber('8'), class: 'num' },
+      { label: '9', action: () => handleNumber('9'), class: 'num' },
+      { label: '×', action: () => handleOperator('*'), class: 'operator' },
+    ],
+    [
+      { label: '4', action: () => handleNumber('4'), class: 'num' },
+      { label: '5', action: () => handleNumber('5'), class: 'num' },
+      { label: '6', action: () => handleNumber('6'), class: 'num' },
+      { label: '−', action: () => handleOperator('-'), class: 'operator' },
+    ],
+    [
+      { label: '1', action: () => handleNumber('1'), class: 'num' },
+      { label: '2', action: () => handleNumber('2'), class: 'num' },
+      { label: '3', action: () => handleNumber('3'), class: 'num' },
+      { label: '+', action: () => handleOperator('+'), class: 'operator' },
+    ],
+    [
+      { label: '0', action: () => handleNumber('0'), class: 'num wide' },
+      { label: '.', action: handleDecimal, class: 'num' },
+      { label: '%', action: () => setDisplay(String(parseFloat(display) / 100)), class: 'op' },
+      { label: '=', action: handleEquals, class: 'equals' },
     ]
   ]
 
@@ -184,7 +260,10 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
       <div className="calc-modal">
         {/* Header */}
         <div className="calc-header">
-          <span>🔬 Scientific Calculator</span>
+          <span>{mode === 'scientific' ? '🔬 Scientific Calculator' : '🧮 Basic Calculator'}</span>
+          <button className="calc-btn mode" onClick={() => setMode((m) => (m === 'basic' ? 'scientific' : 'basic'))}>
+            {mode === 'basic' ? 'Scientific' : 'Basic'}
+          </button>
           <button className="calc-close" onClick={onClose}>
             ✕
           </button>
@@ -209,7 +288,7 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
 
         {/* Buttons */}
         <div className="calc-buttons">
-          {scientificButtons.map((row, ri) => (
+          {(mode === 'scientific' ? scientificButtons : basicButtons).map((row, ri) => (
             <div key={ri} className="calc-row">
               {row.map((btn, bi) => (
                 <button
