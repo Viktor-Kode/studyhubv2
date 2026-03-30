@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2 } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
@@ -37,6 +38,14 @@ const TUTOR_SAVE_DEBOUNCE_MS = 1500
 function isUpgradeError(msg: string): boolean {
   const m = (msg || '').toLowerCase()
   return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached')
+}
+
+function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
+  return (
+    <div className={className}>
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
+  )
 }
 
 export default function QuestionBank({ className = '' }: QuestionBankProps) {
@@ -171,7 +180,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     const sourceParam = searchParams.get('source')
     const textParam = searchParams.get('text')
 
-    if (sourceParam === 'notes' && typeof window !== 'undefined') {
+    if ((sourceParam === 'notes' || sourceParam === 'library') && typeof window !== 'undefined') {
       try {
         localStorage.removeItem(QGEN_STORAGE_KEY)
       } catch {
@@ -185,7 +194,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     if (tabParam === 'quiz') setActiveTab('quiz')
 
     // Prefer sessionStorage from Practice with Quiz (avoids URI length/decode issues)
-    if (sourceParam === 'notes' && typeof window !== 'undefined') {
+    if ((sourceParam === 'notes' || sourceParam === 'library') && typeof window !== 'undefined') {
       try {
         const stored = sessionStorage.getItem('quiz_source_content')
         if (stored) {
@@ -1512,9 +1521,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 </button>
               </div>
             </div>
-            <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300">
-              {generatedNotes}
-            </div>
+            <MarkdownText
+              content={generatedNotes}
+              className="prose dark:prose-invert max-w-none text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300"
+            />
           </div>
         </div>
       )}
@@ -1533,7 +1543,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <div className="flex items-start gap-4">
                   <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-sm">{idx + 1}</span>
                   <div className="flex-1 space-y-4">
-                    <p className="text-lg text-gray-800 dark:text-gray-100 font-bold leading-snug">{q.content || (q as any).question}</p>
+                    <MarkdownText
+                      content={q.content || (q as any).question || ''}
+                      className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-100 font-bold leading-snug"
+                    />
 
                     <div className="grid gap-2">
                       {q.options && q.options.length > 0 ? (
@@ -1552,7 +1565,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                             <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
                               ${userAnswers[q._id] === oIdx ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
                             `}>{String.fromCharCode(65 + oIdx)}</span>
-                            <span className="text-gray-600 dark:text-gray-300 font-medium">{opt}</span>
+                            <MarkdownText
+                              content={opt}
+                              className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 font-medium"
+                            />
                             {checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
                             {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
@@ -1591,9 +1607,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
                           {(q.knowledgeDeepDive && q.knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[q._id] ? (
-                            <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic">
-                              "{aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || "No deep-dive available."}"
-                            </p>
+                            <MarkdownText
+                              content={aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || 'No deep-dive available.'}
+                              className="prose prose-sm dark:prose-invert max-w-none text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
+                            />
                           ) : (
                             <button
                               onClick={() => handleGetAiExplanation(q)}
