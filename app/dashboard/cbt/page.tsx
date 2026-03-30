@@ -996,6 +996,15 @@ export default function CBTPage() {
                 </div>
 
                 <button
+                  type="button"
+                  onClick={() => setViewMode('configure')}
+                  className="w-full flex items-center justify-center gap-2 py-3 border-2 border-blue-600/60 text-blue-700 dark:text-blue-300 font-bold rounded-xl transition hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                >
+                  <FiArrowLeft />
+                  Go Back
+                </button>
+
+                <button
                   onClick={startActualTest}
                   data-tour="cbt-start"
                   className="w-full flex items-center justify-center gap-3 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition shadow-xl shadow-blue-500/20"
