@@ -261,7 +261,7 @@ const CBTCalculator = ({ onClose }: CalculatorProps) => {
         {/* Header */}
         <div className="calc-header">
           <span>{mode === 'scientific' ? '🔬 Scientific Calculator' : '🧮 Basic Calculator'}</span>
-          <button className="calc-btn mode" onClick={() => setMode((m) => (m === 'basic' ? 'scientific' : 'basic'))}>
+          <button className="calc-mode-toggle" onClick={() => setMode((m) => (m === 'basic' ? 'scientific' : 'basic'))}>
             {mode === 'basic' ? 'Scientific' : 'Basic'}
           </button>
           <button className="calc-close" onClick={onClose}>
