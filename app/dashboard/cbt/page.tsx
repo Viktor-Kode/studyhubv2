@@ -247,6 +247,8 @@ export default function CBTPage() {
   const [showResults, setShowResults] = useState(false)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [showQuestionPanel, setShowQuestionPanel] = useState(false)
+  const [customDurationMinutes, setCustomDurationMinutes] = useState<number>(120)
+  const [examDurationAtStartSeconds, setExamDurationAtStartSeconds] = useState<number>(0)
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -255,6 +257,11 @@ export default function CBTPage() {
   const { showUpgrade } = useUpgrade()
 
   const currentExamConfig = examTypes.find(e => e.value === selectedExam)
+
+  useEffect(() => {
+    if (viewMode !== 'instructions') return
+    setCustomDurationMinutes(currentExamConfig?.duration || 120)
+  }, [viewMode, currentExamConfig?.duration])
 
   // Load years when exam selected
   useEffect(() => {
@@ -400,7 +407,9 @@ export default function CBTPage() {
   }
 
   const startActualTest = () => {
-    const duration = (currentExamConfig?.duration || 120) * 60
+    const minutes = Math.max(5, Math.min(240, Number(customDurationMinutes) || (currentExamConfig?.duration || 120)))
+    const duration = minutes * 60
+    setExamDurationAtStartSeconds(duration)
     setTimeRemaining(duration)
     setIsTimerRunning(true)
     setIsPaused(false)
@@ -494,7 +503,7 @@ export default function CBTPage() {
         wrongAnswers: finalScore.attempted - finalScore.correct,
         skipped: finalScore.total - finalScore.attempted,
         accuracy: finalScore.percentage,
-        timeTaken: (currentExamConfig?.duration || 120) * 60 - timeRemaining,
+        timeTaken: Math.max(0, (examDurationAtStartSeconds || (currentExamConfig?.duration || 120) * 60) - timeRemaining),
         answers: results
       }
 
@@ -987,7 +996,18 @@ export default function CBTPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/50 text-center">
                     <p className="text-xs font-black uppercase text-blue-400 tracking-widest mb-1">Time</p>
-                    <p className="font-bold text-blue-900 dark:text-blue-100">{currentExamConfig?.duration} min</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <input
+                        type="number"
+                        min={5}
+                        max={240}
+                        value={customDurationMinutes}
+                        onChange={(e) => setCustomDurationMinutes(Math.max(5, Math.min(240, Number(e.target.value) || 5)))}
+                        className="w-20 rounded-md border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950/30 px-2 py-1 text-center font-bold text-blue-900 dark:text-blue-100"
+                      />
+                      <span className="font-bold text-blue-900 dark:text-blue-100">min</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-300">Set your preferred exam time</p>
                   </div>
                   <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-900/50 text-center">
                     <p className="text-xs font-black uppercase text-purple-400 tracking-widest mb-1">Items</p>
