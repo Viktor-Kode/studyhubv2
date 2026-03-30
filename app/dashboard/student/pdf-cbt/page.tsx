@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle } from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import jsPDF from 'jspdf'
 
 import './PdfCbt.css'
 
@@ -36,6 +37,7 @@ const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
 export default function PdfCbtPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
 
   const [stage, setStage] = useState<Stage>('upload')
   const [dragging, setDragging] = useState(false)
@@ -47,6 +49,8 @@ export default function PdfCbtPage() {
   const [extractStatus, setExtractStatus] = useState('')
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
 
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
   const [questionsToUse, setQuestionsToUse] = useState<PdfQuestion[]>([])
@@ -117,6 +121,56 @@ export default function PdfCbtPage() {
       setWarning('')
     }
     setFile(candidate)
+  }
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((t) => t.stop())
+      setCameraStream(null)
+    }
+  }
+
+  const openCamera = async () => {
+    setError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      setCameraStream(stream)
+      setCameraOpen(true)
+      requestAnimationFrame(() => {
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream
+          void cameraVideoRef.current.play()
+        }
+      })
+    } catch (err: any) {
+      setError(err?.message || 'Could not access camera. Please allow permission.')
+    }
+  }
+
+  const captureToPdf = async () => {
+    const video = cameraVideoRef.current
+    if (!video) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+
+    const doc = new jsPDF({
+      orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+      unit: 'pt',
+      format: 'a4'
+    })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    doc.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, pageHeight)
+    const blob = doc.output('blob')
+    const fileFromCamera = new File([blob], `camera-capture-${Date.now()}.pdf`, { type: 'application/pdf' })
+    validateAndSetFile(fileFromCamera)
+    setCameraOpen(false)
+    stopCamera()
   }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -228,7 +282,22 @@ export default function PdfCbtPage() {
             <span className="pcbt-drop-limit">PDF only · Max 20MB</span>
             <input ref={fileInputRef} type="file" accept=".pdf" hidden onChange={handleFileSelect} />
           </div>
+          <div className="pcbt-camera-row">
+            <button type="button" className="pcbt-btn-secondary" onClick={openCamera}>
+              Use Camera
+            </button>
+          </div>
           {warning && <div className="pcbt-warning">⚠️ {warning}</div>}
+
+          {cameraOpen && (
+            <div className="pcbt-camera-wrap">
+              <video ref={cameraVideoRef} autoPlay playsInline muted className="pcbt-camera-video" />
+              <div className="pcbt-results-actions">
+                <button className="pcbt-btn-secondary" onClick={() => { setCameraOpen(false); stopCamera() }}>Cancel</button>
+                <button className="pcbt-btn-primary" onClick={captureToPdf}>Capture</button>
+              </div>
+            </div>
+          )}
 
           {file && (
             <div className="pcbt-settings">

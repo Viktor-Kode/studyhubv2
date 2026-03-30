@@ -33,6 +33,7 @@ export default function StudentDashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [stats, setStats] = useState({
     totalQuestions: 0,
     quizSessions: 0,
@@ -64,6 +65,7 @@ export default function StudentDashboardPage() {
     try {
       if (user?.uid) {
         setLoading(true)
+        setDashboardError(null)
         const [classes, reminders, summaryRes] = await Promise.all([
           classService.getStudentClasses(user.uid),
           reminderService.getUpcoming(user.uid, 7),
@@ -154,6 +156,7 @@ export default function StudentDashboardPage() {
       }
     } catch (err: any) {
       console.error('Failed to load dashboard:', err)
+      setDashboardError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -279,6 +282,21 @@ export default function StudentDashboardPage() {
         {user?.onboarding?.completed && user ? <NextStepsCard user={user} /> : null}
 
         <WhatsAppChannelBanner />
+        {dashboardError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-red-700">Could not refresh dashboard data</p>
+              <p className="text-xs text-red-600 mt-1">{dashboardError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadDashboardData()}
+              className="shrink-0 rounded-lg bg-red-600 text-white text-xs font-semibold px-3 py-1.5 hover:bg-red-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        ) : null}
 
         {/* Today's Reminders (priority card) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -703,6 +721,17 @@ export default function StudentDashboardPage() {
         </div>
       </div>
     </ProtectedRoute >
+  )
+}
+
+function getErrorMessage(error: unknown): string {
+  if (!error) return 'Unknown error.'
+  const err = error as any
+  return (
+    err?.response?.data?.message ||
+    err?.response?.data?.error ||
+    err?.message ||
+    'Please check your connection and try again.'
   )
 }
 

@@ -34,6 +34,7 @@ const studentMenuItems = [
   { href: '/dashboard/notes', icon: FaStickyNote, label: 'My Notes' },
   { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
   { href: '/dashboard/study-timer', icon: FaClock, label: 'Study Timer' },
+  { href: '/dashboard/chat', icon: FaBrain, label: 'AI Assistant' },
   { href: '/dashboard/cgpa', icon: FaCalculator, label: 'CGPA Calculator' },
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
   { href: '/dashboard/cbt', icon: FaLaptop, label: 'CBT Practice' },

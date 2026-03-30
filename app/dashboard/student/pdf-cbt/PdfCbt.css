@@ -7,6 +7,9 @@
 .pcbt-dropzone h3 { font-size: 18px; font-weight: 800; color: #0F172A; margin: 0; }
 .pcbt-dropzone p { font-size: 14px; color: #94A3B8; margin: 0; }
 .pcbt-drop-limit { font-size: 12px; color: #CBD5E1; background: #F1F5F9; padding: 4px 14px; border-radius: 20px; font-weight: 600; }
+.pcbt-camera-row { display: flex; justify-content: center; }
+.pcbt-camera-wrap { background: #fff; border: 1.5px solid #E8EAED; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.pcbt-camera-video { width: 100%; max-height: 380px; border-radius: 12px; background: #000; object-fit: cover; }
 .pcbt-settings { background: white; border: 1.5px solid #E8EAED; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
 .pcbt-file-info { display: flex; align-items: center; gap: 12px; background: #F8FAFC; border: 1.5px solid #E8EAED; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #334155; }
 .pcbt-file-info span:last-of-type { color: #94A3B8; }
@@ -105,7 +108,8 @@
 .dark .pcbt-how-it-works,
 .dark .pcbt-preview-card,
 .dark .pcbt-results-card,
-.dark .question-card { background: #111827; border-color: #374151; }
+.dark .question-card,
+.dark .pcbt-camera-wrap { background: #111827; border-color: #374151; }
 .dark .pcbt-file-info,
 .dark .pcbt-preview-q { background: #1F2937; border-color: #374151; color: #E5E7EB; }
 .dark .pcbt-option-group label { color: #D1D5DB; }

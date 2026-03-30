@@ -98,6 +98,7 @@ export default function FlipCardsPage() {
     'General', 'Programming', 'Mathematics',
     'Science', 'Geography', 'History', 'Language', 'Other'
   ]
+  const categoryOptions = Array.from(new Set([...categories, ...cards.map((c) => c.category).filter(Boolean)]))
 
   const deckIcons = ['book', 'activity', 'hash', 'globe', 'monitor', 'edit', 'target', 'star']
 
@@ -596,13 +597,19 @@ export default function FlipCardsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-2">Category</label>
-                    <select
+                    <input
+                      list="flashcard-category-options"
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold"
-                    >
-                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
+                      placeholder="Select or type a category"
+                    />
+                    <datalist id="flashcard-category-options">
+                      {categoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </datalist>
+                    {formData.category.trim() && !categoryOptions.includes(formData.category.trim()) && (
+                      <p className="mt-2 text-xs font-semibold text-blue-600">+ New Category: {formData.category.trim()}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-2">Target Deck</label>

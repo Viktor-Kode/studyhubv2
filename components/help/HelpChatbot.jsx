@@ -189,7 +189,7 @@ export default function HelpChatbot() {
   return (
     <>
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-[1250]">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-[1250]">
           <div className="group relative inline-block">
             <button
               type="button"
@@ -218,8 +218,8 @@ export default function HelpChatbot() {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-[1250]">
-          <div className="mb-3 flex h-[480px] w-[340px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[1250] flex items-end justify-center bg-black/40 md:bg-transparent md:items-stretch md:justify-end">
+          <div className="mb-0 flex h-[82vh] w-full max-w-[460px] flex-col overflow-hidden rounded-t-2xl border border-gray-100 bg-white shadow-2xl md:h-full md:w-[380px] md:max-w-none md:rounded-none md:rounded-l-2xl">
             <div className="flex items-center justify-between bg-[#5B4CF5] px-3 py-3 text-white">
               <div className="flex min-w-0 items-center gap-2 font-bold">
                 <MessageCircle className="h-5 w-5 shrink-0" />

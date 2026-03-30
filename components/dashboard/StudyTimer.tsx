@@ -6,7 +6,7 @@ import {
   requestNotificationPermission
 } from '@/utils/alarmManager'
 import {
-  FiPlus, FiTrash2, FiEdit2, FiClock, FiCalendar, FiX, FiCheck, FiCheckCircle, FiSettings,
+  FiPlus, FiTrash2, FiEdit2, FiClock, FiCalendar, FiX, FiCheck, FiCheckCircle,
   FiBell, FiBellOff, FiPlay, FiPause, FiRotateCcw, FiTarget, FiCoffee,
   FiClipboard, FiBookOpen, FiZap
 } from 'react-icons/fi'
@@ -27,7 +27,6 @@ const PRESETS = [
   { label: 'Short Break', minutes: 5, type: 'break' as const, color: 'bg-green-500', icon: <FiCoffee className="text-xl" /> },
   { label: 'Long Break', minutes: 15, type: 'break' as const, color: 'bg-blue-500', icon: <BiChair className="text-xl" /> },
   { label: 'Deep Work', minutes: 52, type: 'work' as const, color: 'bg-purple-500', icon: <BiBrain className="text-xl" /> },
-  { label: 'Custom', minutes: 0, type: 'work' as const, color: 'bg-gray-500', icon: <FiSettings className="text-xl" /> },
 ]
 
 export default function StudyTimer() {
@@ -37,7 +36,9 @@ export default function StudyTimer() {
   const [activeTab, setActiveTab] = useState<TabMode>('timer')
   const [loading, setLoading] = useState(true)
   const [customMinutes, setCustomMinutes] = useState(25)
-  const [showCustomInput, setShowCustomInput] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [customHours, setCustomHours] = useState(0)
+  const [customSecs, setCustomSecs] = useState(0)
   const [localSubject, setLocalSubject] = useState('')
 
   // Goal state
@@ -133,11 +134,6 @@ export default function StudyTimer() {
   }
 
   const applyPreset = (minutes: number, type: 'work' | 'break') => {
-    if (minutes === 0) {
-      setShowCustomInput(true)
-      return
-    }
-    setShowCustomInput(false)
     store.reset()
     // Update local subject for work sessions
     if (type === 'work' && !localSubject.trim()) {
@@ -153,10 +149,19 @@ export default function StudyTimer() {
   }
 
   const applyCustomDuration = () => {
-    if (customMinutes < 1) return
-    useTimerStore.setState({ timeLeft: customMinutes * 60, totalDuration: customMinutes * 60, isActive: false })
-    setShowCustomInput(false)
+    const totalSeconds = (customHours * 3600) + (customMinutes * 60) + customSecs
+    if (totalSeconds < 60) return
+    useTimerStore.setState({ timeLeft: totalSeconds, totalDuration: totalSeconds, isActive: false })
+    setShowTimePicker(false)
   }
+  const openTimePicker = () => {
+    const base = store.totalDuration || store.timeLeft || 1500
+    setCustomHours(Math.floor(base / 3600))
+    setCustomMinutes(Math.floor((base % 3600) / 60))
+    setCustomSecs(base % 60)
+    setShowTimePicker(true)
+  }
+
 
   // ============ GOAL ACTIONS ============
   const handleAddGoal = async () => {
@@ -354,7 +359,14 @@ export default function StudyTimer() {
             </div>
 
             <div className="flex justify-center mb-6">
-              <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!store.isActive && !store.isPaused) openTimePicker()
+                }}
+                className="relative"
+                title={!store.isActive && !store.isPaused ? 'Set custom time' : undefined}
+              >
                 <svg width="260" height="260" className="-rotate-90">
                   <circle cx="130" cy="130" r="110" fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-200 dark:text-gray-700" />
                   <circle cx="130" cy="130" r="110" fill="none" stroke={store.sessionType === 'work' ? '#3B82F6' : '#10B981'} strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000" />
@@ -370,7 +382,7 @@ export default function StudyTimer() {
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
             </div>
 
             {!store.isActive && !store.isPaused && store.sessionType === 'work' && (
@@ -414,12 +426,12 @@ export default function StudyTimer() {
             {!store.isActive && !store.isPaused && (
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3 uppercase tracking-wider">Quick Presets</p>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {PRESETS.map(p => (
                     <button
                       key={p.label}
                       onClick={() => applyPreset(p.minutes, p.type)}
-                      className={`flex flex-col items-center p-3 rounded-xl border-2 transition text-center ${(p.minutes > 0 && store.totalDuration === p.minutes * 60) || (p.minutes === 0 && showCustomInput) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                      className={`flex flex-col items-center p-3 rounded-xl border-2 transition text-center ${(store.totalDuration === p.minutes * 60) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
                     >
                       <div className="mb-1 text-gray-700 dark:text-gray-300">{p.icon}</div>
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{p.label}</span>
@@ -427,14 +439,25 @@ export default function StudyTimer() {
                     </button>
                   ))}
                 </div>
-                {showCustomInput && (
-                  <div className="mt-4 flex gap-2 items-center">
-                    <input type="number" min={1} max={480} value={customMinutes} onChange={e => setCustomMinutes(Number(e.target.value))} className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Minutes" />
-                    <button onClick={applyCustomDuration} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Set</button>
-                  </div>
-                )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showTimePicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Set Custom Timer</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <input type="number" min={0} max={23} value={customHours} onChange={(e) => setCustomHours(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Hours" />
+              <input type="number" min={0} max={59} value={customMinutes} onChange={(e) => setCustomMinutes(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Minutes" />
+              <input type="number" min={0} max={59} value={customSecs} onChange={(e) => setCustomSecs(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Seconds" />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setShowTimePicker(false)} className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700">Cancel</button>
+              <button onClick={applyCustomDuration} className="px-4 py-2 rounded-lg bg-blue-600 text-white">Apply</button>
+            </div>
           </div>
         </div>
       )}
