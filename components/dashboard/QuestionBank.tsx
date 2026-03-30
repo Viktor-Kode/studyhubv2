@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink } from 'react-icons/fi'
+import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
 import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTutor } from '@/lib/api/quizApi'
@@ -47,6 +47,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [fetchingLink, setFetchingLink] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [fetchedTitle, setFetchedTitle] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraPreviewUrl, setCameraPreviewUrl] = useState<string | null>(null)
+  const [capturedImage, setCapturedImage] = useState<File | null>(null)
+  const [imageExtracting, setImageExtracting] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
 
   // Quiz Interaction State
   const [newQuestions, setNewQuestions] = useState<Question[]>([])
@@ -243,6 +249,103 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   }, [])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const stopCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop())
+      cameraStreamRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopCamera()
+      if (cameraPreviewUrl) URL.revokeObjectURL(cameraPreviewUrl)
+    }
+  }, [cameraPreviewUrl])
+
+  const handleOpenCamera = async () => {
+    setError(null)
+    setSuccess(null)
+    setWarning(null)
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      })
+      cameraStreamRef.current = stream
+      setCameraOpen(true)
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          void videoRef.current.play()
+        }
+      })
+    } catch (err: any) {
+      setError(err?.message || 'Unable to open camera. Please allow camera access and try again.')
+    }
+  }
+
+  const handleCloseCamera = () => {
+    stopCamera()
+    setCameraOpen(false)
+  }
+
+  const handleCaptureFromCamera = async () => {
+    if (!videoRef.current) return
+
+    const video = videoRef.current
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
+    )
+    if (!blob) {
+      setError('Could not capture image. Please try again.')
+      return
+    }
+
+    const imageFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    if (cameraPreviewUrl) URL.revokeObjectURL(cameraPreviewUrl)
+    setCameraPreviewUrl(URL.createObjectURL(imageFile))
+    setCapturedImage(imageFile)
+    setUploadedFile(imageFile)
+    stopCamera()
+    setCameraOpen(false)
+  }
+
+  const extractTextFromImage = async () => {
+    if (!capturedImage) return
+    setImageExtracting(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const { createWorker } = await import('tesseract.js')
+      const worker = await createWorker('eng')
+      const result = await worker.recognize(capturedImage)
+      await worker.terminate()
+
+      const recognizedText = result?.data?.text?.trim() || ''
+      if (recognizedText.length < 50) {
+        setError('Text in captured image is too short/unclear. Try retaking in better lighting.')
+        return
+      }
+
+      setExtractedText(recognizedText)
+      setSuccess('Text extracted from camera image successfully!')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to read text from image. Please upload a document instead.')
+    } finally {
+      setImageExtracting(false)
+    }
+  }
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -808,37 +911,47 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
             {/* UPLOAD PDF MODE */}
             {inputMode === 'upload' && (
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; if (file) handleFileUpload(file) }}
-                className={`relative border-2 border-dashed rounded-xl p-8 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[250px]
+              <>
+                <div className="flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={handleOpenCamera}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition"
+                  >
+                    <FiCamera /> Use Camera
+                  </button>
+                </div>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; if (file) handleFileUpload(file) }}
+                  className={`relative border-2 border-dashed rounded-xl p-8 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[250px]
                   ${isDragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'}
                   ${uploadedFile ? 'border-solid border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/5' : ''}
                 `}
-                onClick={() => !uploadedFile && !extracting && fileInputRef.current?.click()}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept=".pdf,.docx,.txt,.md,.ppt,.pptx"
-                  onChange={handleFileSelect}
-                  disabled={extracting}
-                />
+                  onClick={() => !uploadedFile && !extracting && fileInputRef.current?.click()}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".pdf,.docx,.txt,.md,.ppt,.pptx"
+                    onChange={handleFileSelect}
+                    disabled={extracting}
+                  />
 
-                {!uploadedFile ? (
-                  <>
-                    <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full">
-                      <FiUpload className="text-2xl text-gray-500" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-gray-700 dark:text-gray-200">Select Study Material</p>
-                      <p className="text-xs text-gray-500">PDF, Word, PPT, or Notes (Max 5MB)</p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full">
+                  {!uploadedFile ? (
+                    <>
+                      <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full">
+                        <FiUpload className="text-2xl text-gray-500" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-gray-700 dark:text-gray-200">Select Study Material</p>
+                        <p className="text-xs text-gray-500">PDF, Word, PPT, or Notes (Max 5MB)</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         {getFileIcon(uploadedFile.name)}
@@ -856,25 +969,54 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         </button>
                       )}
                     </div>
-                    {extracting ? (
-                      <div className="flex items-center justify-center gap-2 py-4">
-                        <FiLoader className="animate-spin text-blue-500" />
-                        <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Parsing Structure...</span>
-                      </div>
-                    ) : extractedText && (
-                      <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">Content Extracted</span>
+                      {extracting || imageExtracting ? (
+                        <div className="flex items-center justify-center gap-2 py-4">
+                          <FiLoader className="animate-spin text-blue-500" />
+                          <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Parsing Structure...</span>
                         </div>
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-3 italic leading-relaxed">
-                          "{extractedText.substring(0, 200)}..."
-                        </p>
-                      </div>
-                    )}
+                      ) : extractedText && (
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">Content Extracted</span>
+                          </div>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-3 italic leading-relaxed">
+                            "{extractedText.substring(0, 200)}..."
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {cameraOpen && (
+                  <div className="mt-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                    <video ref={videoRef} className="w-full rounded-lg bg-black" autoPlay playsInline muted />
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-200 hover:bg-gray-300" onClick={handleCloseCamera}>
+                        Cancel
+                      </button>
+                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700" onClick={handleCaptureFromCamera}>
+                        Capture
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div>
+
+                {cameraPreviewUrl && !cameraOpen && (
+                  <div className="mt-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                    <img src={cameraPreviewUrl} alt="Captured preview" className="w-full rounded-lg object-cover max-h-64" />
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-200 hover:bg-gray-300" onClick={handleOpenCamera}>
+                        Retake
+                      </button>
+                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700" onClick={extractTextFromImage}>
+                        Use Photo
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* PASTE LINK MODE */}
@@ -956,17 +1098,18 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             )}
 
             {/* Tips based on mode */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50">
-              <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <div className="p-4 bg-gray-100 dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
+              <p className="text-[11px] font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <FiFileText /> {inputMode === 'upload' ? 'File Format Tips' : 'Manual Input Tips'}
               </p>
-              <ul className="text-[11px] text-blue-800 dark:text-blue-300 space-y-1 font-medium list-disc pl-4 opacity-80">
+              <ul className="text-[11px] text-gray-700 dark:text-gray-300 space-y-1 font-medium list-disc pl-4">
                 {inputMode === 'upload' ? (
                   <>
                     <li><strong>PDF:</strong> Use text-based PDFs (not scanned)</li>
                     <li><strong>Word/DOCX:</strong> Highly reliable, recommended</li>
                     <li><strong>PPT/PPTX:</strong> Presentations supported</li>
                     <li><strong>TXT/MD:</strong> Fastest processing</li>
+                    <li><strong>Camera:</strong> Capture a clear photo and tap Use Photo to extract text</li>
                   </>
                 ) : (
                   <>
