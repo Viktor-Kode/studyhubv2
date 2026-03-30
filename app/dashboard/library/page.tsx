@@ -4,10 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'reac
 import { FileText, Pencil, Search, Trash2, Upload } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
-import { extractTextFromFile } from '@/lib/utils/fileExtractor'
 
 const PDFViewer = dynamic(() => import('@/components/library/PDFViewer'), { ssr: false })
 
@@ -31,14 +29,12 @@ export type LibraryDocument = {
 const DEFAULT_COVER = '#5B4CF5'
 
 export default function LibraryPage() {
-  const router = useRouter()
   const [documents, setDocuments] = useState<LibraryDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<LibraryDocument | null>(null)
   const [editingDocument, setEditingDocument] = useState<LibraryDocument | null>(null)
-  const [extractingDocId, setExtractingDocId] = useState<string | null>(null)
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -83,52 +79,6 @@ export default function LibraryPage() {
       }
     } catch {
       /* ignore */
-    }
-  }
-
-  const getFileExtension = (doc: LibraryDocument, mimeType?: string) => {
-    const lowerMime = (mimeType || doc.fileType || '').toLowerCase()
-    if (lowerMime.includes('pdf')) return 'pdf'
-    if (lowerMime.includes('word') || lowerMime.includes('officedocument.wordprocessingml')) return 'docx'
-    if (lowerMime.includes('ms-powerpoint')) return 'ppt'
-    if (lowerMime.includes('presentationml')) return 'pptx'
-    if (lowerMime.includes('markdown')) return 'md'
-    if (lowerMime.includes('plain')) return 'txt'
-    if (lowerMime.includes('jpeg') || lowerMime.includes('jpg')) return 'jpg'
-    if (lowerMime.includes('png')) return 'png'
-    if (lowerMime.includes('webp')) return 'webp'
-    return 'txt'
-  }
-
-  const handleUseInQuestionGenerator = async (doc: LibraryDocument, e: MouseEvent) => {
-    e.stopPropagation()
-    setExtractingDocId(doc._id)
-
-    try {
-      const token = await getFirebaseToken()
-      const res = await fetch(`/api/backend/library/proxy-file/${doc._id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) throw new Error('Unable to fetch library file')
-
-      const blob = await res.blob()
-      const mimeType = res.headers.get('content-type') || doc.fileType || 'application/octet-stream'
-      const ext = getFileExtension(doc, mimeType)
-      const fileName = doc.originalName || `${doc.title || 'library-file'}.${ext}`
-      const file = new File([blob], fileName, { type: mimeType })
-
-      const extracted = await extractTextFromFile(file)
-      if (!extracted.success || !extracted.text) {
-        throw new Error(extracted.error || 'Could not extract readable content from this file.')
-      }
-
-      sessionStorage.setItem('quiz_source_content', extracted.text)
-      sessionStorage.setItem('quiz_source_title', doc.title || fileName)
-      router.push('/dashboard/question-bank?tab=quiz&source=library')
-    } catch (err: any) {
-      alert(err?.message || 'Could not prepare this document for Question Generator.')
-    } finally {
-      setExtractingDocId(null)
     }
   }
 
@@ -221,29 +171,19 @@ export default function LibraryPage() {
                     />
                   </div>
                   <div className="flex justify-end">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => void handleUseInQuestionGenerator(doc, e)}
-                          disabled={extractingDocId === doc._id}
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-[#5B4CF5]/10 text-[#5B4CF5] hover:bg-[#5B4CF5]/20 disabled:opacity-60 dark:text-[#a599ff] dark:hover:bg-[#5B4CF5]/30"
-                        >
-                          {extractingDocId === doc._id ? 'Preparing...' : 'Use in Question Generator'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if ((doc.fileType || '').toLowerCase().includes('pdf')) {
-                              setSelectedDocument(doc)
-                            } else {
-                              window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
-                            }
-                          }}
-                          className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#5B4CF5] hover:bg-[#5B4CF5]/10 dark:text-[#a599ff] dark:hover:bg-[#5B4CF5]/20"
-                        >
-                          {(doc.fileType || '').toLowerCase().includes('pdf') ? 'Open' : 'Download'}
-                        </button>
-                      </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if ((doc.fileType || '').toLowerCase().includes('pdf')) {
+                          setSelectedDocument(doc)
+                        } else {
+                          window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
+                        }
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#5B4CF5] hover:bg-[#5B4CF5]/10 dark:text-[#a599ff] dark:hover:bg-[#5B4CF5]/20"
+                    >
+                      {(doc.fileType || '').toLowerCase().includes('pdf') ? 'Open' : 'Download'}
+                    </button>
                   </div>
                 </div>
               </article>
