@@ -104,6 +104,17 @@ interface FeedItem {
   icon: string
 }
 
+interface OnlineUserItem {
+  _id: string
+  name?: string
+  email?: string
+  lastSeen?: string
+  subscriptionPlan?: string | null
+  subscriptionStatus?: string
+  avatar?: string
+  role?: string
+}
+
 const PLAN_PIE_COLORS: Record<string, string> = {
   daily: '#EA580C',
   weekly: '#3B82F6',
@@ -367,9 +378,15 @@ function AdminCampaignsTab() {
 function OverviewTab({
   stats,
   onGoActivity,
+  onlineUsers,
+  monitoringFeed,
+  monitoringLoading,
 }: {
   stats: DashboardStatsV2
   onGoActivity: () => void
+  onlineUsers: OnlineUserItem[]
+  monitoringFeed: FeedItem[]
+  monitoringLoading: boolean
 }) {
   const paidPct =
     stats.users.total > 0 ? Math.round((stats.users.paid / stats.users.total) * 1000) / 10 : 0
@@ -510,6 +527,66 @@ function OverviewTab({
               <strong>Teacher tool runs:</strong> {teacherToolsUsed.toLocaleString()}
             </li>
           </ul>
+        </div>
+      </div>
+
+      <div className="admin-grid-charts-2 mt-4">
+        <div className="admin-card-v2">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="admin-chart-title-v2">Site Change Monitor</h3>
+            <button
+              type="button"
+              className="text-xs text-indigo-600 font-semibold"
+              onClick={onGoActivity}
+            >
+              Open full activity
+            </button>
+          </div>
+          {monitoringLoading && monitoringFeed.length === 0 ? (
+            <p className="text-sm text-slate-500">Loading changes...</p>
+          ) : monitoringFeed.length === 0 ? (
+            <p className="text-sm text-slate-500">No recent platform changes recorded.</p>
+          ) : (
+            <div className="space-y-2">
+              {monitoringFeed.slice(0, 8).map((item, i) => (
+                <div
+                  key={`${item.type}-${item.time}-${i}`}
+                  className="p-2 rounded-lg border border-slate-100 bg-slate-50/60"
+                >
+                  <p className="text-sm font-semibold text-slate-700 m-0">{item.message}</p>
+                  <p className="text-xs text-slate-500 m-0 mt-1">
+                    {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Online Right Now</h3>
+          <p className="text-xs text-slate-500 mb-3">Active in the last 5 minutes (admin accounts excluded)</p>
+          {monitoringLoading && onlineUsers.length === 0 ? (
+            <p className="text-sm text-slate-500">Checking online users...</p>
+          ) : onlineUsers.length === 0 ? (
+            <p className="text-sm text-slate-500">No users currently online.</p>
+          ) : (
+            <div className="space-y-2">
+              {onlineUsers.map((u) => (
+                <div key={u._id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate m-0">{u.email || 'Unknown user'}</p>
+                    <p className="text-xs text-slate-500 m-0">
+                      {u.subscriptionStatus === 'active' ? (u.subscriptionPlan || 'active') : 'free'}
+                    </p>
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">
+                    {u.lastSeen ? formatDistanceToNow(new Date(u.lastSeen), { addSuffix: true }) : 'just now'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1128,6 +1205,9 @@ export default function AdminDashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date>(() => new Date())
   const [selectedUser, setSelectedUser] = useState<AdminUserRow | null>(null)
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUserItem[]>([])
+  const [monitoringFeed, setMonitoringFeed] = useState<FeedItem[]>([])
+  const [monitoringLoading, setMonitoringLoading] = useState(false)
 
   const fetchDashboard = async () => {
     try {
@@ -1151,9 +1231,27 @@ export default function AdminDashboardPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await fetchDashboard()
+    await Promise.all([fetchDashboard(), fetchMonitoring()])
     setLastRefreshed(new Date())
     setTimeout(() => setRefreshing(false), 600)
+  }
+
+  const fetchMonitoring = async () => {
+    setMonitoringLoading(true)
+    try {
+      const [onlineRes, feedRes] = await Promise.all([
+        apiClient.get('/admin/online-users'),
+        apiClient.get('/admin/activity-feed', { params: { limit: 12, offset: 0 } }),
+      ])
+
+      setOnlineUsers((onlineRes.data?.users || []).filter((u: OnlineUserItem) => u.role !== 'admin'))
+      setMonitoringFeed(feedRes.data?.feed || [])
+    } catch {
+      setOnlineUsers([])
+      setMonitoringFeed([])
+    } finally {
+      setMonitoringLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -1166,7 +1264,15 @@ export default function AdminDashboardPage() {
       setLoading(false)
       return
     }
-    fetchDashboard().finally(() => setLoading(false))
+    Promise.all([fetchDashboard(), fetchMonitoring()]).finally(() => setLoading(false))
+  }, [user])
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return
+    const id = setInterval(() => {
+      void fetchMonitoring()
+    }, 30000)
+    return () => clearInterval(id)
   }, [user])
 
   if (loading) {
@@ -1248,7 +1354,13 @@ export default function AdminDashboardPage() {
           </div>
 
           {activeTab === 'overview' && (
-            <OverviewTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
+            <OverviewTab
+              stats={stats}
+              onGoActivity={() => setActiveTab('activity')}
+              onlineUsers={onlineUsers}
+              monitoringFeed={monitoringFeed}
+              monitoringLoading={monitoringLoading}
+            />
           )}
           {activeTab === 'users' && (
             <UsersTab
