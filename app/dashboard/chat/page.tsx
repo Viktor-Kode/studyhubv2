@@ -6,6 +6,13 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
+import {
+  getTutorChatHistory,
+  getTutorChatSession,
+  saveTutorChatSession,
+  deleteTutorChatSession,
+  TutorChatSessionPreview,
+} from '@/lib/api/quizApi'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
@@ -25,6 +32,8 @@ interface ChatMessage {
   createdAt: string
   followUps?: string[]
 }
+
+const SAVE_DEBOUNCE_MS = 1500
 
 const SUBJECTS = [
   'Maths',
@@ -78,6 +87,9 @@ export default function ChatPage() {
   const [studentClass, setStudentClass] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [chatSessions, setChatSessions] = useState<TutorChatSessionPreview[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   useEffect(() => {
     if (profileClassLevel) {
@@ -87,6 +99,7 @@ export default function ChatPage() {
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const currentTopic = useMemo(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
@@ -98,6 +111,95 @@ export default function ChatPage() {
     if (!bottomRef.current) return
     bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, isSending])
+
+  const loadHistory = async (loadLatest = false) => {
+    setHistoryLoading(true)
+    try {
+      const data = await getTutorChatHistory()
+      if (data.success) {
+        const sessions = data.sessions || []
+        setChatSessions(sessions)
+        if (loadLatest && sessions.length > 0) {
+          await loadSession(sessions[0].sessionId)
+        }
+      }
+    } catch {
+      // ignore background history fetch errors
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const loadSession = async (sid: string) => {
+    try {
+      const data = await getTutorChatSession(sid)
+      if (!data.success) return
+      const loadedMessages = (data.session.messages || []).map((m, index) => ({
+        id: `${Date.now()}-${index}-${m.role}`,
+        role: m.role,
+        content: m.content,
+        createdAt: (m.timestamp ? new Date(m.timestamp) : new Date()).toISOString(),
+      }))
+      setSessionId(data.session.sessionId)
+      setMessages(loadedMessages)
+    } catch {
+      // ignore session load error
+    }
+  }
+
+  const persistCurrentChat = async () => {
+    if (!messages.length) return
+    try {
+      const payload = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.createdAt,
+      }))
+      const result = await saveTutorChatSession(sessionId, payload, selectedSubject)
+      if (!sessionId && result?.sessionId) setSessionId(result.sessionId)
+      await loadHistory(false)
+    } catch {
+      // ignore save errors
+    }
+  }
+
+  const startNewChat = async () => {
+    if (messages.length > 0) {
+      await persistCurrentChat()
+    }
+    setSessionId(null)
+    setMessages([])
+    setInput('')
+    setShowClearConfirm(false)
+  }
+
+  const removeSession = async (sid: string) => {
+    try {
+      await deleteTutorChatSession(sid)
+      setChatSessions((prev) => prev.filter((s) => s.sessionId !== sid))
+      if (sid === sessionId) {
+        setSessionId(null)
+        setMessages([])
+      }
+    } catch {
+      // ignore delete failures
+    }
+  }
+
+  useEffect(() => {
+    void loadHistory(true)
+  }, [])
+
+  useEffect(() => {
+    if (!messages.length) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      void persistCurrentChat()
+    }, SAVE_DEBOUNCE_MS)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [messages, sessionId, selectedSubject])
 
   useEffect(() => {
     const el = textareaRef.current
@@ -199,8 +301,7 @@ export default function ChatPage() {
       setShowClearConfirm(true)
       return
     }
-    setMessages([])
-    setShowClearConfirm(false)
+    void startNewChat()
   }
 
   const characterCount = input.length
@@ -413,8 +514,53 @@ export default function ChatPage() {
                 className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:text-slate-300 dark:hover:text-red-400"
               >
                 <FiTrash2 size={13} />
-                {showClearConfirm ? 'Tap again to confirm' : 'Clear chat'}
+                {showClearConfirm ? 'Tap again to confirm' : 'New chat'}
               </button>
+            </div>
+          </div>
+
+          <div className="mb-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-600 dark:text-slate-300">Saved conversations</span>
+              <button
+                type="button"
+                onClick={() => void loadHistory(false)}
+                className="text-[11px] text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                Refresh
+              </button>
+            </div>
+            <div className="max-h-28 overflow-y-auto space-y-1">
+              {historyLoading ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500">Loading chats...</p>
+              ) : chatSessions.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500">No chats yet.</p>
+              ) : (
+                chatSessions.map((session) => (
+                  <button
+                    key={session.sessionId}
+                    type="button"
+                    onClick={() => void loadSession(session.sessionId)}
+                    className={`w-full rounded-lg px-3 py-2 text-left text-xs transition flex items-center justify-between gap-2 ${
+                      session.sessionId === sessionId
+                        ? 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-200'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span className="truncate">{session.title || 'New Chat'}</span>
+                    <span
+                      className="text-gray-400 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        void removeSession(session.sessionId)
+                      }}
+                    >
+                      <FiTrash2 size={12} />
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
 

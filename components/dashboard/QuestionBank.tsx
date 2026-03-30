@@ -6,7 +6,19 @@ import Link from 'next/link'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
-import { generateQuiz, Question, generateStudyNotes, saveStudyNote, chatWithTutor } from '@/lib/api/quizApi'
+import {
+  generateQuiz,
+  Question,
+  generateStudyNotes,
+  saveStudyNote,
+  chatWithTutor,
+  getTutorChatHistory,
+  getTutorChatSession,
+  saveTutorChatSession,
+  deleteTutorChatSession,
+  TutorChatMessage,
+  TutorChatSessionPreview,
+} from '@/lib/api/quizApi'
 import { cbtApi } from '@/lib/api/cbt'
 import { extractTextFromFile } from '@/lib/utils/fileExtractor'
 import { toast } from 'react-hot-toast'
@@ -20,6 +32,7 @@ type InputMode = 'upload' | 'manual' | 'link'
 
 const QGEN_STORAGE_KEY = 'qgen_session_v1'
 const QGEN_SESSION_EXPIRY_HOURS = 24
+const TUTOR_SAVE_DEBOUNCE_MS = 1500
 
 function isUpgradeError(msg: string): boolean {
   const m = (msg || '').toLowerCase()
@@ -71,10 +84,14 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [savingNote, setSavingNote] = useState(false)
 
   // AI Tutor State
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
+  const [chatMessages, setChatMessages] = useState<TutorChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [isChatting, setIsChatting] = useState(false)
+  const [tutorSessionId, setTutorSessionId] = useState<string | null>(null)
+  const [tutorSessions, setTutorSessions] = useState<TutorChatSessionPreview[]>([])
+  const [loadingTutorHistory, setLoadingTutorHistory] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const tutorSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Saved quiz session state
   const [hasSession, setHasSession] = useState(false)
@@ -354,6 +371,93 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   useEffect(() => {
     if (activeTab === 'tutor') scrollToBottom()
   }, [chatMessages, activeTab])
+
+  const loadTutorHistory = async (loadLatestSession = false) => {
+    setLoadingTutorHistory(true)
+    try {
+      const data = await getTutorChatHistory()
+      if (data.success) {
+        const sessions = data.sessions || []
+        setTutorSessions(sessions)
+        if (loadLatestSession && sessions.length > 0) {
+          await handleLoadTutorSession(sessions[0].sessionId)
+        }
+      }
+    } catch {
+      // non-blocking for quiz flow
+    } finally {
+      setLoadingTutorHistory(false)
+    }
+  }
+
+  const handleLoadTutorSession = async (sid: string) => {
+    try {
+      const data = await getTutorChatSession(sid)
+      if (!data.success) return
+      setTutorSessionId(data.session.sessionId)
+      setChatMessages(data.session.messages || [])
+      setActiveTab('tutor')
+    } catch {
+      // ignore load failure
+    }
+  }
+
+  const persistTutorChat = async () => {
+    if (!chatMessages.length) return
+    try {
+      const payload = chatMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp || new Date().toISOString(),
+      }))
+      const result = await saveTutorChatSession(tutorSessionId, payload, '')
+      if (result?.sessionId && !tutorSessionId) {
+        setTutorSessionId(result.sessionId)
+      }
+      await loadTutorHistory(false)
+    } catch {
+      // ignore save failure in UI
+    }
+  }
+
+  const handleStartNewTutorChat = async () => {
+    if (chatMessages.length > 0) {
+      await persistTutorChat()
+    }
+    setTutorSessionId(null)
+    setChatMessages([])
+    setChatInput('')
+  }
+
+  const handleDeleteTutorSession = async (sid: string) => {
+    try {
+      await deleteTutorChatSession(sid)
+      setTutorSessions((prev) => prev.filter((s) => s.sessionId !== sid))
+      if (sid === tutorSessionId) {
+        setTutorSessionId(null)
+        setChatMessages([])
+      }
+    } catch {
+      // ignore delete failure
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'tutor') return
+    if (tutorSessions.length > 0 || loadingTutorHistory) return
+    void loadTutorHistory(true)
+  }, [activeTab, tutorSessions.length, loadingTutorHistory])
+
+  useEffect(() => {
+    if (!chatMessages.length) return
+    if (tutorSaveTimerRef.current) clearTimeout(tutorSaveTimerRef.current)
+    tutorSaveTimerRef.current = setTimeout(() => {
+      void persistTutorChat()
+    }, TUTOR_SAVE_DEBOUNCE_MS)
+    return () => {
+      if (tutorSaveTimerRef.current) clearTimeout(tutorSaveTimerRef.current)
+    }
+  }, [chatMessages, tutorSessionId])
 
   // Auto-save quiz session to localStorage whenever key state changes
   useEffect(() => {
@@ -720,14 +824,20 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     const userMsg = chatInput.trim()
     setChatInput('')
-    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }])
+    const outgoingMsg: TutorChatMessage = {
+      role: 'user',
+      content: userMsg,
+      timestamp: new Date().toISOString(),
+    }
+    setChatMessages(prev => [...prev, outgoingMsg])
     setIsChatting(true)
     setError(null)
 
     try {
       const context = inputMode === 'upload' ? extractedText : manualText
-      const response = await chatWithTutor(userMsg, context, chatMessages)
-      setChatMessages(prev => [...prev, { role: 'assistant', content: response.reply }])
+      const historyForModel = chatMessages.map((msg) => ({ role: msg.role, content: msg.content }))
+      const response = await chatWithTutor(userMsg, context, historyForModel)
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response.reply, timestamp: new Date().toISOString() }])
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
@@ -1221,7 +1331,50 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             ) : activeTab === 'tutor' ? (
               // TUTOR TAB UI
-              <div className="flex flex-col h-[400px] border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20">
+              <div className="flex flex-col h-[430px] border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20">
+                <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-[11px] font-bold text-gray-600 dark:text-gray-300">Tutor Conversations</p>
+                    <button
+                      type="button"
+                      onClick={() => void handleStartNewTutorChat()}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                    >
+                      + New Chat
+                    </button>
+                  </div>
+                  <div className="max-h-24 overflow-y-auto space-y-1">
+                    {loadingTutorHistory ? (
+                      <p className="text-[10px] text-gray-400">Loading chats...</p>
+                    ) : tutorSessions.length === 0 ? (
+                      <p className="text-[10px] text-gray-400">No previous chats yet.</p>
+                    ) : (
+                      tutorSessions.map((session) => (
+                        <button
+                          key={session.sessionId}
+                          type="button"
+                          onClick={() => void handleLoadTutorSession(session.sessionId)}
+                          className={`w-full text-left flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[10px] transition
+                            ${session.sessionId === tutorSessionId ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                        >
+                          <span className="truncate">{session.title || 'New Chat'}</span>
+                          <span
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              void handleDeleteTutorSession(session.sessionId)
+                            }}
+                            className="p-1 rounded hover:bg-red-50 hover:text-red-500"
+                            title="Delete chat"
+                          >
+                            <FiTrash2 />
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {chatMessages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
@@ -1229,7 +1382,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         <BiMessageRoundedDots className="text-3xl text-purple-600 dark:text-purple-400" />
                       </div>
                       <p className="text-sm font-bold text-gray-700 dark:text-white">Ask your AI Tutor anything!</p>
-                      <p className="text-xs text-gray-500 max-w-[200px]">I can explain topics, summarize parts, or help you with practice questions based on your material.</p>
+                      <p className="text-xs text-gray-500 max-w-[220px]">Start a new chat or open a previous one. Your tutor chats are now saved automatically.</p>
                       {(!extractedText && inputMode === 'upload') && (
                         <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg mt-2">
                           Please upload a file first for context!
@@ -1239,7 +1392,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   )}
 
                   {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={`${msg.role}-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm
                         ${msg.role === 'user'
                           ? 'bg-purple-600 text-white rounded-tr-none'

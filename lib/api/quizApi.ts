@@ -44,6 +44,28 @@ export interface StudyNote {
     createdAt: string
 }
 
+export interface TutorChatMessage {
+    role: 'user' | 'assistant'
+    content: string
+    timestamp?: string | Date
+}
+
+export interface TutorChatSessionPreview {
+    sessionId: string
+    title: string
+    subject: string
+    messageCount: number
+    lastMessage: string
+    createdAt: string
+    updatedAt: string
+}
+
+export interface TutorChatSessionFull {
+    sessionId: string
+    subject: string
+    messages: TutorChatMessage[]
+}
+
 export interface SessionsListResponse {
     success: boolean
     data: QuizSession[]
@@ -150,5 +172,44 @@ export const chatWithTutor = async (
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Tutor is currently unavailable')
     }
+    return response.json()
+}
+
+export const getTutorChatHistory = async (): Promise<{ success: boolean; sessions: TutorChatSessionPreview[] }> => {
+    const response = await fetch('/api/backend/chat/history', {
+        headers: { ...await authHeaders() }
+    })
+    if (!response.ok) throw new Error('Failed to fetch tutor chat history')
+    return response.json()
+}
+
+export const getTutorChatSession = async (sessionId: string): Promise<{ success: boolean; session: TutorChatSessionFull }> => {
+    const response = await fetch(`/api/backend/chat/history/${sessionId}`, {
+        headers: { ...await authHeaders() }
+    })
+    if (!response.ok) throw new Error('Failed to fetch tutor chat session')
+    return response.json()
+}
+
+export const saveTutorChatSession = async (
+    sessionId: string | null,
+    messages: TutorChatMessage[],
+    subject: string = ''
+): Promise<{ success: boolean; sessionId: string }> => {
+    const response = await fetch('/api/backend/chat/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+        body: JSON.stringify({ sessionId, messages, subject })
+    })
+    if (!response.ok) throw new Error('Failed to save tutor chat session')
+    return response.json()
+}
+
+export const deleteTutorChatSession = async (sessionId: string): Promise<{ success: boolean }> => {
+    const response = await fetch(`/api/backend/chat/history/${sessionId}`, {
+        method: 'DELETE',
+        headers: { ...await authHeaders() }
+    })
+    if (!response.ok) throw new Error('Failed to delete tutor chat session')
     return response.json()
 }
