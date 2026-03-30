@@ -115,7 +115,7 @@ function ResetPasswordContent() {
                                     New Password
                                 </label>
                                 <div className="relative">
-                                    <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
@@ -132,12 +132,12 @@ function ResetPasswordContent() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                                     >
                                         {showPassword ? <FiEyeOff /> : <FiEye />}
                                     </button>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                                     Must be at least 6 characters
                                 </p>
                             </div>
@@ -148,7 +148,7 @@ function ResetPasswordContent() {
                                     Confirm New Password
                                 </label>
                                 <div className="relative">
-                                    <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                     <input
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         value={confirmPassword}
@@ -165,7 +165,7 @@ function ResetPasswordContent() {
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                                     >
                                         {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
                                     </button>
@@ -196,7 +196,7 @@ function ResetPasswordContent() {
 
                 {/* Help Text */}
                 {!success && (
-                    <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
                         Remember your password?{' '}
                         <Link
                             href="/auth/login"

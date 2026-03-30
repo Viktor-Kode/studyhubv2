@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
                                     Email Address
                                 </label>
                                 <div className="relative">
-                                    <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                     <input
                                         type="email"
                                         value={email}
@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {/* Help Text */}
-                <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
                     Remember your password?{' '}
                     <Link
                         href="/auth/login"

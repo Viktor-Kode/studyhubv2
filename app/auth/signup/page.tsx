@@ -175,7 +175,7 @@ export default function SignupPage() {
                             <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            <span className="px-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                                 Or continue with email
                             </span>
                         </div>
@@ -241,7 +241,7 @@ export default function SignupPage() {
                                 Full Name
                             </label>
                             <div className="relative">
-                                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                 <input
                                     id="signup-name"
                                     type="text"
@@ -263,7 +263,7 @@ export default function SignupPage() {
                                 Email Address
                             </label>
                             <div className="relative">
-                                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                 <input
                                     id="signup-email"
                                     type="email"
@@ -285,7 +285,7 @@ export default function SignupPage() {
                                 Password
                             </label>
                             <div className="relative">
-                                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                 <input
                                     id="signup-password"
                                     type={showPassword ? 'text' : 'password'}
@@ -301,7 +301,7 @@ export default function SignupPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                                 >
                                     {showPassword ? <FiEyeOff /> : <FiEye />}
                                 </button>
@@ -314,7 +314,7 @@ export default function SignupPage() {
                                 Confirm Password
                             </label>
                             <div className="relative">
-                                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
                                 <input
                                     id="signup-confirm-password"
                                     type={showConfirmPassword ? 'text' : 'password'}
@@ -330,7 +330,7 @@ export default function SignupPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                                 >
                                     {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
                                 </button>
@@ -371,7 +371,7 @@ export default function SignupPage() {
                 </div>
 
                 {/* Terms */}
-                <p className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-6 text-center text-xs text-gray-600 dark:text-gray-300">
                     By signing up, you agree to our{' '}
                     <Link href="/terms" className="underline hover:text-gray-700 dark:hover:text-gray-300">
                         Terms of Service

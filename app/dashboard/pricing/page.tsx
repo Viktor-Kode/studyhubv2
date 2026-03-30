@@ -23,6 +23,7 @@ export default function PricingPage() {
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
     const [status, setStatus] = useState<any | null>(null)
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
+    const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
     useEffect(() => {
         const loadStatus = async () => {
@@ -53,6 +54,10 @@ export default function PricingPage() {
         if (planType === 'free') return
 
         try {
+            setSelectedPlan(planType)
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('studyhelp_selected_plan', planType)
+            }
             setLoadingPlan(planType)
             const data = await paymentApi.initializePayment(planType)
 
@@ -68,6 +73,12 @@ export default function PricingPage() {
             setLoadingPlan(null)
         }
     }
+
+    const yearlyPlan = PLANS.yearly
+    const monthlyPlan = PLANS.monthly
+    const yearlySavingsPct = Math.round(
+        (1 - yearlyPlan.price / (monthlyPlan.price * 12)) * 100
+    )
 
     return (
         <ProtectedRoute>
@@ -87,14 +98,14 @@ export default function PricingPage() {
                               : 'Choose the right plan to accelerate your study journey. Unlock more tests, subjects, and AI power.'}
                         </p>
                         {!isTeacherFlow && (
-                          <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-900">
+                          <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-900">
                             <button
                               type="button"
                               onClick={() => setBillingCycle('monthly')}
                               className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
                                 billingCycle === 'monthly'
                                   ? 'bg-gray-900 text-white'
-                                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                               }`}
                             >
                               Monthly
@@ -105,14 +116,14 @@ export default function PricingPage() {
                               className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
                                 billingCycle === 'yearly'
                                   ? 'bg-gray-900 text-white'
-                                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                               }`}
                             >
                               Yearly
                             </button>
                             {billingCycle === 'yearly' && (
-                              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 px-2">
-                                Save 35%
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-2">
+                                Save {yearlySavingsPct}%
                               </span>
                             )}
                           </div>
@@ -207,7 +218,7 @@ export default function PricingPage() {
                                     <div className="mb-6">
                                         <span className="text-4xl font-black text-gray-900 dark:text-white">{price}</span>
                                         {duration && (
-                                            <span className="text-gray-500 ml-1">/ {duration}</span>
+                                            <span className="text-gray-700 dark:text-gray-300 ml-1">/ {duration}</span>
                                         )}
                                     </div>
 
@@ -218,10 +229,11 @@ export default function PricingPage() {
                                     <button
                                         onClick={() => price !== '₦0' && handleSubscribe(mappedType)}
                                         disabled={price === '₦0' || loadingPlan !== null}
+                                        aria-pressed={selectedPlan === mappedType}
                                         className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${meta.highlight
                                             ? 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
                                             : price === '₦0'
-                                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
+                                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed'
                                                 : 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
                                             } disabled:opacity-50`}
                                     >
@@ -238,9 +250,9 @@ export default function PricingPage() {
                                                 {feature.included ? (
                                                     <FiCheck className="text-gray-900 dark:text-white mt-1 flex-shrink-0" />
                                                 ) : (
-                                                    <FiX className="text-gray-500 dark:text-gray-300 mt-1 flex-shrink-0" />
+                                                    <FiX className="text-gray-600 dark:text-gray-300 mt-1 flex-shrink-0" />
                                                 )}
-                                                <span className={`text-sm ${feature.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 line-through'}`}>
+                                                <span className={`text-sm ${feature.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-300 line-through'}`}>
                                                     {feature.text}
                                                 </span>
                                             </li>
@@ -299,7 +311,7 @@ export default function PricingPage() {
                                 </div>
                             </div>
                             {status.subscription.daysLeft > 0 && (
-                                <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                                <p className="mt-4 text-xs text-gray-600 dark:text-gray-300">
                                     ⏰ Plan expires in {status.subscription.daysLeft} day(s)
                                 </p>
                             )}

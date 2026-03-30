@@ -310,7 +310,7 @@ export default function StudentDashboardPage() {
                 <div key={reminder.id} className="p-4 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{reminder.title}</p>
-                    <p className="text-xs text-gray-500">{new Date(reminder.date).toLocaleDateString()}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">{new Date(reminder.date).toLocaleDateString()}</p>
                   </div>
                   <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">
                     {reminder.time}
@@ -320,8 +320,8 @@ export default function StudentDashboardPage() {
             </div>
           ) : (
             <div className="p-6 text-center">
-              <FiAlertCircle className="mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500 mb-3">No reminders yet. Set one now to stay on track.</p>
+              <FiAlertCircle className="mx-auto text-gray-500 dark:text-gray-300 mb-2" />
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">No reminders yet. Set one now to stay on track.</p>
               <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center gap-1">
                 Set a Reminder <FiArrowRight />
               </Link>
@@ -338,7 +338,7 @@ export default function StudentDashboardPage() {
             </h1>
           </div>
           {(user?.schoolName || user?.classLevel || user?.courseOfStudy) ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               {user?.schoolName ? (
                 <span className="inline-flex items-center gap-1.5">
                   <MdSchool className="text-lg text-indigo-500 shrink-0" />
@@ -379,7 +379,7 @@ export default function StudentDashboardPage() {
               <div>
                 <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Next Class Coming Up</p>
                 <p className="font-bold text-gray-900 dark:text-white">{nextClass.subject} at {nextClass.startTime}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{nextClass.room || 'Online Session'}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{nextClass.room || 'Online Session'}</p>
               </div>
             </div>
           )}
@@ -487,7 +487,7 @@ export default function StudentDashboardPage() {
                         </div>
                         <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{cls.subject}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{cls.subject}</p>
                       <Link href={`/dashboard/timetable?classId=${cls.id}`} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
                         View Timetable <FiArrowRight />
                       </Link>
@@ -504,8 +504,8 @@ export default function StudentDashboardPage() {
                         </div>
                         <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{cls.subject}</p>
-                      <p className="text-xs text-gray-500 mb-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{cls.subject}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
                         Suggested from your onboarding subjects{cls.examLabel ? ` (${cls.examLabel})` : ''}.
                       </p>
                       <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
@@ -517,12 +517,14 @@ export default function StudentDashboardPage() {
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center">
                   <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">You haven&apos;t enrolled in any classes yet.</p>
-                  <p className="text-sm text-gray-500 mb-4">Start by adding your subjects in your profile, then join a class timetable.</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    Start by adding subjects in your profile.
+                  </p>
                   <Link
                     href="/dashboard/settings"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                   >
-                    Add Subjects in Profile <FiArrowRight />
+                    Add subjects in your profile <FiArrowRight />
                   </Link>
                 </div>
               )}
@@ -552,7 +554,7 @@ export default function StudentDashboardPage() {
                             {link.label}
                           </h3>
                         </div>
-                        <FiArrowRight className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        <FiArrowRight className="text-gray-500 dark:text-gray-300 group-hover:text-blue-500 transition-colors" />
                       </div>
                     </Link>
                   )
@@ -585,12 +587,12 @@ export default function StudentDashboardPage() {
                             {reminder.time}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">{new Date(reminder.date).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">{new Date(reminder.date).toLocaleDateString()}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-gray-500 text-sm">
+                  <div className="p-8 text-center text-gray-600 dark:text-gray-300 text-sm">
                     No upcoming reminders.
                   </div>
                 )}
@@ -647,15 +649,15 @@ export default function StudentDashboardPage() {
                         <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                           {activity.title}
                         </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-gray-300">
                           {activity.subtitle}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-tighter text-gray-400">
+                        <p className="text-[10px] font-black uppercase tracking-tighter text-gray-500 dark:text-gray-300">
                           {new Date(activity.date).toLocaleDateString()}
                         </p>
-                        <p className="text-[10px] text-gray-400 font-medium">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium">
                           {new Date(activity.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -666,7 +668,9 @@ export default function StudentDashboardPage() {
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-12 text-center">
                 <FiZap className="text-3xl text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 font-medium">No recent activity. Start studying to see your progress!</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                  No recent activity - try taking a CBT or creating flashcards!
+                </p>
               </div>
             )}
           </div>
@@ -758,7 +762,7 @@ function SubscriptionUsageCard() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Your Plan</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-300 mb-1">Your Plan</h3>
           <div className="flex items-center gap-2">
             <span className="text-xl font-black text-gray-900 dark:text-white capitalize">
               {status?.subscription?.plan || status?.subscription?.status || 'free'}
@@ -779,7 +783,7 @@ function SubscriptionUsageCard() {
           {/* AI usage */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 AI Messages: {status.usage.ai.used} / {status.usage.ai.limit}
               </span>
               <span className="text-[10px] font-black text-purple-600">
@@ -799,7 +803,7 @@ function SubscriptionUsageCard() {
           {/* Flashcard usage */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 Flashcard Sets: {status.usage.flashcards.used} / {status.usage.flashcards.limit}
               </span>
             </div>
@@ -816,7 +820,7 @@ function SubscriptionUsageCard() {
           {/* CBT access info */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 CBT Practice:{' '}
                 {status.subscription.status === 'active'
                   ? 'Unlimited practice tests included in your plan.'
@@ -826,14 +830,14 @@ function SubscriptionUsageCard() {
           </div>
 
           {status.subscription.expiresAt && (
-            <p className="text-[10px] text-gray-400 font-medium italic">
+            <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium italic">
               Expires: {new Date(status.subscription.expiresAt).toLocaleDateString()}
             </p>
           )}
 
           {/* Extra upgrade call-to-action */}
           <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+            <p className="text-[10px] text-gray-600 dark:text-gray-300">
               Need more AI, flashcards or CBT? Upgrade your plan.
             </p>
             <Link
@@ -845,7 +849,7 @@ function SubscriptionUsageCard() {
           </div>
         </div>
       ) : (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           Loading your subscription status...
         </p>
       )}

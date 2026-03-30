@@ -4,6 +4,28 @@
 
 @import 'katex/dist/katex.min.css';
 
+:root {
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-muted: #475569;
+  --color-text-inverse: #F8FAFC;
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F7F8FA;
+  --color-brand: #5B4CF5;
+  --color-brand-hover: #4C3FE0;
+}
+
+.dark {
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #E2E8F0;
+  --color-text-muted: #CBD5E1;
+  --color-text-inverse: #0F172A;
+  --color-bg-primary: #0B1220;
+  --color-bg-secondary: #111827;
+  --color-brand: #7C70FF;
+  --color-brand-hover: #9288FF;
+}
+
 /* ─── GLOBAL MOBILE SAFETY NET ─────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -85,6 +107,40 @@ input, select, textarea {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  p, li, small, label, input, textarea, select {
+    color: var(--color-text-secondary);
+  }
+
+  h1, h2, h3, h4, h5, h6, strong {
+    color: var(--color-text-primary);
+  }
+
+  a {
+    color: var(--color-brand);
+  }
+
+  a:hover {
+    color: var(--color-brand-hover);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-text-muted);
+    opacity: 1;
+  }
+}
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
 }
 
 /* iPhone notch / safe area */
