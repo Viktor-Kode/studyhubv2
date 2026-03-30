@@ -6,8 +6,10 @@ export interface UserOnboarding {
     completed: boolean
     studentType?: OnboardingStudentType
     examType?: string
+    examTypes?: string[]
     subjects?: string[]
     goal?: string
+    goals?: string[]
     studyHoursPerDay?: string
     completedAt?: string | null
 }

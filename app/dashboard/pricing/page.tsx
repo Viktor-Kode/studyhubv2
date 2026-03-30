@@ -22,6 +22,7 @@ export default function PricingPage() {
     const isTeacherFlow = searchParams?.get('from') === 'teacher'
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
     const [status, setStatus] = useState<any | null>(null)
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
 
     useEffect(() => {
         const loadStatus = async () => {
@@ -33,7 +34,20 @@ export default function PricingPage() {
             }
         }
         loadStatus()
+
+        const storedCycle = typeof window !== 'undefined'
+            ? window.localStorage.getItem('studyhelp_billing_cycle')
+            : null
+        if (storedCycle === 'yearly' || storedCycle === 'monthly') {
+            setBillingCycle(storedCycle)
+        }
     }, [])
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('studyhelp_billing_cycle', billingCycle)
+        }
+    }, [billingCycle])
 
     const handleSubscribe = async (planType: string) => {
         if (planType === 'free') return
@@ -72,11 +86,46 @@ export default function PricingPage() {
                               ? 'Choose the right plan to unlock StudyHelp Teacher Tools for lesson notes, result sheets, schemes of work and more.'
                               : 'Choose the right plan to accelerate your study journey. Unlock more tests, subjects, and AI power.'}
                         </p>
+                        {!isTeacherFlow && (
+                          <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-900">
+                            <button
+                              type="button"
+                              onClick={() => setBillingCycle('monthly')}
+                              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                                billingCycle === 'monthly'
+                                  ? 'bg-gray-900 text-white'
+                                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              }`}
+                            >
+                              Monthly
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBillingCycle('yearly')}
+                              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                                billingCycle === 'yearly'
+                                  ? 'bg-gray-900 text-white'
+                                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              }`}
+                            >
+                              Yearly
+                            </button>
+                            {billingCycle === 'yearly' && (
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 px-2">
+                                Save 35%
+                              </span>
+                            )}
+                          </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {DASHBOARD_PLANS.map((meta) => {
-                          const plan = PLANS[meta.type as keyof typeof PLANS]
+                          const mappedType =
+                            !isTeacherFlow && meta.type === 'monthly'
+                              ? billingCycle
+                              : meta.type
+                          const plan = PLANS[mappedType as keyof typeof PLANS]
                           if (!plan || !('features' in plan)) return null
 
                           // For teacher flow, we keep the same backend plan keys/prices
@@ -121,10 +170,21 @@ export default function PricingPage() {
                           }
 
                           const price = plan.price === 0 ? '₦0' : `₦${plan.price.toLocaleString()}`
-                          const duration = meta.type === 'weekly' ? 'week' : meta.type === 'monthly' ? 'month' : ''
+                          const duration =
+                            mappedType === 'weekly'
+                              ? 'week'
+                              : mappedType === 'monthly'
+                                ? 'month'
+                                : mappedType === 'yearly'
+                                  ? 'year'
+                                  : ''
+                          const buttonText =
+                            mappedType === 'yearly'
+                              ? 'Get Yearly'
+                              : meta.buttonText
                           return (
                             <div
-                                key={meta.type}
+                                key={`${meta.type}-${mappedType}`}
                                 className={`flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl border-2 transition-all duration-300 hover:scale-105 ${meta.highlight
                                     ? 'border-gray-300 ring-4 ring-gray-300/30 scale-105 z-10'
                                     : 'border-transparent hover:border-gray-300/70'
@@ -156,7 +216,7 @@ export default function PricingPage() {
                                     </p>
 
                                     <button
-                                        onClick={() => price !== '₦0' && handleSubscribe(meta.type)}
+                                        onClick={() => price !== '₦0' && handleSubscribe(mappedType)}
                                         disabled={price === '₦0' || loadingPlan !== null}
                                         className={`w-full py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${meta.highlight
                                             ? 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
@@ -165,9 +225,9 @@ export default function PricingPage() {
                                                 : 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-black/10'
                                             } disabled:opacity-50`}
                                     >
-                                        {loadingPlan === meta.type ? (
+                                        {loadingPlan === mappedType ? (
                                             <FiLoader className="animate-spin" />
-                                        ) : meta.type === 'free' ? 'Current Plan' : meta.buttonText}
+                                        ) : meta.type === 'free' ? 'Current Plan' : buttonText}
                                     </button>
                                 </div>
 

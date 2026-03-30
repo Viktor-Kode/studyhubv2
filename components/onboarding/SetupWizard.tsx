@@ -149,10 +149,16 @@ function getGoalOptions(studentType: OnboardingStudentType | '') {
 
 type WizardAnswers = {
   studentType: OnboardingStudentType | ''
-  examType: string
+  examTypes: string[]
   subjects: string[]
-  goal: string
+  goals: string[]
   studyHoursPerDay: string
+}
+
+type OnboardingPayload = WizardAnswers & {
+  studentType: OnboardingStudentType
+  examType?: string
+  goal?: string
 }
 
 export default function SetupWizard({
@@ -165,11 +171,12 @@ export default function SetupWizard({
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<WizardAnswers>({
     studentType: '',
-    examType: '',
+    examTypes: [],
     subjects: [],
-    goal: '',
+    goals: [],
     studyHoursPerDay: '',
   })
+  const [customSubject, setCustomSubject] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -181,8 +188,53 @@ export default function SetupWizard({
   const subjectList = getSubjectList(answers.studentType)
   const goalOptions = getGoalOptions(answers.studentType)
 
-  const postOnboarding = async (body: WizardAnswers & { studentType: OnboardingStudentType }) => {
+  const getErrorMessage = (e: unknown) => {
+    const apiError = e as {
+      response?: { data?: { message?: string; error?: string } }
+      message?: string
+    }
+    return (
+      apiError?.response?.data?.message ||
+      apiError?.response?.data?.error ||
+      apiError?.message ||
+      'Could not save. Please try again.'
+    )
+  }
+
+  const postOnboarding = async (body: OnboardingPayload) => {
     await apiClient.post('/users/onboarding', body)
+  }
+
+  const handleExamToggle = (exam: string) => {
+    setAnswers((a) => ({
+      ...a,
+      examTypes: a.examTypes.includes(exam)
+        ? a.examTypes.filter((item) => item !== exam)
+        : [...a.examTypes, exam],
+    }))
+  }
+
+  const handleGoalToggle = (goal: string) => {
+    setAnswers((a) => ({
+      ...a,
+      goals: a.goals.includes(goal)
+        ? a.goals.filter((item) => item !== goal)
+        : [...a.goals, goal],
+    }))
+  }
+
+  const handleAddCustomSubject = () => {
+    const trimmed = customSubject.trim()
+    if (!trimmed) return
+    if (answers.subjects.some((sub) => sub.toLowerCase() === trimmed.toLowerCase())) {
+      setCustomSubject('')
+      return
+    }
+    setAnswers((a) => ({
+      ...a,
+      subjects: [...a.subjects, trimmed],
+    }))
+    setCustomSubject('')
   }
 
   const handleComplete = async () => {
@@ -193,11 +245,13 @@ export default function SetupWizard({
       await postOnboarding({
         ...answers,
         studentType: answers.studentType,
+        examType: answers.examTypes[0] || '',
+        goal: answers.goals[0] || '',
       })
       onComplete()
     } catch (e) {
       console.error(e)
-      setError('Could not save. Check your connection and try again.')
+      setError(getErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -209,15 +263,17 @@ export default function SetupWizard({
     try {
       await postOnboarding({
         studentType: 'secondary',
-        examType: '',
+        examTypes: [],
         subjects: [],
-        goal: 'Exploring',
+        goals: ['Exploring'],
         studyHoursPerDay: '',
+        examType: '',
+        goal: 'Exploring',
       })
       onComplete()
     } catch (e) {
       console.error(e)
-      setError('Could not save. Check your connection and try again.')
+      setError(getErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -263,7 +319,7 @@ export default function SetupWizard({
                     setAnswers((a) => ({
                       ...a,
                       studentType: opt.value,
-                      examType: '',
+                      examTypes: [],
                     }))
                   }
                 >
@@ -297,8 +353,8 @@ export default function SetupWizard({
                 <button
                   key={exam.value}
                   type="button"
-                  className={`wizard-option ${answers.examType === exam.value ? 'selected' : ''}`}
-                  onClick={() => setAnswers((a) => ({ ...a, examType: exam.value }))}
+                  className={`wizard-option ${answers.examTypes.includes(exam.value) ? 'selected' : ''}`}
+                  onClick={() => handleExamToggle(exam.value)}
                 >
                   {exam.label}
                 </button>
@@ -312,7 +368,7 @@ export default function SetupWizard({
                 type="button"
                 className="wizard-btn-primary"
                 onClick={() => setStep(3)}
-                disabled={!answers.examType}
+                disabled={answers.examTypes.length === 0}
               >
                 Next →
               </button>
@@ -347,6 +403,24 @@ export default function SetupWizard({
                 </button>
               ))}
             </div>
+            <div className="wizard-custom-subject">
+              <input
+                type="text"
+                value={customSubject}
+                placeholder="Add custom subject (e.g. Technical Drawing, ICT)"
+                onChange={(e) => setCustomSubject(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddCustomSubject()
+                  }
+                }}
+                className="wizard-custom-input"
+              />
+              <button type="button" className="wizard-btn-secondary" onClick={handleAddCustomSubject}>
+                + Add Subject
+              </button>
+            </div>
             <p className="wizard-selected-count">{answers.subjects.length} selected</p>
             <div className="wizard-nav">
               <button type="button" className="wizard-btn-secondary" onClick={() => setStep(2)}>
@@ -372,8 +446,8 @@ export default function SetupWizard({
                 <button
                   key={g.value}
                   type="button"
-                  className={`wizard-option ${answers.goal === g.value ? 'selected' : ''}`}
-                  onClick={() => setAnswers((a) => ({ ...a, goal: g.value }))}
+                  className={`wizard-option ${answers.goals.includes(g.value) ? 'selected' : ''}`}
+                  onClick={() => handleGoalToggle(g.value)}
                 >
                   {g.label}
                 </button>
@@ -382,7 +456,7 @@ export default function SetupWizard({
 
             <h3 style={{ marginTop: 24 }}>How many hours can you study per day?</h3>
             <div className="wizard-options-row">
-              {['Less than 1 hour', '1-2 hours', '2-3 hours', '3+ hours'].map((h) => (
+              {["I'm not sure yet", 'Less than 1 hour', '1-2 hours', '2-3 hours', '3+ hours'].map((h) => (
                 <button
                   key={h}
                   type="button"
@@ -403,7 +477,7 @@ export default function SetupWizard({
                 type="button"
                 className="wizard-btn-primary"
                 onClick={handleComplete}
-                disabled={!answers.goal || saving}
+                disabled={answers.goals.length === 0 || saving}
               >
                 {saving ? 'Saving...' : "Let's Start! 🚀"}
               </button>

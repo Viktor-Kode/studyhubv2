@@ -209,7 +209,7 @@ const subjectInstructions: Record<string, string> = {
 
 type ViewMode = 'exam-select' | 'configure' | 'instructions' | 'test' | 'results'
 
-const CBT_STORAGE_KEYS = ['cbt_exam', 'cbt_year', 'cbt_subject', 'cbt_school', 'cbt_count', 'cbt_viewMode', 'cbt_questions', 'cbt_currentIndex', 'cbt_answers', 'cbt_timeRemaining']
+const CBT_STORAGE_KEYS = ['cbt_exam', 'cbt_year', 'cbt_subject', 'cbt_school', 'cbt_count', 'cbt_viewMode', 'cbt_questions', 'cbt_currentIndex', 'cbt_answers', 'cbt_timeRemaining', 'cbt_isPaused']
 
 function clearCbtPersistedState() {
   CBT_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k))
@@ -233,6 +233,7 @@ export default function CBTPage() {
   const [currentIndex, setCurrentIndex] = usePersistedState<number>('cbt_currentIndex', 0)
   const [selectedAnswers, setSelectedAnswers] = usePersistedState<Record<string, number>>('cbt_answers', {})
   const [timeRemaining, setTimeRemaining] = usePersistedState<number>('cbt_timeRemaining', 0)
+  const [isPaused, setIsPaused] = usePersistedState<boolean>('cbt_isPaused', false)
 
   // Data state (not persisted)
   const [availableYears, setAvailableYears] = useState<string[]>([])
@@ -279,6 +280,7 @@ export default function CBTPage() {
       if (remaining > 0 && !isTimerRunning && !showResults) {
         setTimeRemaining(remaining)
         setIsTimerRunning(true)
+        setIsPaused(false)
         setViewMode('test')
       } else if (remaining <= 0) {
         clearCbtPersistedState()
@@ -290,11 +292,16 @@ export default function CBTPage() {
       localStorage.removeItem('examId')
     }
 
-    if (isTimerRunning && timeRemaining > 0 && !showResults) {
+    if (isPaused && questions.length > 0 && !showResults) {
+      setViewMode('test')
+    }
+
+    if (isTimerRunning && !isPaused && timeRemaining > 0 && !showResults) {
       const interval = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
             setIsTimerRunning(false)
+            setIsPaused(false)
             setShowResults(true)
             setViewMode('results')
             return 0
@@ -304,7 +311,7 @@ export default function CBTPage() {
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [isTimerRunning, timeRemaining, showResults])
+  }, [isTimerRunning, isPaused, timeRemaining, showResults, questions.length, setIsPaused, setTimeRemaining, setViewMode])
 
   const loadYears = async () => {
     if (!selectedExam) return
@@ -396,6 +403,7 @@ export default function CBTPage() {
     const duration = (currentExamConfig?.duration || 120) * 60
     setTimeRemaining(duration)
     setIsTimerRunning(true)
+    setIsPaused(false)
     setViewMode('test')
 
     // Save timer state to localStorage every second (start time)
@@ -403,6 +411,24 @@ export default function CBTPage() {
     localStorage.setItem('examEndTime', endTime.toString());
     localStorage.setItem('examActive', 'true');
     localStorage.setItem('examId', currentExamConfig?.value || 'exam');
+  }
+
+  const handlePauseResume = () => {
+    if (isPaused) {
+      setIsPaused(false)
+      setIsTimerRunning(true)
+      const endTime = Date.now() + timeRemaining * 1000
+      localStorage.setItem('examEndTime', endTime.toString())
+      localStorage.setItem('examActive', 'true')
+      localStorage.setItem('examId', currentExamConfig?.value || 'exam')
+      return
+    }
+
+    setIsPaused(true)
+    setIsTimerRunning(false)
+    localStorage.removeItem('examEndTime')
+    localStorage.removeItem('examActive')
+    localStorage.removeItem('examId')
   }
 
   const handleAnswerSelect = (optionIndex: number) => {
@@ -441,6 +467,7 @@ export default function CBTPage() {
 
   const handleSubmitTest = async () => {
     setIsTimerRunning(false)
+    setIsPaused(false)
     setShowResults(true)
     clearCbtPersistedState()
 
@@ -529,6 +556,7 @@ export default function CBTPage() {
     setFlaggedQuestions(new Set())
     setTimeRemaining(0)
     setIsTimerRunning(false)
+    setIsPaused(false)
     setError(null)
     setViewMode('exam-select')
   }
@@ -556,6 +584,25 @@ export default function CBTPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [viewMode, questions.length])
+
+  useEffect(() => {
+    if (viewMode !== 'test' || questions.length === 0) return
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && isTimerRunning && !isPaused && !showResults) {
+        setIsPaused(true)
+        setIsTimerRunning(false)
+        localStorage.removeItem('examEndTime')
+        localStorage.removeItem('examActive')
+        localStorage.removeItem('examId')
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [viewMode, questions.length, isTimerRunning, isPaused, showResults, setIsPaused])
 
   // Loading state — early return must come after all hooks
   if (loading && loadingStage) {
@@ -986,6 +1033,17 @@ export default function CBTPage() {
                   <FiClock className="inline-block mr-1" />
                   {formatTime(timeRemaining)}
                 </div>
+                <button
+                  onClick={handlePauseResume}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                    isPaused
+                      ? 'bg-green-500/20 text-green-200 hover:bg-green-500/30'
+                      : 'bg-yellow-500/20 text-yellow-200 hover:bg-yellow-500/30'
+                  }`}
+                  title={isPaused ? 'Resume timer' : 'Pause timer'}
+                >
+                  {isPaused ? 'Resume' : 'Pause'}
+                </button>
                 <button
                   onClick={() => setShowCalculator(true)}
                   className="px-3 py-1 rounded-lg bg-white/10 text-xs font-medium hover:bg-white/20 transition"

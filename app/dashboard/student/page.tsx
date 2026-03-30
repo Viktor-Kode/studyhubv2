@@ -16,7 +16,7 @@ import {
   FiBook, FiClock, FiCreditCard, FiBarChart2,
   FiCalendar, FiGrid, FiTrendingUp, FiAward,
   FiCheckCircle, FiArrowRight, FiZap, FiBell,
-  FiTarget, FiLoader, FiStar
+  FiTarget, FiLoader, FiStar, FiAlertCircle
 } from 'react-icons/fi'
 import { MdQuiz, MdSchool, MdClass } from 'react-icons/md'
 import { BiCard, BiTimer, BiBrain } from 'react-icons/bi'
@@ -55,6 +55,10 @@ export default function StudentDashboardPage() {
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
   const [nextClass, setNextClass] = useState<TimetableSlot | null>(null)
   const [nextClassId, setNextClassId] = useState<string | null>(null)
+  const [strengthsWeaknesses, setStrengthsWeaknesses] = useState<{ strengths: any[]; weaknesses: any[] }>({
+    strengths: [],
+    weaknesses: [],
+  })
 
   const loadDashboardData = async () => {
     try {
@@ -88,17 +92,39 @@ export default function StudentDashboardPage() {
             cbtAccuracy: parseInt(sumData.cbt.overallAccuracy) || 0,
             bestCBTSubject: sumData.cbt.bestSubject || 'N/A'
           })
+          setStrengthsWeaknesses(sumData.cbt?.strengthsWeaknesses || { strengths: [], weaknesses: [] })
 
-          // Transform recent sessions for the activity timeline
-          const history = sumData.studyTimer.recentSessions || [];
-          setActivities(history.map((h: any, i: number) => ({
-            id: i,
-            title: h.subject || 'Study Session',
-            subtitle: h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} minutes` : 'Just started',
-            date: h.date,
-            icon: FiClock,
-            color: 'blue'
-          })));
+          // Prefer backend recent activity feed; fallback to study sessions for compatibility.
+          const timeline = (sumData.recentActivity || []).map((item: any, i: number) => {
+            const icon =
+              item.type === 'cbt_result'
+                ? FiTarget
+                : item.type === 'flashcard_created'
+                  ? BiCard
+                  : FiClock
+            return {
+              id: item.id || i,
+              title: item.title || 'Activity',
+              subtitle: item.subtitle || 'Recent action',
+              date: item.date,
+              icon,
+              color: item.color || 'blue',
+            }
+          })
+
+          if (timeline.length > 0) {
+            setActivities(timeline)
+          } else {
+            const history = sumData.studyTimer.recentSessions || []
+            setActivities(history.map((h: any, i: number) => ({
+              id: i,
+              title: h.subject || 'Study Session',
+              subtitle: h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} minutes` : 'Just started',
+              date: h.date,
+              icon: FiClock,
+              color: 'blue'
+            })))
+          }
         }
 
         // Find next class from enrolled classes
@@ -241,6 +267,37 @@ export default function StudentDashboardPage() {
         {user?.onboarding?.completed && user ? <NextStepsCard user={user} /> : null}
 
         <WhatsAppChannelBanner />
+
+        {/* Today's Reminders (priority card) */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <FiBell className="text-orange-500" />
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Today&apos;s Reminders</h2>
+          </div>
+          {upcomingReminders.length > 0 ? (
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {upcomingReminders.slice(0, 3).map((reminder) => (
+                <div key={reminder.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{reminder.title}</p>
+                    <p className="text-xs text-gray-500">{new Date(reminder.date).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                    {reminder.time}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <FiAlertCircle className="mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500 mb-3">No reminders yet. Set one now to stay on track.</p>
+              <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center gap-1">
+                Set a Reminder <FiArrowRight />
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Welcome Section */}
         <div className="mb-4" data-tour="student-welcome">
@@ -409,7 +466,14 @@ export default function StudentDashboardPage() {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center">
-                  <p className="text-gray-500">Not enrolled in any classes yet.</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">You haven&apos;t enrolled in any classes yet.</p>
+                  <p className="text-sm text-gray-500 mb-4">Start by adding your subjects in your profile, then join a class timetable.</p>
+                  <Link
+                    href="/dashboard/settings"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                  >
+                    Add Subjects in Profile <FiArrowRight />
+                  </Link>
                 </div>
               )}
             </div>
@@ -557,51 +621,45 @@ export default function StudentDashboardPage() {
             )}
           </div>
 
-          {/* Achievement Sidebar */}
+          {/* Strengths & Weaknesses Sidebar */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <FiAward className="text-orange-500" />
-              Achievements
+              Strengths & Weaknesses
             </h2>
 
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-2xl p-6 border border-orange-200 dark:border-orange-800 space-y-4">
-              {stats.studyStreak > 0 ? (
-                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center text-orange-600">
-                    <FiZap className="text-xl" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">Strengths</p>
+                {strengthsWeaknesses.strengths.length > 0 ? (
+                  <div className="space-y-2">
+                    {strengthsWeaknesses.strengths.map((item, idx) => (
+                      <div key={`str-${idx}`} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.subject}</p>
+                        <span className="text-xs font-bold text-emerald-600">{item.avgAccuracy}%</span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-orange-600">Streak</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{stats.studyStreak} Days Active!</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-orange-800 dark:text-orange-300 font-medium italic opacity-70 italic">Start a daily streak to earn your first badge!</p>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-600">Complete CBT practice to discover your strengths.</p>
+                )}
+              </div>
 
-              {stats.totalQuestions > 50 && (
-                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600">
-                    <BiBrain className="text-xl" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-rose-600 mb-2">Weaknesses</p>
+                {strengthsWeaknesses.weaknesses.length > 0 ? (
+                  <div className="space-y-2">
+                    {strengthsWeaknesses.weaknesses.map((item, idx) => (
+                      <div key={`weak-${idx}`} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.subject}</p>
+                        <span className="text-xs font-bold text-rose-600">{item.avgAccuracy}%</span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-blue-600">Scholar</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">50+ Questions Solved</p>
-                  </div>
-                </div>
-              )}
-
-              {stats.bestCBTSubject !== 'N/A' && (
-                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
-                    <FiAward className="text-xl" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-emerald-600">Best Subject</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{stats.bestCBTSubject}</p>
-                  </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-600">No weak areas yet. Keep practicing consistently.</p>
+                )}
+              </div>
 
               <div className="pt-2">
                 <Link href="/dashboard/analytics" className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group">
