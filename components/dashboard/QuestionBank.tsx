@@ -498,10 +498,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setWarning(null)
 
     // Validate file type
-    const allowedTypes = ['.pdf', '.docx', '.txt', '.md', '.ppt', '.pptx']
+    const allowedTypes = ['.pdf', '.docx', '.txt', '.md', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.webp']
     const extension = '.' + file.name.split('.').pop()?.toLowerCase()
     if (!allowedTypes.includes(extension)) {
-      setError('Unsupported format. Use PDF, DOCX, PPT, PPTX, TXT, or MD.')
+      setError('Unsupported format. Use PDF, DOCX, PPT, PPTX, TXT, MD, JPG, JPEG, PNG, or WEBP.')
       return
     }
 
@@ -516,6 +516,24 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setError(null)
 
     try {
+      if (['.jpg', '.jpeg', '.png', '.webp'].includes(extension)) {
+        const { createWorker } = await import('tesseract.js')
+        const worker = await createWorker('eng')
+        const result = await worker.recognize(file)
+        await worker.terminate()
+
+        const recognizedText = result?.data?.text?.trim() || ''
+        if (recognizedText.length < 50) {
+          setError('Text in uploaded image is too short/unclear. Try a clearer image with better lighting.')
+          setUploadedFile(null)
+          return
+        }
+
+        setExtractedText(recognizedText)
+        setSuccess('Image text extracted successfully!')
+        return
+      }
+
       const result = await extractTextFromFile(file)
       if (result.success && result.text) {
         setExtractedText(result.text)
@@ -935,7 +953,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept=".pdf,.docx,.txt,.md,.ppt,.pptx"
+                    accept=".pdf,.docx,.txt,.md,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
                     onChange={handleFileSelect}
                     disabled={extracting}
                   />
@@ -947,7 +965,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       </div>
                       <div className="text-center">
                         <p className="font-medium text-gray-700 dark:text-gray-200">Select Study Material</p>
-                        <p className="text-xs text-gray-500">PDF, Word, PPT, or Notes (Max 5MB)</p>
+                        <p className="text-xs text-gray-500">PDF, Word, PPT, Notes, or Images (Max 5MB)</p>
                       </div>
                     </>
                   ) : (
