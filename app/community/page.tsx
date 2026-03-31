@@ -31,12 +31,9 @@ import { useToast } from '@/hooks/useToast'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useCommunityRealtime } from '@/hooks/useCommunityRealtime'
-import { StudyGroupsTab } from '@/components/community/StudyGroupsTab'
 import './study-groups.css'
 
 type FeedTab = 'post' | 'question' | 'poll'
-
-type CommunityMainTab = 'feed' | 'groups'
 
 type FeedMeStats = {
   rank: string
@@ -123,7 +120,6 @@ export default function CommunityPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [deletingPost, setDeletingPost] = useState<CommunityPost | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
-  const [communityMainTab, setCommunityMainTab] = useState<CommunityMainTab>('feed')
 
   const getToken = useCallback(async () => {
     return await getFirebaseToken()
@@ -722,33 +718,12 @@ export default function CommunityPage() {
           </header>
 
           <div className="community-tabs" role="tablist" aria-label="Community sections">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={communityMainTab === 'feed'}
-              className={communityMainTab === 'feed' ? 'active' : ''}
-              onClick={() => setCommunityMainTab('feed')}
-            >
+            <button type="button" role="tab" aria-selected className="active">
               <Globe size={16} aria-hidden />
               Feed
             </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={communityMainTab === 'groups'}
-              className={communityMainTab === 'groups' ? 'active' : ''}
-              onClick={() => setCommunityMainTab('groups')}
-            >
-              <Users size={16} aria-hidden />
-              Study groups
-            </button>
           </div>
 
-          {communityMainTab === 'groups' ? (
-            <StudyGroupsTab myUid={myUid} showToast={showToast} />
-          ) : null}
-
-          {communityMainTab === 'feed' ? (
           <div className="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)_300px]">
             <aside className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -1019,7 +994,6 @@ export default function CommunityPage() {
               </section>
             </aside>
           </div>
-          ) : null}
         </div>
       </div>
 
