@@ -16,7 +16,29 @@ const EXAM_OPTIONS = [
   { value: 'wassce', label: 'WAEC / WASSCE' },
   { value: 'neco', label: 'NECO' },
   { value: 'bece', label: 'BECE' },
+  { value: 'post-utme', label: 'POST UTME (University)' },
 ]
+
+const POST_UTME_SCHOOLS = [
+  { name: 'University of Lagos', short: 'UNILAG' },
+  { name: 'Obafemi Awolowo University', short: 'OAU' },
+  { name: 'University of Ibadan', short: 'UI' },
+  { name: 'University of Nigeria Nsukka', short: 'UNN' },
+  { name: 'Ahmadu Bello University', short: 'ABU' },
+  { name: 'University of Benin', short: 'UNIBEN' },
+  { name: 'University of Ilorin', short: 'UNILORIN' },
+  { name: 'University of Port Harcourt', short: 'UNIPORT' },
+  { name: 'Federal University of Technology Akure', short: 'FUTA' },
+  { name: 'Nnamdi Azikiwe University', short: 'UNIZIK' },
+]
+
+function toSyllabusExamType(examType: string): 'JAMB' | 'WAEC' | 'NECO' | 'POST_UTME' | 'BECE' {
+  if (examType === 'utme') return 'JAMB'
+  if (examType === 'wassce') return 'WAEC'
+  if (examType === 'neco') return 'NECO'
+  if (examType === 'post-utme') return 'POST_UTME'
+  return 'BECE'
+}
 
 export default function GroupCBTPage() {
   const router = useRouter()
@@ -30,6 +52,7 @@ export default function GroupCBTPage() {
     name: '',
     subject: 'mathematics',
     examType: 'utme',
+    school: '',
     year: 'any',
     questionCount: 10,
   })
@@ -77,11 +100,17 @@ export default function GroupCBTPage() {
 
   const subjects = useMemo(() => {
     try {
-      return getSubjectsForExam('JAMB')
+      return getSubjectsForExam(toSyllabusExamType(createForm.examType))
     } catch {
       return ['mathematics', 'english', 'physics', 'chemistry', 'biology']
     }
-  }, [])
+  }, [createForm.examType])
+
+  useEffect(() => {
+    if (!subjects.includes(createForm.subject)) {
+      setCreateForm((f) => ({ ...f, subject: subjects[0] || 'mathematics' }))
+    }
+  }, [subjects, createForm.subject])
 
   const openSession = async (s: GroupCBTSession) => {
     setActive(s)
@@ -91,9 +120,16 @@ export default function GroupCBTPage() {
   }
 
   const createGroup = async () => {
+    if (createForm.examType === 'post-utme' && !createForm.school) {
+      toast.error('Please select a university for POST UTME')
+      return
+    }
     try {
       const { data } = await groupCbtApi.create({
-        name: createForm.name,
+        name:
+          createForm.examType === 'post-utme' && createForm.school
+            ? `${createForm.name} (${createForm.school})`
+            : createForm.name,
         subject: createForm.subject,
         examType: createForm.examType,
         year: createForm.year || 'any',
@@ -192,14 +228,22 @@ export default function GroupCBTPage() {
               <section className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white dark:bg-gray-800/60 space-y-3">
                 <h2 className="font-bold">Create group</h2>
                 <input placeholder="Group name" value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
-                <select value={createForm.subject} onChange={(e) => setCreateForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
-                  {subjects.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
                 <select value={createForm.examType} onChange={(e) => setCreateForm((f) => ({ ...f, examType: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
                   {EXAM_OPTIONS.map((e) => (
                     <option key={e.value} value={e.value}>{e.label}</option>
+                  ))}
+                </select>
+                {createForm.examType === 'post-utme' ? (
+                  <select value={createForm.school} onChange={(e) => setCreateForm((f) => ({ ...f, school: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+                    <option value="">-- Select University --</option>
+                    {POST_UTME_SCHOOLS.map((s) => (
+                      <option key={s.short} value={s.short}>{s.name}</option>
+                    ))}
+                  </select>
+                ) : null}
+                <select value={createForm.subject} onChange={(e) => setCreateForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+                  {subjects.map((s) => (
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
                 <input placeholder="Year or any" value={createForm.year} onChange={(e) => setCreateForm((f) => ({ ...f, year: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
