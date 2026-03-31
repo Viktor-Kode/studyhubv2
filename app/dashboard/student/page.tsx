@@ -199,7 +199,7 @@ export default function StudentDashboardPage() {
       icon: BiTimer,
       label: 'Study Timer',
       color: 'cyan',
-      description: 'Pomodoro technique timer'
+      description: 'Focused study sessions with timer tracking'
     },
     {
       href: '/dashboard/cgpa',
