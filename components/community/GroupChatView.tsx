@@ -30,6 +30,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react'
+import Link from 'next/link'
 import { studyGroupsApi, type GroupChatMessage, type StudyGroup, type StudyGroupMember } from '@/lib/api/studyGroupsApi'
 import { useGroupReadReceipts } from '@/hooks/useGroupReadReceipts'
 import { GroupStudyToolsPanel } from '@/components/community/GroupStudyToolsPanel'
@@ -894,23 +895,35 @@ export function GroupChatView({ group: initialGroup, myUid, member, onBack, show
             </button>
           )}
 
-          <div className="group-coming-soon">
-            <button type="button" disabled>
-              <FileText className="h-4 w-4" />
-              Shared notes — Coming soon
-            </button>
-            <button type="button" disabled>
-              <Library className="h-4 w-4" />
-              Shared library — Coming soon
-            </button>
-            <button type="button" disabled>
-              <FileQuestion className="h-4 w-4" />
-              Group CBT — Coming soon
-            </button>
-            <button type="button" disabled>
-              <Timer className="h-4 w-4" />
-              Pomodoro timer — Coming soon
-            </button>
+          <div className="group-stud-quicklinks flex flex-col gap-2 mt-4">
+            <Link
+              href="/dashboard/student/notes"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/80 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/40"
+            >
+              <FileText className="h-4 w-4 text-indigo-600" />
+              Shared notes
+            </Link>
+            <Link
+              href="/dashboard/student/library"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/80 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/40"
+            >
+              <Library className="h-4 w-4 text-indigo-600" />
+              Shared library
+            </Link>
+            <Link
+              href="/dashboard/student/group-cbt"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/80 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/40"
+            >
+              <FileQuestion className="h-4 w-4 text-indigo-600" />
+              Group CBT
+            </Link>
+            <Link
+              href="/dashboard/student/pomodoro"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/80 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/40"
+            >
+              <Timer className="h-4 w-4 text-indigo-600" />
+              Pomodoro timer
+            </Link>
           </div>
         </aside>
       </div>

@@ -14,7 +14,7 @@ import UpgradeHandlerSetup from './UpgradeHandlerSetup'
  * Firebase handles session persistence via IndexedDB/localStorage natively.
  */
 import { useEffect } from 'react'
-import { toast } from 'react-hot-toast'
+import { toast, Toaster } from 'react-hot-toast'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -99,6 +99,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 <IOSInstallBanner />
                 <UpgradeHandlerSetup />
                 <NotifToast />
+                <Toaster position="top-center" toastOptions={{ duration: 3200 }} />
                 {children}
             </UpgradeProvider>
         </QueryClientProvider>

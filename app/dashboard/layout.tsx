@@ -11,9 +11,10 @@ import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut, FiAward,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
-    FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile
+    FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers
 } from 'react-icons/fi'
-import { MdQuiz, MdSchool } from 'react-icons/md'
+import { MdQuiz, MdSchool, MdOutlineTimer } from 'react-icons/md'
+import { LuNotebookPen, LuLibrary } from 'react-icons/lu'
 import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
@@ -41,6 +42,10 @@ const navItems: NavItem[] = [
     { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student'] },
     { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student'] },
     { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student'] },
+    { href: '/dashboard/student/notes', label: 'Shared Notes', icon: LuNotebookPen, roles: ['student'] },
+    { href: '/dashboard/student/library', label: 'Shared Library', icon: LuLibrary, roles: ['student'] },
+    { href: '/dashboard/student/group-cbt', label: 'Group CBT', icon: FiUsers, roles: ['student'] },
+    { href: '/dashboard/student/pomodoro', label: 'Pomodoro', icon: MdOutlineTimer, roles: ['student'] },
     { href: '/community', label: 'Community', icon: FiAward, roles: ['student'] },
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
 
