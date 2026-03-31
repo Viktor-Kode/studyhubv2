@@ -125,7 +125,7 @@ export default function SharedLibraryPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <BackButton href="/dashboard/student" />
+            <BackButton href="/dashboard/student/study-groups" />
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Shared library</h1>
           </div>
           <div className="hidden sm:block shrink-0">
