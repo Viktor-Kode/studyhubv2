@@ -45,6 +45,7 @@ export default function PdfCbtPage() {
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [numQuestions, setNumQuestions] = useState('all')
+  const [customQuestionCount, setCustomQuestionCount] = useState('40')
   const [timeLimit, setTimeLimit] = useState('0')
   const [shuffle, setShuffle] = useState(true)
   const [extracting, setExtracting] = useState(false)
@@ -188,7 +189,9 @@ export default function PdfCbtPage() {
   }
 
   const buildQuestionSet = (questions: PdfQuestion[]) => {
-    const count = numQuestions === 'all' ? questions.length : Math.min(Number(numQuestions), questions.length)
+    const selectedCount =
+      numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
+    const count = numQuestions === 'all' ? questions.length : Math.min(selectedCount, questions.length)
     const base = shuffle ? shuffleArray(questions) : [...questions]
     return base.slice(0, count)
   }
@@ -200,6 +203,10 @@ export default function PdfCbtPage() {
     try {
       const formData = new FormData()
       formData.append('pdf', file)
+      const selectedCount =
+        numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
+      const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
+      formData.append('requestedCount', String(requestedCount))
       const token = await getFirebaseToken()
       const response = await fetch('/api/backend/pdf-cbt/extract', {
         method: 'POST',
@@ -328,7 +335,20 @@ export default function PdfCbtPage() {
                     <option value="10">10 questions</option>
                     <option value="20">20 questions</option>
                     <option value="30">30 questions</option>
+                    <option value="40">40 questions</option>
+                    <option value="50">50 questions</option>
+                    <option value="custom">Custom</option>
                   </select>
+                  {numQuestions === 'custom' && (
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={customQuestionCount}
+                      onChange={(e) => setCustomQuestionCount(e.target.value)}
+                      placeholder="Enter question count"
+                    />
+                  )}
                 </div>
                 <div className="pcbt-option-group">
                   <label>Time limit</label>
