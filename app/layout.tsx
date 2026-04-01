@@ -3,15 +3,24 @@ import '@/styles/gamification-modern.css'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import ThemeProvider from '@/components/ThemeProvider'
+import { buildSeoMetadata, getSiteUrl } from '@/lib/seo'
 
 import Providers from '@/components/Providers'
 import HelpWidgetLayer from '@/components/help/HelpWidgetLayer'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const siteUrl = getSiteUrl()
+
 export const metadata: Metadata = {
-  title: 'StudyHelp - AI-Powered Education Platform',
-  description: 'Transform education with AI: Smarter teaching, deeper learning. One platform for educators and students.',
+  ...buildSeoMetadata({
+    title: 'StudyHelp - AI-Powered Education Platform',
+    description:
+      'Transform education with AI: Smarter teaching, deeper learning. One platform for educators and students.',
+    path: '/',
+    keywords: ['CBT practice', 'study notes', 'education', 'exam prep', 'study tools'],
+  }),
+  metadataBase: new URL(siteUrl),
   manifest: '/site.webmanifest',
   icons: {
     icon: [
@@ -47,6 +56,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="StudyHelp" />

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 import LandingNavbar from '@/components/LandingNavbar'
 import HeroSection from '@/components/sections/HeroSection'
 import TeacherFeatures from '@/components/sections/TeacherFeatures'
@@ -38,6 +39,72 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative z-0 overflow-hidden">
+      <Script
+        id="home-jsonld"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'StudyHelp',
+              url: 'https://studyhub.com',
+              logo: 'https://studyhub.com/logo.png',
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'StudyHelp',
+              url: 'https://studyhub.com',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: 'https://studyhub.com/?q={search_term_string}',
+                'query-input': 'required name=search_term_string',
+              },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Home',
+                  item: 'https://studyhub.com/',
+                },
+              ],
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              name: 'StudyHelp Core Features',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'CBT Practice',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: 'Shared Notes',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 3,
+                  name: 'Study Groups',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 4,
+                  name: 'Progress Analytics',
+                },
+              ],
+            },
+          ]),
+        }}
+      />
       {/* Navigation Bar */}
       <LandingNavbar />
       
