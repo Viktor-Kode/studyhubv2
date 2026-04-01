@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle } from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import { cbtApi } from '@/lib/api/cbt'
 import jsPDF from 'jspdf'
 
 import './PdfCbt.css'
@@ -62,6 +63,8 @@ export default function PdfCbtPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [timeLeft, setTimeLeft] = useState(0)
   const [flagged, setFlagged] = useState<Set<number>>(new Set())
+  const [savingResult, setSavingResult] = useState(false)
+  const [resultSaved, setResultSaved] = useState(false)
 
   useEffect(() => {
     if (!extracting) return
@@ -78,7 +81,7 @@ export default function PdfCbtPage() {
     if (stage !== 'test') return
     if (Number(timeLimit) <= 0) return
     if (timeLeft <= 0) {
-      handleSubmit()
+      void handleSubmit()
       return
     }
     const t = setInterval(() => setTimeLeft((s) => s - 1), 1000)
@@ -260,12 +263,58 @@ export default function PdfCbtPage() {
     setAnswers({})
     setFlagged(new Set())
     setCurrentQ(0)
+    setResultSaved(false)
     setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
     setStage('test')
   }
 
-  const handleSubmit = () => {
-    setStage('results')
+  const handleSubmit = async () => {
+    if (savingResult || resultSaved) {
+      setStage('results')
+      return
+    }
+
+    setSavingResult(true)
+    try {
+      const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
+      const correct = questionsToUse.filter((q, i) => q.type === 'objective' && answers[i] === q.answer).length
+      const total = objectiveQuestions.length
+      const wrong = Math.max(total - correct, 0)
+      const skipped = questionsToUse.reduce((acc, _q, i) => {
+        const val = String(answers[i] || '').trim()
+        return val ? acc : acc + 1
+      }, 0)
+      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
+      const selectedTime = Number(timeLimit)
+      const computedTimeTaken =
+        selectedTime > 0 ? Math.max(selectedTime * 60 - Math.max(timeLeft, 0), 0) : undefined
+
+      await cbtApi.saveResult({
+        subject: extractedData?.subject || 'General',
+        examType: 'PDF_CBT',
+        year: String(new Date().getFullYear()),
+        totalQuestions: total || questionsToUse.length,
+        correctAnswers: correct,
+        wrongAnswers: wrong,
+        skipped,
+        accuracy,
+        timeTaken: computedTimeTaken,
+        answers: questionsToUse.map((q, i) => ({
+          questionId: String(i + 1),
+          question: q.question,
+          selectedAnswer: String(answers[i] || '').trim(),
+          correctAnswer: String(q.answer || ''),
+          explanation: q.type === 'theory' ? 'Theory question' : undefined,
+          isCorrect: q.type === 'objective' ? answers[i] === q.answer : undefined
+        }))
+      })
+      setResultSaved(true)
+    } catch (e) {
+      console.error('Failed to save PDF CBT result:', e)
+    } finally {
+      setSavingResult(false)
+      setStage('results')
+    }
   }
 
   const toggleFlag = () => {
@@ -450,7 +499,7 @@ export default function PdfCbtPage() {
                 onClick={() => {
                   const remaining = questionsToUse.length - answeredCount
                   if (remaining > 0 && !window.confirm(`You have ${remaining} unanswered question(s). Submit anyway?`)) return
-                  handleSubmit()
+                  void handleSubmit()
                 }}
                 className="nav-submit"
               >
@@ -523,7 +572,7 @@ export default function PdfCbtPage() {
             <button onClick={() => setCurrentQ((i) => Math.max(i - 1, 0))} disabled={currentQ === 0} className="nav-prev disabled:opacity-40">Previous</button>
             <button
               onClick={() => {
-                if (currentQ === questionsToUse.length - 1) handleSubmit()
+                if (currentQ === questionsToUse.length - 1) void handleSubmit()
                 else setCurrentQ((i) => Math.min(i + 1, questionsToUse.length - 1))
               }}
               className="nav-next"
@@ -600,6 +649,7 @@ export default function PdfCbtPage() {
                   setExtractedData(null)
                   setQuestionsToUse([])
                   setAnswers({})
+                  setResultSaved(false)
                   setError('')
                 }}
               >
@@ -610,6 +660,7 @@ export default function PdfCbtPage() {
                 onClick={() => {
                   setAnswers({})
                   setCurrentQ(0)
+                  setResultSaved(false)
                   setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
                   setStage('test')
                 }}
