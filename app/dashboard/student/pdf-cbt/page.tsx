@@ -10,11 +10,13 @@ import './PdfCbt.css'
 
 type Stage = 'upload' | 'preview' | 'test' | 'results'
 type OptionKey = 'A' | 'B' | 'C' | 'D'
+type QuestionType = 'objective' | 'theory'
 
 interface PdfQuestion {
+  type: QuestionType
   question: string
-  options: Record<OptionKey, string>
-  answer: OptionKey
+  options: Record<OptionKey, string> | null
+  answer: string
 }
 
 interface ExtractedData {
@@ -56,7 +58,7 @@ export default function PdfCbtPage() {
   const [questionsToUse, setQuestionsToUse] = useState<PdfQuestion[]>([])
 
   const [currentQ, setCurrentQ] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, OptionKey>>({})
+  const [answers, setAnswers] = useState<Record<number, string>>({})
   const [timeLeft, setTimeLeft] = useState(0)
   const [flagged, setFlagged] = useState<Set<number>>(new Set())
 
@@ -82,11 +84,15 @@ export default function PdfCbtPage() {
     return () => clearInterval(t)
   }, [stage, timeLimit, timeLeft])
 
-  const answeredCount = useMemo(() => Object.keys(answers).length, [answers])
+  const answeredCount = useMemo(
+    () => Object.values(answers).filter((val) => String(val || '').trim().length > 0).length,
+    [answers]
+  )
 
   const score = useMemo(() => {
-    const total = questionsToUse.length
-    const correct = questionsToUse.filter((q, i) => answers[i] === q.answer).length
+    const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
+    const total = objectiveQuestions.length
+    const correct = questionsToUse.filter((q, i) => q.type === 'objective' && answers[i] === q.answer).length
     const pct = total ? Math.round((correct / total) * 100) : 0
     return { total, correct, pct }
   }, [answers, questionsToUse])
@@ -205,19 +211,26 @@ export default function PdfCbtPage() {
         throw new Error(data?.error || data?.message || 'Failed to extract questions.')
       }
       const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({
+        type: String(q.type || '').toLowerCase() === 'theory' ? 'theory' : 'objective',
         question: String(q.question || ''),
-        options: {
-          A: String(q.options?.A || ''),
-          B: String(q.options?.B || ''),
-          C: String(q.options?.C || ''),
-          D: String(q.options?.D || '')
-        },
-        answer: (String(q.answer || 'A').toUpperCase() as OptionKey)
+        options: q?.options
+          ? {
+              A: String(q.options?.A || ''),
+              B: String(q.options?.B || ''),
+              C: String(q.options?.C || ''),
+              D: String(q.options?.D || '')
+            }
+          : null,
+        answer: String(q.answer || '')
       }))
-      const cleanQuestions = normalizedQuestions.filter((q) => q.question && OPTION_KEYS.every((k) => q.options[k]))
+      const cleanQuestions = normalizedQuestions.filter((q) => {
+        if (!q.question) return false
+        if (q.type === 'objective') return Boolean(q.options && OPTION_KEYS.every((k) => q.options?.[k]))
+        return true
+      })
 
       if (!cleanQuestions.length) {
-        throw new Error('No usable multiple choice questions were extracted from this PDF.')
+        throw new Error('No usable questions were extracted from this PDF.')
       }
 
       const prepared: ExtractedData = {
@@ -263,7 +276,7 @@ export default function PdfCbtPage() {
         <>
           <div className="pcbt-header">
             <h1>PDF to CBT</h1>
-            <p>Upload any past question PDF with answers and practice without seeing answers first.</p>
+            <p>Upload any past question PDF with answers and practice all extracted question types.</p>
           </div>
 
           <div
@@ -354,7 +367,7 @@ export default function PdfCbtPage() {
             <h4>How it works</h4>
             <div className="pcbt-steps">
               <div className="pcbt-step"><span>1</span><p>Upload your PDF with questions and answers</p></div>
-              <div className="pcbt-step"><span>2</span><p>AI extracts only objective questions</p></div>
+              <div className="pcbt-step"><span>2</span><p>AI extracts objective and theory questions</p></div>
               <div className="pcbt-step"><span>3</span><p>Answers stay hidden while you practice</p></div>
               <div className="pcbt-step"><span>4</span><p>Submit to see score and corrections</p></div>
             </div>
@@ -380,11 +393,17 @@ export default function PdfCbtPage() {
               {questionsToUse.slice(0, 3).map((q, i) => (
                 <div key={i} className="pcbt-preview-q">
                   <p><strong>Q{i + 1}:</strong> {q.question}</p>
-                  <div className="pcbt-preview-options">
-                    {Object.entries(q.options).map(([key, val]) => (
-                      <span key={key} className="pcbt-preview-option">{key}. {val}</span>
-                    ))}
-                  </div>
+                  {q.type === 'objective' && q.options ? (
+                    <div className="pcbt-preview-options">
+                      {Object.entries(q.options).map(([key, val]) => (
+                        <span key={key} className="pcbt-preview-option">{key}. {val}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="pcbt-preview-options">
+                      <span className="pcbt-preview-option">Theory question</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -452,21 +471,32 @@ export default function PdfCbtPage() {
 
             <div className="question-text">{currentQuestion.question}</div>
 
-            <div className="options-list">
-              {OPTION_KEYS.map((key) => {
-                const isSelected = answers[currentQ] === key
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setAnswers((prev) => ({ ...prev, [currentQ]: key }))}
-                    className={`option-btn ${isSelected ? 'selected' : ''}`}
-                  >
-                    <span className="option-letter">{key}.</span>
-                    <span>{currentQuestion.options[key]}</span>
-                  </button>
-                )
-              })}
-            </div>
+            {currentQuestion.type === 'objective' && currentQuestion.options ? (
+              <div className="options-list">
+                {OPTION_KEYS.map((key) => {
+                  const isSelected = answers[currentQ] === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setAnswers((prev) => ({ ...prev, [currentQ]: key }))}
+                      className={`option-btn ${isSelected ? 'selected' : ''}`}
+                    >
+                      <span className="option-letter">{key}.</span>
+                      <span>{currentQuestion.options[key]}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="options-list">
+                <textarea
+                  value={answers[currentQ] || ''}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQ]: e.target.value }))}
+                  placeholder="Type your answer here..."
+                  className="w-full min-h-[120px] rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+            )}
           </div>
 
           <div className="cbt-nav-buttons">
@@ -494,25 +524,45 @@ export default function PdfCbtPage() {
 
             <h2>{score.pct >= 70 ? 'Great job!' : score.pct >= 50 ? 'Good effort!' : 'Keep studying!'}</h2>
             <p>{extractedData.subject} · PDF Practice</p>
+            {score.total === 0 && <p>No objective questions to auto-grade in this set.</p>}
 
             <div className="pcbt-review">
               {questionsToUse.map((q, i) => {
                 const userAnswer = answers[i]
-                const isCorrect = userAnswer === q.answer
+                const isCorrect = q.type === 'objective' ? userAnswer === q.answer : false
                 return (
                   <div key={i} className={`pcbt-review-item ${isCorrect ? 'correct' : 'wrong'}`}>
                     <div className="pcbt-review-header">
-                      {isCorrect ? <FiCheckCircle color="#10B981" /> : <FiXCircle color="#EF4444" />}
-                      <span>{isCorrect ? `Q${i + 1}: Correct` : `Q${i + 1}: Wrong — Answer: ${q.answer}. ${q.options[q.answer]}`}</span>
+                      {q.type === 'objective' ? (
+                        <>
+                          {isCorrect ? <FiCheckCircle color="#10B981" /> : <FiXCircle color="#EF4444" />}
+                          <span>
+                            {isCorrect
+                              ? `Q${i + 1}: Correct`
+                              : `Q${i + 1}: Wrong — Answer: ${q.answer}. ${q.options?.[q.answer as OptionKey] || ''}`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <FiCheckCircle color="#3B82F6" />
+                          <span>Q{i + 1}: Theory response recorded</span>
+                        </>
+                      )}
                     </div>
                     <p className="pcbt-review-question">{q.question}</p>
-                    {!isCorrect && (
+                    {q.type === 'objective' && !isCorrect && (
                       <div className="pcbt-review-options">
                         {OPTION_KEYS.map((key) => (
                           <span key={key} className={`pcbt-review-option ${key === q.answer ? 'correct' : key === userAnswer ? 'wrong' : ''}`}>
-                            {key}. {q.options[key]}
+                            {key}. {q.options?.[key] || ''}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {q.type === 'theory' && (
+                      <div className="pcbt-review-options">
+                        <span className="pcbt-review-option"><strong>Your answer:</strong> {userAnswer || 'No answer provided'}</span>
+                        <span className="pcbt-review-option"><strong>Model answer:</strong> {q.answer || 'No model answer provided'}</span>
                       </div>
                     )}
                   </div>
