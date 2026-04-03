@@ -154,6 +154,85 @@ input, select, textarea {
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
+/* ─── Visual Lab & CBT Diagrams ───────────────────────────────────────────── */
+.vlab-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; display: flex; flex-direction: column; gap: 20px; }
+
+.vlab-header h1 { font-size: 24px; font-weight: 900; color: #0F172A; margin: 0 0 4px; letter-spacing: -0.5px; }
+.vlab-header p { font-size: 14px; color: #64748B; margin: 0; }
+
+.vlab-controls { display: flex; flex-direction: column; gap: 12px; }
+.vlab-search { display: flex; align-items: center; gap: 10px; background: white; border: 1.5px solid #E8EAED; border-radius: 12px; padding: 11px 16px; }
+.vlab-search:focus-within { border-color: #5B4CF5; box-shadow: 0 0 0 3px rgba(91,76,245,0.1); }
+.vlab-search input { flex: 1; border: none; outline: none; font-size: 14px; font-family: inherit; background: transparent; color: #0F172A; }
+.vlab-search input::placeholder { color: #CBD5E1; }
+
+.vlab-subject-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.vlab-subject-tabs::-webkit-scrollbar { display: none; }
+.vlab-subject-tab { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1.5px solid #E8EAED; border-radius: 20px; background: white; font-size: 13px; font-weight: 600; color: #64748B; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.vlab-subject-tab:hover { border-color: #5B4CF5; color: #5B4CF5; }
+.vlab-subject-tab.active { background: #5B4CF5; border-color: #5B4CF5; color: white; }
+
+.vlab-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; align-items: start; }
+
+.vlab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+
+.vlab-card { background: white; border: 1.5px solid #E8EAED; border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+.vlab-card:hover { border-color: #5B4CF5; box-shadow: 0 4px 16px rgba(91,76,245,0.12); transform: translateY(-2px); }
+.vlab-card.active { border-color: #5B4CF5; box-shadow: 0 0 0 3px rgba(91,76,245,0.2); }
+.vlab-card-preview { padding: 12px; background: #FAFBFC; }
+.vlab-card-preview svg { width: 100%; height: 140px; }
+.vlab-card-info { padding: 10px 12px; }
+.vlab-subject-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.3px; }
+.vlab-card-title { font-size: 13px; font-weight: 700; color: #0F172A; margin: 6px 0 0; }
+
+.vlab-empty { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px; color: #94A3B8; text-align: center; }
+.vlab-empty span { font-size: 40px; }
+
+.vlab-detail { background: white; border: 1.5px solid #E8EAED; border-radius: 20px; padding: 20px; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 16px; }
+.vlab-detail-header { display: flex; align-items: center; justify-content: space-between; }
+.vlab-detail-header h3 { font-size: 16px; font-weight: 800; color: #0F172A; margin: 0; }
+.vlab-close { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #E8EAED; background: #F8FAFC; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #64748B; }
+
+.vlab-zoom-controls { display: flex; align-items: center; gap: 8px; }
+.vlab-zoom-controls button { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #E8EAED; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.15s; }
+.vlab-zoom-controls button:hover { background: #F8FAFC; border-color: #CBD5E1; }
+.vlab-zoom-controls span { font-size: 12px; font-weight: 700; color: #64748B; min-width: 36px; text-align: center; }
+.vlab-labels-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #64748B; cursor: pointer; margin-left: 4px; }
+
+.vlab-svg-viewer { border: 1.5px solid #E8EAED; border-radius: 14px; padding: 16px; overflow: auto; max-height: 380px; background: #FAFBFC; }
+.vlab-svg-inner svg { width: 100%; height: auto; }
+.vlab-svg-inner.hide-labels text { display: none; }
+
+.vlab-keywords { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.vlab-keywords-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px; }
+.vlab-keyword-chip { font-size: 11px; background: #F1F5F9; color: #475569; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+
+.vlab-tip { background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #92400E; line-height: 1.6; }
+
+/* CBT diagram styles */
+.cbt-diagram-wrap { background: #F8FAFC; border: 1.5px solid #E8EAED; border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+.cbt-diagram-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+.cbt-diagram-badge { font-size: 12px; font-weight: 700; color: #5B4CF5; background: #EEF2FF; padding: 4px 12px; border-radius: 20px; }
+.cbt-diagram-expand { font-size: 12px; font-weight: 600; color: #64748B; background: none; border: 1.5px solid #E8EAED; padding: 4px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.cbt-diagram-svg svg { width: 100%; max-height: 220px; }
+.cbt-diagram-toggle { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1.5px solid #E8EAED; border-radius: 8px; background: white; font-size: 12px; font-weight: 600; color: #64748B; cursor: pointer; transition: all 0.15s; }
+.cbt-diagram-toggle:hover { border-color: #5B4CF5; color: #5B4CF5; }
+
+/* Fullscreen modal */
+.cbt-diagram-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.cbt-diagram-modal { background: white; border-radius: 24px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 80px rgba(0,0,0,0.2); }
+.cbt-diagram-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1.5px solid #F1F5F9; }
+.cbt-diagram-modal-header h3 { font-size: 17px; font-weight: 800; color: #0F172A; margin: 0; }
+.cbt-diagram-modal-header button { background: #F1F5F9; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
+.cbt-diagram-modal-svg { padding: 24px; }
+.cbt-diagram-modal-svg svg { width: 100%; height: auto; }
+
+@media (max-width: 768px) {
+  .vlab-layout { grid-template-columns: 1fr; }
+  .vlab-detail { position: static; }
+  .vlab-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* iOS Install Banner */
 .ios-banner {
   position: fixed;

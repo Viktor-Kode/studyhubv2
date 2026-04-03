@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student'] },
     { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student'] },
     { href: '/dashboard/student/study-groups', label: 'Study Groups', icon: FiUsers, roles: ['student'] },
+    { href: '/dashboard/student/visual-lab', label: 'Visual Lab', icon: FiGrid, roles: ['student'] },
     { href: '/community', label: 'Community', icon: FiAward, roles: ['student'] },
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
 

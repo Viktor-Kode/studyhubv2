@@ -19,7 +19,8 @@ import {
   HiOutlineAcademicCap, HiOutlineLightBulb
 } from 'react-icons/hi'
 import { MdOutlineQuiz, MdCalculate } from 'react-icons/md'
-import { GraduationCap } from 'lucide-react'
+import { GraduationCap, Eye, EyeOff } from 'lucide-react'
+import { findDiagram } from '@/lib/data/visualLabDiagrams'
 import { BiTimer, BiStats, BiUserCircle } from 'react-icons/bi'
 import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -249,6 +250,8 @@ export default function CBTPage() {
   const [showQuestionPanel, setShowQuestionPanel] = useState(false)
   const [customDurationMinutes, setCustomDurationMinutes] = useState<number>(120)
   const [examDurationAtStartSeconds, setExamDurationAtStartSeconds] = useState<number>(0)
+  const [showDiagram, setShowDiagram] = useState(true)
+  const [diagramExpanded, setDiagramExpanded] = useState(false)
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -1058,6 +1061,16 @@ export default function CBTPage() {
                 {currentExamConfig?.label} — {selectedSubject} {selectedYear}
               </div>
               <div className="flex items-center gap-3">
+                {findDiagram(currentQuestion.question) && (
+                  <button
+                    type="button"
+                    className="cbt-diagram-toggle"
+                    onClick={() => setShowDiagram((s) => !s)}
+                  >
+                    {showDiagram ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showDiagram ? 'Hide Diagram' : 'Show Diagram'}
+                  </button>
+                )}
                 <div className={`cbt-timer ${timeRemaining <= 60 ? 'warning' : ''}`}>
                   <FiClock className="inline-block mr-1" />
                   {formatTime(timeRemaining)}
@@ -1215,6 +1228,32 @@ export default function CBTPage() {
                 </div>
               )}
 
+              {/* ── VISUAL LAB DIAGRAM (if available) ───────────── */}
+              {(() => {
+                const diagram = findDiagram(currentQuestion.question)
+                if (!diagram || !showDiagram) return null
+                return (
+                  <div className="cbt-diagram-wrap">
+                    <div className="cbt-diagram-header">
+                      <span className="cbt-diagram-badge">
+                        🔬 Visual Aid — {diagram.title}
+                      </span>
+                      <button
+                        type="button"
+                        className="cbt-diagram-expand"
+                        onClick={() => setDiagramExpanded(true)}
+                      >
+                        ⤢ Expand
+                      </button>
+                    </div>
+                    <div
+                      className="cbt-diagram-svg"
+                      dangerouslySetInnerHTML={{ __html: diagram.svg }}
+                    />
+                  </div>
+                )
+              })()}
+
               {/* ── QUESTION TEXT ───────────────────────────────── */}
               <div
                 className="question-text"
@@ -1284,6 +1323,34 @@ export default function CBTPage() {
 
             {/* Calculator Component */}
             {showCalculator && <CBTCalculator onClose={() => setShowCalculator(false)} />}
+
+            {/* Expanded fullscreen diagram modal */}
+            {diagramExpanded && (() => {
+              const diagram = currentQuestion ? findDiagram(currentQuestion.question) : null
+              if (!diagram) return null
+              return (
+                <div
+                  className="cbt-diagram-modal-overlay"
+                  onClick={() => setDiagramExpanded(false)}
+                >
+                  <div
+                    className="cbt-diagram-modal"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="cbt-diagram-modal-header">
+                      <h3>{diagram.title}</h3>
+                      <button type="button" onClick={() => setDiagramExpanded(false)}>
+                        ✕ Close
+                      </button>
+                    </div>
+                    <div
+                      className="cbt-diagram-modal-svg"
+                      dangerouslySetInnerHTML={{ __html: diagram.svg }}
+                    />
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
 
