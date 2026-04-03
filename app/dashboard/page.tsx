@@ -16,7 +16,7 @@ export default function DashboardIndex() {
             } else if (user.role === 'admin') {
                 router.push('/dashboard/admin')
             } else if (user.role === 'teacher') {
-                router.push('/dashboard/teacher')
+                router.push('/dashboard/student')
             } else {
                 router.push('/dashboard/student')
             }

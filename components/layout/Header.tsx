@@ -16,8 +16,6 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const { user, logout } = useAuthStore()
-  const isTeacher = user?.role === 'teacher'
-
   const handleLogout = () => {
     logout()
     router.push('/')
@@ -38,7 +36,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             <Link
-              href={isTeacher ? "/dashboard/teacher" : "/dashboard"}
+              href="/dashboard/student"
               className="flex items-center space-x-3 group"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 overflow-hidden">
@@ -55,7 +53,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   StudyHelp
                 </span>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
+                  Dashboard
                 </div>
               </div>
             </Link>

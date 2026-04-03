@@ -3,18 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Zap, FileText, Clock } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/authStore'
 
-const TEACHER_GENERATOR_PATH = '/dashboard/teacher/question-generator'
 const STUDENT_GENERATOR_PATH = '/dashboard/question-bank'
 const NOTES_PATH = '/dashboard/notes'
 const HISTORY_PATH = '/dashboard/question-history'
 
 export default function GeneratorTabsHeader() {
   const pathname = usePathname()
-  const { user } = useAuthStore()
-  const isTeacher = user?.role === 'teacher'
-  const generatorPath = isTeacher ? TEACHER_GENERATOR_PATH : STUDENT_GENERATOR_PATH
+  const generatorPath = STUDENT_GENERATOR_PATH
   const isGenerator = pathname?.includes('question-generator') || pathname?.includes('question-bank')
   const isNotes = pathname?.includes('/notes') && !pathname?.includes('question-bank')
   const isHistory = pathname?.includes('question-history')

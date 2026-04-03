@@ -17,7 +17,7 @@ export default function LandingNavbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const dashboardLink = user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard'
+  const dashboardLink = '/dashboard'
 
   return (
     <nav

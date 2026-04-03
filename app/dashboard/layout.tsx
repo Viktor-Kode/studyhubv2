@@ -32,25 +32,19 @@ const navItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: FiHome },
     { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
 
-    // Student Only
-    { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student'] },
-    { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen, roles: ['student'] },
-    { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student'] },
-    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student'] },
-    { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student'] },
-    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student'] },
-    { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student'] },
-    { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student'] },
-    { href: '/dashboard/student/study-groups', label: 'Study Groups', icon: FiUsers, roles: ['student'] },
-    { href: '/dashboard/student/visual-lab', label: 'Visual Lab', icon: FiGrid, roles: ['student'] },
-    { href: '/community', label: 'Community', icon: FiAward, roles: ['student'] },
-    { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student'] },
-
-    // Teacher Only
-    { href: '/dashboard/teacher/tools', label: 'Teacher Tools', icon: FiFileText, roles: ['teacher'] },
-    { href: '/dashboard/teacher/question-generator', label: 'Question Generator', icon: FiBook, roles: ['teacher'] },
-    { href: '/dashboard/teacher/questions', label: 'Saved Questions', icon: FiBook, roles: ['teacher'] },
-    { href: '/dashboard/teacher/classes', label: 'Class Management', icon: FiGrid, roles: ['teacher'] },
+    // Learner tools (students + teachers; no separate teacher dashboard)
+    { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student', 'teacher'] },
+    { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen, roles: ['student', 'teacher'] },
+    { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student', 'teacher'] },
+    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student', 'teacher'] },
+    { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student', 'teacher'] },
+    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student', 'teacher'] },
+    { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student', 'teacher'] },
+    { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student', 'teacher'] },
+    { href: '/dashboard/student/study-groups', label: 'Study Groups', icon: FiUsers, roles: ['student', 'teacher'] },
+    { href: '/dashboard/student/visual-lab', label: 'Visual Lab', icon: FiGrid, roles: ['student', 'teacher'] },
+    { href: '/community', label: 'Community', icon: FiAward, roles: ['student', 'teacher'] },
+    { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student', 'teacher'] },
 
     // Shared (but logically separates history by role maybe, both can use it)
     { href: '/dashboard/question-history', label: 'Quiz History', icon: FiFileText },

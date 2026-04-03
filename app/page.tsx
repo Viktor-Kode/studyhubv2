@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import LandingNavbar from '@/components/LandingNavbar'
 import HeroSection from '@/components/sections/HeroSection'
-import TeacherFeatures from '@/components/sections/TeacherFeatures'
 import StudentFeatures from '@/components/sections/StudentFeatures'
 import AIWorkflow from '@/components/sections/AIWorkflow'
 import DualDashboard from '@/components/sections/DualDashboard'
@@ -25,10 +24,6 @@ export default function Home() {
 
     if (user.role === 'admin') {
       router.replace('/dashboard/admin')
-      return
-    }
-    if (user.role === 'teacher') {
-      router.replace('/dashboard/teacher')
       return
     }
     router.replace('/dashboard/student')
@@ -112,7 +107,6 @@ export default function Home() {
       <HeroSection />
 
       {/* Additional Sections */}
-      <TeacherFeatures />
       <StudentFeatures />
       <AIWorkflow />
       <DualDashboard />

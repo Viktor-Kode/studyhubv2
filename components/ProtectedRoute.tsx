@@ -30,14 +30,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     }
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-      // User is logged in but doesn't have the right role
-      if (user.role === 'admin') {
-        router.replace('/dashboard/admin')
-      } else if (user.role === 'teacher') {
-        router.replace('/dashboard/teacher')
-      } else {
-        router.replace('/dashboard/student')
-      }
+      router.replace(user.role === 'admin' ? '/dashboard/admin' : '/dashboard/student')
     }
   }, [isLoading, isAuthenticated, user, allowedRoles, router])
 

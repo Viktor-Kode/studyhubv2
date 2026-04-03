@@ -5,17 +5,19 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { signInWithGoogle, signUpWithEmail, buildAppUser } from '@/lib/firebase-auth'
-import type { AppRole, AppUser } from '@/lib/types/auth'
+import type { AppRole } from '@/lib/types/auth'
 import {
     FiMail, FiLock, FiUser, FiEye, FiEyeOff,
     FiAlertCircle, FiCheckCircle, FiLoader
 } from 'react-icons/fi'
 import { FaGoogle, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa'
 import RoleSelectionModal from '@/components/RoleSelectionModal'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 export default function SignupPage() {
     const router = useRouter()
-    const { setUser } = useAuthStore()
+    const { setUser, refreshUser } = useAuthStore()
 
     const [formData, setFormData] = useState({
         name: '',
@@ -70,9 +72,9 @@ export default function SignupPage() {
                 formData.role
             )
             setUser(user)
+            await refreshUser()
             setSuccess('Account created successfully!')
-            const redirectPath = formData.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'
-            setTimeout(() => router.push(redirectPath), 1200)
+            setTimeout(() => router.push('/dashboard/student'), 1200)
         } catch (err: any) {
             const code = err?.code
             const msg =
@@ -93,15 +95,22 @@ export default function SignupPage() {
         try {
             const { appUser, firebaseUser } = await signInWithGoogle()
 
+            const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid))
+            if (!profileSnap.exists()) {
+                setPendingFirebaseUser(firebaseUser)
+                setShowRoleModal(true)
+                return
+            }
+
             if (appUser && appUser.role) {
                 setUser(appUser)
-                if (appUser.role === 'teacher') {
-                    router.push('/dashboard/teacher')
+                await refreshUser()
+                if (appUser.role === 'admin') {
+                    router.push('/dashboard/admin')
                 } else {
                     router.push('/dashboard/student')
                 }
             } else {
-                // New user - show role selection modal
                 setPendingFirebaseUser(firebaseUser)
                 setShowRoleModal(true)
             }
@@ -114,17 +123,13 @@ export default function SignupPage() {
         }
     }
 
-    const handleRoleCompleted = (role: AppRole) => {
-        if (pendingFirebaseUser) {
-            const appUser = buildAppUser(pendingFirebaseUser, role)
-            setUser(appUser)
-            setShowRoleModal(false)
-            if (role === 'teacher') {
-                router.push('/dashboard/teacher')
-            } else {
-                router.push('/dashboard/student')
-            }
-        }
+    const handleRoleCompleted = async (role: AppRole) => {
+        if (!pendingFirebaseUser) return
+        const appUser = buildAppUser(pendingFirebaseUser, role)
+        setUser(appUser)
+        setShowRoleModal(false)
+        await refreshUser()
+        router.push('/dashboard/student')
     }
 
     return (

@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
-import { saveUserRole, fetchAppUser } from '@/lib/firebase-auth'
+import { saveUserRole } from '@/lib/firebase-auth'
 import type { AppRole } from '@/lib/types/auth'
-import { auth } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import { FiLoader, FiUser, FiAlertCircle } from 'react-icons/fi'
 import { FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa'
 

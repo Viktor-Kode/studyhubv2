@@ -7,10 +7,10 @@ import { FaClock, FaChartLine, FaUsers, FaShieldAlt } from 'react-icons/fa'
 
 const benefits = [
   {
-    role: 'Teachers',
+    role: 'Learners',
     icon: FaClock,
-    metric: '10+ hours',
-    description: 'Save weekly on question creation',
+    metric: '24/7',
+    description: 'Practice and review whenever you study',
     color: 'blue',
   },
   {

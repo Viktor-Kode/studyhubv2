@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/authStore'
 import { usePWA } from '@/hooks/usePWA'
 import {
   FaHome,
@@ -15,9 +14,6 @@ import {
   FaLaptop,
   FaBook,
   FaFileAlt,
-  FaUsers,
-  FaFilePdf,
-  FaQuestionCircle,
   FaTimes,
   FaHistory,
   FaStickyNote,
@@ -43,17 +39,6 @@ const studentMenuItems = [
   { href: '/dashboard/analytics', icon: FaChartBar, label: 'Analytics' },
 ]
 
-const teacherMenuItems = [
-  { href: '/dashboard/teacher', icon: FaHome, label: 'Dashboard' },
-  { href: '/dashboard/teacher/question-generator', icon: FaFilePdf, label: 'Question Generator' },
-  { href: '/dashboard/tutor', icon: FaGraduationCap, label: 'AI Tutor' },
-  { href: '/dashboard/teacher/questions', icon: FaQuestionCircle, label: 'Saved Questions' },
-  { href: '/dashboard/notes', icon: FaStickyNote, label: 'My Notes' },
-  { href: '/dashboard/question-history', icon: FaHistory, label: 'Quiz History' },
-  { href: '/dashboard/teacher/classes', icon: FaUsers, label: 'Class Management' },
-  { href: '/dashboard/teacher/analytics', icon: FaChartBar, label: 'Analytics' },
-]
-
 interface SidebarProps {
   isMobileOpen?: boolean
   onMobileClose?: () => void
@@ -61,10 +46,8 @@ interface SidebarProps {
 
 export default function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
-  const { user } = useAuthStore()
   const { isInstallable, isInstalled, installApp } = usePWA()
-  const isTeacher = user?.role === 'teacher'
-  const menuItems = isTeacher ? teacherMenuItems : studentMenuItems
+  const menuItems = studentMenuItems
 
   // Close mobile sidebar when route changes
   useEffect(() => {

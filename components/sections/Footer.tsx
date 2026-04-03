@@ -6,8 +6,7 @@ import Image from 'next/image'
 
 const footerLinks = {
   Product: [
-    { label: 'For Teachers', href: '#teacher-features' },
-    { label: 'For Students', href: '#student-features' },
+    { label: 'Features', href: '#student-features' },
     { label: 'AI Workflow', href: '#ai-workflow' },
     { label: 'Pricing', href: '#pricing' },
   ],
@@ -57,7 +56,7 @@ export default function Footer() {
                 <span className="text-xl font-bold text-white font-mono">StudyHelp</span>
               </Link>
               <p className="text-white/40 text-sm mb-4">
-                Expert academic support powered by AI and verified educators.
+                AI-powered study tools built for students and serious learners.
               </p>
               {/* Social Icons */}
               <div className="flex gap-3">
