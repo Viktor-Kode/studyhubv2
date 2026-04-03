@@ -160,11 +160,11 @@ export function subscribeToAuthState(
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             // Optimistically set the user from Firebase data first so the UI can render
-            const localUser = buildAppUser(firebaseUser, 'student')
-            setUser(localUser)
-            setLoading(false) // Stop the global loader early
-
             try {
+                const localUser = buildAppUser(firebaseUser, 'student')
+                setUser(localUser)
+                // Keep isLoading=true until role/profile sync is done.
+                // Otherwise ProtectedRoute can redirect before the role is resolved.
                 // Sync with Firestore for full profile; merge Firebase custom claims (e.g. admin) for role
                 const appUser = await fetchAppUser(firebaseUser.uid, firebaseUser)
                 if (appUser) {
@@ -173,6 +173,8 @@ export function subscribeToAuthState(
                 await useAuthStore.getState().refreshUser()
             } catch (err) {
                 console.error('[AuthState] Firestore sync failed:', err)
+            } finally {
+                setLoading(false)
             }
         } else {
             logout()
