@@ -47,10 +47,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
         // and only accept a backend role if it is a known value.
         const validRoles: AppRole[] = ['student', 'teacher', 'admin']
         const backendRole = (u.role as AppRole | undefined)
-        const resolvedRole: AppRole =
+        let resolvedRole: AppRole =
           backendRole && validRoles.includes(backendRole)
             ? backendRole
             : (prev?.role ?? 'student')
+        // Firestore can be ahead of Mongo until the next API sync; avoid a one-frame "student" flash for teachers.
+        if (prev?.role === 'teacher' && resolvedRole === 'student') {
+          resolvedRole = 'teacher'
+        }
 
         const merged: AppUser = {
           ...(prev || { uid: '', email: '', name: '', role: 'student' as AppRole }),
