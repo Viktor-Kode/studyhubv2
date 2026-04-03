@@ -43,12 +43,21 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (response.data?.data?.user) {
         const u = response.data.data.user
         const prev = useAuthStore.getState().user
+        // Prefer the role already resolved from Firebase/Firestore,
+        // and only accept a backend role if it is a known value.
+        const validRoles: AppRole[] = ['student', 'teacher', 'admin']
+        const backendRole = (u.role as AppRole | undefined)
+        const resolvedRole: AppRole =
+          backendRole && validRoles.includes(backendRole)
+            ? backendRole
+            : (prev?.role ?? 'student')
+
         const merged: AppUser = {
           ...(prev || { uid: '', email: '', name: '', role: 'student' as AppRole }),
           uid: u.uid || prev?.uid || '',
           email: u.email ?? prev?.email ?? '',
           name: u.name ?? prev?.name ?? '',
-          role: (u.role as AppRole) ?? prev?.role ?? 'student',
+          role: resolvedRole,
           schoolName: u.schoolName ?? prev?.schoolName,
           classLevel: u.classLevel ?? prev?.classLevel,
           courseOfStudy: u.courseOfStudy ?? prev?.courseOfStudy,
