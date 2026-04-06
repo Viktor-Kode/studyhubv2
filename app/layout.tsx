@@ -7,6 +7,7 @@ import { buildSeoMetadata, getSiteUrl } from '@/lib/seo'
 
 import Providers from '@/components/Providers'
 import HelpWidgetLayer from '@/components/help/HelpWidgetLayer'
+import { Analytics } from '@vercel/analytics/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -82,6 +83,7 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </Providers>
+        <Analytics />
       </body>
     </html>
   )
