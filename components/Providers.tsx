@@ -7,6 +7,7 @@ import IOSInstallBanner from './IOSInstallBanner'
 import NotifToast from '@/components/notifications/NotifToast'
 import { UpgradeProvider } from '@/context/UpgradeContext'
 import UpgradeHandlerSetup from './UpgradeHandlerSetup'
+import OfflineBanner from '@/components/OfflineBanner'
 
 /**
  * Providers
@@ -99,6 +100,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 <IOSInstallBanner />
                 <UpgradeHandlerSetup />
                 <NotifToast />
+                <OfflineBanner />
                 <Toaster position="top-center" toastOptions={{ duration: 3200 }} />
                 {children}
             </UpgradeProvider>
