@@ -2,7 +2,7 @@
   "name": "StudyHelp",
   "short_name": "StudyHelp",
   "description": "Prepare smarter for JAMB and WAEC",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",

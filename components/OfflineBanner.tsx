@@ -1,7 +1,6 @@
 'use client'
 
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
-import { WifiOff } from 'lucide-react'
 
 /**
  * Fixed banner when the device is offline so users know sync and API calls are unavailable.
@@ -20,7 +19,7 @@ export default function OfflineBanner() {
         background: 'linear-gradient(90deg, #4338ca 0%, #5b4cf5 50%, #6366f1 100%)',
       }}
     >
-      <WifiOff className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
+      <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-white/90" aria-hidden />
       <span>You’re offline. Saved work on this device may still be available; reconnect to sync.</span>
     </div>
   )

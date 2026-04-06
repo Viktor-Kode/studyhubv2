@@ -27,22 +27,38 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const raw = event.notification.data?.link || '/dashboard/student';
-  const url = raw.startsWith('http') ? raw : new URL(raw, self.location.origin).href;
+  const data = event.notification.data || {};
+  const raw = data.link ?? data.url ?? '/dashboard/student';
+  const pathOrUrl = (typeof raw === 'string' ? raw : String(raw || '')).trim() || '/dashboard/student';
+  const url = pathOrUrl.startsWith('http')
+    ? pathOrUrl
+    : new URL(pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`, self.location.origin).href;
+
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    (async () => {
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clientList) {
-        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+        if (!client.url.startsWith(self.location.origin) || !('focus' in client)) continue;
+
+        try {
           if ('navigate' in client && typeof client.navigate === 'function') {
-            client.navigate(url);
+            await client.navigate(url);
+          } else {
+            client.postMessage({ type: 'SW_NAVIGATE', url });
           }
-          return client.focus();
+        } catch {
+          try {
+            client.postMessage({ type: 'SW_NAVIGATE', url });
+          } catch {
+            /* ignore */
+          }
         }
+        return client.focus();
       }
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
       }
-    })
+    })()
   );
 });
 

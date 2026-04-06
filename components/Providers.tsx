@@ -82,6 +82,26 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    /** When a push notification is clicked, Safari and some browsers lack WindowClient.navigate; the SW asks us to navigate. */
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+
+        const onMessage = (event: MessageEvent) => {
+            const d = event.data as { type?: string; url?: string }
+            if (d?.type !== 'SW_NAVIGATE' || typeof d.url !== 'string') return
+            try {
+                const u = new URL(d.url, window.location.origin)
+                if (u.origin !== window.location.origin) return
+                window.location.assign(u.href)
+            } catch {
+                /* ignore */
+            }
+        }
+
+        navigator.serviceWorker.addEventListener('message', onMessage)
+        return () => navigator.serviceWorker.removeEventListener('message', onMessage)
+    }, [])
+
     const playAlarm = (type: string) => {
         const audio = new Audio(
             type === 'final'
