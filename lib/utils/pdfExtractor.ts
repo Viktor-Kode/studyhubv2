@@ -1,9 +1,9 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-// Configure worker - MUST be done before any PDF operations
+// Configure worker — must match installed pdfjs-dist (cdnjs "pdf.js" path 404s for v5; use npm layout)
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 }
 
 interface ExtractionResult {
@@ -90,6 +90,10 @@ export async function extractPDFText(file: File): Promise<ExtractionResult> {
 
     } catch (error: unknown) {
         const err = error as { name?: string; message?: string };
+        if (typeof console !== 'undefined' && console.error) {
+            console.error('[pdfExtractor]', err?.name, err?.message, error);
+        }
+
         let errorMessage = 'Unable to read this PDF file. ';
 
         if (err.name === 'InvalidPDFException') {
@@ -98,6 +102,11 @@ export async function extractPDFText(file: File): Promise<ExtractionResult> {
             errorMessage += 'This PDF is password-protected. Please remove the password first.';
         } else if (err.message?.includes('Missing PDF')) {
             errorMessage += 'The file may be corrupted.';
+        } else if (
+            /worker|fetch|network|load|CORS|Failed to fetch/i.test(String(err.message || ''))
+        ) {
+            errorMessage +=
+                'The PDF viewer worker could not load (network or browser restriction). Check your connection, disable strict blockers for this site, or try again.';
         } else {
             errorMessage += 'Please try converting to .txt or .docx format instead.';
         }

@@ -10,8 +10,8 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
     try {
         const pdfjsLib = await import('pdfjs-dist');
 
-        // Use a reliable worker source from CDN to avoid build-time issues
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        // Must match installed pdfjs-dist (same as pdfExtractor.ts)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
         const arrayBuffer = await file.arrayBuffer();
         const typedArray = new Uint8Array(arrayBuffer);
