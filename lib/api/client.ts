@@ -30,15 +30,17 @@ apiClient.interceptors.request.use(
         delete (h as Record<string, unknown>)['Content-Type']
       }
     }
-    // Teacher endpoints (AI generation, document parsing) need longer timeout
+    // AI, backend proxy, and uploads — mobile networks + cold Render need longer than default 30s
     const url = config.url || ''
     if (
+      url.includes('/ai/') ||
+      url.includes('/notifications') ||
       url.includes('/teacher') ||
       url.includes('/teacher-tools') ||
       url.includes('/generate-topic-questions') ||
       url.includes('/community/upload-image')
     ) {
-      config.timeout = 120000 // 2 minutes
+      config.timeout = 120000 // 2 minutes (must exceed slow proxy + backend)
     }
     return config
   },

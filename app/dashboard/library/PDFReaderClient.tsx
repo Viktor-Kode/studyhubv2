@@ -8,6 +8,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 // 3D book cover palette (monochrome shades only)
 const BOOK_COLORS = [
@@ -27,9 +28,7 @@ const getToken = async () => {
   return await getFirebaseToken()
 }
 
-// Worker config that works dynamically for v3 (.js) and v4 (.mjs)
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.${pdfjs.version.startsWith('3') ? 'js' : 'mjs'
-  }`
+pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
 
 type PDFReaderProps = {
   material: any
@@ -318,7 +317,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
                 onLoadError={onDocumentLoadError}
                 loading=""
                 options={{
-                  cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+                  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
                   cMapPacked: true,
                 }}
               >

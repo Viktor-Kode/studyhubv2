@@ -63,7 +63,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 /** Offline shells — bump version when cache strategy or precache list changes */
-const CACHE_VERSION = 'studyhelp-v1';
+const CACHE_VERSION = 'studyhelp-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -159,7 +159,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      })
+    );
     return;
   }
 

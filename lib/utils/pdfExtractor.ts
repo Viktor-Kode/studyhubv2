@@ -1,9 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc';
 
-// Configure worker — must match installed pdfjs-dist (cdnjs "pdf.js" path 404s for v5; use npm layout)
+// Same-origin worker — required for reliable PDF text extraction on iOS Safari / mobile
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH;
 }
 
 interface ExtractionResult {

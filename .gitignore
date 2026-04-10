@@ -37,6 +37,9 @@ service-account*.json
 # vercel
 .vercel
 
+# Generated from pdfjs-dist at install/build (same-origin worker for mobile Safari)
+public/pdf.worker.min.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

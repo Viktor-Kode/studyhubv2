@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "node scripts/copy-pdf-worker.mjs && next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "set-admin": "node scripts/setAdmin.js"

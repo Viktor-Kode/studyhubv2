@@ -3,6 +3,8 @@
  * Handles PDF (Client-side and Server-side fallback), DOCX, TXT, and MD.
  */
 
+import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc';
+
 /**
  * Client-side PDF extraction using pdfjs-dist.
  */
@@ -10,8 +12,7 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
     try {
         const pdfjsLib = await import('pdfjs-dist');
 
-        // Must match installed pdfjs-dist (same as pdfExtractor.ts)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH;
 
         const arrayBuffer = await file.arrayBuffer();
         const typedArray = new Uint8Array(arrayBuffer);
