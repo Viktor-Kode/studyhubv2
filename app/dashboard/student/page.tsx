@@ -270,7 +270,7 @@ export default function StudentDashboardPage() {
   })()
 
   return (
-    <ProtectedRoute allowedRoles={['student']}>
+    <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="space-y-8">
         {user && user.onboarding?.completed === false && (
           <SetupWizard
