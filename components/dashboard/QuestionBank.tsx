@@ -40,6 +40,18 @@ function isUpgradeError(msg: string): boolean {
   return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached')
 }
 
+function getExtractionLabel(file: File): string {
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+    return 'Scanning image with OCR...'
+  }
+  if (ext === '.pdf') return 'Extracting PDF pages...'
+  if (ext === '.docx') return 'Reading Word document...'
+  if (ext === '.ppt' || ext === '.pptx') return 'Extracting presentation text...'
+  if (ext === '.txt' || ext === '.md') return 'Reading text file...'
+  return 'Reading document...'
+}
+
 function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
   return (
     <div className={className}>
@@ -73,6 +85,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [cameraPreviewUrl, setCameraPreviewUrl] = useState<string | null>(null)
   const [capturedImage, setCapturedImage] = useState<File | null>(null)
   const [imageExtracting, setImageExtracting] = useState(false)
+  const [extractionHint, setExtractionHint] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraStreamRef = useRef<MediaStream | null>(null)
 
@@ -349,6 +362,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const extractTextFromImage = async () => {
     if (!capturedImage) return
     setImageExtracting(true)
+    setExtractionHint('Scanning photo with OCR...')
     setError(null)
     setSuccess(null)
 
@@ -370,6 +384,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setError(err?.message || 'Failed to read text from image. Please upload a document instead.')
     } finally {
       setImageExtracting(false)
+      setExtractionHint('')
     }
   }
 
@@ -626,6 +641,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     setUploadedFile(file)
     setExtracting(true)
+    setExtractionHint(getExtractionLabel(file))
     setError(null)
 
     try {
@@ -661,6 +677,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setUploadedFile(null)
     } finally {
       setExtracting(false)
+      setExtractionHint('')
     }
   }
 
@@ -1108,8 +1125,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     </div>
                       {extracting || imageExtracting ? (
                         <div className="flex items-center justify-center gap-2 py-4">
-                          <FiLoader className="animate-spin text-blue-500" />
-                          <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Parsing Structure...</span>
+                          <FiLoader className="animate-spin text-blue-500 shrink-0" />
+                          <span className="text-xs font-bold text-blue-500 uppercase tracking-widest text-center leading-snug">
+                            {extractionHint || 'Reading document...'}
+                          </span>
                         </div>
                       ) : extractedText && (
                         <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700">
