@@ -1,5 +1,14 @@
 import { NextRequest } from 'next/server'
 
+/** Stay a few seconds under Vercel `maxDuration` so the route can return JSON instead of platform 502. */
+function proxyTimeoutMs(pathAfterApi: string): number {
+  const p = pathAfterApi.toLowerCase()
+  if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt')) {
+    return 55_000
+  }
+  return 22_000
+}
+
 /**
  * Express mounts all JSON routes under `/api` (e.g. `/api/cbt/...`).
  * Vercel often sets BACKEND_API_URL to the bare Render host — append `/api` in that case.
@@ -58,34 +67,74 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
     cache: 'no-store',
   }
 
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 15000)
+  const ms = proxyTimeoutMs(pathAfterApi)
+  const runFetch = () => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), ms)
+    return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
+  }
+
   let resp: Response
   try {
-    resp = await fetch(url, { ...init, signal: controller.signal })
+    resp = await runFetch()
   } catch (error) {
     const isAbort = (error as Error)?.name === 'AbortError'
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: isAbort ? 'Backend request timed out' : 'Backend request failed',
-      }),
-      {
-        status: isAbort ? 504 : 502,
-        headers: { 'content-type': 'application/json' },
-      },
-    )
-  } finally {
-    clearTimeout(timeoutId)
+    const retryableGet = req.method === 'GET' && !isAbort
+    if (retryableGet) {
+      try {
+        await new Promise((r) => setTimeout(r, 800))
+        resp = await runFetch()
+      } catch (e2) {
+        const isAbort2 = (e2 as Error)?.name === 'AbortError'
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: isAbort2 ? 'Backend request timed out' : 'Backend request failed',
+          }),
+          {
+            status: isAbort2 ? 504 : 502,
+            headers: { 'content-type': 'application/json' },
+          },
+        )
+      }
+    } else {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: isAbort ? 'Backend request timed out' : 'Backend request failed',
+        }),
+        {
+          status: isAbort ? 504 : 502,
+          headers: { 'content-type': 'application/json' },
+        },
+      )
+    }
   }
+
   const contentType = resp.headers.get('content-type') || ''
 
   if (contentType.includes('application/json')) {
-    const data = await resp.json()
-    return new Response(JSON.stringify(data), {
-      status: resp.status,
-      headers: { 'content-type': 'application/json' },
-    })
+    const raw = await resp.text()
+    try {
+      const data = raw.length ? JSON.parse(raw) : null
+      return new Response(JSON.stringify(data), {
+        status: resp.status,
+        headers: { 'content-type': 'application/json' },
+      })
+    } catch {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Backend returned non-JSON response',
+          status: resp.status,
+          detail: raw.slice(0, 500),
+        }),
+        {
+          status: resp.status >= 400 ? resp.status : 502,
+          headers: { 'content-type': 'application/json' },
+        },
+      )
+    }
   }
 
   // PDFs and other binaries must not go through .text() — that corrupts the body

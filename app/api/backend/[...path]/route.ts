@@ -3,6 +3,12 @@ import { proxyBackend } from '@/lib/server/backend-proxy'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Default Vercel Hobby limit is 10s unless raised — that causes 502 on slow Render cold starts / AI.
+ * Keep ≤ 60 (Hobby max); raise in Vercel Project Settings → Functions if your plan allows longer.
+ */
+export const maxDuration = 60
+
 type RouteParams = { path?: string[] }
 type RouteContext = { params: Promise<RouteParams> | RouteParams }
 
