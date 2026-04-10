@@ -100,9 +100,21 @@ export async function waitForAuth(): Promise<any> {
   // 1. If already initialized, return immediately
   if (auth.currentUser) return auth.currentUser
 
-  // 2. Wait for onAuthStateChanged to fire at least once
+  // 2. Wait for onAuthStateChanged to fire at least once, with a timeout
+  // so API calls do not hang forever if Firebase fails to initialize.
   return new Promise((resolve) => {
+    let settled = false
+    const timeoutId = setTimeout(() => {
+      if (settled) return
+      settled = true
+      unsubscribe()
+      resolve(null)
+    }, 8000)
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeoutId)
       unsubscribe()
       resolve(user)
     })

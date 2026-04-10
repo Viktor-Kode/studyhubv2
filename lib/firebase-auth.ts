@@ -156,8 +156,16 @@ export function subscribeToAuthState(
     onLoaded?: () => void
 ): () => void {
     const { setUser, setLoading, logout } = useAuthStore.getState()
+    const loadingFallback = setTimeout(() => {
+        if (useAuthStore.getState().isLoading) {
+            console.warn('[AuthState] Firebase auth check timed out; ending loading state.')
+            setLoading(false)
+            onLoaded?.()
+        }
+    }, 10000)
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        clearTimeout(loadingFallback)
         if (firebaseUser) {
             // Optimistically set the user from Firebase data first so the UI can render
             try {
@@ -183,5 +191,8 @@ export function subscribeToAuthState(
         onLoaded?.()
     })
 
-    return unsubscribe
+    return () => {
+        clearTimeout(loadingFallback)
+        unsubscribe()
+    }
 }
