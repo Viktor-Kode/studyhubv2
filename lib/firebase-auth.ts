@@ -164,35 +164,43 @@ export function subscribeToAuthState(
         }
     }, 10000)
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        clearTimeout(loadingFallback)
-        if (firebaseUser) {
-            // Optimistically set the user from Firebase data first so the UI can render
-            try {
-                const localUser = buildAppUser(firebaseUser, 'student')
-                setUser(localUser)
-                // Keep isLoading=true until role/profile sync is done.
-                // Otherwise ProtectedRoute can redirect before the role is resolved.
-                // Sync with Firestore for full profile; merge Firebase custom claims (e.g. admin) for role
-                const appUser = await fetchAppUser(firebaseUser.uid, firebaseUser)
-                if (appUser) {
-                    setUser(appUser)
+    try {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            clearTimeout(loadingFallback)
+            if (firebaseUser) {
+                // Optimistically set the user from Firebase data first so the UI can render
+                try {
+                    const localUser = buildAppUser(firebaseUser, 'student')
+                    setUser(localUser)
+                    // Keep isLoading=true until role/profile sync is done.
+                    // Otherwise ProtectedRoute can redirect before the role is resolved.
+                    // Sync with Firestore for full profile; merge Firebase custom claims (e.g. admin) for role
+                    const appUser = await fetchAppUser(firebaseUser.uid, firebaseUser)
+                    if (appUser) {
+                        setUser(appUser)
+                    }
+                    await useAuthStore.getState().refreshUser()
+                } catch (err) {
+                    console.error('[AuthState] Firestore sync failed:', err)
+                } finally {
+                    setLoading(false)
                 }
-                await useAuthStore.getState().refreshUser()
-            } catch (err) {
-                console.error('[AuthState] Firestore sync failed:', err)
-            } finally {
+            } else {
+                logout()
                 setLoading(false)
             }
-        } else {
-            logout()
-            setLoading(false)
-        }
-        onLoaded?.()
-    })
+            onLoaded?.()
+        })
 
-    return () => {
+        return () => {
+            clearTimeout(loadingFallback)
+            unsubscribe()
+        }
+    } catch (err) {
         clearTimeout(loadingFallback)
-        unsubscribe()
+        console.error('[AuthState] Failed to subscribe to Firebase auth state:', err)
+        setLoading(false)
+        onLoaded?.()
+        return () => { }
     }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { subscribeToAuthState } from '@/lib/firebase-auth'
+import { useAuthStore } from '@/lib/store/authStore'
 
 /**
  * AuthSync
@@ -11,7 +12,13 @@ import { subscribeToAuthState } from '@/lib/firebase-auth'
  */
 export default function AuthSync() {
     useEffect(() => {
-        const unsubscribe = subscribeToAuthState()
+        let unsubscribe: () => void = () => { }
+        try {
+            unsubscribe = subscribeToAuthState()
+        } catch (err) {
+            console.error('[AuthSync] subscribeToAuthState crashed:', err)
+            useAuthStore.getState().setLoading(false)
+        }
         return () => unsubscribe()
     }, [])
 

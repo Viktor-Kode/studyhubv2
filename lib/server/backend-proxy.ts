@@ -56,7 +56,26 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
     cache: 'no-store',
   }
 
-  const resp = await fetch(url, init)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
+  let resp: Response
+  try {
+    resp = await fetch(url, { ...init, signal: controller.signal })
+  } catch (error) {
+    const isAbort = (error as Error)?.name === 'AbortError'
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: isAbort ? 'Backend request timed out' : 'Backend request failed',
+      }),
+      {
+        status: isAbort ? 504 : 502,
+        headers: { 'content-type': 'application/json' },
+      },
+    )
+  } finally {
+    clearTimeout(timeoutId)
+  }
   const contentType = resp.headers.get('content-type') || ''
 
   if (contentType.includes('application/json')) {
