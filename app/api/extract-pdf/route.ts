@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
         // Dynamic import of pdfjs-dist for server-side
         // Note: Using the legacy build is crucial for Node.js environments
-        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
         const arrayBuffer = await file.arrayBuffer();
         const typedArray = new Uint8Array(arrayBuffer);
