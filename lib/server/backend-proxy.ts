@@ -52,7 +52,9 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
     method: req.method,
     headers,
     body,
-    redirect: 'manual',
+    // Follow upstream redirects (e.g. Render host canonicalization) so
+    // callers receive final JSON responses instead of raw 301 HTML/text.
+    redirect: 'follow',
     cache: 'no-store',
   }
 
