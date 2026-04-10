@@ -64,6 +64,24 @@ input, select, textarea {
   box-sizing: border-box;
 }
 
+/* Dark mode form safety net: keep text/placeholders readable on dark surfaces */
+.dark input:not([type='checkbox']):not([type='radio']),
+.dark textarea,
+.dark select {
+  color: #F9FAFB;
+  caret-color: #F9FAFB;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9CA3AF;
+}
+
+.dark select option {
+  background: #111827;
+  color: #F9FAFB;
+}
+
 /* All page wrappers */
 .page, .page-wrapper, .container,
 .cbt-wrapper, .flashcard-hub, .generator-page,

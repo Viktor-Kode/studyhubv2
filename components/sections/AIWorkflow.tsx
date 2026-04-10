@@ -151,7 +151,7 @@ export default function AIWorkflow() {
                         <Icon className="text-2xl" />
                       </div>
                       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-cyan-400 rounded-full flex items-center justify-center border-2 border-[#0a0a0a]">
-                        <span className="text-sm font-bold text-black">{step.step}</span>
+                        <span className="text-sm font-bold text-gray-900">{step.step}</span>
                       </div>
                       <h3 className="text-lg font-bold text-white mb-2 mt-2">{step.title}</h3>
                       <p className="text-white/60 text-sm">{step.description}</p>

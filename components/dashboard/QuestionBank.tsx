@@ -1271,7 +1271,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     <select
                       value={questionType}
                       onChange={(e) => setQuestionType(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                     >
                       <option value="multiple-choice">MCQ</option>
                       <option value="theory">Theory</option>
@@ -1290,7 +1290,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       max="50"
                       value={amount}
                       onChange={(e) => setAmount(Math.min(50, Math.max(1, Number(e.target.value))))}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-bold"
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-bold text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 </div>
@@ -1433,7 +1433,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask a question..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-400 transition-all"
+                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
                   />
                   <button
                     type="submit"

@@ -202,13 +202,13 @@ export default function SharedNotesPage() {
               placeholder="Subject"
               value={filter.subject}
               onChange={(e) => setFilter((f) => ({ ...f, subject: e.target.value }))}
-              className="flex-1 min-w-[120px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+              className="flex-1 min-w-[120px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             />
             <input
               placeholder="Search"
               value={filter.search}
               onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
-              className="flex-[2] min-w-[160px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+              className="flex-[2] min-w-[160px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             />
           </div>
         )}
@@ -266,10 +266,10 @@ export default function SharedNotesPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setModal(null)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
               <h3 className="font-bold text-lg">{modal === 'create' ? 'New note' : 'Edit note'}</h3>
-              <input placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950" />
-              <textarea placeholder="Content" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} rows={6} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950" />
-              <input placeholder="Subject" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950" />
-              <input placeholder="Tags (comma-separated)" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950" />
+              <input placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100" />
+              <textarea placeholder="Content" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} rows={6} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100" />
+              <input placeholder="Subject" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100" />
+              <input placeholder="Tags (comma-separated)" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.isPublic} onChange={(e) => setForm((f) => ({ ...f, isPublic: e.target.checked }))} />
                 Public (anyone with link can discover in search)
@@ -288,11 +288,11 @@ export default function SharedNotesPage() {
               <h3 className="font-bold text-lg">Share note</h3>
               <p className="text-sm text-gray-500">Add a student by email</p>
               <div className="flex gap-2">
-                <input value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} placeholder="friend@school.edu" className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2" />
+                <input value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} placeholder="friend@school.edu" className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950" />
                 <button type="button" onClick={() => void shareByEmail(editing)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold">Send</button>
               </div>
               <p className="text-sm text-gray-500 pt-2">Or search by name</p>
-              <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Search…" className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2" />
+              <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Search…" className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950" />
               <ul className="max-h-40 overflow-y-auto space-y-1">
                 {userHits.map((u) => (
                   <li key={u.id}>

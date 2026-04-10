@@ -309,7 +309,7 @@ export default function StudyTimer() {
                   }
                   store.syncWithDB();
                 }}
-                className="flex-1 w-full sm:w-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+                className="flex-1 w-full sm:w-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-gray-900 dark:text-gray-100"
               >
                 <option value="">None (Free Study)</option>
                 {goals.map(g => (
@@ -450,9 +450,9 @@ export default function StudyTimer() {
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Set Custom Timer</h3>
             <div className="grid grid-cols-3 gap-3">
-              <input type="number" min={0} max={23} value={customHours} onChange={(e) => setCustomHours(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Hours" />
-              <input type="number" min={0} max={59} value={customMinutes} onChange={(e) => setCustomMinutes(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Minutes" />
-              <input type="number" min={0} max={59} value={customSecs} onChange={(e) => setCustomSecs(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700" placeholder="Seconds" />
+              <input type="number" min={0} max={23} value={customHours} onChange={(e) => setCustomHours(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Hours" />
+              <input type="number" min={0} max={59} value={customMinutes} onChange={(e) => setCustomMinutes(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Minutes" />
+              <input type="number" min={0} max={59} value={customSecs} onChange={(e) => setCustomSecs(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Seconds" />
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setShowTimePicker(false)} className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700">Cancel</button>

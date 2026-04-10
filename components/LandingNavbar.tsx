@@ -59,7 +59,7 @@ export default function LandingNavbar() {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="bg-cyan-400 text-black px-6 py-2.5 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold text-sm uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105"
+                  className="bg-cyan-400 text-gray-900 px-6 py-2.5 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold text-sm uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105"
                 >
                   Sign up
                 </Link>
@@ -67,7 +67,7 @@ export default function LandingNavbar() {
             ) : (
               <Link
                 href={dashboardLink}
-                className="bg-cyan-400 text-black px-6 py-2.5 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold text-sm uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105"
+                className="bg-cyan-400 text-gray-900 px-6 py-2.5 rounded-lg hover:bg-cyan-300 transition-all duration-300 font-bold text-sm uppercase tracking-wide hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] hover:scale-105"
               >
                 Go to Dashboard
               </Link>

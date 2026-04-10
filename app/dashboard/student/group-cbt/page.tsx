@@ -227,36 +227,36 @@ export default function GroupCBTPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <section className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white dark:bg-gray-800/60 space-y-3">
                 <h2 className="font-bold">Create group</h2>
-                <input placeholder="Group name" value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
-                <select value={createForm.examType} onChange={(e) => setCreateForm((f) => ({ ...f, examType: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+                <input placeholder="Group name" value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
+                <select value={createForm.examType} onChange={(e) => setCreateForm((f) => ({ ...f, examType: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                   {EXAM_OPTIONS.map((e) => (
                     <option key={e.value} value={e.value}>{e.label}</option>
                   ))}
                 </select>
                 {createForm.examType === 'post-utme' ? (
-                  <select value={createForm.school} onChange={(e) => setCreateForm((f) => ({ ...f, school: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+                  <select value={createForm.school} onChange={(e) => setCreateForm((f) => ({ ...f, school: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                     <option value="">-- Select University --</option>
                     {POST_UTME_SCHOOLS.map((s) => (
                       <option key={s.short} value={s.short}>{s.name}</option>
                     ))}
                   </select>
                 ) : null}
-                <select value={createForm.subject} onChange={(e) => setCreateForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+                <select value={createForm.subject} onChange={(e) => setCreateForm((f) => ({ ...f, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                   {subjects.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-                <input placeholder="Year or any" value={createForm.year} onChange={(e) => setCreateForm((f) => ({ ...f, year: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
+                <input placeholder="Year or any" value={createForm.year} onChange={(e) => setCreateForm((f) => ({ ...f, year: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
                 <label className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                   Questions
-                  <input type="number" min={5} max={40} value={createForm.questionCount} onChange={(e) => setCreateForm((f) => ({ ...f, questionCount: parseInt(e.target.value, 10) || 10 }))} className="w-20 rounded border border-gray-300 dark:border-gray-600 px-2 py-1 bg-white dark:bg-gray-900" />
+                  <input type="number" min={5} max={40} value={createForm.questionCount} onChange={(e) => setCreateForm((f) => ({ ...f, questionCount: parseInt(e.target.value, 10) || 10 }))} className="w-20 rounded border border-gray-300 dark:border-gray-600 px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
                 </label>
                 <button type="button" onClick={() => void createGroup()} className="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold">Create</button>
               </section>
 
               <section className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white dark:bg-gray-800/60 space-y-3">
                 <h2 className="font-bold">Join with code</h2>
-                <input placeholder="Invite code" value={inviteInput} onChange={(e) => setInviteInput(e.target.value.toUpperCase())} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 uppercase font-mono" />
+                <input placeholder="Invite code" value={inviteInput} onChange={(e) => setInviteInput(e.target.value.toUpperCase())} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 uppercase font-mono text-gray-900 dark:text-gray-100" />
                 <button type="button" onClick={() => void joinGroup()} className="w-full py-3 rounded-xl border-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 font-semibold">Join group</button>
               </section>
             </div>

@@ -262,7 +262,7 @@ export default function PomodoroTimerPage() {
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
             disabled={running && mode === 'work'}
-            className="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-600 px-4 py-2 text-sm bg-white dark:bg-gray-900"
+            className="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-600 px-4 py-2 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
           />
 
           <div className="relative w-56 h-56 sm:w-64 sm:h-64">
@@ -307,15 +307,15 @@ export default function PomodoroTimerPage() {
             <p className="font-semibold text-gray-800 dark:text-gray-200">Settings</p>
             <label className="flex justify-between gap-2">
               Focus (min)
-              <input type="number" min={1} max={120} value={settings.work} onChange={(e) => updateSetting('work', parseInt(e.target.value, 10) || 25)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1" />
+              <input type="number" min={1} max={120} value={settings.work} onChange={(e) => updateSetting('work', parseInt(e.target.value, 10) || 25)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-gray-900 dark:text-gray-100" />
             </label>
             <label className="flex justify-between gap-2">
               Short break
-              <input type="number" min={1} max={60} value={settings.shortBreak} onChange={(e) => updateSetting('shortBreak', parseInt(e.target.value, 10) || 5)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1" />
+              <input type="number" min={1} max={60} value={settings.shortBreak} onChange={(e) => updateSetting('shortBreak', parseInt(e.target.value, 10) || 5)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-gray-900 dark:text-gray-100" />
             </label>
             <label className="flex justify-between gap-2">
               Long break
-              <input type="number" min={1} max={60} value={settings.longBreak} onChange={(e) => updateSetting('longBreak', parseInt(e.target.value, 10) || 15)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1" />
+              <input type="number" min={1} max={60} value={settings.longBreak} onChange={(e) => updateSetting('longBreak', parseInt(e.target.value, 10) || 15)} className="w-20 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-gray-900 dark:text-gray-100" />
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={settings.autoStartBreak} onChange={(e) => updateSetting('autoStartBreak', e.target.checked)} />

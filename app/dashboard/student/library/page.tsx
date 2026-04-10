@@ -152,15 +152,15 @@ export default function SharedLibraryPage() {
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 min-w-[140px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+              className="flex-1 min-w-[140px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             />
             <input
               placeholder="Subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-36 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+              className="w-36 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             />
-            <select value={sort} onChange={(e) => setSort(e.target.value as 'recent' | 'upvotes')} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+            <select value={sort} onChange={(e) => setSort(e.target.value as 'recent' | 'upvotes')} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
               <option value="recent">Newest</option>
               <option value="upvotes">Top upvotes</option>
             </select>
@@ -204,20 +204,20 @@ export default function SharedLibraryPage() {
               Submissions are reviewed by admins before they appear in the public library.
             </p>
             <label className="block text-sm font-medium">Type</label>
-            <select value={submit.type} onChange={(e) => setSubmit((s) => ({ ...s, type: e.target.value as 'link' | 'file' | 'text' }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900">
+            <select value={submit.type} onChange={(e) => setSubmit((s) => ({ ...s, type: e.target.value as 'link' | 'file' | 'text' }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               <option value="link">Link</option>
               <option value="file">File</option>
               <option value="text">Text</option>
             </select>
-            <input placeholder="Title" value={submit.title} onChange={(e) => setSubmit((s) => ({ ...s, title: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
-            <textarea placeholder="Description" value={submit.description} onChange={(e) => setSubmit((s) => ({ ...s, description: e.target.value }))} rows={3} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
-            <input placeholder="Subject" value={submit.subject} onChange={(e) => setSubmit((s) => ({ ...s, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
-            <input placeholder="Tags (comma-separated)" value={submit.tags} onChange={(e) => setSubmit((s) => ({ ...s, tags: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
+            <input placeholder="Title" value={submit.title} onChange={(e) => setSubmit((s) => ({ ...s, title: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
+            <textarea placeholder="Description" value={submit.description} onChange={(e) => setSubmit((s) => ({ ...s, description: e.target.value }))} rows={3} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
+            <input placeholder="Subject" value={submit.subject} onChange={(e) => setSubmit((s) => ({ ...s, subject: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
+            <input placeholder="Tags (comma-separated)" value={submit.tags} onChange={(e) => setSubmit((s) => ({ ...s, tags: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
             {submit.type === 'link' && (
-              <input placeholder="https://…" value={submit.url} onChange={(e) => setSubmit((s) => ({ ...s, url: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
+              <input placeholder="https://…" value={submit.url} onChange={(e) => setSubmit((s) => ({ ...s, url: e.target.value }))} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
             )}
             {submit.type === 'text' && (
-              <textarea placeholder="Paste text…" value={submit.textContent} onChange={(e) => setSubmit((s) => ({ ...s, textContent: e.target.value }))} rows={6} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900" />
+              <textarea placeholder="Paste text…" value={submit.textContent} onChange={(e) => setSubmit((s) => ({ ...s, textContent: e.target.value }))} rows={6} className="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" />
             )}
             {submit.type === 'file' && (
               <input type="file" onChange={(e) => setSubmit((s) => ({ ...s, file: e.target.files?.[0] ?? null }))} className="w-full text-sm" />

@@ -130,7 +130,7 @@ export default function ProcessFlow() {
                     <div className="relative z-10 flex-shrink-0 flex flex-col items-center">
                       <div className="process-circle w-16 h-16 bg-white/5 border-2 border-white/20 rounded-full flex items-center justify-center group-hover:border-cyan-400 transition-colors duration-300">
                         <div className="w-12 h-12 bg-cyan-400 rounded-full flex items-center justify-center">
-                          <Icon className="text-black text-xl" />
+                          <Icon className="text-gray-900 text-xl" />
                         </div>
                       </div>
                       {/* Icon Label */}
