@@ -10,7 +10,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   turbopack: {},
-  serverExternalPackages: ['officeparser'],
+  serverExternalPackages: ['officeparser', 'pdfjs-dist', 'mammoth'],
   outputFileTracingRoot: path.resolve(__dirname),
   typescript: {
     ignoreBuildErrors: true,

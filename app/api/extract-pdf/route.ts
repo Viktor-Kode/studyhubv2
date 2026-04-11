@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRequire } from 'module';
 
 /**
  * Server-side File Extraction Pipeline.
  * Handles PDF, DOCX, and TXT.
- * Includes granular stage logging as requested for end-to-end auditability.
+ * Uses dynamic import for pdfjs-dist v5 to avoid CJS/ESM requirement errors on Vercel.
  */
-
-const require = createRequire(import.meta.url);
 
 // Polyfill DOMMatrix for PDF.js v5 in Node.js
 if (typeof global.DOMMatrix === 'undefined') {
@@ -26,7 +23,7 @@ if (typeof global.DOMMatrix === 'undefined') {
 }
 
 /**
- * Normalize and clean extracted text to prevent downstream pipeline crashes.
+ * Normalize and clean extracted text.
  */
 function normalizeText(text: string) {
     return text
@@ -71,16 +68,16 @@ export async function POST(request: NextRequest) {
             const isPDF = buffer.slice(0, 4).toString() === "%PDF";
             if (!isPDF) throw new Error("File has mismatching extension; headers do not match %PDF magic bytes.");
 
-            stage = "extracting_pdf_text";
-            let pdfjsLib;
-            try {
-                pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-                pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
-            } catch {
-                pdfjsLib = await import('pdfjs-dist');
-                if (pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+            stage = "loading_pdf_engine";
+            // Use dynamic import for ESM module compatibility on Vercel
+            const pdfjsLib = await import('pdfjs-dist');
+            
+            // Disable worker for server-side execution
+            if (pdfjsLib.GlobalWorkerOptions) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = "";
             }
 
+            stage = "extracting_pdf_text";
             const loadingTask = pdfjsLib.getDocument({
                 data: new Uint8Array(buffer),
                 disableWorker: true,
@@ -100,7 +97,7 @@ export async function POST(request: NextRequest) {
 
         } else if (fileName.endsWith('.docx')) {
             stage = "extracting_docx_text";
-            const mammoth = require('mammoth');
+            const mammoth = await import('mammoth');
             const result = await mammoth.extractRawText({ buffer });
             extractedText = result.value;
 
