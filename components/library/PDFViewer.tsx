@@ -69,28 +69,56 @@ export default function PDFViewer({
     let mounted = true
     let objectUrl = ''
     const loadPdf = async () => {
-      try {
-        const token = await getFirebaseToken()
-        const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
+      const MAX_RETRIES = 2;
+      let attempt = 0;
+      let lastError: Error | null = null;
+      let tempObjectUrl: string | null = null;
 
-        if (!response.ok) {
-          if (mounted) {
-            const data = await response.json().catch(() => ({}))
-            setErrorStatus(data.error || `Failed to load PDF (${response.status})`)
+      while (attempt <= MAX_RETRIES && mounted) {
+        try {
+          const token = await getFirebaseToken()
+          const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+
+          if (response.status === 404) {
+             throw new Error("Document not found in library.");
           }
-          return
-        }
+          if (response.status === 401 || response.status === 403) {
+             throw new Error("Access denied.");
+          }
 
-        const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
-        objectUrl = URL.createObjectURL(blob)
-        if (mounted) {
-          setFileSource(objectUrl)
-          setErrorStatus(null)
+          if (!response.ok) {
+            if (response.status >= 500 && attempt < MAX_RETRIES) {
+               attempt++;
+               await new Promise(r => setTimeout(r, attempt * 1500));
+               continue;
+            }
+            throw new Error(`Failed to load (Status: ${response.status})`);
+          }
+
+          const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
+          tempObjectUrl = URL.createObjectURL(blob)
+          
+          if (mounted) {
+            setFileSource(tempObjectUrl)
+            setErrorStatus(null)
+          }
+          return;
+
+        } catch (err: any) {
+          lastError = err;
+          if ((err.message.includes('fetch') || err.message.includes('Network')) && attempt < MAX_RETRIES) {
+             attempt++;
+             await new Promise(r => setTimeout(r, attempt * 1500));
+             continue;
+          }
+          break;
         }
-      } catch (err: any) {
-        if (mounted) setErrorStatus(err.message || 'Network error while loading PDF')
+      }
+
+      if (lastError && mounted) {
+        setErrorStatus(lastError.message || 'Error loading PDF')
       }
     }
     void loadPdf()
