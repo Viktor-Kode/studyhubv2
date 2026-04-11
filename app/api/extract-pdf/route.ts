@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRequire } from 'module';
 
 /**
- * Server-side PDF extraction API route.
- * Optimized for v5, with magic-byte validation and scanned-document detection (422).
+ * Server-side File Extraction Pipeline.
+ * Handles PDF, DOCX, and TXT.
+ * Includes granular stage logging as requested for end-to-end auditability.
  */
 
 const require = createRequire(import.meta.url);
@@ -24,89 +25,123 @@ if (typeof global.DOMMatrix === 'undefined') {
     };
 }
 
+/**
+ * Normalize and clean extracted text to prevent downstream pipeline crashes.
+ */
+function normalizeText(text: string) {
+    return text
+        .replace(/\r\n/g, "\n")
+        .replace(/[^\S\n]+/g, " ")  // collapse multiple spaces
+        .replace(/\n{3,}/g, "\n\n") // collapse excessive newlines
+        .trim();
+}
+
 export async function POST(request: NextRequest) {
+    let stage = "receiving_file";
     try {
+        stage = "parsing_formdata";
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
-            return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+            throw new Error("No file was provided in the request.");
         }
 
+        stage = "reading_buffer";
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // 1. Validate magic bytes (%PDF)
-        const isPDF = buffer.slice(0, 4).toString() === "%PDF";
-        if (!isPDF) {
-            return NextResponse.json({ error: "The uploaded file is not a valid PDF document." }, { status: 400 });
+        if (buffer.length === 0) {
+            throw new Error("The uploaded file is empty.");
         }
 
-        // Size guard (10MB)
+        // 10MB Size Guard
         if (buffer.length > 10 * 1024 * 1024) {
-            return NextResponse.json({ error: "PDF is too large for processing (Max 10MB)" }, { status: 413 });
+            return NextResponse.json(
+                { error: "File too large for server-side processing (Max 10MB)" }, 
+                { status: 413 }
+            );
         }
 
-        // Load PDF.js (v5 compatible)
-        let pdfjsLib;
-        try {
-            pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
-        } catch (e) {
-            pdfjsLib = await import('pdfjs-dist');
-            if (pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-        }
+        const fileName = file.name.toLowerCase();
+        let extractedText = "";
 
-        const loadingTask = pdfjsLib.getDocument({
-            data: new Uint8Array(buffer),
-            disableWorker: true,
-            useWorkerFetch: false,
-            isEvalSupported: false,
-            useSystemFonts: true,
-        });
+        if (fileName.endsWith('.pdf')) {
+            stage = "validating_pdf";
+            const isPDF = buffer.slice(0, 4).toString() === "%PDF";
+            if (!isPDF) throw new Error("File has mismatching extension; headers do not match %PDF magic bytes.");
 
-        const pdfDocument = await loadingTask.promise;
-        let extractedText = '';
-
-        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+            stage = "extracting_pdf_text";
+            let pdfjsLib;
             try {
+                pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+                pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
+            } catch {
+                pdfjsLib = await import('pdfjs-dist');
+                if (pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+            }
+
+            const loadingTask = pdfjsLib.getDocument({
+                data: new Uint8Array(buffer),
+                disableWorker: true,
+                useWorkerFetch: false,
+                isEvalSupported: false,
+                useSystemFonts: true,
+            });
+
+            const pdfDocument = await loadingTask.promise;
+            
+            for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
                 const page = await pdfDocument.getPage(pageNum);
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items
-                    .map((item: any) => item.str || '')
-                    .join(' ');
-                extractedText += pageText + ' ';
-            } catch (err) {
-                console.error(`Page ${pageNum} error:`, err);
+                extractedText += textContent.items.map((item: any) => item.str || '').join(' ') + '\n\n';
             }
+            await pdfDocument.destroy();
+
+        } else if (fileName.endsWith('.docx')) {
+            stage = "extracting_docx_text";
+            const mammoth = require('mammoth');
+            const result = await mammoth.extractRawText({ buffer });
+            extractedText = result.value;
+
+        } else if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
+            stage = "reading_plain_text";
+            extractedText = buffer.toString('utf-8');
+
+        } else {
+            return NextResponse.json({ error: "Unsupported file type for server-side extraction." }, { status: 400 });
         }
 
-        await pdfDocument.destroy();
+        stage = "normalizing_text";
+        const cleanedText = normalizeText(extractedText);
 
-        const cleanedText = extractedText.trim();
-        
-        // 2. Check for empty text (Scanned Document Detection)
-        if (!cleanedText || cleanedText.length < 50) {
+        if (!cleanedText || cleanedText.length < 20) {
             return NextResponse.json(
                 { 
-                    error: "This PDF appears to be image-based (scanned) or has no extractable text layer.",
-                    suggestion: "Please export as a standard .docx or .txt file, or use an online OCR tool before uploading.",
-                    code: 'SCANNED_PDF'
+                    error: "No readable text found in document.",
+                    suggestion: "The file might be a scan/image or corrupted.",
+                    code: 'EMPTY_TEXT'
                 }, 
                 { status: 422 }
             );
         }
 
+        console.log(`Pipeline success: Extracted ${cleanedText.length} characters from ${fileName}`);
+
         return NextResponse.json({
             success: true,
             text: cleanedText,
-            pages: pdfDocument.numPages
+            fileName
         });
 
     } catch (err: any) {
-        console.error("PDF API Error:", err?.message);
+        console.error(`Pipeline failed at stage [${stage}]:`, err?.message, err?.stack);
+        
         return NextResponse.json(
-            { error: "Server failed to process PDF. Try converting to .docx or .txt format." },
+            { 
+                error: `Server failed during ${stage}: ${err?.message || 'Unknown processing error'}.`,
+                details: err?.message 
+            },
             { status: 500 }
         );
     }
