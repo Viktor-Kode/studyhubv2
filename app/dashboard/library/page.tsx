@@ -182,7 +182,7 @@ export default function LibraryPage() {
                       }}
                       className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#5B4CF5] hover:bg-[#5B4CF5]/10 dark:text-[#a599ff] dark:hover:bg-[#5B4CF5]/20"
                     >
-                      {(doc.fileType || '').toLowerCase().includes('pdf') ? 'Open' : 'Download'}
+                      Open
                     </button>
                   </div>
                 </div>
