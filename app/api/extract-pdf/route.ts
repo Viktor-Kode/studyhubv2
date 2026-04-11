@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRequire } from 'module';
+import * as pdfjsLib from 'pdfjs-dist';
 
 /**
  * Server-side PDF extraction API route.
- * Uses CommonJS require for pdfjs-dist to avoid ESM worker bundling issues on Vercel.
+ * Updated to use CDN-hosted worker source to avoid bundling issues on Vercel.
+ * Uses the legacy build alias from next.config.js.
  */
 
-const require = createRequire(import.meta.url);
+// Configure PDF.js to use the CDN worker source
+// This prevents the engine from trying to resolve local worker files during the build/execution
+if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+}
 
-// Polyfill DOMMatrix for PDF.js v4+ in Node.js
+// Polyfill DOMMatrix for PDF.js in Node.js
 if (typeof global.DOMMatrix === 'undefined') {
     (global as any).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
@@ -33,20 +38,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Use CommonJS build which is often more stable for Node/Vercel environments
-        // and doesn't trigger the ESM worker-loader issues as easily
-        let pdfjsLib;
-        try {
-            pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-        } catch (e) {
-            // Fallback to MJS if CJS fails
-            pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-        }
-
         const arrayBuffer = await file.arrayBuffer();
         const typedArray = new Uint8Array(arrayBuffer);
 
-        // Explicitly disable workers for server-side
+        // Load PDF document with workers disabled for server-side
         const loadingTask = pdfjsLib.getDocument({
             data: typedArray,
             disableWorker: true,
@@ -83,7 +78,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('Server PDF Error:', error);
         return NextResponse.json(
-            { error: `Server-side PDF error: ${error.message || 'Unknown error'}` },
+            { error: `Server-side PDF processing failed: ${error.message || 'Unknown error'}` },
             { status: 500 }
         );
     }

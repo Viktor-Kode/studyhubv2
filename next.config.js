@@ -12,12 +12,20 @@ const nextConfig = {
   turbopack: {},
   serverExternalPackages: ['officeparser'],
   outputFileTracingRoot: path.resolve(__dirname),
-  transpilePackages: ['pdfjs-dist'],
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias.canvas = false;
+    
+    // Fix for pdfjs-dist on the server
+    if (isServer) {
+        config.resolve.alias = {
+            ...config.resolve.alias,
+            'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf'
+        };
+    }
+
     return config;
   },
   images: {
