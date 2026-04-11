@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as pdfjsLib from 'pdfjs-dist';
+import { createRequire } from 'module';
 
 /**
  * Server-side PDF extraction API route.
- * Updated to use CDN-hosted worker source to avoid bundling issues on Vercel.
- * Uses the legacy build alias from next.config.js.
+ * Optimized for Vercel/Serverless environments with:
+ * 1. Memory/Size Guard (10MB)
+ * 2. CJS build of pdfjs-dist for stability
+ * 3. Fully awaited buffer reading 
+ * 4. Detailed error logging
  */
 
-// Configure PDF.js to use the CDN worker source
-// This prevents the engine from trying to resolve local worker files during the build/execution
-if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-}
+const require = createRequire(import.meta.url);
 
-// Polyfill DOMMatrix for PDF.js in Node.js
+// Polyfill DOMMatrix and Path2D for PDF.js v4+ in Node.js
 if (typeof global.DOMMatrix === 'undefined') {
     (global as any).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
@@ -28,9 +27,24 @@ if (typeof global.DOMMatrix === 'undefined') {
         toString() { return "matrix(1, 0, 0, 1, 0, 0)"; }
     };
 }
+if (typeof global.Path2D === 'undefined') {
+    (global as any).Path2D = class Path2D {
+        addPath() {}
+        closePath() {}
+        moveTo() {}
+        lineTo() {}
+        bezierCurveTo() {}
+        quadraticCurveTo() {}
+        arc() {}
+        arcTo() {}
+        ellipse() {}
+        rect() {}
+    };
+}
 
 export async function POST(request: NextRequest) {
     try {
+        // Read file from FormData
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
@@ -38,12 +52,31 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
+        // 2. Fully await the file buffer reading
         const arrayBuffer = await file.arrayBuffer();
-        const typedArray = new Uint8Array(arrayBuffer);
+        const buffer = Buffer.from(arrayBuffer);
 
-        // Load PDF document with workers disabled for server-side
+        // 4. Memory/Size guard
+        if (buffer.length > 10 * 1024 * 1024) {
+            return NextResponse.json(
+                { error: "File too large for server-side extraction (Max 10MB)" }, 
+                { status: 413 }
+            );
+        }
+
+        // 3. Load pdfjs-dist legacy build with workers disabled
+        let pdfjsLib;
+        try {
+            pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+            // Disable worker - requested for same-process server execution
+            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
+        } catch (e) {
+            pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
+        }
+
         const loadingTask = pdfjsLib.getDocument({
-            data: typedArray,
+            data: new Uint8Array(buffer),
             disableWorker: true,
             useWorkerFetch: false,
             isEvalSupported: false,
@@ -62,7 +95,7 @@ export async function POST(request: NextRequest) {
                     .join(' ');
                 extractedText += pageText + '\n\n';
             } catch (err) {
-                console.warn(`Skipping page ${pageNum} due to error:`, err);
+                console.warn(`[PDF] Error on page ${pageNum}:`, err);
             }
         }
 
@@ -70,18 +103,31 @@ export async function POST(request: NextRequest) {
 
         const cleanedText = extractedText.trim();
         if (!cleanedText || cleanedText.length < 50) {
-            return NextResponse.json({ error: 'No readable text found in PDF.' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'PDF appears to be scanned or empty. No text found.' }, 
+                { status: 400 }
+            );
         }
 
-        return NextResponse.json({ success: true, text: cleanedText });
+        return NextResponse.json({
+            success: true,
+            text: cleanedText,
+            pages: pdfDocument.numPages
+        });
 
-    } catch (error: any) {
-        console.error('Server PDF Error:', error);
+    } catch (err: any) {
+        // 1. Detailed error logging
+        console.error("PDF extraction error:", err?.message, err?.stack);
+        
         return NextResponse.json(
-            { error: `Server-side PDF processing failed: ${error.message || 'Unknown error'}` },
+            { 
+                error: (err?.message || "PDF extraction failed").replace(/DOMMatrix is not defined/i, "System environment issue"),
+                details: err?.message
+            },
             { status: 500 }
         );
     }
 }
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
