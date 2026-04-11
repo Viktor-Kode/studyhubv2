@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 /** Stay a few seconds under Vercel `maxDuration` so the route can return JSON instead of platform 502. */
 function proxyTimeoutMs(pathAfterApi: string): number {
   const p = pathAfterApi.toLowerCase()
-  if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt')) {
+  if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt') || p.includes('library/documents')) {
     return 55_000
   }
   return 22_000
