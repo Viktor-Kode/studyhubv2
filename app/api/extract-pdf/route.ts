@@ -3,16 +3,12 @@ import { createRequire } from 'module';
 
 /**
  * Server-side PDF extraction API route.
- * Optimized for Vercel/Serverless environments with:
- * 1. Memory/Size Guard (10MB)
- * 2. CJS build of pdfjs-dist for stability
- * 3. Fully awaited buffer reading 
- * 4. Detailed error logging
+ * Optimized for pdfjs-dist v4/v5 which moved legacy paths.
  */
 
 const require = createRequire(import.meta.url);
 
-// Polyfill DOMMatrix and Path2D for PDF.js v4+ in Node.js
+// Polyfill DOMMatrix for PDF.js v5 in Node.js (Mandatory for text extraction in v5)
 if (typeof global.DOMMatrix === 'undefined') {
     (global as any).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
@@ -27,24 +23,9 @@ if (typeof global.DOMMatrix === 'undefined') {
         toString() { return "matrix(1, 0, 0, 1, 0, 0)"; }
     };
 }
-if (typeof global.Path2D === 'undefined') {
-    (global as any).Path2D = class Path2D {
-        addPath() {}
-        closePath() {}
-        moveTo() {}
-        lineTo() {}
-        bezierCurveTo() {}
-        quadraticCurveTo() {}
-        arc() {}
-        arcTo() {}
-        ellipse() {}
-        rect() {}
-    };
-}
 
 export async function POST(request: NextRequest) {
     try {
-        // Read file from FormData
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
@@ -52,27 +33,27 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // 2. Fully await the file buffer reading
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // 4. Memory/Size guard
+        // Size guard (10MB)
         if (buffer.length > 10 * 1024 * 1024) {
-            return NextResponse.json(
-                { error: "File too large for server-side extraction (Max 10MB)" }, 
-                { status: 413 }
-            );
+            return NextResponse.json({ error: "File too large (Max 10MB)" }, { status: 413 });
         }
 
-        // 3. Load pdfjs-dist legacy build with workers disabled
+        // Use standard import pattern for v4/v5
         let pdfjsLib;
         try {
+            // Try to load the module directly
             pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-            // Disable worker - requested for same-process server execution
-            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
         } catch (e) {
-            pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
+            // Fallback for different build systems
+            pdfjsLib = await import('pdfjs-dist');
+        }
+
+        // Disable worker server-side
+        if (pdfjsLib.GlobalWorkerOptions) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = "";
         }
 
         const loadingTask = pdfjsLib.getDocument({
@@ -95,7 +76,7 @@ export async function POST(request: NextRequest) {
                     .join(' ');
                 extractedText += pageText + '\n\n';
             } catch (err) {
-                console.warn(`[PDF] Error on page ${pageNum}:`, err);
+                console.error(`Page ${pageNum} error:`, err);
             }
         }
 
@@ -103,27 +84,15 @@ export async function POST(request: NextRequest) {
 
         const cleanedText = extractedText.trim();
         if (!cleanedText || cleanedText.length < 50) {
-            return NextResponse.json(
-                { error: 'PDF appears to be scanned or empty. No text found.' }, 
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'No readable text found.' }, { status: 400 });
         }
 
-        return NextResponse.json({
-            success: true,
-            text: cleanedText,
-            pages: pdfDocument.numPages
-        });
+        return NextResponse.json({ success: true, text: cleanedText });
 
     } catch (err: any) {
-        // 1. Detailed error logging
         console.error("PDF extraction error:", err?.message, err?.stack);
-        
         return NextResponse.json(
-            { 
-                error: (err?.message || "PDF extraction failed").replace(/DOMMatrix is not defined/i, "System environment issue"),
-                details: err?.message
-            },
+            { error: "PDF extraction failed on server. Try converting to .txt/docx." },
             { status: 500 }
         );
     }
