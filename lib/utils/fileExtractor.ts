@@ -49,19 +49,30 @@ export async function extractTextFromFile(file: File): Promise<FileExtractionRes
                         };
                     } else {
                         const errorData = await response.json().catch(() => ({}));
+                        
+                        // Handle scanned PDFs (422) with helpful advice
+                        if (response.status === 422) {
+                            return {
+                                success: false,
+                                error: errorData.error || 'This PDF appears to be a scanned image with no readable text layer.',
+                                fileType: 'PDF'
+                            };
+                        }
+
                         console.error('Server-side PDF extraction failed:', errorData.error);
                         
                         // Return the actual server error to the UI
                         return {
                             success: false,
-                            error: errorData.error || 'Server-side PDF extraction failed.',
+                            error: errorData.error || 'The server could not read this PDF. Please try converting it to .docx or .txt.',
                             fileType: 'PDF'
                         };
                     }
-                } catch (fallbackError) {
+                } catch (fallbackError: any) {
                     console.error('PDF fallback error:', fallbackError);
                     return {
-                        ...pdfResult,
+                        success: false,
+                        error: 'Network error during PDF processing. Please check your connection.',
                         fileType: 'PDF'
                     };
                 }

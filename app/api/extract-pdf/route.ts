@@ -3,12 +3,12 @@ import { createRequire } from 'module';
 
 /**
  * Server-side PDF extraction API route.
- * Optimized for pdfjs-dist v4/v5 which moved legacy paths.
+ * Optimized for v5, with magic-byte validation and scanned-document detection (422).
  */
 
 const require = createRequire(import.meta.url);
 
-// Polyfill DOMMatrix for PDF.js v5 in Node.js (Mandatory for text extraction in v5)
+// Polyfill DOMMatrix for PDF.js v5 in Node.js
 if (typeof global.DOMMatrix === 'undefined') {
     (global as any).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
@@ -36,24 +36,25 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // 1. Validate magic bytes (%PDF)
+        const isPDF = buffer.slice(0, 4).toString() === "%PDF";
+        if (!isPDF) {
+            return NextResponse.json({ error: "The uploaded file is not a valid PDF document." }, { status: 400 });
+        }
+
         // Size guard (10MB)
         if (buffer.length > 10 * 1024 * 1024) {
-            return NextResponse.json({ error: "File too large (Max 10MB)" }, { status: 413 });
+            return NextResponse.json({ error: "PDF is too large for processing (Max 10MB)" }, { status: 413 });
         }
 
-        // Use standard import pattern for v4/v5
+        // Load PDF.js (v5 compatible)
         let pdfjsLib;
         try {
-            // Try to load the module directly
             pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = ""; 
         } catch (e) {
-            // Fallback for different build systems
             pdfjsLib = await import('pdfjs-dist');
-        }
-
-        // Disable worker server-side
-        if (pdfjsLib.GlobalWorkerOptions) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+            if (pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions.workerSrc = "";
         }
 
         const loadingTask = pdfjsLib.getDocument({
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
                 const pageText = textContent.items
                     .map((item: any) => item.str || '')
                     .join(' ');
-                extractedText += pageText + '\n\n';
+                extractedText += pageText + ' ';
             } catch (err) {
                 console.error(`Page ${pageNum} error:`, err);
             }
@@ -83,16 +84,29 @@ export async function POST(request: NextRequest) {
         await pdfDocument.destroy();
 
         const cleanedText = extractedText.trim();
+        
+        // 2. Check for empty text (Scanned Document Detection)
         if (!cleanedText || cleanedText.length < 50) {
-            return NextResponse.json({ error: 'No readable text found.' }, { status: 400 });
+            return NextResponse.json(
+                { 
+                    error: "This PDF appears to be image-based (scanned) or has no extractable text layer.",
+                    suggestion: "Please export as a standard .docx or .txt file, or use an online OCR tool before uploading.",
+                    code: 'SCANNED_PDF'
+                }, 
+                { status: 422 }
+            );
         }
 
-        return NextResponse.json({ success: true, text: cleanedText });
+        return NextResponse.json({
+            success: true,
+            text: cleanedText,
+            pages: pdfDocument.numPages
+        });
 
     } catch (err: any) {
-        console.error("PDF extraction error:", err?.message, err?.stack);
+        console.error("PDF API Error:", err?.message);
         return NextResponse.json(
-            { error: "PDF extraction failed on server. Try converting to .txt/docx." },
+            { error: "Server failed to process PDF. Try converting to .docx or .txt format." },
             { status: 500 }
         );
     }
