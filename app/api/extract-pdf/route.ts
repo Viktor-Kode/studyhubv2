@@ -2,8 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Server-side PDF extraction API route.
- * Uses pdfjs-dist/legacy with workers disabled for Node.js environment.
+ * Includes polyfills for browser APIs (like DOMMatrix) required by PDF.js v4+ in Node environments.
  */
+
+// Polyfill DOMMatrix for PDF.js v4+ in Node.js
+if (typeof global.DOMMatrix === 'undefined') {
+    (global as any).DOMMatrix = class DOMMatrix {
+        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+        constructor(arg?: any) {
+            if (typeof arg === 'string') { /* parse matrix string if needed */ }
+        }
+        static fromFloat32Array(array: Float32Array) { return new DOMMatrix(); }
+        static fromFloat64Array(array: Float64Array) { return new DOMMatrix(); }
+        multiply() { return this; }
+        translate() { return this; }
+        scale() { return this; }
+        rotate() { return this; }
+        inverse() { return this; }
+        toString() { return `matrix(${this.a}, ${this.b}, ${this.c}, ${this.d}, ${this.e}, ${this.f})`; }
+    };
+}
+
+// Polyfill Path2D just in case some PDFs trigger rendering logic paths
+if (typeof global.Path2D === 'undefined') {
+    (global as any).Path2D = class Path2D {
+        addPath() {}
+        closePath() {}
+        moveTo() {}
+        lineTo() {}
+        bezierCurveTo() {}
+        quadraticCurveTo() {}
+        arc() {}
+        arcTo() {}
+        ellipse() {}
+        rect() {}
+    };
+}
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
@@ -22,10 +57,11 @@ export async function POST(request: NextRequest) {
         // Load PDF document with workers disabled (required for Node.js)
         const loadingTask = pdfjsLib.getDocument({
             data: typedArray,
-            disableWorker: true, // MUST be true for standard Node.js environments
+            disableWorker: true,
             useWorkerFetch: false,
             isEvalSupported: false,
             useSystemFonts: true,
+            standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
         });
 
         const pdfDocument = await loadingTask.promise;
@@ -33,19 +69,24 @@ export async function POST(request: NextRequest) {
 
         // Extract text from all pages
         for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-            const page = await pdfDocument.getPage(pageNum);
-            const textContent = await page.getTextContent();
+            try {
+                const page = await pdfDocument.getPage(pageNum);
+                const textContent = await page.getTextContent();
 
-            const pageText = textContent.items
-                .map((item: any) => {
-                    if (item && 'str' in item) {
-                        return item.str;
-                    }
-                    return '';
-                })
-                .join(' ');
+                const pageText = textContent.items
+                    .map((item: any) => {
+                        if (item && 'str' in item) {
+                            return item.str;
+                        }
+                        return '';
+                    })
+                    .join(' ');
 
-            extractedText += pageText + '\n\n';
+                extractedText += pageText + '\n\n';
+            } catch (pageError: any) {
+                console.error(`Error on page ${pageNum}:`, pageError);
+                // Continue with other pages if one fails
+            }
         }
 
         // Clean up
@@ -71,19 +112,8 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('Server PDF extraction error:', error);
 
-        let errorMessage = 'Failed to extract text from PDF on server.';
-
-        if (error.message?.includes('Invalid PDF')) {
-            errorMessage = 'This file appears to be corrupted or not a valid PDF.';
-        } else if (error.message?.includes('password')) {
-            errorMessage = 'This PDF is password-protected. Please unlock it first.';
-        } else {
-            // Include details if available to help user debug
-            errorMessage = `Unable to read this PDF on server: ${error.message || 'Unknown error'}. Try converting to .txt or .docx format.`;
-        }
-
         return NextResponse.json(
-            { error: errorMessage },
+            { error: `Unable to read this PDF on server: ${error.message || 'Processing error'}. Try converting to .txt or .docx format.` },
             { status: 500 }
         );
     }
