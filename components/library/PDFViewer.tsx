@@ -48,6 +48,7 @@ export default function PDFViewer({
   const [isSaving, setIsSaving] = useState(false)
   const [pageWidth, setPageWidth] = useState(800)
   const [fileSource, setFileSource] = useState<string>(`/api/backend/library/proxy-pdf/${documentItem._id}`)
+  const [errorStatus, setErrorStatus] = useState<string | null>(null)
 
   const percentage = useMemo(() => {
     if (!numPages) return 0
@@ -68,14 +69,29 @@ export default function PDFViewer({
     let mounted = true
     let objectUrl = ''
     const loadPdf = async () => {
-      const token = await getFirebaseToken()
-      const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!response.ok) return
-      const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
-      objectUrl = URL.createObjectURL(blob)
-      if (mounted) setFileSource(objectUrl)
+      try {
+        const token = await getFirebaseToken()
+        const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+
+        if (!response.ok) {
+          if (mounted) {
+            const data = await response.json().catch(() => ({}))
+            setErrorStatus(data.error || `Failed to load PDF (${response.status})`)
+          }
+          return
+        }
+
+        const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
+        objectUrl = URL.createObjectURL(blob)
+        if (mounted) {
+          setFileSource(objectUrl)
+          setErrorStatus(null)
+        }
+      } catch (err: any) {
+        if (mounted) setErrorStatus(err.message || 'Network error while loading PDF')
+      }
     }
     void loadPdf()
     return () => {
@@ -203,17 +219,38 @@ export default function PDFViewer({
         </div>
 
         <div className="h-[calc(100%-114px)] overflow-auto bg-slate-100 p-3 dark:bg-slate-950 sm:p-6">
-          <Document
-            file={fileSource}
-            onLoadSuccess={({ numPages: pages }) => {
-              setNumPages(pages)
-              setCurrentPage((prev) => Math.min(prev, pages))
-            }}
-          >
-            <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
-              <Page pageNumber={currentPage} width={pageWidth} />
+          {errorStatus ? (
+            <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+              <div className="mb-4 rounded-full bg-red-50 p-3 dark:bg-red-900/20">
+                <X className="h-8 w-8 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">Could not load PDF</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{errorStatus}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+              >
+                Reload Page
+              </button>
             </div>
-          </Document>
+          ) : (
+            <Document
+              file={fileSource}
+              onLoadSuccess={({ numPages: pages }) => {
+                setNumPages(pages)
+                setCurrentPage((prev) => Math.min(prev, pages))
+              }}
+              loading={
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B4CF5] border-t-transparent" />
+                </div>
+              }
+            >
+              <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
+                <Page pageNumber={currentPage} width={pageWidth} />
+              </div>
+            </Document>
+          )}
         </div>
 
         <div className="border-t border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-5">
