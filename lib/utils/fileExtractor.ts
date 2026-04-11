@@ -17,12 +17,52 @@ export async function extractTextFromFile(file: File): Promise<FileExtractionRes
     try {
         switch (extension) {
             case 'pdf':
-                console.log('Extracting PDF...');
+                console.log('Extracting PDF (client-side)...');
                 const pdfResult = await extractPDFText(file);
-                return {
-                    ...pdfResult,
-                    fileType: 'PDF'
-                };
+                
+                if (pdfResult.success) {
+                    return {
+                        ...pdfResult,
+                        fileType: 'PDF'
+                    };
+                }
+
+                // If client-side fails (common on mobile), try server-side fallback
+                console.warn('Client-side PDF extraction failed, attempting server-side fallback...', pdfResult.error);
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('/api/extract-pdf', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Server-side PDF extraction successful');
+                        return {
+                            success: true,
+                            text: data.text,
+                            fileType: 'PDF'
+                        };
+                    } else {
+                        const errorData = await response.json().catch(() => ({}));
+                        console.error('Server-side PDF extraction failed:', errorData.error);
+                        // Return original client error if server also fails
+                        return {
+                            ...pdfResult,
+                            fileType: 'PDF'
+                        };
+                    }
+                } catch (fallbackError) {
+                    console.error('PDF fallback error:', fallbackError);
+                    return {
+                        ...pdfResult,
+                        fileType: 'PDF'
+                    };
+                }
 
             case 'docx':
                 console.log('Extracting DOCX...');
