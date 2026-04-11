@@ -72,18 +72,17 @@ export async function POST(request: NextRequest) {
             // Use dynamic import for ESM module compatibility on Vercel
             const pdfjsLib = await import('pdfjs-dist');
             
-            // Disable worker for server-side execution
+            // Set worker source to CDN even for server-side (fake worker will use it as reference)
             if (pdfjsLib.GlobalWorkerOptions) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
             }
 
             stage = "extracting_pdf_text";
             const loadingTask = pdfjsLib.getDocument({
                 data: new Uint8Array(buffer),
-                disableWorker: true,
-                useWorkerFetch: false,
                 isEvalSupported: false,
                 useSystemFonts: true,
+                standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
             });
 
             const pdfDocument = await loadingTask.promise;
