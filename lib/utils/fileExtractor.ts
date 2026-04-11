@@ -50,9 +50,11 @@ export async function extractTextFromFile(file: File): Promise<FileExtractionRes
                     } else {
                         const errorData = await response.json().catch(() => ({}));
                         console.error('Server-side PDF extraction failed:', errorData.error);
-                        // Return original client error if server also fails
+                        
+                        // Return the actual server error to the UI
                         return {
-                            ...pdfResult,
+                            success: false,
+                            error: errorData.error || 'Server-side PDF extraction failed.',
                             fileType: 'PDF'
                         };
                     }
