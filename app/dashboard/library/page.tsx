@@ -382,38 +382,80 @@ function UploadModal({
     if (!title.trim()) return setError('Enter a document title.')
     setUploading(true)
     setError('')
-    const token = await getFirebaseToken()
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('title', title.trim())
-    formData.append('subject', subject.trim())
-    formData.append('coverColor', coverColor)
 
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      xhr.open('POST', '/api/backend/library/documents')
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) setProgress(Math.round((event.loaded / event.total) * 100))
-      }
-      xhr.onload = () => {
-        try {
-          const data = JSON.parse(xhr.responseText)
-          if (xhr.status >= 200 && xhr.status < 300 && data.success) {
-            onUploaded(data.document)
-            resolve()
-          } else {
-            reject(new Error(data?.error || 'Upload failed'))
+    try {
+      const token = await getFirebaseToken()
+
+      // Step 1: Get signed upload signature from backend
+      const sigResp = await fetch('/api/backend/library/upload-signature', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      const sigData = await sigResp.json()
+      if (!sigData.success) throw new Error(sigData.error || 'Failed to prepare upload')
+
+      // Step 2: Upload directly to Cloudinary from browser
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('api_key', sigData.apiKey)
+      formData.append('timestamp', sigData.timestamp)
+      formData.append('signature', sigData.signature)
+      formData.append('folder', sigData.folder)
+
+      const cloudUrl = `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`
+
+      const uploadResp = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', cloudUrl)
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            // We count this as 90% of the total process
+            setProgress(Math.round((event.loaded / event.total) * 90))
           }
-        } catch {
-          reject(new Error('Unexpected upload response'))
         }
-      }
-      xhr.onerror = () => reject(new Error('Network error'))
-      xhr.send(formData)
-    }).catch((err: Error) => setError(err.message))
+        xhr.onload = () => {
+          try {
+            const data = JSON.parse(xhr.responseText)
+            if (xhr.status >= 200 && xhr.status < 300) resolve(data)
+            else reject(new Error(data?.error?.message || 'Cloudinary upload failed'))
+          } catch {
+            reject(new Error('Cloudinary response error'))
+          }
+        }
+        xhr.onerror = () => reject(new Error('Cloudinary network error'))
+        xhr.send(formData)
+      })
 
-    setUploading(false)
+      // Step 3: Send metadata to backend to save record
+      setProgress(95)
+      const finalizeResp = await fetch('/api/backend/library/finalize-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          subject: subject.trim(),
+          coverColor,
+          fileUrl: uploadResp.secure_url,
+          fileSize: file.size,
+          fileType: file.type || 'application/pdf',
+          publicId: uploadResp.public_id,
+          originalName: file.name,
+        }),
+      })
+
+      const finalizeData = await finalizeResp.json()
+      if (!finalizeData.success) throw new Error(finalizeData.error || 'Failed to save document record')
+
+      setProgress(100)
+      onUploaded(finalizeData.document)
+    } catch (err: any) {
+      console.error('[Library] Direct upload error:', err)
+      setError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
