@@ -1,90 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeFile, unlink } from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
 /**
  * Server-side PDF extraction API route.
- * Uses pdfjs-dist/legacy for better compatibility in server environments.
+ * Replaced pdfjs-dist with officeparser for better Node.js compatibility and reliability.
  */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+    let tempFilePath: string | null = null;
     try {
-        const formData = await request.formData();
+        let officeParser: any;
+        try {
+            const mod = await import('officeparser');
+            officeParser = mod?.default ?? mod;
+        } catch (e: any) {
+            console.error('Failed to import officeparser:', e);
+            return NextResponse.json(
+                { error: 'PDF extraction module is not available on server' },
+                { status: 501 }
+            );
+        }
+
+        const formData = await req.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Dynamic import of pdfjs-dist for server-side
-        // Note: Using the legacy build is crucial for Node.js environments
-        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-        const arrayBuffer = await file.arrayBuffer();
-        const typedArray = new Uint8Array(arrayBuffer);
+        // Write buffer to temp file as officeparser is more reliable with paths
+        const tempDir = os.tmpdir();
+        tempFilePath = path.join(tempDir, `pdf-upload-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`);
 
-        // Load PDF document
-        const loadingTask = pdfjsLib.getDocument({
-            data: typedArray,
-            useWorkerFetch: false,
-            isEvalSupported: false,
-            useSystemFonts: true,
-        });
+        await writeFile(tempFilePath, buffer);
 
-        const pdfDocument = await loadingTask.promise;
-        let extractedText = '';
+        try {
+            // Match the proven pattern from extract-ppt/route.ts
+            const result = await officeParser.parseOffice(tempFilePath);
+            
+            // Extract text from the result (which might be an AST object or string)
+            const extractedText = typeof result?.toText === 'function' 
+                ? result.toText() 
+                : (typeof result === 'string' ? result : JSON.stringify(result));
 
-        // Extract text from all pages
-        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-            const page = await pdfDocument.getPage(pageNum);
-            const textContent = await page.getTextContent();
+            // Cleanup
+            if (tempFilePath) await unlink(tempFilePath).catch(() => { });
 
-            const pageText = textContent.items
-                .map((item: any) => {
-                    if ('str' in item) {
-                        return item.str;
-                    }
-                    return '';
-                })
-                .join(' ');
+            if (!extractedText || extractedText.trim().length < 50) {
+                return NextResponse.json(
+                    {
+                        error: 'PDF appears to be empty or scanned. No readable text found via server-side extraction.'
+                    },
+                    { status: 400 }
+                );
+            }
 
-            extractedText += pageText + '\n\n';
-        }
+            return NextResponse.json({
+                success: true,
+                text: extractedText.trim(),
+            });
+        } catch (parseError: any) {
+            console.error('OfficeParser PDF Error:', parseError);
+            if (tempFilePath) await unlink(tempFilePath).catch(() => { });
 
-        // Clean up
-        await pdfDocument.destroy();
-
-        if (!extractedText.trim() || extractedText.trim().length < 50) {
             return NextResponse.json(
-                {
-                    error: 'PDF appears to be empty or scanned. No readable text found. Please convert to .txt or .docx format.'
-                },
-                { status: 400 }
+                { error: 'Failed to parse PDF file on server', details: parseError.message },
+                { status: 500 }
             );
         }
-
-        return NextResponse.json({
-            success: true,
-            text: extractedText.trim(),
-            pages: pdfDocument.numPages
-        });
-
     } catch (error: any) {
-        console.error('PDF extraction error:', error);
-
-        let errorMessage = 'Failed to extract text from PDF.';
-
-        if (error.message?.includes('Invalid PDF')) {
-            errorMessage = 'This file appears to be corrupted or not a valid PDF.';
-        } else if (error.message?.includes('password')) {
-            errorMessage = 'This PDF is password-protected. Please unlock it first.';
-        } else {
-            errorMessage = 'Unable to read this PDF. Try converting to .txt or .docx format.';
-        }
-
+        console.error('PDF Extraction API Error:', error);
+        if (tempFilePath) await unlink(tempFilePath).catch(() => { });
         return NextResponse.json(
-            { error: errorMessage, details: error.message },
+            { error: 'Unable to read this PDF on server. Try converting to .txt or .docx format.' },
             { status: 500 }
         );
     }
 }
 
-// Next.js API route config
 export const dynamic = 'force-dynamic';
