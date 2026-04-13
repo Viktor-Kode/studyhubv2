@@ -222,39 +222,25 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const compareAnswers = (userAnsw: any, correctAnsw: any) => {
     if (userAnsw === undefined || userAnsw === null || correctAnsw === undefined || correctAnsw === null) return false;
 
-    // String normalization helper
-    const normalize = (s: any) =>
-      String(s)
-        .toLowerCase()
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove punctuation
-        .replace(/\b(a|an|the|is|are|was|were|some|many)\b/g, "") // Remove common filler words
-        .replace(/\s+/g, " ") // Normalize whitespace
-        .trim();
+    // Direct letter match for ALOC MCQs (a/b/c/d)
+    const normalize = (s: any) => String(s).toLowerCase().trim();
+    if (normalize(userAnsw) === normalize(correctAnsw)) return true;
 
-    const u = normalize(userAnsw);
-    const c = normalize(correctAnsw);
+    // Numeric index fallback (legacy)
+    if (!isNaN(Number(userAnsw)) && !isNaN(Number(correctAnsw))) {
+      return Number(userAnsw) === Number(correctAnsw);
+    }
 
-    // 1. Exact match after normalization
-    if (u === c) return true;
+    // Fuzzy match for fill-in-the-blank
+    const u = normalize(userAnsw).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
+    const c = normalize(correctAnsw).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
 
-    // 2. Numeric comparison (direct or string-based)
-    if (typeof userAnsw === 'number' && typeof correctAnsw === 'number' && userAnsw === correctAnsw) return true;
-    if (u && c && !isNaN(Number(u)) && !isNaN(Number(c)) && Number(u) === Number(c)) return true;
-
-    // 3. Fuzzy matching for longer text answers (Blank Questions)
-    // Only apply for strings with at least 3 characters
     if (u.length >= 3 && c.length >= 3) {
       const distance = getLevenshteinDistance(u, c);
-
-      // Define threshold: approx 20-25% of the correct answer's length
-      // For short words (3-5), only 1 mistake. For longer words, maybe 2 or 3.
       let threshold = 1;
       if (c.length > 5) threshold = 2;
       if (c.length > 10) threshold = 3;
-
       if (distance <= threshold) return true;
-
-      // Handle cases where the user answer is contained within or contains the correct answer
       if (u.length > 4 && (c.includes(u) || u.includes(c))) return true;
     }
 
@@ -1684,29 +1670,44 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       className="text-gray-800 dark:text-gray-100 font-bold leading-snug"
                     />
 
+                    {/* Only show image if it belongs to a subject that typically has diagrams */}
+                    {(q as any).image && ['biology', 'physics', 'chemistry', 'geography', 'math'].some(s => q.subject?.toLowerCase().includes(s)) && (
+                      <div className="my-2 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-sm">
+                        <img
+                          src={(q as any).image}
+                          alt={`Diagram for question ${idx + 1}`}
+                          className="w-full h-auto object-contain max-h-64 bg-white"
+                          onError={(e) => {
+                            // Hide broken images silently
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+
                     <div className="grid gap-2">
                       {q.options && q.options.length > 0 ? (
                         q.options.map((opt, oIdx) => (
                           <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
-                            ${userAnswers[q._id] === oIdx ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
+                            ${userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
+                            ${checkedAnswers[q._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
+                            ${checkedAnswers[q._id] && userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
                           `}>
                             <input type="radio"
                               name={`q-${q._id}`}
                               className="hidden"
                               disabled={checkedAnswers[q._id]}
-                              onChange={() => setUserAnswers(prev => ({ ...prev, [q._id]: oIdx }))}
+                              onChange={() => setUserAnswers(prev => ({ ...prev, [q._id]: String.fromCharCode(65 + oIdx).toLowerCase() }))}
                             />
-                            <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
-                              ${userAnswers[q._id] === oIdx ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
-                            `}>{String.fromCharCode(65 + oIdx)}</span>
+                             <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
+                               ${userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
+                             `}>{String.fromCharCode(65 + oIdx)}</span>
                             <MarkdownText
                               content={opt}
                               className="text-gray-600 dark:text-gray-300 font-medium"
                             />
-                            {checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
+                            {checkedAnswers[q._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
+                            {checkedAnswers[q._id] && userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
                         ))
                       ) : (
