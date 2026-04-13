@@ -31,12 +31,17 @@ export async function GET(
 
     await connectDB();
 
-    console.log(`[Frontend PDF Proxy] Requesting document ${id} for user ${user.userId}`);
+    // Ensure models are registered (especially if this is the first time they are accessed in this instance)
+    const LibraryDoc = LibraryDocument;
+    const SharedDoc = SharedLibraryItem;
+
+    console.log(`[Frontend PDF Proxy] Requesting: ${id} | User: ${user.userId}`);
 
     let fileUrl: string | null = null;
+    let foundSource = '';
 
-    // 1. Try LibraryDocument (Own)
-    const doc = await LibraryDocument.findOne({
+    // 1. Try LibraryDocument (New system, own)
+    const doc = await LibraryDoc.findOne({
       $or: [
         { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
         { publicId: id }
@@ -46,11 +51,10 @@ export async function GET(
 
     if (doc) {
       fileUrl = doc.fileUrl;
+      foundSource = 'LibraryDocument';
     } else {
-      // 2. Try SharedLibraryItem (Approved)
-      // Note: We might need to handle cases where SharedLibraryItem model isn't pre-loaded
-      // For now we assume typical Mongoose connection handles shared models if imported
-      const shared = await mongoose.model('SharedLibraryItem').findOne({
+      // 2. Try SharedLibraryItem (Approved community items)
+      const shared = await SharedDoc.findOne({
         $or: [
           { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
           { publicId: id }
@@ -60,16 +64,35 @@ export async function GET(
 
       if (shared) {
         fileUrl = shared.fileUrl;
+        foundSource = 'SharedLibraryItem';
+      } else {
+        // 3. Fallback for legacy items (if stored in a generic 'librarymaterials' collection)
+        try {
+           const legacy = await mongoose.connection.db?.collection('librarymaterials').findOne({
+             $or: [
+               { _id: mongoose.isValidObjectId(id) ? new mongoose.Types.ObjectId(id) : null },
+               { publicId: id }
+             ]
+           });
+           if (legacy) {
+             fileUrl = legacy.fileUrl;
+             foundSource = 'LibraryMaterial (legacy)';
+           }
+        } catch (e) {
+           console.warn('[Frontend PDF Proxy] Legacy check failed:', (e as Error).message);
+        }
       }
     }
 
     if (!fileUrl) {
-      console.warn(`[Frontend PDF Proxy] Document ${id} not found or access denied`);
+      console.warn(`[Frontend PDF Proxy] NOT FOUND: ${id} | User: ${user.userId}`);
       return new NextResponse(JSON.stringify({ error: 'Document not found or access denied' }), { 
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    console.log(`[Frontend PDF Proxy] FOUND in ${foundSource}: ${fileUrl}`);
 
     // 3. Fetch from storage
     const storageResponse = await fetch(fileUrl, {
