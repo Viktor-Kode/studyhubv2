@@ -1244,7 +1244,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <textarea
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
-                  className="flex-1 w-full p-4 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none text-gray-900 dark:text-gray-100"
+                  className="flex-1 w-full p-4 text-base bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none text-gray-900 dark:text-gray-100"
                   placeholder="Paste your study notes, sections of a book, or lecture transcripts here..."
                 />
                 <p className="text-xs text-gray-400 text-right mt-2">
@@ -1309,7 +1309,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       max="50"
                       value={amount}
                       onChange={(e) => setAmount(Math.min(50, Math.max(1, Number(e.target.value))))}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-bold text-gray-900 dark:text-gray-100"
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 </div>
@@ -1452,7 +1452,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask a question..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
+                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-base outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
                   />
                   <button
                     type="submit"
@@ -1518,7 +1518,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     placeholder="Enter a name for this note..."
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-emerald-500 transition-all font-bold"
+                    className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-base outline-none focus:border-emerald-500 transition-all font-bold"
                   />
                   <button
                     onClick={handleSaveNote}
