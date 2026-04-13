@@ -1420,11 +1420,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   )}
 
                   {chatMessages.map((msg, i) => (
-                    <div key={`${msg.role}-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm whitespace-pre-wrap break-words
+                    <div key={`${msg.role}-${i}`} className={`flex w-full min-w-0 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[90%] sm:max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm whitespace-pre-wrap text-wrap break-words min-w-0
                         ${msg.role === 'user'
                           ? 'bg-purple-600 text-white rounded-tr-none'
                           : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
+                        style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                       >
                         {msg.content}
                       </div>
