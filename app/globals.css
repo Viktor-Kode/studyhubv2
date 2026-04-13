@@ -42,13 +42,11 @@ img, video, svg, canvas, iframe {
   height: auto;
 }
 
-/* Tables never overflow — they scroll */
-table {
-  display: block;
+/* All inputs full width on mobile */
+input, select, textarea {
+  max-width: 100%;
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 /* All text wraps — never pushes layout */
@@ -57,11 +55,27 @@ p, h1, h2, h3, h4, h5, h6, span, li, td, th, label {
   overflow-wrap: anywhere;
 }
 
-/* All inputs full width on mobile */
-input, select, textarea {
+/* Hard global lockdown on code blocks and tables to prevent mobile overflow */
+pre, code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
   max-width: 100%;
-  width: 100%;
   box-sizing: border-box;
+}
+
+table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Dark mode form safety net: keep text/placeholders readable on dark surfaces */
