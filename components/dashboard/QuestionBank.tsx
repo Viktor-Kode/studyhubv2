@@ -1403,7 +1403,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                   {chatMessages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                       <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
@@ -1421,7 +1421,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
                   {chatMessages.map((msg, i) => (
                     <div key={`${msg.role}-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm
+                      <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm whitespace-pre-wrap break-words
                         ${msg.role === 'user'
                           ? 'bg-purple-600 text-white rounded-tr-none'
                           : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
