@@ -159,7 +159,21 @@ module.exports = {
           },
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            p: { overflowWrap: 'anywhere', wordBreak: 'break-word' },
+            pre: { whiteSpace: 'pre-wrap', wordBreak: 'break-all', overflowX: 'auto' },
+            code: { wordBreak: 'break-all' },
+            'ul, ol': { width: '100%', overflow: 'hidden' },
+            li: { overflowWrap: 'anywhere', wordBreak: 'break-word' },
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 }

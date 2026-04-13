@@ -1651,7 +1651,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             </div>
             <MarkdownText
               content={generatedNotes}
-              className="prose dark:prose-invert max-w-none text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300"
+              className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300"
             />
           </div>
         </div>
@@ -1673,7 +1673,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   <div className="flex-1 space-y-4">
                     <MarkdownText
                       content={q.content || (q as any).question || ''}
-                      className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-100 font-bold leading-snug"
+                      className="text-gray-800 dark:text-gray-100 font-bold leading-snug"
                     />
 
                     <div className="grid gap-2">
@@ -1695,7 +1695,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                             `}>{String.fromCharCode(65 + oIdx)}</span>
                             <MarkdownText
                               content={opt}
-                              className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 font-medium"
+                              className="text-gray-600 dark:text-gray-300 font-medium"
                             />
                             {checkedAnswers[q._id] && compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
                             {checkedAnswers[q._id] && userAnswers[q._id] === oIdx && !compareAnswers(oIdx, q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
@@ -1737,7 +1737,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                           {(q.knowledgeDeepDive && q.knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[q._id] ? (
                             <MarkdownText
                               content={aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || 'No deep-dive available.'}
-                              className="prose prose-sm dark:prose-invert max-w-none text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
+                              className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
                             />
                           ) : (
                             <button
