@@ -54,88 +54,84 @@ function getExtractionLabel(file: File): string {
 
 function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
   return (
-    <div className={`w-full min-w-0 max-w-full overflow-hidden break-words box-border ${className}`}>
+    <div className={className} style={{ width: '100%', minWidth: 0, maxWidth: '100%', overflow: 'hidden', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
       <ReactMarkdown
         components={{
-          // HEADINGS
-          h1: ({ children }: any) => <h1 className="text-base font-bold break-words overflow-hidden w-full my-2">{children}</h1>,
-          h2: ({ children }: any) => <h2 className="text-sm font-bold break-words overflow-hidden w-full my-2">{children}</h2>,
-          h3: ({ children }: any) => <h3 className="text-xs font-bold break-words overflow-hidden w-full my-2">{children}</h3>,
-          h4: ({ children }: any) => <h4 className="text-xs font-semibold break-words overflow-hidden w-full my-1">{children}</h4>,
-
-          // LISTS
-          ul: ({ children }: any) => <ul className="list-disc list-inside w-full max-w-full overflow-hidden break-words pl-2 my-1 space-y-1">{children}</ul>,
-          ol: ({ children }: any) => <ol className="list-decimal list-inside w-full max-w-full overflow-hidden break-words pl-2 my-1 space-y-1">{children}</ol>,
-          li: ({ children }: any) => (
-            <li className="break-words overflow-hidden w-full max-w-full"
-              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-            >
-              {children}
-            </li>
-          ),
-
-          // PARAGRAPH
-          p: ({ children }: any) => (
-            <p className="break-words w-full my-1"
-              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-            >
+          p: ({ children }) => (
+            <p style={{ margin: '0 0 6px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               {children}
             </p>
           ),
-
-          // LINKS
-          a: ({ href, children }: any) => (
-            <a href={href} target="_blank" rel="noreferrer"
-              className="text-purple-500 underline"
-              style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
-            >
+          h1: ({ children }) => (
+            <h1 style={{ fontSize: '16px', fontWeight: 700, margin: '12px 0 6px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               {children}
-            </a>
+            </h1>
           ),
-
-          // BOLD/STRONG
-          strong: ({ children }: any) => (
-            <strong className="font-bold break-words"
-              style={{ overflowWrap: 'anywhere' }}
-            >
+          h2: ({ children }) => (
+            <h2 style={{ fontSize: '14px', fontWeight: 600, margin: '10px 0 4px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               {children}
-            </strong>
+            </h2>
           ),
-
-          // CODE
-          code({ node, inline, className, children, ...props }: any) {
-            return inline ? (
-              <code className="break-all whitespace-pre-wrap font-mono text-[0.85em] bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-md" {...props}>
+          h3: ({ children }) => (
+            <h3 style={{ fontSize: '12px', fontWeight: 500, margin: '8px 0 4px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+              {children}
+            </h3>
+          ),
+          h4: ({ children }) => (
+            <h4 style={{ fontSize: '12px', fontWeight: 500, margin: '8px 0 4px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+              {children}
+            </h4>
+          ),
+          ul: ({ children }) => (
+            <ul style={{ paddingLeft: '16px', margin: '4px 0', width: '100%', overflow: 'hidden' }}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol style={{ paddingLeft: '16px', margin: '4px 0', width: '100%', overflow: 'hidden' }}>
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li style={{ marginBottom: '3px', overflowWrap: 'anywhere', wordBreak: 'break-word', overflow: 'hidden' }}>
+              {children}
+            </li>
+          ),
+          strong: ({ children }) => (
+            <strong style={{ fontWeight: 600 }}>{children}</strong>
+          ),
+          code: ({ node, inline, children, ...props }: any) => (
+            inline ? (
+              <code style={{ background: 'rgba(83,74,183,0.1)', padding: '1px 5px', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace', wordBreak: 'break-all' }} {...props}>
                 {children}
               </code>
             ) : (
-              <pre className="overflow-x-auto max-w-full whitespace-pre-wrap bg-gray-900 text-gray-100 p-4 rounded-xl my-2 text-[11px] md:text-xs"
-                style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
-              >
-                <code className="break-all font-mono whitespace-pre-wrap" {...props}>
-                  {children}
-                </code>
+              <pre style={{ background: '#1a1a2e', color: '#e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: '6px 0', maxWidth: '100%' }}>
+                <code {...props}>{children}</code>
               </pre>
-            );
-          },
-
-          // TABLE
-          table: ({ children }: any) => (
-            <div className="overflow-x-auto max-w-full my-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <table className="w-full text-left text-[11px] md:text-sm">{children}</table>
+            )
+          ),
+          table: ({ children }) => (
+            <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '6px 0' }}>
+              <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                {children}
+              </table>
             </div>
           ),
-
-          // IMAGE
-          img: ({ src, alt }: any) => (
-            <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-2" />
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noreferrer" style={{ color: '#534AB7', wordBreak: 'break-all', overflowWrap: 'anywhere', textDecoration: 'underline' }}>
+              {children}
+            </a>
+          ),
+          img: ({ src, alt }) => (
+            <img src={src} alt={alt} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', margin: '6px 0' }} />
           ),
         }}
       >
         {content}
       </ReactMarkdown>
     </div>
-  );
+  )
 }
 
 export default function QuestionBank({ className = '' }: QuestionBankProps) {
@@ -1498,27 +1494,48 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   )}
 
                   {chatMessages.map((msg, i) => (
-                    <div
-                      key={`${msg.role}-${i}`}
-                      className={`flex w-full min-w-0 overflow-hidden ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[90%] sm:max-w-[85%] min-w-0 overflow-hidden p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm break-words
-                          ${msg.role === 'user'
-                            ? 'bg-purple-600 text-white rounded-tr-none'
-                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
-                        style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-                      >
-                        {msg.role === 'user' ? (
-                          <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                            {msg.content}
-                          </span>
-                        ) : (
-                          <MarkdownText
-                            content={msg.content}
-                            className="max-w-none break-words overflow-hidden"
-                          />
-                        )}
+                    <div key={`${msg.role}-${i}`} style={{
+                      display: 'flex',
+                      width: '100%',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minWidth: 0,
+                        maxWidth: '82%',
+                        overflow: 'hidden',
+                        alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                      }}>
+                        <div
+                          className={`text-xs font-medium leading-relaxed shadow-sm break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
+                          style={{
+                            padding: '9px 13px',
+                            borderRadius: 16,
+                            borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
+                            borderBottomLeftRadius: msg.role !== 'user' ? 4 : 16,
+                            fontSize: 12,
+                            lineHeight: 1.6,
+                            overflow: 'hidden',
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                          }}
+                        >
+                          {msg.role === 'user' ? (
+                            <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                              {msg.content}
+                            </span>
+                          ) : (
+                            <MarkdownText content={msg.content} />
+                          )}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2, padding: '0 2px' }}>
+                          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                   ))}
