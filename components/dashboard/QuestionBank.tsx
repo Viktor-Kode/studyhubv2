@@ -1002,7 +1002,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   }
 
   return (
-    <div className={`space-y-8 ${className}`}>
+    <div className={`space-y-8 w-full max-w-full overflow-hidden ${className}`}>
       {/* Quiz Generation Card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300">
         <div className="flex justify-between items-center mb-6">
