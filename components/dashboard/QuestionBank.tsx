@@ -1410,7 +1410,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             ) : activeTab === 'tutor' ? (
               // TUTOR TAB UI
-              <div className="flex flex-col h-[75vh] min-h-[500px] md:h-[600px] border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20">
+              <div className="flex flex-col h-[75vh] min-h-[500px] md:h-[600px] w-full border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20">
                 <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 md:p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <p className="text-xs font-bold text-gray-600 dark:text-gray-300">Tutor Conversations</p>
@@ -1454,7 +1454,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 min-h-0 w-full">
                   {chatMessages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                       <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
