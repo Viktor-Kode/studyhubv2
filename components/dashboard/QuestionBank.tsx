@@ -54,7 +54,7 @@ function getExtractionLabel(file: File): string {
 
 function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
   return (
-    <div className={`w-full max-w-full overflow-x-hidden break-words box-border ${className}`}>
+    <div className={`w-full min-w-0 max-w-full overflow-hidden break-words box-border ${className}`}>
       <ReactMarkdown
         components={{
           code({ node, inline, className, children, ...props }: any) {
@@ -63,27 +63,52 @@ function MarkdownText({ content, className = '' }: { content: string; className?
                 {children}
               </code>
             ) : (
-              <pre className="overflow-x-auto max-w-full whitespace-pre-wrap bg-gray-900 text-gray-100 p-4 rounded-xl my-2 text-[11px] md:text-xs">
-                <code className="break-all font-mono" {...props}>{children}</code>
+              <pre className="overflow-x-auto max-w-full whitespace-pre-wrap bg-gray-900 text-gray-100 p-4 rounded-xl my-2 text-[11px] md:text-xs"
+                style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
+              >
+                <code className="break-all font-mono whitespace-pre-wrap" {...props}>
+                  {children}
+                </code>
               </pre>
+            );
+          },
+          p({ children }: any) {
+            return (
+              <p className="break-words overflow-wrap-anywhere my-1"
+                style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+              >
+                {children}
+              </p>
             );
           },
           table({ children }: any) {
             return (
               <div className="overflow-x-auto max-w-full my-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <table className="w-full text-left text-[11px] md:text-sm whitespace-nowrap">{children}</table>
+                <table className="w-full text-left text-[11px] md:text-sm whitespace-nowrap">
+                  {children}
+                </table>
               </div>
             );
           },
           img({ src, alt }: any) {
             return <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-2" />;
           },
+          a({ href, children }: any) {
+            return (
+              <a href={href} className="break-all text-purple-500 underline"
+                style={{ wordBreak: 'break-all' }}
+                target="_blank" rel="noreferrer"
+              >
+                {children}
+              </a>
+            );
+          },
         }}
       >
         {content}
       </ReactMarkdown>
     </div>
-  )
+  );
 }
 
 export default function QuestionBank({ className = '' }: QuestionBankProps) {
@@ -1446,19 +1471,25 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   )}
 
                   {chatMessages.map((msg, i) => (
-                    <div key={`${msg.role}-${i}`} className={`flex w-full min-w-0 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[90%] sm:max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm whitespace-pre-wrap text-wrap break-words min-w-0
-                        ${msg.role === 'user'
-                          ? 'bg-purple-600 text-white rounded-tr-none'
-                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
+                    <div
+                      key={`${msg.role}-${i}`}
+                      className={`flex w-full min-w-0 overflow-hidden ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[90%] sm:max-w-[85%] min-w-0 overflow-hidden p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm break-words
+                          ${msg.role === 'user'
+                            ? 'bg-purple-600 text-white rounded-tr-none'
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
                         style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                       >
                         {msg.role === 'user' ? (
-                          msg.content
+                          <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                            {msg.content}
+                          </span>
                         ) : (
-                          <MarkdownText 
-                            content={msg.content} 
-                            className="prose prose-sm dark:prose-invert max-w-none break-words overflow-hidden" 
+                          <MarkdownText
+                            content={msg.content}
+                            className="max-w-none break-words overflow-hidden"
                           />
                         )}
                       </div>
