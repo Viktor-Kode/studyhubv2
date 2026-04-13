@@ -608,12 +608,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         return {
           questionId: q._id,
           question: q.content || (q as any).question,
-          selectedAnswer: typeof userAnswer === 'number'
-            ? q.options[userAnswer]
+          selectedAnswer: typeof userAnswer === 'string' && userAnswer.length === 1 && /^[a-e]$/i.test(userAnswer)
+            ? q.options[userAnswer.toLowerCase().charCodeAt(0) - 97]
             : (userAnswer || 'Skipped'),
-          correctAnswer: typeof correctAnswer === 'number'
-            ? q.options[Number(correctAnswer)]
-            : correctAnswer,
+          correctAnswer: typeof correctAnswer === 'string' && correctAnswer.length === 1 && /^[a-e]$/i.test(correctAnswer)
+            ? q.options[correctAnswer.toLowerCase().charCodeAt(0) - 97]
+            : (typeof correctAnswer === 'number' ? q.options[correctAnswer] : correctAnswer),
           explanation: q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation ||
             (q as any).modelAnswer || (q as any).solution || (q as any).explanationText ||
             (q as any).reason || (q as any).solution || (q as any).discussion ||
