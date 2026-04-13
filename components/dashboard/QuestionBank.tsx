@@ -57,6 +57,52 @@ function MarkdownText({ content, className = '' }: { content: string; className?
     <div className={`w-full min-w-0 max-w-full overflow-hidden break-words box-border ${className}`}>
       <ReactMarkdown
         components={{
+          // HEADINGS
+          h1: ({ children }: any) => <h1 className="text-base font-bold break-words overflow-hidden w-full my-2">{children}</h1>,
+          h2: ({ children }: any) => <h2 className="text-sm font-bold break-words overflow-hidden w-full my-2">{children}</h2>,
+          h3: ({ children }: any) => <h3 className="text-xs font-bold break-words overflow-hidden w-full my-2">{children}</h3>,
+          h4: ({ children }: any) => <h4 className="text-xs font-semibold break-words overflow-hidden w-full my-1">{children}</h4>,
+
+          // LISTS
+          ul: ({ children }: any) => <ul className="list-disc list-inside w-full max-w-full overflow-hidden break-words pl-2 my-1 space-y-1">{children}</ul>,
+          ol: ({ children }: any) => <ol className="list-decimal list-inside w-full max-w-full overflow-hidden break-words pl-2 my-1 space-y-1">{children}</ol>,
+          li: ({ children }: any) => (
+            <li className="break-words overflow-hidden w-full max-w-full"
+              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+            >
+              {children}
+            </li>
+          ),
+
+          // PARAGRAPH
+          p: ({ children }: any) => (
+            <p className="break-words w-full my-1"
+              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+            >
+              {children}
+            </p>
+          ),
+
+          // LINKS
+          a: ({ href, children }: any) => (
+            <a href={href} target="_blank" rel="noreferrer"
+              className="text-purple-500 underline"
+              style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
+            >
+              {children}
+            </a>
+          ),
+
+          // BOLD/STRONG
+          strong: ({ children }: any) => (
+            <strong className="font-bold break-words"
+              style={{ overflowWrap: 'anywhere' }}
+            >
+              {children}
+            </strong>
+          ),
+
+          // CODE
           code({ node, inline, className, children, ...props }: any) {
             return inline ? (
               <code className="break-all whitespace-pre-wrap font-mono text-[0.85em] bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-md" {...props}>
@@ -72,37 +118,18 @@ function MarkdownText({ content, className = '' }: { content: string; className?
               </pre>
             );
           },
-          p({ children }: any) {
-            return (
-              <p className="break-words overflow-wrap-anywhere my-1"
-                style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-              >
-                {children}
-              </p>
-            );
-          },
-          table({ children }: any) {
-            return (
-              <div className="overflow-x-auto max-w-full my-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <table className="w-full text-left text-[11px] md:text-sm whitespace-nowrap">
-                  {children}
-                </table>
-              </div>
-            );
-          },
-          img({ src, alt }: any) {
-            return <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-2" />;
-          },
-          a({ href, children }: any) {
-            return (
-              <a href={href} className="break-all text-purple-500 underline"
-                style={{ wordBreak: 'break-all' }}
-                target="_blank" rel="noreferrer"
-              >
-                {children}
-              </a>
-            );
-          },
+
+          // TABLE
+          table: ({ children }: any) => (
+            <div className="overflow-x-auto max-w-full my-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <table className="w-full text-left text-[11px] md:text-sm">{children}</table>
+            </div>
+          ),
+
+          // IMAGE
+          img: ({ src, alt }: any) => (
+            <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-2" />
+          ),
         }}
       >
         {content}
