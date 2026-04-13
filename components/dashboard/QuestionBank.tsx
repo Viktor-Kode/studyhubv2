@@ -170,6 +170,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [score, setScore] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [quizSubmitted, setQuizSubmitted] = useState(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
 
   const searchParams = useSearchParams()
 
@@ -669,6 +670,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setCheckedAnswers({})
     setScore(0)
     setQuizSubmitted(false)
+    setCurrentQuestionIndex(0)
     setActiveTab('quiz')
     setHasSession(false)
     setShowResumeBanner(false)
@@ -809,6 +811,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setUserAnswers({})
     setCheckedAnswers({})
     setScore(0)
+    setCurrentQuestionIndex(0)
 
     try {
       const sourceName = inputMode === 'upload' ? uploadedFile?.name : 'Manual Input'
@@ -1660,22 +1663,22 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           </div>
 
           <div className="grid gap-6">
-            {newQuestions.map((q, idx) => (
-              <div key={q._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
+            {newQuestions.length > 0 && (
+              <div key={newQuestions[currentQuestionIndex]._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-start gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-sm">{idx + 1}</span>
+                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-sm">{currentQuestionIndex + 1}</span>
                   <div className="flex-1 space-y-4">
                     <MarkdownText
-                      content={q.content || (q as any).question || ''}
+                      content={newQuestions[currentQuestionIndex].content || (newQuestions[currentQuestionIndex] as any).question || ''}
                       className="text-gray-800 dark:text-gray-100 font-bold leading-snug"
                     />
 
                     {/* Only show image if it belongs to a subject that typically has diagrams */}
-                    {(q as any).image && ['biology', 'physics', 'chemistry', 'geography', 'math'].some(s => q.subject?.toLowerCase().includes(s)) && (
+                    {(newQuestions[currentQuestionIndex] as any).image && ['biology', 'physics', 'chemistry', 'geography', 'math'].some(s => newQuestions[currentQuestionIndex].subject?.toLowerCase().includes(s)) && (
                       <div className="my-2 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-sm">
                         <img
-                          src={(q as any).image}
-                          alt={`Diagram for question ${idx + 1}`}
+                          src={(newQuestions[currentQuestionIndex] as any).image}
+                          alt={`Diagram for question ${currentQuestionIndex + 1}`}
                           className="w-full h-auto object-contain max-h-64 bg-white"
                           onError={(e) => {
                             // Hide broken images silently
@@ -1686,88 +1689,118 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     )}
 
                     <div className="grid gap-2">
-                      {q.options && q.options.length > 0 ? (
-                        q.options.map((opt, oIdx) => (
+                      {newQuestions[currentQuestionIndex].options && newQuestions[currentQuestionIndex].options.length > 0 ? (
+                        newQuestions[currentQuestionIndex].options.map((opt, oIdx) => (
                           <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
-                            ${userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[q._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[q._id] && userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
+                            ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
+                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
+                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
                           `}>
                             <input type="radio"
-                              name={`q-${q._id}`}
+                              name={`q-${newQuestions[currentQuestionIndex]._id}`}
                               className="hidden"
-                              disabled={checkedAnswers[q._id]}
-                              onChange={() => setUserAnswers(prev => ({ ...prev, [q._id]: String.fromCharCode(65 + oIdx).toLowerCase() }))}
+                              disabled={checkedAnswers[newQuestions[currentQuestionIndex]._id]}
+                              onChange={() => setUserAnswers(prev => ({ ...prev, [newQuestions[currentQuestionIndex]._id]: String.fromCharCode(65 + oIdx).toLowerCase() }))}
                             />
                              <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
-                               ${userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
+                               ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
                              `}>{String.fromCharCode(65 + oIdx)}</span>
                             <MarkdownText
                               content={opt}
                               className="text-gray-600 dark:text-gray-300 font-medium"
                             />
-                            {checkedAnswers[q._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[q._id] && userAnswers[q._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), q.answer !== undefined ? q.answer : (q as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
+                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
+                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
                         ))
                       ) : (
                         <div className="space-y-2">
-                          <input type="text" placeholder="Your answer..." disabled={checkedAnswers[q._id]}
+                          <input type="text" placeholder="Your answer..." disabled={checkedAnswers[newQuestions[currentQuestionIndex]._id]}
                             className={`w-full px-5 py-3.5 rounded-xl border-2 outline-none transition-all font-medium
-                              ${checkedAnswers[q._id] ? 'bg-gray-50 dark:bg-gray-700 text-gray-500' : 'bg-gray-50/50 dark:bg-gray-900/20 border-gray-100 dark:border-gray-600 focus:border-blue-500/50 focus:bg-white'}
+                              ${checkedAnswers[newQuestions[currentQuestionIndex]._id] ? 'bg-gray-50 dark:bg-gray-700 text-gray-500' : 'bg-gray-50/50 dark:bg-gray-900/20 border-gray-100 dark:border-gray-600 focus:border-blue-500/50 focus:bg-white'}
                             `}
-                            value={userAnswers[q._id] || ''} onChange={(e) => setUserAnswers(prev => ({ ...prev, [q._id]: e.target.value }))}
+                            value={userAnswers[newQuestions[currentQuestionIndex]._id] || ''} onChange={(e) => setUserAnswers(prev => ({ ...prev, [newQuestions[currentQuestionIndex]._id]: e.target.value }))}
                           />
                         </div>
                       )}
                     </div>
 
-                    {!checkedAnswers[q._id] ? (
-                      <button onClick={() => checkAnswer(q._id, q.answer !== undefined ? q.answer : (q as any).correctAnswer)} disabled={userAnswers[q._id] === undefined || userAnswers[q._id] === ''}
-                        className="w-full sm:w-auto px-8 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all hover:bg-blue-600 active:scale-95"
-                      >Verify Concept</button>
-                    ) : (
-                      <div className="mt-4 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
-                        <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
-                          {compareAnswers(userAnswers[q._id], q.answer !== undefined ? q.answer : (q as any).correctAnswer) ? (
-                            <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
-                          ) : (
-                            <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
-                              <span className="text-blue-600 dark:text-blue-200 ml-1">
-                                {typeof (q.answer !== undefined ? q.answer : (q as any).correctAnswer) === 'number'
-                                  ? q.options?.[q.answer !== undefined ? Number(q.answer) : Number((q as any).correctAnswer)]
-                                  : (q.answer !== undefined ? q.answer : (q as any).correctAnswer)}
+                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                      {!checkedAnswers[newQuestions[currentQuestionIndex]._id] ? (
+                        <button 
+                          onClick={() => checkAnswer(newQuestions[currentQuestionIndex]._id, newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)} 
+                          disabled={userAnswers[newQuestions[currentQuestionIndex]._id] === undefined || userAnswers[newQuestions[currentQuestionIndex]._id] === ''}
+                          className="flex-1 px-8 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all hover:bg-blue-600 active:scale-95 shadow-md"
+                        >Verify Concept</button>
+                      ) : (
+                        <div className="flex-1 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
+                          <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
+                            {compareAnswers(userAnswers[newQuestions[currentQuestionIndex]._id], newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? (
+                              <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
+                            ) : (
+                              <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
+                                <span className="text-blue-600 dark:text-blue-200 ml-1">
+                                  {typeof (newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) === 'number'
+                                    ? newQuestions[currentQuestionIndex].options?.[newQuestions[currentQuestionIndex].answer !== undefined ? Number(newQuestions[currentQuestionIndex].answer) : Number((newQuestions[currentQuestionIndex] as any).correctAnswer)]
+                                    : (newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)}
+                                </span>
                               </span>
-                            </span>
-                          )}
+                            )}
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
+                            {(newQuestions[currentQuestionIndex].knowledgeDeepDive && newQuestions[currentQuestionIndex].knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[newQuestions[currentQuestionIndex]._id] ? (
+                              <MarkdownText
+                                content={aiExplanations[newQuestions[currentQuestionIndex]._id] || newQuestions[currentQuestionIndex].knowledgeDeepDive || (newQuestions[currentQuestionIndex] as any).knowledge_deep_dive || (newQuestions[currentQuestionIndex] as any).explanation || (newQuestions[currentQuestionIndex] as any).modelAnswer || (newQuestions[currentQuestionIndex] as any).solution || (newQuestions[currentQuestionIndex] as any).reason || 'No deep-dive available.'}
+                                className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => handleGetAiExplanation(newQuestions[currentQuestionIndex])}
+                                disabled={isExplaining === newQuestions[currentQuestionIndex]._id}
+                                className="mt-2 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition py-2 px-3 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-100 dark:border-blue-800"
+                              >
+                                {isExplaining === newQuestions[currentQuestionIndex]._id ? (
+                                  <><FiLoader className="animate-spin" /> Generating Explanation...</>
+                                ) : (
+                                  <><HiOutlineLightBulb className="text-sm" /> Generate AI Deep-Dive Explanation</>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
-                          {(q.knowledgeDeepDive && q.knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[q._id] ? (
-                            <MarkdownText
-                              content={aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation || (q as any).modelAnswer || (q as any).solution || (q as any).reason || 'No deep-dive available.'}
-                              className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
-                            />
-                          ) : (
-                            <button
-                              onClick={() => handleGetAiExplanation(q)}
-                              disabled={isExplaining === q._id}
-                              className="mt-2 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition py-2 px-3 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-100 dark:border-blue-800"
-                            >
-                              {isExplaining === q._id ? (
-                                <><FiLoader className="animate-spin" /> Generating Explanation...</>
-                              ) : (
-                                <><HiOutlineLightBulb className="text-sm" /> Generate AI Deep-Dive Explanation</>
-                              )}
-                            </button>
-                          )}
-                        </div>
+                      )}
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <div className="flex items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-20"
+                      >
+                        ← Previous
+                      </button>
+                      
+                      <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
+                        {currentQuestionIndex + 1} / {newQuestions.length}
                       </div>
-                    )}
+
+                      {currentQuestionIndex < newQuestions.length - 1 ? (
+                        <button
+                          onClick={() => setCurrentQuestionIndex(prev => Math.min(newQuestions.length - 1, prev + 1))}
+                          className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-black hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+                        >
+                          Next Question →
+                        </button>
+                      ) : (
+                        <div className="w-[140px]" /> // Placeholder for alignment
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
           {!quizSubmitted && newQuestions.length > 0 && (
