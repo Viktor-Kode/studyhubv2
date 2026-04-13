@@ -1477,7 +1477,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 min-h-0 w-full">
+                <div
+                  className="flex-1 overflow-x-hidden p-4 space-y-4 min-h-0 w-full chat-scroll-container"
+                  style={{
+                    overflowY: 'scroll',
+                    scrollbarGutter: 'stable',
+                    scrollbarWidth: 'thin',
+                    msOverflowStyle: 'none',
+                  }}
+                >
                   {chatMessages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                       <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">

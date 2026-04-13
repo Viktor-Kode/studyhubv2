@@ -34,6 +34,8 @@
 html, body {
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 /* Every element respects its container */
@@ -184,6 +186,26 @@ img, video, iframe {
 .bottom-nav,
 [data-bottom-nav] {
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+/* Fix scrollbar inside chat container specifically */
+.chat-scroll-container {
+  scrollbar-gutter: stable;
+  overflow-y: scroll !important;
+}
+
+/* Hide scrollbar visually but keep it functional */
+.chat-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
 }
 
 /* ─── Visual Lab & CBT Diagrams ───────────────────────────────────────────── */
