@@ -22,6 +22,7 @@ interface StudyAnswer {
   isCorrect: boolean
   correctIndex: number
   selectedIndex: number | null
+  explanation?: string
 }
 
 export default function StudyModePage() {
@@ -103,15 +104,24 @@ export default function StudyModePage() {
       void progressApi.award('study_question').catch(() => {})
 
       setLoadingExp(true)
+      let expText = ''
       try {
         const correctText = options[correctIndex] ?? ''
-        const exp = await cbtApi.getExplanation(currentQuestion.question, correctText, options)
-        setExplanation(exp)
+        expText = await cbtApi.getExplanation(currentQuestion.question, correctText, options)
+        setExplanation(expText)
       } catch (err) {
         console.error('[Study Mode] Failed to get explanation:', err)
-        setExplanation('The correct answer is highlighted above.')
+        expText = 'The correct answer is highlighted above.'
+        setExplanation(expText)
       } finally {
         setLoadingExp(false)
+        setAnswers((prev) => {
+          const next = [...prev]
+          if (next[current]) {
+            next[current].explanation = expText
+          }
+          return next
+        })
       }
     } catch (err) {
       console.error('[Study Mode] Error while selecting option:', err)
@@ -128,10 +138,29 @@ export default function StudyModePage() {
       setFinished(true)
       return
     }
-    setCurrent((c) => c + 1)
-    setSelected(null)
-    setRevealed(false)
-    setExplanation('')
+    const nextIdx = current + 1
+    setCurrent(nextIdx)
+    restoreQuestionState(nextIdx)
+  }
+
+  const handlePrevious = () => {
+    if (current <= 0) return
+    const prevIdx = current - 1
+    setCurrent(prevIdx)
+    restoreQuestionState(prevIdx)
+  }
+
+  const restoreQuestionState = (idx: number) => {
+    const answer = answers[idx]
+    if (answer) {
+      setSelected(answer.selectedIndex)
+      setRevealed(true)
+      setExplanation(answer.explanation || '')
+    } else {
+      setSelected(null)
+      setRevealed(false)
+      setExplanation('')
+    }
   }
 
   const handleRetry = () => {
@@ -366,7 +395,7 @@ export default function StudyModePage() {
                 {revealed && (
                   <div
                     className={`mt-4 rounded-xl border px-4 py-4 space-y-3 text-sm ${
-                      selected === questions[current].correctAnswer
+                      answers[current]?.isCorrect
                         ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
                         : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-700'
                     }`}
@@ -401,17 +430,39 @@ export default function StudyModePage() {
                         </p>
                       )}
                     </div>
+                  </div>
+                )}
 
+                {/* Navigation Buttons */}
+                <div className="flex items-center justify-between gap-4 pt-4 mt-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    disabled={current === 0}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+
+                  {revealed ? (
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="w-full inline-flex items-center justify-center gap-2 mt-1 px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition"
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition"
                     >
                       {current + 1 >= questions.length ? 'See results' : 'Next question'}
                       <FiChevronRight className="text-sm" />
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed"
+                    >
+                      Answer first
+                    </button>
+                  )}
+                </div>      )}
               </div>
             </div>
           )}

@@ -119,6 +119,7 @@ export default function TopicStudyClient() {
   const [score, setScore] = useState(0)
   const [roundDone, setRoundDone] = useState(false)
   const [attemptedRound, setAttemptedRound] = useState(0)
+  const [topicAnswers, setTopicAnswers] = useState<Record<number, { selectedIndex: number; isCorrect: boolean; explanation: string }>>({})
 
   useEffect(() => {
     setMobileTab(tabParam)
@@ -132,6 +133,7 @@ export default function TopicStudyClient() {
     setQIndex(0)
     setRoundDone(false)
     setGenError(null)
+    setTopicAnswers({})
   }, [topicTitle, exam, subjectKey])
 
   const sendTutor = useCallback(
@@ -232,13 +234,14 @@ export default function TopicStudyClient() {
 
   const generateQuestions = async () => {
     setGenError(null)
+    setExplanation('')
+    setAttemptedRound(0)
+    setTopicAnswers({})
     setGenLoading(true)
     setRoundDone(false)
     setQIndex(0)
     setSelected(null)
     setRevealed(false)
-    setExplanation('')
-    setAttemptedRound(0)
     try {
       const raw = await cbtApi.generateTopicQuestions({
         exam: examForApi,
@@ -281,19 +284,27 @@ export default function TopicStudyClient() {
     void progressApi.award('study_question').catch(() => {})
 
     setExpLoading(true)
+    let expText = ''
     if (q.explanation) {
-      setExplanation(q.explanation)
+      expText = q.explanation
+      setExplanation(expText)
       setExpLoading(false)
     } else {
       try {
-        const exp = await cbtApi.getExplanation(q.question, q.options[q.correctIndex], q.options)
-        setExplanation(exp)
+        expText = await cbtApi.getExplanation(q.question, q.options[q.correctIndex], q.options)
+        setExplanation(expText)
       } catch {
-        setExplanation('Review the correct option above.')
+        expText = 'Review the correct option above.'
+        setExplanation(expText)
       } finally {
         setExpLoading(false)
       }
     }
+    
+    setTopicAnswers(prev => ({
+      ...prev,
+      [qIndex]: { selectedIndex: idx, isCorrect: correct, explanation: expText }
+    }))
   }
 
   const handleNextQ = () => {
@@ -301,10 +312,29 @@ export default function TopicStudyClient() {
       setRoundDone(true)
       return
     }
-    setQIndex((i) => i + 1)
-    setSelected(null)
-    setRevealed(false)
-    setExplanation('')
+    const nextIdx = qIndex + 1
+    setQIndex(nextIdx)
+    restoreQState(nextIdx)
+  }
+
+  const handlePrevQ = () => {
+    if (qIndex <= 0) return
+    const prevIdx = qIndex - 1
+    setQIndex(prevIdx)
+    restoreQState(prevIdx)
+  }
+
+  const restoreQState = (idx: number) => {
+    const ans = topicAnswers[idx]
+    if (ans) {
+      setSelected(ans.selectedIndex)
+      setRevealed(true)
+      setExplanation(ans.explanation)
+    } else {
+      setSelected(null)
+      setRevealed(false)
+      setExplanation('')
+    }
   }
 
   const current = questions[qIndex]
@@ -499,16 +529,39 @@ export default function TopicStudyClient() {
                     {explanation}
                   </ReactMarkdown>
                 )}
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between gap-3 mt-auto pt-4">
+              <button
+                type="button"
+                onClick={handlePrevQ}
+                disabled={qIndex === 0}
+                className="flex-1 py-2.5 rounded-[12px] font-semibold border-[1.5px] border-[#E8EAED] dark:border-gray-700 text-gray-700 dark:text-gray-300 transition disabled:opacity-30"
+              >
+                Previous
+              </button>
+
+              {revealed ? (
                 <button
                   type="button"
                   onClick={handleNextQ}
-                  className="mt-3 w-full py-2.5 rounded-[12px] font-semibold text-white"
+                  className="flex-1 py-2.5 rounded-[12px] font-semibold text-white transition hover:opacity-90 active:scale-[0.98]"
                   style={{ backgroundColor: PURPLE }}
                 >
-                  {qIndex + 1 >= questions.length ? 'See results' : 'Next question'}
+                  {qIndex + 1 >= questions.length ? 'See results' : 'Next Question'}
                 </button>
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-2.5 rounded-[12px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                >
+                  Answer First
+                </button>
+              )}
+            </div>
           </div>
         )}
 

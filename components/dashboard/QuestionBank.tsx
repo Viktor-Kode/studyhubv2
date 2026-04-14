@@ -1169,23 +1169,23 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     </>
                   ) : (
                     <div className="w-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        {getFileIcon(uploadedFile.name)}
-                        <div className="overflow-hidden">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[120px]">{uploadedFile.name}</p>
-                          <p className="text-[10px] text-gray-500 font-medium">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {getFileIcon(uploadedFile.name)}
+                          <div className="overflow-hidden">
+                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[120px]">{uploadedFile.name}</p>
+                            <p className="text-[10px] text-gray-500 font-medium">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
                         </div>
+                        {!extracting && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setExtractedText(''); setError(null); setSuccess(null); setWarning(null) }}
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-500 rounded-lg transition"
+                          >
+                            <FiX />
+                          </button>
+                        )}
                       </div>
-                      {!extracting && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setExtractedText(''); setError(null); setSuccess(null); setWarning(null) }}
-                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-500 rounded-lg transition"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
                       {extracting || imageExtracting ? (
                         <div className="flex items-center justify-center gap-2 py-4">
                           <FiLoader className="animate-spin text-blue-500 shrink-0" />
@@ -1353,7 +1353,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     <select
                       value={questionType}
                       onChange={(e) => setQuestionType(e.target.value)}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                     >
                       <option value="multiple-choice">MCQ</option>
                       <option value="theory">Theory</option>
@@ -1702,7 +1702,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                               disabled={checkedAnswers[newQuestions[currentQuestionIndex]._id]}
                               onChange={() => setUserAnswers(prev => ({ ...prev, [newQuestions[currentQuestionIndex]._id]: String.fromCharCode(65 + oIdx).toLowerCase() }))}
                             />
-                             <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
+                            <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
                                ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
                              `}>{String.fromCharCode(65 + oIdx)}</span>
                             <MarkdownText
@@ -1727,8 +1727,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
                     <div className="flex flex-col sm:flex-row gap-4 pt-2">
                       {!checkedAnswers[newQuestions[currentQuestionIndex]._id] ? (
-                        <button 
-                          onClick={() => checkAnswer(newQuestions[currentQuestionIndex]._id, newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)} 
+                        <button
+                          onClick={() => checkAnswer(newQuestions[currentQuestionIndex]._id, newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)}
                           disabled={userAnswers[newQuestions[currentQuestionIndex]._id] === undefined || userAnswers[newQuestions[currentQuestionIndex]._id] === ''}
                           className="flex-1 px-8 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all hover:bg-blue-600 active:scale-95 shadow-md"
                         >Verify Concept</button>
@@ -1781,7 +1781,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       >
                         ← Previous
                       </button>
-                      
+
                       <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
                         {currentQuestionIndex + 1} / {newQuestions.length}
                       </div>
