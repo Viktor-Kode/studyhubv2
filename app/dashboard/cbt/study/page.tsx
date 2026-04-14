@@ -462,7 +462,7 @@ export default function StudyModePage() {
                       Answer first
                     </button>
                   )}
-                </div>      )}
+                </div>
               </div>
             </div>
           )}
