@@ -71,58 +71,39 @@ export default function PDFViewer({
     let mounted = true
     let objectUrl = ''
     const loadPdf = async () => {
-      const MAX_RETRIES = 2;
-      let attempt = 0;
-      let lastError: Error | null = null;
-      let tempObjectUrl: string | null = null;
+      try {
+        const token = await getFirebaseToken()
+        const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        })
 
-      while (attempt <= MAX_RETRIES && mounted) {
-        try {
-          const token = await getFirebaseToken()
-          const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
-
-          if (response.status === 404) {
-             throw new Error("Document not found in library.");
-          }
-          if (response.status === 401 || response.status === 403) {
-             throw new Error("Access denied.");
-          }
-
-          if (!response.ok) {
-            if (response.status >= 500 && attempt < MAX_RETRIES) {
-               attempt++;
-               await new Promise(r => setTimeout(r, attempt * 1500));
-               continue;
-            }
-            throw new Error(`Failed to load (Status: ${response.status})`);
-          }
-
-          const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
-          tempObjectUrl = URL.createObjectURL(blob)
-          
-          if (mounted) {
-            setFileSource(tempObjectUrl)
-            setErrorStatus(null)
-          }
-          return;
-
-        } catch (err: any) {
-          lastError = err;
-          if ((err.message.includes('fetch') || err.message.includes('Network')) && attempt < MAX_RETRIES) {
-             attempt++;
-             await new Promise(r => setTimeout(r, attempt * 1500));
-             continue;
-          }
-          break;
+        if (response.status === 401) {
+          window.location.href = '/login'
+          return
         }
-      }
 
-      if (lastError && mounted) {
-        setErrorStatus(lastError.message || 'Error loading PDF')
+        if (!response.ok) {
+          throw new Error('Failed to load document. Please try again.')
+        }
+
+        const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
+        tempObjectUrl = URL.createObjectURL(blob)
+        
+        if (mounted) {
+          setFileSource(tempObjectUrl)
+          setErrorStatus(null)
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setErrorStatus(err.message || 'Failed to load document. Please try again.')
+        }
+      } finally {
+        if (mounted) setIsPdfLoading(false)
       }
-      if (mounted) setIsPdfLoading(false)
     }
     void loadPdf()
     return () => {

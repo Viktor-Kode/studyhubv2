@@ -53,65 +53,40 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
     let isMounted = true
 
     const loadPdf = async () => {
-      const MAX_RETRIES = 2;
-      let attempt = 0;
-      let lastError: Error | null = null;
-      let objectUrl: string | null = null;
+      try {
+        const token = await getToken()
+        const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        })
 
-      while (attempt <= MAX_RETRIES && isMounted) {
-        try {
-          const token = await getToken()
-          const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
-
-          if (response.status === 404) {
-             throw new Error("Document not found in library.");
-          }
-          if (response.status === 401 || response.status === 403) {
-             throw new Error("You don't have permission to view this document.");
-          }
-
-          if (!response.ok) {
-            if (response.status >= 500 && attempt < MAX_RETRIES) {
-               console.warn(`[PDF] Proxy 5xx error (attempt ${attempt + 1}), retrying...`);
-               attempt++;
-               await new Promise(r => setTimeout(r, attempt * 1500));
-               continue;
-            }
-            throw new Error(`Server error (${response.status})`);
-          }
-
-          const arrayBuffer = await response.arrayBuffer()
-          const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
-          objectUrl = URL.createObjectURL(blob)
-          
-          if (isMounted) {
-            setPdfData(objectUrl)
-            setLoading(false)
-            setFetchError(false)
-          }
-          return; // Success!
-
-        } catch (err: any) {
-          console.error(`[PDF Load] Attempt ${attempt + 1} failed:`, err.message);
-          lastError = err;
-          
-          // Only retry on network errors or 5xx (handled above)
-          if (err.message.includes('fetch') || err.message.includes('Network')) {
-             attempt++;
-             if (attempt <= MAX_RETRIES) {
-               await new Promise(r => setTimeout(r, attempt * 1500));
-               continue;
-             }
-          }
-          break; // Stop retrying on other errors
+        if (response.status === 401) {
+          window.location.href = '/login'
+          return
         }
-      }
 
-      if (lastError && isMounted) {
-        setFetchError(true)
-        setLoading(false)
+        if (!response.ok) {
+          throw new Error('Failed to load document. Please try again.')
+        }
+
+        const arrayBuffer = await response.arrayBuffer()
+        const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
+        objectUrl = URL.createObjectURL(blob)
+        
+        if (isMounted) {
+          setPdfData(objectUrl)
+          setLoading(false)
+          setFetchError(false)
+        }
+      } catch (err: any) {
+        console.error(`[PDF Load] Failed:`, err.message);
+        if (isMounted) {
+          setFetchError(true)
+          setLoading(false)
+        }
       }
     }
 
