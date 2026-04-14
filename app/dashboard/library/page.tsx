@@ -45,7 +45,7 @@ export default function LibraryPage() {
       )
     )
   }, [])
-
+  const fetchDocuments = useCallback(async () => {
     try {
       const token = await getFirebaseToken()
       const res = await fetch('/api/backend/library/documents', {
@@ -57,7 +57,6 @@ export default function LibraryPage() {
       setLoading(false)
     }
   }, [])
-
   useEffect(() => {
     void fetchDocuments()
   }, [fetchDocuments])
