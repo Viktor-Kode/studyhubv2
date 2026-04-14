@@ -36,7 +36,16 @@ export default function LibraryPage() {
   const [selectedDocument, setSelectedDocument] = useState<LibraryDocument | null>(null)
   const [editingDocument, setEditingDocument] = useState<LibraryDocument | null>(null)
 
-  const fetchDocuments = useCallback(async () => {
+  const handleProgressSaved = useCallback((id: string, currentPage: number, percentage: number) => {
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc._id === id
+          ? { ...doc, progress: { currentPage, percentage, lastReadAt: new Date().toISOString() } }
+          : doc
+      )
+    )
+  }, [])
+
     try {
       const token = await getFirebaseToken()
       const res = await fetch('/api/backend/library/documents', {
@@ -222,15 +231,7 @@ export default function LibraryPage() {
               setSelectedDocument(null)
             }}
             onDeleted={(id) => setDocuments((prev) => prev.filter((doc) => doc._id !== id))}
-            onProgressSaved={(id, currentPage, percentage) => {
-              setDocuments((prev) =>
-                prev.map((doc) =>
-                  doc._id === id
-                    ? { ...doc, progress: { currentPage, percentage, lastReadAt: new Date().toISOString() } }
-                    : doc
-                )
-              )
-            }}
+            onProgressSaved={handleProgressSaved}
           />
         )}
       </div>

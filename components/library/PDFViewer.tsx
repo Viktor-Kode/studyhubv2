@@ -47,7 +47,9 @@ export default function PDFViewer({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [pageWidth, setPageWidth] = useState(800)
-  const [fileSource, setFileSource] = useState<string>(`/api/backend/library/proxy-pdf/${documentItem._id}`)
+  // Start as null — prevents react-pdf from making an unauthenticated request on first render
+  const [fileSource, setFileSource] = useState<string | null>(null)
+  const [isPdfLoading, setIsPdfLoading] = useState(true)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
 
   const percentage = useMemo(() => {
@@ -120,6 +122,7 @@ export default function PDFViewer({
       if (lastError && mounted) {
         setErrorStatus(lastError.message || 'Error loading PDF')
       }
+      if (mounted) setIsPdfLoading(false)
     }
     void loadPdf()
     return () => {
@@ -172,7 +175,7 @@ export default function PDFViewer({
     }, 600)
 
     return () => clearTimeout(timeout)
-  }, [currentPage, documentItem._id, numPages, onProgressSaved, percentage])
+  }, [currentPage, documentItem._id, numPages, percentage])
 
   const goToPage = (page: number) => {
     if (!numPages) return
@@ -247,7 +250,15 @@ export default function PDFViewer({
         </div>
 
         <div className="h-[calc(100%-114px)] overflow-auto bg-slate-100 p-3 dark:bg-slate-950 sm:p-6">
-          {errorStatus ? (
+          {/* Loading blob — spinner shown while token fetch is in-flight */}
+          {isPdfLoading && !errorStatus && (
+            <div className="flex h-full items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B4CF5] border-t-transparent" />
+            </div>
+          )}
+
+          {/* Error state */}
+          {errorStatus && (
             <div className="flex h-full flex-col items-center justify-center p-4 text-center">
               <div className="mb-4 rounded-full bg-red-50 p-3 dark:bg-red-900/20">
                 <X className="h-8 w-8 text-red-600 dark:text-red-400" />
@@ -261,18 +272,21 @@ export default function PDFViewer({
                 Reload Page
               </button>
             </div>
-          ) : (
+          )}
+
+          {/* PDF document — only rendered once we have an authenticated blob URL */}
+          {!errorStatus && fileSource && (
             <Document
               file={fileSource}
               onLoadSuccess={({ numPages: pages }) => {
                 setNumPages(pages)
                 setCurrentPage((prev) => Math.min(prev, pages))
               }}
-              loading={
-                <div className="flex h-full items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B4CF5] border-t-transparent" />
-                </div>
-              }
+              onLoadError={(err) => {
+                console.error('[PDFViewer] react-pdf load error:', err)
+                setErrorStatus('Failed to render PDF. Try downloading it instead.')
+              }}
+              loading={""}
             >
               <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
                 <Page pageNumber={currentPage} width={pageWidth} />
