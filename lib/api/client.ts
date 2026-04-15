@@ -54,6 +54,20 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Auto-retry once or twice for 502/503/504 errors (Render cold starts)
+    if (
+      error.response &&
+      [502, 503, 504].includes(error.response.status) &&
+      (!originalRequest._retryCount || originalRequest._retryCount < 2)
+    ) {
+      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1
+      const delayMs = originalRequest._retryCount * 2500 // wait 2.5s, then 5.0s
+      console.warn(`[apiClient] Backend returned ${error.response.status}. Retrying in ${delayMs}ms (attempt ${originalRequest._retryCount})...`)
+      
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      return apiClient(originalRequest)
+    }
+
     // If 401 error and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
@@ -73,20 +87,15 @@ apiClient.interceptors.response.use(
       }
 
       // ── Safety check: only redirect if Firebase also has no active user ──────
-      // A backend 401 can occur on Render cold-starts or stale tokens while the
-      // user is still legitimately signed in client-side. Redirecting in that case
-      // would cause a spurious sign-out. Only hard-redirect when Firebase confirms
-      // there is no current user.
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
         try {
           const { auth } = await import('@/lib/firebase')
           if (auth.currentUser) {
-            // Firebase still has an active session — treat as transient backend error.
             console.warn('[apiClient] Backend returned 401 but Firebase user still active — not redirecting.')
             return Promise.reject(error)
           }
         } catch {
-          // Could not import firebase — fall through to redirect as a safe default.
+          // Could not import firebase 
         }
         console.error('[apiClient] No Firebase user confirmed. Redirecting to login.')
         window.location.href = '/auth/login'
