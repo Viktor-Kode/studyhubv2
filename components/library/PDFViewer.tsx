@@ -51,6 +51,8 @@ export default function PDFViewer({
   const [fileSource, setFileSource] = useState<string | null>(null)
   const [isPdfLoading, setIsPdfLoading] = useState(true)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
+  // Hard stop flag — once set, the effect will NEVER retry the fetch
+  const [pdfFetchFailed, setPdfFetchFailed] = useState(false)
 
   const percentage = useMemo(() => {
     if (!numPages) return 0
@@ -68,6 +70,9 @@ export default function PDFViewer({
   }, [])
 
   useEffect(() => {
+    // Hard stop — if a previous fetch already failed, never attempt again
+    if (pdfFetchFailed) return
+
     let mounted = true
     let objectUrl = ''
     const loadPdf = async () => {
@@ -82,7 +87,13 @@ export default function PDFViewer({
         })
 
         if (response.status === 401) {
-          window.location.href = '/auth/login'
+          // Do NOT redirect — redirecting causes a remount which restarts the loop.
+          // Show a static error message instead.
+          if (mounted) {
+            setPdfFetchFailed(true)
+            setErrorStatus('Session expired. Please refresh the page to reload your document.')
+            setIsPdfLoading(false)
+          }
           return
         }
 
@@ -91,14 +102,16 @@ export default function PDFViewer({
         }
 
         const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
-        tempObjectUrl = URL.createObjectURL(blob)
-        
+        // Fix: was incorrectly named `tempObjectUrl` which threw ReferenceError in strict mode
+        objectUrl = URL.createObjectURL(blob)
+
         if (mounted) {
-          setFileSource(tempObjectUrl)
+          setFileSource(objectUrl)
           setErrorStatus(null)
         }
       } catch (err: any) {
         if (mounted) {
+          setPdfFetchFailed(true)
           setErrorStatus(err.message || 'Failed to load document. Please try again.')
         }
       } finally {
@@ -110,6 +123,7 @@ export default function PDFViewer({
       mounted = false
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentItem._id])
 
   useEffect(() => {

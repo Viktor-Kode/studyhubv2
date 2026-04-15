@@ -44,13 +44,20 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<boolean>(false)
   const [fetchError, setFetchError] = useState<boolean>(false)
+  // Hard stop flag — once set, the effect will NEVER retry the fetch
+  const [pdfFetchFailed, setPdfFetchFailed] = useState(false)
   const [pdfData, setPdfData] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   // Load PDF via backend proxy to avoid Cloudinary CORS
   useEffect(() => {
+    // Hard stop — if a previous fetch already failed, never attempt again
+    if (pdfFetchFailed) return
+
     let isMounted = true
+    // Declare objectUrl here so it is in scope for both the assignment and cleanup
+    let objectUrl = ''
 
     const loadPdf = async () => {
       try {
@@ -64,7 +71,13 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
         })
 
         if (response.status === 401) {
-          window.location.href = '/auth/login'
+          // Do NOT redirect — redirecting causes a remount which restarts the loop.
+          // Show a static error message instead.
+          if (isMounted) {
+            setPdfFetchFailed(true)
+            setFetchError(true)
+            setLoading(false)
+          }
           return
         }
 
@@ -74,8 +87,10 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 
         const arrayBuffer = await response.arrayBuffer()
         const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
+        // Fix: previously `objectUrl` was assigned without being declared, causing a
+        // ReferenceError in ES module strict mode and silently failing the fetch.
         objectUrl = URL.createObjectURL(blob)
-        
+
         if (isMounted) {
           setPdfData(objectUrl)
           setLoading(false)
@@ -84,6 +99,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
       } catch (err: any) {
         console.error(`[PDF Load] Failed:`, err.message);
         if (isMounted) {
+          setPdfFetchFailed(true)
           setFetchError(true)
           setLoading(false)
         }
@@ -94,8 +110,8 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 
     return () => {
       isMounted = false
-      if (pdfData) {
-        URL.revokeObjectURL(pdfData)
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
