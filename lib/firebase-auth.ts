@@ -172,24 +172,31 @@ export function subscribeToAuthState(
                 try {
                     const localUser = buildAppUser(firebaseUser, 'student')
                     setUser(localUser)
-                    // Keep isLoading=true until role/profile sync is done.
-                    // Otherwise ProtectedRoute can redirect before the role is resolved.
-                    // Sync with Firestore for full profile; merge Firebase custom claims (e.g. admin) for role
+                    // Sync with Firestore for full profile + merge Firebase custom claims (e.g. admin) for role.
+                    // This is fast (Firestore) so we await it to get the correct role before unblocking.
                     const appUser = await fetchAppUser(firebaseUser.uid, firebaseUser)
                     if (appUser) {
                         setUser(appUser)
                     }
-                    await useAuthStore.getState().refreshUser()
                 } catch (err) {
                     console.error('[AuthState] Firestore sync failed:', err)
                 } finally {
+                    // Unblock ProtectedRoute immediately — backend sync is NOT required for auth.
                     setLoading(false)
+                    onLoaded?.()
                 }
+
+                // Fire-and-forget: sync extra profile fields from MongoDB backend.
+                // This must NOT be awaited — the Render backend can take 30-60 s on cold start
+                // and awaiting it here would stall auth state, causing spurious sign-outs.
+                useAuthStore.getState().refreshUser().catch((err) => {
+                    console.warn('[AuthState] Background user refresh failed (non-blocking):', err)
+                })
             } else {
                 logout()
                 setLoading(false)
+                onLoaded?.()
             }
-            onLoaded?.()
         })
 
         return () => {

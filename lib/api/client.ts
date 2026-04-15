@@ -10,7 +10,9 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  // 55 s matches the backend proxy's default ceiling (50 s) plus a small buffer,
+  // ensuring the proxy always returns a clean JSON error before axios times out.
+  timeout: 55000,
 })
 
 // Async request interceptor — fetches a fresh Firebase ID token each time
@@ -30,11 +32,11 @@ apiClient.interceptors.request.use(
         delete (h as Record<string, unknown>)['Content-Type']
       }
     }
-    // AI, backend proxy, and uploads — mobile networks + cold Render need longer than default 30s
+    // Heavy routes (AI generation, file uploads) need up to 2 minutes.
+    // All other routes already get 55 s from the default above.
     const url = config.url || ''
     if (
       url.includes('/ai/') ||
-      url.includes('/notifications') ||
       url.includes('/teacher') ||
       url.includes('/teacher-tools') ||
       url.includes('/generate-topic-questions') ||
@@ -70,9 +72,23 @@ apiClient.interceptors.response.use(
         console.error('[apiClient] Token refresh failed:', refreshErr)
       }
 
-      // If refresh failed or still 401, redirect to login (client side only)
+      // ── Safety check: only redirect if Firebase also has no active user ──────
+      // A backend 401 can occur on Render cold-starts or stale tokens while the
+      // user is still legitimately signed in client-side. Redirecting in that case
+      // would cause a spurious sign-out. Only hard-redirect when Firebase confirms
+      // there is no current user.
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
-        console.error('[apiClient] Authentication failed permanently. Redirecting to login.')
+        try {
+          const { auth } = await import('@/lib/firebase')
+          if (auth.currentUser) {
+            // Firebase still has an active session — treat as transient backend error.
+            console.warn('[apiClient] Backend returned 401 but Firebase user still active — not redirecting.')
+            return Promise.reject(error)
+          }
+        } catch {
+          // Could not import firebase — fall through to redirect as a safe default.
+        }
+        console.error('[apiClient] No Firebase user confirmed. Redirecting to login.')
         window.location.href = '/auth/login'
       }
     }

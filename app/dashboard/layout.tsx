@@ -83,12 +83,17 @@ export default function DashboardLayout({
 
     const store = useTimerStore()
 
-    // Initialize Global Timer State
+    // Initialize Global Timer State — fires once per login session (keyed on uid).
+    // Deliberately NOT depending on the full `user` object so that background
+    // refreshUser() profile patches don't re-trigger init() and cause duplicate
+    // /api/backend/study/active-timer requests.
+    const uid = user?.uid
     useEffect(() => {
-        if (user) {
+        if (uid) {
             store.init()
         }
-    }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [uid])
 
     // Global Timer TICK to run anywhere in dashboard
     useEffect(() => {

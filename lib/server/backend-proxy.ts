@@ -1,12 +1,16 @@
 import { NextRequest } from 'next/server'
 
-/** Stay a few seconds under Vercel `maxDuration` so the route can return JSON instead of platform 502. */
+/** Stay a few seconds under Vercel `maxDuration` so the route can return JSON instead of platform 502.
+ *  Render free tier can take 30–60 s on a cold start, so the default must exceed that.
+ */
 function proxyTimeoutMs(pathAfterApi: string): number {
   const p = pathAfterApi.toLowerCase()
   if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt') || p.includes('library/documents') || p.includes('library/proxy-pdf')) {
     return 55_000
   }
-  return 22_000
+  // Default: 50 s — gives Render's cold start enough time to respond while
+  // staying safely under Vercel's 60 s maxDuration limit.
+  return 50_000
 }
 
 /**
