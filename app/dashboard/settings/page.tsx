@@ -158,8 +158,8 @@ function ProfileSection({
           style={{ display: 'none' }}
           onChange={handleAvatarChange}
         />
-        <div>
-          <p className="avatar-name">{form.displayName || 'Student'}</p>
+        <div className="avatar-info">
+          <h4 className="avatar-name">{form.displayName || 'Student'}</h4>
           <p className="avatar-email">{user?.email}</p>
         </div>
       </div>
@@ -209,7 +209,7 @@ function ProfileSection({
           <span className="field-hint">Your current class or year — shown on your dashboard</span>
         </div>
 
-        <div className="form-group">
+        <div className="form-group full-width">
           <label>
             Course / program <span className="text-gray-400 font-normal">(optional)</span>
           </label>
@@ -288,7 +288,7 @@ function AccountSection({
         <span className="field-hint">Email cannot be changed</span>
       </div>
 
-      <div className="form-group">
+      <div className="form-group full-width">
         <label>Subscription</label>
         <div className="subscription-status">
           <div className="sub-info">
@@ -848,8 +848,10 @@ export default function SettingsPage() {
                   className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
                   onClick={() => setActiveSection(s.id)}
                 >
-                  <s.icon size={18} />
-                  <span>{s.label}</span>
+                  <div className="flex-items-center-gap-x-3">
+                    <s.icon size={18} />
+                    <span>{s.label}</span>
+                  </div>
                   <ChevronRight size={15} className="nav-arrow" />
                 </button>
               ))}
@@ -858,8 +860,10 @@ export default function SettingsPage() {
                 className="settings-nav-item logout"
                 onClick={handleLogout}
               >
-                <LogOut size={18} />
-                <span>Log Out</span>
+                <div className="flex-items-center-gap-x-3">
+                  <LogOut size={18} />
+                  <span>Log Out</span>
+                </div>
               </button>
             </aside>
 
