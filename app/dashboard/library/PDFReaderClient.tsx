@@ -7,7 +7,7 @@ import { ArrowLeft, BookOpen } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { getFirebaseToken } from '@/lib/store/authStore'
+import { getFirebaseToken, waitForAuth } from '@/lib/store/authStore'
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 // 3D book cover palette (monochrome shades only)
@@ -61,10 +61,23 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 
     const loadPdf = async () => {
       try {
+        // Wait for Firebase auth to settle before fetching — eliminates the
+        // race condition on first render that causes a 401 (no token yet).
+        await waitForAuth()
         const token = await getToken()
+
+        if (!token) {
+          if (isMounted) {
+            setPdfFetchFailed(true)
+            setFetchError(true)
+            setLoading(false)
+          }
+          return
+        }
+
         const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           credentials: 'include',

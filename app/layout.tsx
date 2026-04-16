@@ -7,6 +7,7 @@ import { buildSeoMetadata, getSiteUrl } from '@/lib/seo'
 
 import Providers from '@/components/Providers'
 import HelpWidgetLayer from '@/components/help/HelpWidgetLayer'
+import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/next'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -69,12 +70,6 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon.png" />
-        <script src="https://js.paystack.co/v2/inline.js" async></script>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6986605854364658"
-          crossOrigin="anonymous"
-        ></script>
       </head>
       <body className={inter.className}>
         <Providers>
@@ -84,6 +79,17 @@ export default function RootLayout({
           </ThemeProvider>
         </Providers>
         <Analytics />
+        {/* Third-party scripts loaded after page becomes interactive to avoid
+            orphaned preload warnings from Next.js chunk prefetching */}
+        <Script
+          src="https://js.paystack.co/v2/inline.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6986605854364658"
+          strategy="lazyOnload"
+          crossOrigin="anonymous"
+        />
       </body>
     </html>
   )

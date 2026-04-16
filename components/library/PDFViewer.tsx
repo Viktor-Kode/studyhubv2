@@ -14,7 +14,7 @@ import {
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { getFirebaseToken } from '@/lib/store/authStore'
+import { getFirebaseToken, waitForAuth } from '@/lib/store/authStore'
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
@@ -77,10 +77,25 @@ export default function PDFViewer({
     let objectUrl = ''
     const loadPdf = async () => {
       try {
+        // Wait for Firebase auth to settle before fetching — avoids a race
+        // condition on first render where getFirebaseToken() returns null and
+        // the server returns 401 because no Authorization header was sent.
+        await waitForAuth()
         const token = await getFirebaseToken()
+
+        if (!token) {
+          // Firebase is initialized but there is no signed-in user.
+          if (mounted) {
+            setPdfFetchFailed(true)
+            setErrorStatus('Session expired. Please refresh the page to reload your document.')
+            setIsPdfLoading(false)
+          }
+          return
+        }
+
         const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           credentials: 'include',
@@ -102,7 +117,6 @@ export default function PDFViewer({
         }
 
         const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
-        // Fix: was incorrectly named `tempObjectUrl` which threw ReferenceError in strict mode
         objectUrl = URL.createObjectURL(blob)
 
         if (mounted) {
