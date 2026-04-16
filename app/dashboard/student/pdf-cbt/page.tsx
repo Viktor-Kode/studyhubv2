@@ -5,7 +5,7 @@ import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle } from 'react-icons
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 
 import './PdfCbt.css'
 
@@ -205,7 +205,8 @@ export default function PdfCbtPage() {
     setExtracting(true)
     try {
       const formData = new FormData()
-      formData.append('pdf', file)
+      formData.append('file', file)
+      formData.append('pdf', file) // Keep both just in case backend expects either
       const selectedCount =
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
       const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
@@ -253,7 +254,8 @@ export default function PdfCbtPage() {
       setQuestionsToUse(buildQuestionSet(prepared.questions))
       setStage('preview')
     } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to extract questions.')
+      const errorMsg = err?.response?.data?.error || err?.message || 'Failed to extract questions.'
+      setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to extract questions.')
     } finally {
       setExtracting(false)
     }
