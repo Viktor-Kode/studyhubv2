@@ -4,7 +4,7 @@ const siteName = 'StudyHelp'
 const defaultTitle = 'StudyHelp - Ace Your Exams with Free CBTs & Study Tools'
 const defaultDescription =
   'Free online CBT practice, collaborative study groups, notes, and learning tools for students and educators.'
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://studyhub.com'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.studyhelp.site'
 const defaultImage = `${siteUrl}/og-image.png`
 
 type BuildSeoMetadataArgs = {

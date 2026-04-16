@@ -32,13 +32,13 @@ export default function SharePanel({ progress, progLoading, user, myRank }: Prop
   const shareText = useMemo(
     () =>
       progress
-        ? `I'm ${progress.levelInfo?.name} (Level ${progress.level}) on StudyHelp with ${progress.xp.toLocaleString()} XP and a ${progress.streak}-day streak! 🎓 Join me: https://studyhubv2-self.vercel.app`
-        : 'Study with me on StudyHelp — https://studyhubv2-self.vercel.app',
+        ? `I'm ${progress.levelInfo?.name} (Level ${progress.level}) on StudyHelp with ${progress.xp.toLocaleString()} XP and a ${progress.streak}-day streak! 🎓 Join me: https://www.studyhelp.site`
+        : 'Study with me on StudyHelp — https://www.studyhelp.site',
     [progress]
   )
 
   const waMessage = useMemo(() => {
-    const link = referral || 'https://studyhubv2-self.vercel.app'
+    const link = referral || 'https://www.studyhelp.site'
     return `${shareText}\n\n${link}`
   }, [shareText, referral])
 

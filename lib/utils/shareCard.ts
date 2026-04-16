@@ -184,7 +184,7 @@ export async function generateShareCard(
     bx += 44
   })
 
-  const ref = options?.referralUrl || 'https://studyhubv2-self.vercel.app'
+  const ref = options?.referralUrl || 'https://www.studyhelp.site'
   try {
     const QRCode = (await import('qrcode')).default
     const qrCanvas = document.createElement('canvas')
