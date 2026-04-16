@@ -16,7 +16,9 @@ import {
   RefreshCw,
   MoreHorizontal,
   Download,
+  Zap,
 } from 'lucide-react'
+import Link from 'next/link'
 import {
   AreaChart,
   Area,
@@ -239,6 +241,24 @@ function AdminCampaignsTab() {
   return (
     <div className="campaigns-tab max-w-[700px]">
       <h2 className="campaigns-title text-xl font-bold mb-5">Email Campaigns</h2>
+
+      <div className="mb-8 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between transition-all hover:border-indigo-300">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-800 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
+            <Zap size={24} />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-indigo-900 dark:text-indigo-100">Infrastructure Debugger</h3>
+            <p className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Test API connectivity and preview system templates.</p>
+          </div>
+        </div>
+        <Link 
+          href="/dashboard/admin/email-test" 
+          className="text-xs font-bold bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
+        >
+          Verify Resend
+        </Link>
+      </div>
 
       {audiences && (
         <div className="audience-stats grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 mb-6">
