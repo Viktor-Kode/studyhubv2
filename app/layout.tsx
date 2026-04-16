@@ -16,11 +16,21 @@ const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   ...buildSeoMetadata({
-    title: 'StudyHelp - AI-Powered Education Platform',
+    title: 'StudyHelp - #1 Best Online CBT Practice, JAMB, WAEC & AI Study Tools',
     description:
-      'Transform education with AI: Smarter teaching, deeper learning. One platform for educators and students.',
+      'Prepare for success with StudyHelp. The most advanced AI study platform for students. Free CBT practice for JAMB, WAEC, NECO, and Post-UTME with real-time analytics and AI explanations.',
     path: '/',
-    keywords: ['CBT practice', 'study notes', 'education', 'exam prep', 'study tools'],
+    keywords: [
+      'JAMB CBT practice',
+      'WAEC past questions',
+      'NECO CBT',
+      'Post-UTME practice',
+      'online study tools',
+      'AI study assistant',
+      'study notes',
+      'education Nigeria',
+      'exam prep platform',
+    ],
   }),
   metadataBase: new URL(siteUrl),
   manifest: '/site.webmanifest',

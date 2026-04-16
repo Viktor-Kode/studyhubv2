@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 const siteName = 'StudyHelp'
-const defaultTitle = 'StudyHelp - Ace Your Exams with Free CBTs & Study Tools'
+const defaultTitle = 'StudyHelp - Free online CBT Practice & JAMB/WAEC Study Tools'
 const defaultDescription =
-  'Free online CBT practice, collaborative study groups, notes, and learning tools for students and educators.'
+  'The #1 AI-powered study platform for students. Free online CBT practice, JAMB/WAEC prep, collaborative study groups, and AI-driven notes.'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.studyhelp.site'
 const defaultImage = `${siteUrl}/og-image.png`
 
@@ -47,7 +47,7 @@ export function buildSeoMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@studyhub',
+      site: '@StudyHelpAI',
       title: resolvedTitle,
       description: resolvedDescription,
       images: [imageUrl],
