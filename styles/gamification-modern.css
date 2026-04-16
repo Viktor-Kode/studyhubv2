@@ -2,15 +2,26 @@
 
 :root {
   --gw-primary: #5B4CF5;
-  --gw-primary-soft: #5B4CF5;
-  --gw-accent: #D97706;
+  --gw-primary-soft: #7C70FF;
+  --gw-accent: #F59E0B;
+  --gw-gold: #fbbf24;
+  --gw-silver: #94a3b8;
+  --gw-bronze: #d97706;
   --gw-bg: #F7F8FA;
   --gw-text: #0F172A;
   --gw-text-muted: #6B7280;
-  --gw-card-shadow: 0 8px 20px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
-  --gw-radius-lg: 20px;
-  --gw-radius-md: 12px;
-  --gw-transition: transform 0.2s ease, box-shadow 0.2s ease;
+  --gw-card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --gw-radius-lg: 28px;
+  --gw-radius-md: 20px;
+  --gw-transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --premium-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.dark {
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
 }
 
 /* ─── Toast host (stacked, bottom-right) ───────────────────────────────────── */
@@ -577,28 +588,41 @@
 }
 
 .gw-podium-slot--gold {
-  background: linear-gradient(165deg, #D97706 0%, #D97706 45%, #D97706 100%);
-  min-height: 168px;
+  background: linear-gradient(165deg, #F59E0B 0%, #fbbf24 50%, #d97706 100%);
+  min-height: 180px;
   animation: gw-pulse-rank 2.4s ease-in-out infinite;
+  z-index: 2;
+  transform: scale(1.05);
 }
 
 .gw-podium-slot--silver {
-  background: linear-gradient(165deg, #e2e8f0 0%, #94a3b8 50%, #64748b 100%);
-  min-height: 140px;
+  background: linear-gradient(165deg, #cbd5e1 0%, #94a3b8 50%, #475569 100%);
+  min-height: 150px;
 }
 
 .gw-podium-slot--bronze {
-  background: linear-gradient(165deg, #D97706 0%, #D97706 50%, #D97706 100%);
-  min-height: 120px;
+  background: linear-gradient(165deg, #d97706 0%, #b45309 50%, #78350f 100%);
+  min-height: 130px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @keyframes gw-pulse-rank {
-  0%,
-  100% {
-    box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
+  0%, 100% {
+    box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
   }
   50% {
-    box-shadow: 0 12px 36px rgba(217, 119, 6, 0.55);
+    box-shadow: 0 15px 45px rgba(245, 158, 11, 0.5);
   }
 }
 
@@ -833,21 +857,31 @@
   background:
     linear-gradient(#fff, #fff) padding-box,
     linear-gradient(135deg, var(--gw-primary), var(--gw-accent), var(--gw-primary)) border-box;
+  box-shadow: 0 15px 35px -10px rgba(91, 76, 245, 0.3);
 }
 
 .dark .gw-badge-card--earned {
   background:
     linear-gradient(rgb(17 24 39), rgb(17 24 39)) padding-box,
     linear-gradient(135deg, var(--gw-primary), var(--gw-accent), var(--gw-primary)) border-box;
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
 }
 
 .gw-badge-card--locked {
-  opacity: 0.72;
+  opacity: 0.6;
   background: #f8fafc;
+  filter: saturate(0.5);
 }
 
 .dark .gw-badge-card--locked {
   background: rgb(30 41 59);
+}
+
+.gw-badge-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(91, 76, 245, 0.15), transparent 70%);
+  pointer-events: none;
 }
 
 .gw-badge-card-icon {

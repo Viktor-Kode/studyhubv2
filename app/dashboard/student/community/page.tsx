@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -9,7 +10,7 @@ import { useProgress } from '@/hooks/useProgress'
 import LeaderboardPanel, { type BoardRow } from '@/components/community/LeaderboardPanel'
 import BadgesPanel from '@/components/community/BadgesPanel'
 import SharePanel from '@/components/community/SharePanel'
-import { Trophy } from 'lucide-react'
+import { Trophy, Award, Share2, Medal } from 'lucide-react'
 
 export default function CommunityPage() {
   const { user } = useAuthStore()
@@ -57,85 +58,124 @@ export default function CommunityPage() {
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
-      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 py-6 px-4 pb-28 max-w-4xl mx-auto">
-        <BackButton label="Back to dashboard" href="/dashboard/student" />
-
-        <div className="flex items-center gap-3 mt-2 mb-6">
-          <div className="p-3 rounded-2xl bg-violet-100 dark:bg-violet-900/40 text-[#5B4CF5] shadow-[0_8px_20px_rgba(0,0,0,0.05)]">
-            <Trophy className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-[#0F172A] dark:text-white tracking-tight">
-              Community
-            </h1>
-            <p className="text-sm text-[#64748B] dark:text-slate-400">
-              Leaderboard, badges & share cards
-            </p>
-          </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4 pb-28 max-w-5xl mx-auto">
+        <div className="mb-8">
+            <BackButton label="Back to dashboard" href="/dashboard/student" />
         </div>
 
-        <div className="gw-seg mb-6" role="tablist" aria-label="Community section">
-          {(
-            [
-              ['leaderboard', 'Leaderboard'],
-              ['badges', 'My Badges'],
-              ['share', 'Share'],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              data-active={tab === id}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10"
+        >
+          <div className="flex items-center gap-5">
+            <div className="relative">
+                <div className="absolute inset-0 bg-violet-600 blur-xl opacity-20 animate-pulse" />
+                <div className="relative p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl text-violet-600">
+                    <Trophy className="w-8 h-8" />
+                </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
+                Hall of Fame
+              </h1>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                Leaderboard, badges & achievements
+              </p>
+            </div>
+          </div>
 
-        {tab === 'leaderboard' && (
-          <LeaderboardPanel
-            filter={filter}
-            setFilter={setFilter}
-            examSubject={examSubject}
-            setExamSubject={setExamSubject}
-            subjectPick={subjectPick}
-            setSubjectPick={setSubjectPick}
-            leaderboard={leaderboard}
-            lbLoading={lbLoading}
-            myRank={myRank}
-            myWeeklyXP={myWeeklyXP}
-            progress={progress}
-            progLoading={progLoading}
-            user={user}
-          />
-        )}
+          <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
+            {(
+              [
+                ['leaderboard', 'Ranking', Medal],
+                ['badges', 'Badges', Award],
+                ['share', 'Share', Share2],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`relative flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300 whitespace-nowrap ${
+                  tab === id ? 'text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                {tab === id && (
+                    <motion.div 
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl shadow-lg shadow-violet-500/20"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    />
+                )}
+                <Icon className={`w-4 h-4 relative z-10 ${tab === id ? 'animate-pulse' : ''}`} />
+                <span className="relative z-10">{label}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
 
-        {tab === 'badges' && progress && <BadgesPanel progress={progress} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          >
+            {tab === 'leaderboard' && (
+              <LeaderboardPanel
+                filter={filter}
+                setFilter={setFilter}
+                examSubject={examSubject}
+                setExamSubject={setExamSubject}
+                subjectPick={subjectPick}
+                setSubjectPick={setSubjectPick}
+                leaderboard={leaderboard}
+                lbLoading={lbLoading}
+                myRank={myRank}
+                myWeeklyXP={myWeeklyXP}
+                progress={progress}
+                progLoading={progLoading}
+                user={user}
+              />
+            )}
 
-        {tab === 'badges' && progLoading && (
-          <div className="h-64 rounded-[20px] bg-slate-200 dark:bg-slate-800 animate-pulse" />
-        )}
+            {tab === 'badges' && (
+              <div className="space-y-6">
+                {progress ? (
+                  <BadgesPanel progress={progress} />
+                ) : progLoading ? (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1,2,3,4,5,6,7,8].map(i => (
+                        <div key={i} className="h-48 rounded-[28px] bg-slate-200 dark:bg-slate-800/50 animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm px-6">
+                    <p className="text-slate-500 font-bold mb-0">Progress could not be loaded.</p>
+                    <button onClick={() => window.location.reload()} className="mt-4 text-violet-600 font-black text-sm uppercase tracking-widest">Retry</button>
+                  </div>
+                )}
+              </div>
+            )}
 
-        {tab === 'badges' && !progress && !progLoading && (
-          <p className="text-center text-slate-500 text-sm py-12">
-            Progress could not be loaded. Refresh the page and try again.
-          </p>
-        )}
-
-        {tab === 'share' && progress && (
-          <SharePanel progress={progress} progLoading={progLoading} user={user} myRank={myRank} />
-        )}
-
-        {tab === 'share' && !progress && progLoading && (
-          <div className="h-64 rounded-[20px] bg-slate-200 dark:bg-slate-800 animate-pulse" />
-        )}
-
-        {tab === 'share' && !progress && !progLoading && (
-          <p className="text-center text-slate-500 text-sm py-12">
-            Progress could not be loaded. Refresh the page and try again.
-          </p>
-        )}
+            {tab === 'share' && (
+              <div className="space-y-6">
+                {progress ? (
+                   <SharePanel progress={progress} progLoading={progLoading} user={user} myRank={myRank} />
+                ) : progLoading ? (
+                    <div className="h-96 rounded-[32px] bg-slate-200 dark:bg-slate-800/50 animate-pulse" />
+                ) : (
+                    <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm px-6">
+                        <p className="text-slate-500 font-bold mb-0">Stats could not be loaded.</p>
+                        <button onClick={() => window.location.reload()} className="mt-4 text-violet-600 font-black text-sm uppercase tracking-widest">Retry</button>
+                    </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </ProtectedRoute>
   )
