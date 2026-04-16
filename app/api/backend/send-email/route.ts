@@ -4,9 +4,10 @@ import { verifyToken } from '@/lib/auth/verifyToken';
 
 import { renderEmailTemplate, EmailTemplate } from '@/lib/email/renderer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     // 1. Authenticate the request
     const decoded = await verifyToken(req);
