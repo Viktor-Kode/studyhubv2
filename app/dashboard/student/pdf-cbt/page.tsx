@@ -205,8 +205,7 @@ export default function PdfCbtPage() {
     setExtracting(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
-      formData.append('pdf', file) // Keep both just in case backend expects either
+      formData.append('pdf', file)
       const selectedCount =
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
       const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
