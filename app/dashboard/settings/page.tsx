@@ -353,18 +353,6 @@ function AccountSection({
           )}
         </div>
       </div>
-
-      {/* Debug/Test Section */}
-      <div className="form-group mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-        <label className="text-xs uppercase tracking-wider text-gray-400">Developer Tools</label>
-        <button
-          onClick={() => window.location.href = '/dashboard/settings/test-email'}
-          className="mt-2 text-sm text-primary hover:underline flex items-center gap-2"
-        >
-          <Mail size={14} />
-          Test Email Integration
-        </button>
-      </div>
     </div>
   )
 }
