@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Send via Resend
     const { data, error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'notifications@studyhelp.site',
+      from: process.env.EMAIL_FROM || process.env.FROM_EMAIL || 'notifications@studyhelp.site',
       to,
       subject,
       html: finalHtml || `<p>${text || ''}</p>`,

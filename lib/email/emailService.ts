@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+const FROM = process.env.EMAIL_FROM || 'notifications@studyhelp.site'
 
 const resend = new Resend(RESEND_API_KEY)
 

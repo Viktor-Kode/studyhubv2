@@ -28,6 +28,7 @@ import { paymentApi } from '@/lib/api/paymentApi'
 import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
 import SetupWizard from '@/components/onboarding/SetupWizard'
 import NextStepsCard from '@/components/onboarding/NextStepsCard'
+import AdBanner from '@/components/AdBanner'
 
 export default function StudentDashboardPage() {
   const router = useRouter()
@@ -723,6 +724,8 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </div>
+
+        <AdBanner className="mt-8" />
       </div>
     </ProtectedRoute >
   )

@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import QuestionBank from '@/components/dashboard/QuestionBank'
+import AdBanner from '@/components/AdBanner'
 
 export default function QuestionBankPage() {
   return (
@@ -16,6 +17,7 @@ export default function QuestionBankPage() {
             AI-generated practice questions based on your syllabus
           </p>
         </div>
+        <AdBanner className="mb-6" />
         <Suspense fallback={<div>Loading...</div>}>
           <QuestionBank />
         </Suspense>

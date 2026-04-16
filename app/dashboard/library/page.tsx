@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import dynamic from 'next/dynamic'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import AdBanner from '@/components/AdBanner'
 
 const PDFViewer = dynamic(() => import('@/components/library/PDFViewer'), { ssr: false })
 
@@ -116,6 +117,8 @@ export default function LibraryPage() {
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none ring-[#5B4CF5]/30 transition focus:ring dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </div>
+
+        <AdBanner className="mb-6" />
 
         {loading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

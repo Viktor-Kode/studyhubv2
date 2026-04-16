@@ -26,6 +26,7 @@ import CBTCalculator from '@/components/dashboard/CBTCalculator'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useUpgrade } from '@/context/UpgradeContext'
 import { toast } from 'react-hot-toast'
+import AdBanner from '@/components/AdBanner'
 
 interface Question extends CBTQuestion { }
 
@@ -648,6 +649,8 @@ export default function CBTPage() {
             Real past questions from WAEC, JAMB, NECO, POST UTME and BECE
           </p>
         </div>
+
+        <AdBanner className="mb-8" />
 
         {/* ====== EXAM SELECTION ====== */}
         {viewMode === 'exam-select' && (
