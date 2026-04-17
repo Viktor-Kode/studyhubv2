@@ -25,7 +25,7 @@ import { classService, Class } from '@/lib/services/classService'
 import { reminderService, Reminder } from '@/lib/services/reminderService'
 import { timetableService, TimetableSlot } from '@/lib/services/timetableService'
 import { paymentApi } from '@/lib/api/paymentApi'
-import WhatsAppChannelBanner from '@/components/WhatsAppChannelBanner'
+
 import SetupWizard from '@/components/onboarding/SetupWizard'
 import NextStepsCard from '@/components/onboarding/NextStepsCard'
 import AdBanner from '@/components/AdBanner'
@@ -282,7 +282,7 @@ export default function StudentDashboardPage() {
 
         {user?.onboarding?.completed && user ? <NextStepsCard user={user} /> : null}
 
-        <WhatsAppChannelBanner />
+
         {dashboardError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start justify-between gap-3">
             <div>
