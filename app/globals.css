@@ -441,6 +441,7 @@ img, video, iframe {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap; /* Fix mobile overflow */
 }
 .qg-url-input {
   flex: 1;
@@ -1807,6 +1808,7 @@ html {
   gap: 8px;
   width: 100%;
   flex-wrap: wrap;
+  justify-content: flex-start; /* Consistent alignment */
 }
 .generator-tab {
   display: flex;
@@ -5164,6 +5166,8 @@ html {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0; /* Important for shrinking text */
+  flex: 1;
 }
 .resume-icon {
   font-size: 24px;

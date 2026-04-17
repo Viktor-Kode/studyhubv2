@@ -994,7 +994,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     <div className={`space-y-8 w-full max-w-full overflow-hidden ${className}`}>
       {/* Quiz Generation Card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
               <BiBrain className="text-emerald-500 text-2xl" />
@@ -1004,29 +1004,31 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               <p className="text-sm text-gray-500 dark:text-gray-400">Deep Learning through Active Recall</p>
             </div>
           </div>
-          <Link
-            href="/dashboard/notes-history"
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition font-bold shadow-sm"
-          >
-            <FiList className="text-emerald-500" />
-            My Notes
-          </Link>
-          {hasSession && !showResumeBanner && newQuestions.length > 0 && (
-            <button
-              type="button"
-              className="start-new-btn hidden md:inline-flex"
-              onClick={handleStartNewSession}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/dashboard/notes-history"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition font-bold shadow-sm"
             >
-              + Start New Session
-            </button>
-          )}
-          <Link
-            href="/dashboard/question-history"
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition font-bold shadow-sm"
-          >
-            <FiClock className="text-blue-500" />
-            History
-          </Link>
+              <FiList className="text-emerald-500" />
+              My Notes
+            </Link>
+            {hasSession && !showResumeBanner && newQuestions.length > 0 && (
+              <button
+                type="button"
+                className="start-new-btn px-3 py-1.5 text-xs inline-flex items-center gap-1.5"
+                onClick={handleStartNewSession}
+              >
+                + New
+              </button>
+            )}
+            <Link
+              href="/dashboard/question-history"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition font-bold shadow-sm"
+            >
+              <FiClock className="text-blue-500" />
+              History
+            </Link>
+          </div>
         </div>
 
         {showResumeBanner && hasSession && newQuestions.length > 0 && (
@@ -1064,10 +1066,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 scrollbar-none no-scrollbar" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           <button
             onClick={() => setActiveTab('quiz')}
-            className={`pb-2 px-4 text-sm font-bold transition-all border-b-2 
+            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
                     ${activeTab === 'quiz'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -1076,7 +1078,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           </button>
           <button
             onClick={() => setActiveTab('tutor')}
-            className={`pb-2 px-4 text-sm font-bold transition-all border-b-2 
+            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
                     ${activeTab === 'tutor'
                 ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -1085,7 +1087,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           </button>
           <button
             onClick={() => setActiveTab('notes')}
-            className={`pb-2 px-4 text-sm font-bold transition-all border-b-2 
+            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
                     ${activeTab === 'notes'
                 ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -1345,7 +1347,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           <div className="flex flex-col justify-between">
             {activeTab === 'quiz' ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
                       Type
@@ -1773,29 +1775,29 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     </div>
 
                     {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
                       <button
                         onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                         disabled={currentQuestionIndex === 0}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-20"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-20"
                       >
-                        ← Previous
+                        ← Prev
                       </button>
-
-                      <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                        {currentQuestionIndex + 1} / {newQuestions.length}
-                      </div>
-
                       {currentQuestionIndex < newQuestions.length - 1 ? (
                         <button
                           onClick={() => setCurrentQuestionIndex(prev => Math.min(newQuestions.length - 1, prev + 1))}
-                          className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-black hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-black hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
                         >
-                          Next Question →
+                          Next →
                         </button>
                       ) : (
-                        <div className="w-[140px]" /> // Placeholder for alignment
+                        <div className="flex items-center justify-center text-[10px] font-black text-emerald-500 uppercase tracking-widest border-2 border-emerald-100 dark:border-emerald-900/30 rounded-xl px-2">
+                          Last Question
+                        </div>
                       )}
+                      <div className="col-span-2 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest mt-1">
+                        Question {currentQuestionIndex + 1} of {newQuestions.length}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1808,7 +1810,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               <button
                 onClick={handleSubmitQuiz}
                 disabled={submitting}
-                className="px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-3"
+                className="px-6 sm:px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3 w-full sm:w-auto"
               >
                 {submitting ? (
                   <>
