@@ -1,17 +1,5 @@
 import mongoose from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI
-
-if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
-}
-
-// Critical: Prevent localhost connection in production/Vercel
-const isLocal = MONGODB_URI.includes('localhost') || MONGODB_URI.includes('127.0.0.1')
-if (isLocal && process.env.NODE_ENV === 'production') {
-    throw new Error('CRITICAL ERROR: Connection to LOCALHOST is not allowed in PRODUCTION. Please check your Vercel environment variables.')
-}
-
 let cached = global.mongoose
 
 if (!cached) {
@@ -21,6 +9,18 @@ if (!cached) {
 export async function connectDB() {
     if (cached.conn) {
         return cached.conn
+    }
+
+    const MONGODB_URI = process.env.MONGODB_URI
+
+    if (!MONGODB_URI) {
+        throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
+    }
+
+    // Critical: Prevent localhost connection in production/Vercel
+    const isLocal = MONGODB_URI.includes('localhost') || MONGODB_URI.includes('127.0.0.1')
+    if (isLocal && process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL ERROR: Connection to LOCALHOST is not allowed in PRODUCTION. Please check your Vercel environment variables.')
     }
 
     if (!cached.promise) {
