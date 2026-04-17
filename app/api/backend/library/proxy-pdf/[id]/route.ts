@@ -138,6 +138,7 @@ export async function GET(
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
+          'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'private, max-age=3600',
           'Content-Disposition': 'inline',
         },

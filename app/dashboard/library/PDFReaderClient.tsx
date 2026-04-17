@@ -64,6 +64,8 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
         const blob = new Blob([response.data], { type: 'application/pdf' })
         objectUrl = URL.createObjectURL(blob)
         
+        console.log(`[PDFReader] Blob created. Size: ${blob.size} bytes. Type: ${blob.type}`)
+        
         setPdfData(objectUrl)
         setLoading(false)
         setFetchError(false)

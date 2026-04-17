@@ -93,6 +93,8 @@ export default function PDFViewer({
         const blob = new Blob([response.data], { type: 'application/pdf' })
         objectUrl = URL.createObjectURL(blob)
         
+        console.log(`[PDFViewer] Blob created. Size: ${blob.size} bytes. Type: ${blob.type}`)
+        
         setFileSource(objectUrl)
         setErrorStatus(null)
         setIsPdfLoading(false)
