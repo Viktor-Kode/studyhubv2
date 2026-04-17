@@ -63,15 +63,17 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // ─── 1. Handle 502/503/504 (Server cold starts) ───────────────────────────
-    if (
-      error.response &&
-      [502, 503, 504].includes(error.response.status) &&
-      (!originalRequest._retryCount || originalRequest._retryCount < 2)
-    ) {
+    // ─── 1. Handle 502/503/504 and Network Timeouts (Cold starts / Intermittent) ───
+    const isTimeout = (error.code === 'ECONNABORTED' || error.message?.toLowerCase().includes('timeout'))
+    const isRetryableError = (
+      (error.response && [502, 503, 504].includes(error.response.status)) ||
+      (isTimeout && !originalRequest.url?.includes('/ai/')) // Don't auto-retry long AI calls twice
+    )
+
+    if (isRetryableError && (!originalRequest._retryCount || originalRequest._retryCount < 2)) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1
       const delayMs = originalRequest._retryCount * 2500
-      console.warn(`[apiClient] Backend returned ${error.response.status}. Retrying in ${delayMs}ms...`)
+      console.warn(`[apiClient] Retryable error (${error.response?.status || 'TIMEOUT'}). Attempt ${originalRequest._retryCount}/2. Retrying in ${delayMs}ms...`)
       await new Promise((resolve) => setTimeout(resolve, delayMs))
       return apiClient(originalRequest)
     }

@@ -14,7 +14,7 @@ import {
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { getFirebaseToken, waitForAuth } from '@/lib/store/authStore'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
@@ -70,99 +70,67 @@ export default function PDFViewer({
   }, [])
 
   useEffect(() => {
-    // Hard stop — if a previous fetch already failed, never attempt again
+    // Hard stop — if a previous fetch already failed and we've shown the error, stop trying.
     if (pdfFetchFailed) return
 
     let mounted = true
     let objectUrl = ''
+
     const loadPdf = async () => {
       try {
-        // Wait for Firebase auth to settle before fetching — avoids a race
-        // condition on first render where getFirebaseToken() returns null and
-        // the server returns 401 because no Authorization header was sent.
-        await waitForAuth()
-        const token = await getFirebaseToken()
-
-        if (!token) {
-          // Firebase is initialized but there is no signed-in user.
-          if (mounted) {
-            setPdfFetchFailed(true)
-            setErrorStatus('Session expired. Please refresh the page to reload your document.')
-            setIsPdfLoading(false)
-          }
-          return
-        }
-
-        let response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
+        const { apiClient } = await import('@/lib/api/client')
+        
+        console.log(`[PDFViewer] Attempting to load document: ${documentItem._id}`)
+        
+        // Fetch the PDF binary via the proxy
+        const response = await apiClient.get(`/library/proxy-pdf/${documentItem._id}`, {
+          responseType: 'arraybuffer',
+          // apiClient handles token attachment and 401 retry (refresh) automatically.
         })
 
-        if (response.status === 401) {
-          const newToken = await getFirebaseToken(true)
-          if (newToken) {
-            response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
-              headers: {
-                Authorization: `Bearer ${newToken}`,
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-            })
-          }
-        }
+        if (!mounted) return
 
-        if (response.status === 401) {
-          // Do NOT redirect — redirecting causes a remount which restarts the loop.
-          // Show a static error message instead.
-          if (mounted) {
-            setPdfFetchFailed(true)
-            setErrorStatus('Session expired. Please refresh the page to reload your document.')
-            setIsPdfLoading(false)
-          }
-          return
-        }
-
-        if (!response.ok) {
-          throw new Error('Failed to load document. Please try again.')
-        }
-
-        const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
+        const blob = new Blob([response.data], { type: 'application/pdf' })
         objectUrl = URL.createObjectURL(blob)
+        
+        setFileSource(objectUrl)
+        setErrorStatus(null)
+        setIsPdfLoading(false)
 
-        if (mounted) {
-          setFileSource(objectUrl)
-          setErrorStatus(null)
-        }
       } catch (err: any) {
-        if (mounted) {
-          setPdfFetchFailed(true)
-          setErrorStatus(err.message || 'Failed to load document. Please try again.')
+        if (!mounted) return
+        console.error('[PDFViewer] Failed to load PDF:', err)
+        
+        let msg = 'Could not load PDF. Please try again.'
+        if (err.response?.status === 401) {
+          msg = 'Session expired. Please refresh the page or log in again.'
+        } else if (err.response?.status === 404) {
+          msg = 'Document not found or access denied.'
+        } else if (err.response?.status >= 500) {
+          msg = 'The document server is currently busy. Please try again in a few moments.'
         }
-      } finally {
-        if (mounted) setIsPdfLoading(false)
+        
+        setPdfFetchFailed(true)
+        setErrorStatus(msg)
+        setIsPdfLoading(false)
       }
     }
+
     void loadPdf()
+
     return () => {
       mounted = false
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentItem._id])
+  }, [documentItem._id, pdfFetchFailed])
 
   useEffect(() => {
     let mounted = true
     const run = async () => {
-      const token = await getFirebaseToken()
-      const res = await fetch(`/api/backend/library/progress/${documentItem._id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      const data = await res.json()
-      if (mounted && data?.success && data.progress?.currentPage) {
-        setCurrentPage(data.progress.currentPage)
+      const { apiClient } = await import('@/lib/api/client')
+      const res = await apiClient.get(`/library/progress/${documentItem._id}`)
+      if (mounted && res.data?.success && res.data.progress?.currentPage) {
+        setCurrentPage(res.data.progress.currentPage)
       }
     }
 
@@ -177,27 +145,22 @@ export default function PDFViewer({
       if (!numPages) return
       try {
         setIsSaving(true)
-        const token = await getFirebaseToken()
-        await fetch('/api/backend/library/progress', {
-          method: 'POST',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            documentId: documentItem._id,
-            currentPage,
-            percentage,
-          }),
+        const { apiClient } = await import('@/lib/api/client')
+        await apiClient.post('/library/progress', {
+          documentId: documentItem._id,
+          currentPage,
+          percentage,
         })
         onProgressSaved(documentItem._id, currentPage, percentage)
+      } catch (err) {
+        console.error('[PDFViewer] Failed to save progress:', err)
       } finally {
         setIsSaving(false)
       }
     }, 600)
 
     return () => clearTimeout(timeout)
-  }, [currentPage, documentItem._id, numPages, percentage])
+  }, [currentPage, documentItem._id, numPages, onProgressSaved, percentage])
 
   const goToPage = (page: number) => {
     if (!numPages) return
@@ -206,15 +169,15 @@ export default function PDFViewer({
 
   const handleDelete = async () => {
     if (!confirm(`Delete “${documentItem.title}”? This cannot be undone.`)) return
-    const token = await getFirebaseToken()
-    const res = await fetch(`/api/backend/library/documents/${documentItem._id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const data = await res.json()
-    if (data?.success) {
-      onDeleted(documentItem._id)
-      onClose()
+    try {
+       const { apiClient } = await import('@/lib/api/client')
+       const res = await apiClient.delete(`/library/documents/${documentItem._id}`)
+       if (res.data?.success) {
+         onDeleted(documentItem._id)
+         onClose()
+       }
+    } catch (err) {
+       console.error('[PDFViewer] Failed to delete:', err)
     }
   }
 
@@ -272,7 +235,7 @@ export default function PDFViewer({
         </div>
 
         <div className="h-[calc(100%-114px)] overflow-auto bg-slate-100 p-3 dark:bg-slate-950 sm:p-6">
-          {/* Loading blob — spinner shown while token fetch is in-flight */}
+          {/* Loading state */}
           {isPdfLoading && !errorStatus && (
             <div className="flex h-full items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B4CF5] border-t-transparent" />
@@ -296,7 +259,7 @@ export default function PDFViewer({
             </div>
           )}
 
-          {/* PDF document — only rendered once we have an authenticated blob URL */}
+          {/* PDF document */}
           {!errorStatus && fileSource && (
             <Document
               file={fileSource}

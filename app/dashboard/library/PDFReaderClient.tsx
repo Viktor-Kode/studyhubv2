@@ -7,7 +7,6 @@ import { ArrowLeft, BookOpen } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { getFirebaseToken, waitForAuth } from '@/lib/store/authStore'
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 // 3D book cover palette (monochrome shades only)
@@ -24,10 +23,6 @@ const BOOK_COLORS = [
   { bg: '#1C1917', light: '#F7F7F7', label: 'Deep Charcoal' },
 ]
 
-const getToken = async (forceRefresh = false) => {
-  return await getFirebaseToken(forceRefresh)
-}
-
 pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
 
 type PDFReaderProps = {
@@ -42,93 +37,49 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   const [currentPage, setCurrentPage] = useState<number>(material.lastReadPage || 1)
   const [scale, setScale] = useState<number>(1.2)
   const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<boolean>(false)
+  const [errorHeader, setErrorHeader] = useState<string>('Couldn\'t load this PDF')
+  const [errorDetail, setErrorDetail] = useState<string>('Try downloading it to read offline.')
   const [fetchError, setFetchError] = useState<boolean>(false)
-  // Hard stop flag — once set, the effect will NEVER retry the fetch
-  const [pdfFetchFailed, setPdfFetchFailed] = useState(false)
   const [pdfData, setPdfData] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
-  // Load PDF via backend proxy to avoid Cloudinary CORS
+  // Load PDF via backend proxy using centralized apiClient for robust auth
   useEffect(() => {
-    // Hard stop — if a previous fetch already failed, never attempt again
-    if (pdfFetchFailed) return
-
     let isMounted = true
-    // Declare objectUrl here so it is in scope for both the assignment and cleanup
     let objectUrl = ''
 
     const loadPdf = async () => {
       try {
-        // Wait for Firebase auth to settle before fetching — eliminates the
-        // race condition on first render that causes a 401 (no token yet).
-        await waitForAuth()
-        const token = await getToken()
+        const { apiClient } = await import('@/lib/api/client')
+        
+        console.log(`[PDFReader] Fetching proxy via apiClient for: ${material._id}`)
 
-        if (!token) {
-          if (isMounted) {
-            setPdfFetchFailed(true)
-            setFetchError(true)
-            setLoading(false)
-          }
-          return
-        }
-
-        let response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
+        const response = await apiClient.get(`/library/proxy-pdf/${material._id}`, {
+          responseType: 'arraybuffer'
         })
 
-        if (response.status === 401) {
-          const newToken = await getToken(true)
-          if (newToken) {
-            response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
-              headers: {
-                Authorization: `Bearer ${newToken}`,
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-            })
-          }
-        }
+        if (!isMounted) return
 
-        if (response.status === 401) {
-          // Do NOT redirect — redirecting causes a remount which restarts the loop.
-          // Show a static error message instead.
-          if (isMounted) {
-            setPdfFetchFailed(true)
-            setFetchError(true)
-            setLoading(false)
-          }
-          return
-        }
-
-        if (!response.ok) {
-          throw new Error('Failed to load document. Please try again.')
-        }
-
-        const arrayBuffer = await response.arrayBuffer()
-        const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
-        // Fix: previously `objectUrl` was assigned without being declared, causing a
-        // ReferenceError in ES module strict mode and silently failing the fetch.
+        const blob = new Blob([response.data], { type: 'application/pdf' })
         objectUrl = URL.createObjectURL(blob)
-
-        if (isMounted) {
-          setPdfData(objectUrl)
-          setLoading(false)
-          setFetchError(false)
-        }
+        
+        setPdfData(objectUrl)
+        setLoading(false)
+        setFetchError(false)
       } catch (err: any) {
-        console.error(`[PDF Load] Failed:`, err.message);
-        if (isMounted) {
-          setPdfFetchFailed(true)
-          setFetchError(true)
-          setLoading(false)
+        console.error('[PDFReader] Load failed:', err)
+        if (!isMounted) return
+        
+        if (err.response?.status === 401) {
+          setErrorHeader('Session Expired')
+          setErrorDetail('Please refresh the page to reload your document.')
+        } else if (err.response?.status === 404) {
+          setErrorDetail('Document not found or access denied.')
         }
+
+        setFetchError(true)
+        setLoading(false)
       }
     }
 
@@ -140,7 +91,6 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
         URL.revokeObjectURL(objectUrl)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [material._id])
 
   const onDocumentLoadSuccess = ({ numPages: total }: { numPages: number }) => {
@@ -149,8 +99,8 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
   }
 
   const onDocumentLoadError = (err: unknown) => {
-    console.error('PDF load error:', err)
-    setError(true)
+    console.error('PDF render error:', err)
+    setFetchError(true)
     setLoading(false)
   }
 
@@ -186,22 +136,15 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 
   const handleClose = async () => {
     try {
-      const token = await getToken()
+      const { apiClient } = await import('@/lib/api/client')
       const progress = numPages ? Math.round((currentPage / numPages) * 100) : 0
-      await fetch(`/api/backend/library/${material._id}/progress`, {
-        method: 'PUT',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lastReadPage: currentPage,
-          readProgress: progress,
-        }),
+      await apiClient.put(`/library/${material._id}/progress`, {
+        lastReadPage: currentPage,
+        readProgress: progress,
       })
       onProgressSaved?.(material._id, currentPage, progress)
     } catch (err) {
-      console.error(err)
+      console.error('[PDFReader] Failed to save progress:', err)
     }
     onClose()
   }
@@ -323,11 +266,11 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           )}
 
           {/* Error */}
-          {(error || fetchError) && (
+          {fetchError && (
             <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto">
               <BookOpen size={48} className="text-gray-400 mb-6" />
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Couldn&apos;t load this PDF</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-8">Try downloading it to read offline.</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{errorHeader}</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8">{errorDetail}</p>
               <a
                 href={material.fileUrl}
                 target="_blank"
@@ -341,7 +284,7 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           )}
 
           {/* PDF Document */}
-          {!error && !fetchError && pdfData && (
+          {!fetchError && pdfData && (
             <div className="flex flex-col items-center gap-6 w-full pb-12">
               <Document
                 file={pdfData}
@@ -397,4 +340,3 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 }
 
 export default PDFReader
-
