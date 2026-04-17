@@ -840,7 +840,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="settings-desktop-wrap">
-            <aside className="settings-sidebar hidden md:block">
+            <aside className="settings-sidebar hidden md:flex">
               {SECTIONS.map((s) => (
                 <button
                   key={s.id}
@@ -848,7 +848,7 @@ export default function SettingsPage() {
                   className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
                   onClick={() => setActiveSection(s.id)}
                 >
-                  <div className="flex-items-center-gap-x-3">
+                  <div className="flex items-center gap-x-3">
                     <s.icon size={18} />
                     <span>{s.label}</span>
                   </div>
@@ -860,7 +860,7 @@ export default function SettingsPage() {
                 className="settings-nav-item logout"
                 onClick={handleLogout}
               >
-                <div className="flex-items-center-gap-x-3">
+                <div className="flex items-center gap-x-3">
                   <LogOut size={18} />
                   <span>Log Out</span>
                 </div>
