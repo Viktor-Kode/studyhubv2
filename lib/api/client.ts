@@ -93,21 +93,34 @@ apiClient.interceptors.response.use(
       console.warn('[apiClient] 401 detected. Attempting token refresh and retry...')
 
       try {
+        const { auth } = await import('@/lib/firebase')
+        const user = auth.currentUser
+        
+        if (!user) {
+          console.error('[apiClient] 401: No currentUser found during refresh attempt')
+          throw new Error('No user for refresh')
+        }
+
+        const oldTokenSnippet = (originalRequest.headers.Authorization as string)?.substring(0, 15) || 'none'
+        
         // Force refresh the token (ignore cache)
-        const newToken = await getFirebaseToken(true)
+        const newToken = await user.getIdToken(true)
+        
         if (newToken) {
-          console.log(`[apiClient] Refresh Successful. New token length: ${newToken.length}. Snippet: ${newToken.substring(0, 15)}...`)
+          const newTokenSnippet = newToken.substring(0, 15)
+          const isDifferent = oldTokenSnippet !== newTokenSnippet
+          
+          console.log(`[apiClient] Refresh: Old: ${oldTokenSnippet}... | New: ${newTokenSnippet}... | Changed? ${isDifferent}`)
           
           originalRequest.headers.Authorization = `Bearer ${newToken}`
-          // Update default header for subsequent requests
           apiClient.defaults.headers.common.Authorization = `Bearer ${newToken}`
           
           return apiClient(originalRequest)
         } else {
-          console.error('[apiClient] Refresh returned null token')
+          console.error('[apiClient] 401 refresh: getIdToken returned null')
         }
       } catch (refreshErr) {
-        console.error('[apiClient] Token refresh failed:', refreshErr)
+        console.error('[apiClient] 401 refresh failed:', refreshErr)
       }
 
       // If we failed to get a new token, redirect to login

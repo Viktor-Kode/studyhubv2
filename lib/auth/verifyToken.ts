@@ -57,8 +57,12 @@ export async function verifyToken(request: NextRequest) {
             email: mongoUser.email,
             role: mongoUser.role
         }
-    } catch (error) {
-        console.error('Firebase/MongoDB token verification failed:', error)
+    } catch (error: any) {
+        console.error('[verifyToken] Auth Failure Details:', {
+            code: error?.code,
+            message: error?.message,
+            tokenPrefix: token?.substring(0, 15)
+        })
         return null
     }
 }
