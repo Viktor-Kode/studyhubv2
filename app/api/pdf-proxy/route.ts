@@ -9,7 +9,13 @@ export async function GET(request: Request) {
     }
 
     try {
-        const response = await fetch(url)
+        const authHeader = request.headers.get('Authorization')
+        const headers: Record<string, string> = {}
+        if (authHeader) {
+            headers['Authorization'] = authHeader
+        }
+        
+        const response = await fetch(url, { headers })
 
         if (!response.ok) {
             throw new Error(`Failed to fetch: ${response.status}`)

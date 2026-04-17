@@ -6,21 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Uses dynamic import for pdfjs-dist v5 to avoid CJS/ESM requirement errors on Vercel.
  */
 
-// Polyfill DOMMatrix for PDF.js v5 in Node.js
-if (typeof global.DOMMatrix === 'undefined') {
-    (global as any).DOMMatrix = class DOMMatrix {
-        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-        constructor() {}
-        static fromFloat32Array() { return new DOMMatrix(); }
-        static fromFloat64Array() { return new DOMMatrix(); }
-        multiply() { return this; }
-        translate() { return this; }
-        scale() { return this; }
-        rotate() { return this; }
-        inverse() { return this; }
-        toString() { return "matrix(1, 0, 0, 1, 0, 0)"; }
-    };
-}
+// No DOMMatrix polyfill needed for pdf-parse
 
 /**
  * Normalize and clean extracted text.
@@ -68,31 +54,10 @@ export async function POST(request: NextRequest) {
             const isPDF = buffer.slice(0, 4).toString() === "%PDF";
             if (!isPDF) throw new Error("File has mismatching extension; headers do not match %PDF magic bytes.");
 
-            stage = "loading_pdf_engine";
-            // Use dynamic import for ESM module compatibility on Vercel
-            const pdfjsLib = await import('pdfjs-dist');
-            
-            // Set worker source to CDN even for server-side (fake worker will use it as reference)
-            if (pdfjsLib.GlobalWorkerOptions) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-            }
-
             stage = "extracting_pdf_text";
-            const loadingTask = pdfjsLib.getDocument({
-                data: new Uint8Array(buffer),
-                isEvalSupported: false,
-                useSystemFonts: true,
-                standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
-            });
-
-            const pdfDocument = await loadingTask.promise;
-            
-            for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-                const page = await pdfDocument.getPage(pageNum);
-                const textContent = await page.getTextContent();
-                extractedText += textContent.items.map((item: any) => item.str || '').join(' ') + '\n\n';
-            }
-            await pdfDocument.destroy();
+            const pdfParse = (await import('pdf-parse')).default || await import('pdf-parse');
+            const data = await pdfParse(buffer);
+            extractedText = data.text;
 
         } else if (fileName.endsWith('.docx')) {
             stage = "extracting_docx_text";
