@@ -21,10 +21,18 @@ export async function GET(
       });
     }
 
+    // Extract token for declaration safety and downstream forwarding
+    const authHeader = req.headers.get('authorization');
+    let token = '';
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else {
+      token = req.cookies.get('auth-token')?.value || '';
+    }
+
     const user = await verifyToken(req);
     if (!user) {
-      const authHeader = req.headers.get('authorization');
-      const hasToken = !!(authHeader && authHeader.startsWith('Bearer ')) || !!req.cookies.get('auth-token');
+      const hasToken = !!token;
       
       console.warn(`[PDF Proxy] Auth failed. Token present: ${hasToken}`);
       
@@ -119,7 +127,10 @@ export async function GET(
     // 3. Fetch from storage
     try {
       const storageResponse = await fetch(fileUrl, {
-        headers: { Accept: 'application/pdf' },
+        headers: { 
+          Accept: 'application/pdf',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
       });
 
       if (!storageResponse.ok) {
