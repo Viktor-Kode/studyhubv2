@@ -2795,25 +2795,26 @@ html {
 }
 
 .settings-desktop-wrap {
-  display: grid;
-  grid-template-columns: 280px 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 32px;
-  align-items: start;
-  max-width: 1100px;
+  max-width: 1000px;
   margin: 0 auto;
   width: 100%;
 }
 
 .settings-sidebar {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   background: white;
   border-radius: 20px;
   border: 1px solid #E2E8F0;
-  padding: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 100px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: static;
 }
 .dark .settings-sidebar {
   background: #1E293B;
@@ -2822,10 +2823,10 @@ html {
 }
 
 .settings-nav-item {
-  width: 100%;
+  width: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 12px 20px;
   border: none;
   background: none;
@@ -2835,7 +2836,7 @@ html {
   color: #64748B;
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 4px;
+  margin-bottom: 0px;
 }
 .dark .settings-nav-item { color: #94A3B8; }
 
@@ -2859,8 +2860,7 @@ html {
 }
 
 .nav-arrow {
-  color: #94A3B8;
-  display: block;
+  display: none !important;
 }
 
 .settings-nav-item.logout {
