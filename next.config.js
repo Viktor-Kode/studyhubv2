@@ -21,11 +21,6 @@ const nextConfig = {
     if (isServer) {
         // Fix for pdfjs-dist on the server: exclude from bundle and use standard paths
         config.externals = [...(config.externals || []), 'pdfjs-dist'];
-        
-        config.resolve.alias = {
-            ...config.resolve.alias,
-            'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf'
-        };
     }
 
     return config;
