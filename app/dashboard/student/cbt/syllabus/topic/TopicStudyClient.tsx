@@ -201,6 +201,7 @@ export default function TopicStudyClient() {
       }
       setMessages([userMessage])
       try {
+        await import('@/lib/store/authStore').then((m) => m.waitForAuth())
         const res = await apiClient.post('/ai/chat', {
           message: first,
           context: tutorContext,

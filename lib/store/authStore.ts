@@ -88,7 +88,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
 // Re-export the AppUser type so other files can import it from here
 export type { AppUser, AppRole }
 
-// ─── Firebase Token Helpers ───────────────────────────────────────────────────
+let authInitialized = false
+let authInitPromise: Promise<any> | null = null
 
 /**
  * Wait for Firebase to finish loading the initial auth state.
@@ -98,15 +99,20 @@ export async function waitForAuth(): Promise<any> {
   const { auth } = await import('@/lib/firebase')
 
   // 1. If already initialized, return immediately
-  if (auth.currentUser) return auth.currentUser
+  if (authInitialized && auth.currentUser) return auth.currentUser
+  if (authInitialized && !auth.currentUser) return null
 
-  // 2. Wait for onAuthStateChanged to fire at least once, with a timeout
+  // 2. Return existing promise if already waiting
+  if (authInitPromise) return authInitPromise
+
+  // 3. Wait for onAuthStateChanged to fire at least once, with a timeout
   // so API calls do not hang forever if Firebase fails to initialize.
-  return new Promise((resolve) => {
+  authInitPromise = new Promise((resolve) => {
     let settled = false
     const timeoutId = setTimeout(() => {
       if (settled) return
       settled = true
+      authInitialized = true
       unsubscribe()
       resolve(null)
     }, 8000)
@@ -114,11 +120,14 @@ export async function waitForAuth(): Promise<any> {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (settled) return
       settled = true
+      authInitialized = true
       clearTimeout(timeoutId)
       unsubscribe()
       resolve(user)
     })
   })
+
+  return authInitPromise
 }
 
 /**

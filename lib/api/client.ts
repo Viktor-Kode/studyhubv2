@@ -18,12 +18,22 @@ export const apiClient = axios.create({
 // Async request interceptor — fetches a fresh Firebase ID token each time
 apiClient.interceptors.request.use(
   async (config) => {
+    // 1. Wait for Firebase to be ready and get token
     const token = await getFirebaseToken()
+    
+    // 2. Attach token if available
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      // If we're on a dashboard route, we expect a token.
+      // If none found after waitForAuth (8s delay), then we are truly unauthenticated.
+      const isPublicRoute = config.url?.includes('/public/') || config.url?.includes('/auth/')
+      if (!isPublicRoute && typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
+         console.warn(`[apiClient] No token for protected route: ${config.url}. Request may fail with 401.`)
+      }
     }
+
     // For FormData, strip Content-Type so the runtime sets multipart/form-data with boundary.
-    // Axios 1.x uses AxiosHeaders; delete on plain object is not always enough.
     if (config.data instanceof FormData) {
       const h = config.headers
       if (h && typeof (h as { delete?: (k: string, rewrite?: boolean) => void }).delete === 'function') {
@@ -32,8 +42,7 @@ apiClient.interceptors.request.use(
         delete (h as Record<string, unknown>)['Content-Type']
       }
     }
-    // Heavy routes (AI generation, file uploads) need up to 2 minutes.
-    // All other routes already get 55 s from the default above.
+
     const url = config.url || ''
     if (
       url.includes('/ai/') ||
@@ -42,7 +51,7 @@ apiClient.interceptors.request.use(
       url.includes('/generate-topic-questions') ||
       url.includes('/community/upload-image')
     ) {
-      config.timeout = 120000 // 2 minutes (must exceed slow proxy + backend)
+      config.timeout = 120000 // 2 minutes
     }
     return config
   },
@@ -54,31 +63,29 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Auto-retry once or twice for 502/503/504 errors (Render cold starts)
+    // ─── 1. Handle 502/503/504 (Server cold starts) ───────────────────────────
     if (
       error.response &&
       [502, 503, 504].includes(error.response.status) &&
       (!originalRequest._retryCount || originalRequest._retryCount < 2)
     ) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1
-      const delayMs = originalRequest._retryCount * 2500 // wait 2.5s, then 5.0s
-      console.warn(`[apiClient] Backend returned ${error.response.status}. Retrying in ${delayMs}ms (attempt ${originalRequest._retryCount})...`)
-      
+      const delayMs = originalRequest._retryCount * 2500
+      console.warn(`[apiClient] Backend returned ${error.response.status}. Retrying in ${delayMs}ms...`)
       await new Promise((resolve) => setTimeout(resolve, delayMs))
       return apiClient(originalRequest)
     }
 
-    // If 401 error and not already retrying
+    // ─── 2. Handle 401 (Unauthorized / Expired Token) ────────────────────────
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
-      console.warn('[apiClient] 401 detected. Attempting token refresh...')
+      console.warn('[apiClient] 401 detected. Attempting token refresh and retry...')
 
       try {
-        // Force refresh the token
+        // Force refresh the token (ignore cache)
         const newToken = await getFirebaseToken(true)
         if (newToken) {
-          console.log('[apiClient] Token refreshed. Retrying request...')
           originalRequest.headers.Authorization = `Bearer ${newToken}`
           return apiClient(originalRequest)
         }
@@ -86,19 +93,19 @@ apiClient.interceptors.response.use(
         console.error('[apiClient] Token refresh failed:', refreshErr)
       }
 
-      // ── Safety check: only redirect if Firebase also has no active user ──────
+      // If we failed to get a new token, redirect to login
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
+        // Double check: if Firebase thinks we are logged out, redirect.
+        // If Firebase still says we are logged in, maybe it's a server-side config issue.
         try {
           const { auth } = await import('@/lib/firebase')
-          if (auth.currentUser) {
-            console.warn('[apiClient] Backend returned 401 but Firebase user still active — not redirecting.')
-            return Promise.reject(error)
+          if (!auth.currentUser) {
+            console.error('[apiClient] No session found. Redirecting to login.')
+            window.location.href = '/auth/login'
           }
         } catch {
-          // Could not import firebase 
+          window.location.href = '/auth/login'
         }
-        console.error('[apiClient] No Firebase user confirmed. Redirecting to login.')
-        window.location.href = '/auth/login'
       }
     }
 

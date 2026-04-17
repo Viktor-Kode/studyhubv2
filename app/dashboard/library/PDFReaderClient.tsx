@@ -24,8 +24,8 @@ const BOOK_COLORS = [
   { bg: '#1C1917', light: '#F7F7F7', label: 'Deep Charcoal' },
 ]
 
-const getToken = async () => {
-  return await getFirebaseToken()
+const getToken = async (forceRefresh = false) => {
+  return await getFirebaseToken(forceRefresh)
 }
 
 pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
@@ -75,13 +75,26 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
           return
         }
 
-        const response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
+        let response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           credentials: 'include',
         })
+
+        if (response.status === 401) {
+          const newToken = await getToken(true)
+          if (newToken) {
+            response = await fetch(`/api/backend/library/proxy-pdf/${material._id}`, {
+              headers: {
+                Authorization: `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            })
+          }
+        }
 
         if (response.status === 401) {
           // Do NOT redirect — redirecting causes a remount which restarts the loop.

@@ -93,13 +93,26 @@ export default function PDFViewer({
           return
         }
 
-        const response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
+        let response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           credentials: 'include',
         })
+
+        if (response.status === 401) {
+          const newToken = await getFirebaseToken(true)
+          if (newToken) {
+            response = await fetch(`/api/backend/library/proxy-pdf/${documentItem._id}`, {
+              headers: {
+                Authorization: `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            })
+          }
+        }
 
         if (response.status === 401) {
           // Do NOT redirect — redirecting causes a remount which restarts the loop.

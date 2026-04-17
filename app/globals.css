@@ -2795,26 +2795,24 @@ html {
 }
 
 .settings-desktop-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  max-width: 1000px;
-  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 800px);
+  justify-content: center;
+  gap: 40px;
+  align-items: start;
   width: 100%;
 }
 
 .settings-sidebar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  flex-direction: column;
   background: white;
   border-radius: 20px;
   border: 1px solid #E2E8F0;
-  padding: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  position: static;
+  padding: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 100px;
 }
 .dark .settings-sidebar {
   background: #1E293B;
@@ -2823,10 +2821,10 @@ html {
 }
 
 .settings-nav-item {
-  width: auto;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 12px 20px;
   border: none;
   background: none;
@@ -2836,7 +2834,7 @@ html {
   color: #64748B;
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 0px;
+  margin-bottom: 4px;
 }
 .dark .settings-nav-item { color: #94A3B8; }
 
@@ -2860,7 +2858,8 @@ html {
 }
 
 .nav-arrow {
-  display: none !important;
+  color: #94A3B8;
+  display: block;
 }
 
 .settings-nav-item.logout {
