@@ -1,6 +1,16 @@
 import mongoose from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/studybuddy'
+const MONGODB_URI = process.env.MONGODB_URI
+
+if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
+}
+
+// Critical: Prevent localhost connection in production/Vercel
+const isLocal = MONGODB_URI.includes('localhost') || MONGODB_URI.includes('127.0.0.1')
+if (isLocal && process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL ERROR: Connection to LOCALHOST is not allowed in PRODUCTION. Please check your Vercel environment variables.')
+}
 
 let cached = global.mongoose
 
