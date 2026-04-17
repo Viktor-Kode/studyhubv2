@@ -10,18 +10,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: any // Use any to support both Next.js 14 (object) and 15/16 (Promise)
 ) {
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[PDF Proxy][${requestId}] Request start`);
+
   try {
-    const { id } = await params;
-    if (!id) {
-      return new NextResponse(JSON.stringify({ error: 'Missing document ID' }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    // 1. Resolve Params safely
+    let id = '';
+    try {
+      const params = await context.params;
+      id = params?.id || '';
+    } catch (e) {
+      console.error(`[PDF Proxy][${requestId}] Params resolve failed:`, e);
+      // Fallback for Next.js 14 or direct access
+      id = context.params?.id || '';
     }
 
-    // Extract token for declaration safety and downstream forwarding
+    if (!id) {
+      return NextResponse.json({ error: 'Missing document ID' }, { status: 400 });
+    }
+
+    // 2. Extract Token
     const authHeader = req.headers.get('authorization');
     let token = '';
     if (authHeader?.startsWith('Bearer ')) {
@@ -30,44 +40,31 @@ export async function GET(
       token = req.cookies.get('auth-token')?.value || '';
     }
 
+    // 3. Verify User
     const user = await verifyToken(req);
     if (!user) {
-      const hasToken = !!token;
-      
-      console.warn(`[PDF Proxy] Auth failed. Token present: ${hasToken}`);
-      
-      return new NextResponse(JSON.stringify({ 
+      console.warn(`[PDF Proxy][${requestId}] Unauthorized access attempt for document: ${id}`);
+      return NextResponse.json({ 
         error: 'Unauthorized', 
-        message: hasToken ? 'Your session token is invalid or expired.' : 'No authentication token provided.'
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+        message: token ? 'Session expired' : 'No token provided' 
+      }, { status: 401 });
     }
 
-    console.log('[Frontend PDF Proxy] Initializing DB connection...');
+    // 4. DB Connection
     try {
       await connectDB();
     } catch (dbErr: any) {
-      console.error('[Frontend PDF Proxy] DB Connection Failed:', dbErr.message);
-      return new NextResponse(JSON.stringify({ error: 'Database connection failed', details: dbErr.message }), { 
-        status: 503, 
-        headers: { 'Content-Type': 'application/json' } 
-      });
+      console.error(`[PDF Proxy][${requestId}] DB Connection Failed:`, dbErr.message);
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
     }
 
-    // Ensure models are registered
-    const LibraryDoc = LibraryDocument;
-    const SharedDoc = SharedLibraryItem;
-
-    console.log(`[Frontend PDF Proxy] Requesting: ${id} | User: ${user.userId}`);
-
+    // 5. Document Lookup
     let fileUrl: string | null = null;
     let foundSource = '';
 
-    // 1. Try LibraryDocument (New system, own)
     try {
-      const doc = await LibraryDoc.findOne({
+      // Priority 1: User's own document
+      const doc = await LibraryDocument.findOne({
         $or: [
           { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
           { publicId: id }
@@ -79,8 +76,8 @@ export async function GET(
         fileUrl = doc.fileUrl;
         foundSource = 'LibraryDocument';
       } else {
-        // 2. Try SharedLibraryItem (Approved community items)
-        const shared = await SharedDoc.findOne({
+        // Priority 2: Shared/Community document
+        const shared = await SharedLibraryItem.findOne({
           $or: [
             { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
             { publicId: id }
@@ -92,8 +89,7 @@ export async function GET(
           fileUrl = shared.fileUrl;
           foundSource = 'SharedLibraryItem';
         } else {
-          // 3. Fallback for legacy items
-          console.log('[Frontend PDF Proxy] checking legacy collection...');
+          // Priority 3: Legacy collection (librarymaterials)
           const legacy = await mongoose.connection.db?.collection('librarymaterials').findOne({
             $or: [
               { _id: mongoose.isValidObjectId(id) ? new mongoose.Types.ObjectId(id) : null },
@@ -101,50 +97,49 @@ export async function GET(
             ]
           });
           if (legacy) {
-            fileUrl = legacy.fileUrl;
+            fileUrl = legacy.fileUrl as string;
             foundSource = 'LibraryMaterial (legacy)';
           }
         }
       }
     } catch (lookupErr: any) {
-      console.error('[Frontend PDF Proxy] Document lookup error:', lookupErr.message);
-      return new NextResponse(JSON.stringify({ error: 'Error during document lookup', details: lookupErr.message }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.error(`[PDF Proxy][${requestId}] Lookup Error:`, lookupErr.message);
+      return NextResponse.json({ error: 'Document lookup failed', details: lookupErr.message }, { status: 500 });
     }
 
     if (!fileUrl) {
-      console.warn(`[Frontend PDF Proxy] NOT FOUND: ${id} | User: ${user.userId}`);
-      return new NextResponse(JSON.stringify({ error: 'Document not found or access denied' }), { 
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.warn(`[PDF Proxy][${requestId}] Document NOT FOUND: ${id}`);
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    console.log(`[Frontend PDF Proxy] FOUND in ${foundSource}: ${fileUrl}`);
+    // Validate if URL is absolute
+    if (!fileUrl.startsWith('http')) {
+      console.error(`[PDF Proxy][${requestId}] Invalid fileUrl: ${fileUrl}`);
+      return NextResponse.json({ error: 'Invalid document storage URL' }, { status: 500 });
+    }
 
-    // 3. Fetch from storage
+    console.log(`[PDF Proxy][${requestId}] Fetching from storage (${foundSource}): ${fileUrl.substring(0, 50)}...`);
+
+    // 6. Fetch from Storage
     try {
       const storageResponse = await fetch(fileUrl, {
         headers: { 
-          Accept: 'application/pdf',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          'Accept': 'application/pdf',
+          // Only forward auth if it looks like a proxy request to another internal backend
+          ...(fileUrl.includes('studyhelp') ? { 'Authorization': `Bearer ${token}` } : {})
         },
       });
 
       if (!storageResponse.ok) {
-        console.error(`[Frontend PDF Proxy] Storage fetch failed: ${storageResponse.status}`, fileUrl);
-        return new NextResponse(JSON.stringify({ error: 'Failed to fetch from storage provider', status: storageResponse.status }), { 
-          status: 502,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        console.error(`[PDF Proxy][${requestId}] Upstream error: ${storageResponse.status}`);
+        return NextResponse.json({ 
+          error: 'Storage provider error', 
+          status: storageResponse.status 
+        }, { status: 502 });
       }
 
-      // Convert to ArrayBuffer for reliable output in serverless environments
       const buffer = await storageResponse.arrayBuffer();
 
-      // 4. Return the binary data
       return new NextResponse(buffer, {
         status: 200,
         headers: {
@@ -156,18 +151,12 @@ export async function GET(
       });
 
     } catch (fetchErr: any) {
-      console.error('[Frontend PDF Proxy] Upstream fetch error:', fetchErr.message);
-      return new NextResponse(JSON.stringify({ error: 'Network error fetching document', details: fetchErr.message }), { 
-        status: 504,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.error(`[PDF Proxy][${requestId}] Network Error:`, fetchErr.message);
+      return NextResponse.json({ error: 'Fetch failed', details: fetchErr.message }, { status: 504 });
     }
 
   } catch (err: any) {
-    console.error('[Frontend PDF Proxy] Critical Unhandled error:', err?.message, err?.stack);
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error', details: err?.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    console.error(`[PDF Proxy][${requestId}] FATAL:`, err?.message, err?.stack);
+    return NextResponse.json({ error: 'Internal server error', details: err?.message }, { status: 500 });
   }
 }
