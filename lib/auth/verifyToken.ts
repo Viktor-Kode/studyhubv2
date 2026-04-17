@@ -16,12 +16,18 @@ export async function verifyToken(request: NextRequest) {
             token = request.cookies.get('auth-token')?.value
         }
 
-        if (!token) return null
+        if (!token) {
+            console.warn('[verifyToken] No token found in headers or cookies')
+            return null
+        }
 
         // Verify Firebase ID token
-        const decodedToken = await adminAuth.verifyIdToken(token)
+        // Use checkRevoked: true to ensure the token hasn't been revoked since issuance
+        const decodedToken = await adminAuth.verifyIdToken(token, true)
 
         await connectDB()
+        
+        console.log(`[verifyToken] Successfully verified token for UID: ${decodedToken.uid}`)
 
         // Find user by firebaseUid or email
         let mongoUser = await User.findOne({ firebaseUid: decodedToken.uid })

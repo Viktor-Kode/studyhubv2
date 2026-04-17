@@ -23,6 +23,14 @@ apiClient.interceptors.request.use(
     
     // 2. Attach token if available
     if (token) {
+      // DEBUG LOGGING
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        console.log(`[apiClient] Request: ${config.url} | Token Expiry: ${new Date(payload.exp * 1000).toLocaleString()}`)
+      } catch (e) {
+        console.warn('[apiClient] Could not parse token payload for logging')
+      }
+      
       config.headers.Authorization = `Bearer ${token}`
     } else {
       // If we're on a dashboard route, we expect a token.
@@ -88,8 +96,15 @@ apiClient.interceptors.response.use(
         // Force refresh the token (ignore cache)
         const newToken = await getFirebaseToken(true)
         if (newToken) {
+          console.log(`[apiClient] Refresh Successful. New token length: ${newToken.length}. Snippet: ${newToken.substring(0, 15)}...`)
+          
           originalRequest.headers.Authorization = `Bearer ${newToken}`
+          // Update default header for subsequent requests
+          apiClient.defaults.headers.common.Authorization = `Bearer ${newToken}`
+          
           return apiClient(originalRequest)
+        } else {
+          console.error('[apiClient] Refresh returned null token')
         }
       } catch (refreshErr) {
         console.error('[apiClient] Token refresh failed:', refreshErr)

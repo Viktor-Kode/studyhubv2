@@ -23,7 +23,15 @@ export async function GET(
 
     const user = await verifyToken(req);
     if (!user) {
-      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { 
+      const authHeader = req.headers.get('authorization');
+      const hasToken = !!(authHeader && authHeader.startsWith('Bearer ')) || !!req.cookies.get('auth-token');
+      
+      console.warn(`[PDF Proxy] Auth failed. Token present: ${hasToken}`);
+      
+      return new NextResponse(JSON.stringify({ 
+        error: 'Unauthorized', 
+        message: hasToken ? 'Your session token is invalid or expired.' : 'No authentication token provided.'
+      }), { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
