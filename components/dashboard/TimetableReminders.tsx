@@ -616,13 +616,6 @@ export default function TimetableReminders() {
                                             onChange={e => setFormData({ ...formData, emailEnabled: e.target.checked })}
                                             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                                         />
-                                    <label className="flex items-center gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.emailEnabled}
-                                            onChange={e => setFormData({ ...formData, emailEnabled: e.target.checked })}
-                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                        />
                                         <FiMail className="text-blue-500 text-lg" />
                                         <span className="text-sm text-gray-700 dark:text-gray-300">
                                             Email Notification
