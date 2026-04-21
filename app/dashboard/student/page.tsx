@@ -313,7 +313,7 @@ export default function StudentDashboardPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{reminder.title}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-300">{new Date(reminder.date).toLocaleDateString()}</p>
                   </div>
-                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-600 text-white">
                     {reminder.time}
                   </span>
                 </div>
@@ -583,7 +583,7 @@ export default function StudentDashboardPage() {
                         <div className="flex items-start justify-between mb-1">
                           <h4 className="text-sm font-bold text-gray-900 dark:text-white">{reminder.title}</h4>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${new Date(`${reminder.date}T${reminder.time}`) < new Date()
-                            ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                            ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
                             }`}>
                             {reminder.time}
                           </span>
