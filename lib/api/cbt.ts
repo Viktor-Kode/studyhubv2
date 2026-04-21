@@ -515,20 +515,59 @@ export const cbtApi = {
   /**
    * Generate explanation for a question via AI
    */
-  getExplanation: async (question: string, correctAnswer: string, options: string[]): Promise<string> => {
+  getExplanation: async (
+    question: string,
+    correctAnswer: string,
+    options: string[] = [],
+    onChunk?: (chunk: string) => void
+  ): Promise<string> => {
+    const stream = !!onChunk;
     try {
       const res = await fetchWithAuth('/api/backend/cbt/explain', {
         method: 'POST',
-        body: JSON.stringify({ question, correctAnswer, options })
+        body: JSON.stringify({ question, correctAnswer, options, stream })
       });
 
-      const data = await res.json().catch(() => ({}));
-
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         if (res.status === 403) return data.message || 'AI Limit Reached. Please upgrade your plan for more explanations.';
         throw new Error(data.message || 'Failed to get explanation');
       }
 
+      const isStream = res.headers.get('Content-Type')?.includes('text/event-stream');
+
+      if (stream && isStream && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullExplanation = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.content) {
+                  onChunk!(parsed.content);
+                  fullExplanation += parsed.content;
+                }
+                if (parsed.error) throw new Error(parsed.error);
+              } catch (e) { }
+            }
+          }
+        }
+        return fullExplanation;
+      }
+
+      const data = await res.json().catch(() => ({}));
       return data.explanation;
     } catch (err: any) {
       console.error('[CBT API] Failed to get explanation:', err);

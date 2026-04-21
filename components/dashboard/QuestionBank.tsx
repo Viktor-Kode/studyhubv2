@@ -815,7 +815,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       const sourceName = inputMode === 'upload' ? uploadedFile?.name : 'Manual Input'
-      const response = await generateQuiz(textToUse, amount, questionType, sourceName, forceNew)
+      let streamBuffer = ''
+      const response = await generateQuiz(textToUse, amount, questionType, sourceName, forceNew, (chunk) => {
+        streamBuffer += chunk
+        // Optionally update a "generating" status here
+      })
 
       if (response.isDuplicate && !forceNew) {
         setWarning('Showing existing questions for this content. Click "Generate New Set" for more.')
@@ -879,10 +883,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       const sourceName = inputMode === 'upload' ? uploadedFile?.name : 'Manual Input'
-      const response = await generateStudyNotes(textToUse, sourceName)
+      const response = await generateStudyNotes(textToUse, sourceName, (chunk) => {
+        setGeneratedNotes(prev => prev + chunk)
+      })
 
       if (response.success && response.notes) {
-        setGeneratedNotes(response.notes)
         setSuccess('Study notes generated successfully!')
       } else {
         setError('Failed to generate study notes. Please try again.')
@@ -922,11 +927,26 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setIsChatting(true)
     setError(null)
 
+    // Add placeholder message for the assistant
+    setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
+
     try {
       const context = inputMode === 'upload' ? extractedText : manualText
       const historyForModel = chatMessages.map((msg) => ({ role: msg.role, content: msg.content }))
-      const response = await chatWithTutor(userMsg, context, historyForModel)
-      setChatMessages(prev => [...prev, { role: 'assistant', content: response.reply, timestamp: new Date().toISOString() }])
+      
+      const response = await chatWithTutor(userMsg, context, historyForModel, (chunk) => {
+        setChatMessages(prev => {
+          const newMessages = [...prev]
+          const lastIdx = newMessages.length - 1
+          if (lastIdx >= 0 && newMessages[lastIdx].role === 'assistant') {
+            newMessages[lastIdx] = {
+              ...newMessages[lastIdx],
+              content: newMessages[lastIdx].content + chunk
+            }
+          }
+          return newMessages
+        })
+      })
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
@@ -963,7 +983,14 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         ? q.options[Number(q.answer !== undefined ? q.answer : (q as any).correctAnswer)]
         : String(q.answer !== undefined ? q.answer : (q as any).correctAnswer);
 
-      const explanation = await cbtApi.getExplanation(qText, correctAnsText, q.options || [])
+      // Initialize explanation with empty string
+      setAiExplanations(prev => ({ ...prev, [q._id]: '' }))
+
+      const explanation = await cbtApi.getExplanation(qText, correctAnsText, q.options || [], (chunk) => {
+        setAiExplanations(prev => ({ ...prev, [q._id]: (prev[q._id] || '') + chunk }))
+      })
+      
+      // Final sanity check (ensure it's set fully)
       setAiExplanations(prev => ({ ...prev, [q._id]: explanation }))
     } catch (err: any) {
       const msg = err?.message || ''

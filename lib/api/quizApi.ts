@@ -76,17 +76,65 @@ export const generateQuiz = async (
     amount: number,
     questionType: string = 'multiple-choice',
     fileName?: string,
-    forceNew: boolean = false
+    forceNew: boolean = false,
+    onChunk?: (chunk: string) => void
 ): Promise<QuizResponse> => {
+    const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ text, amount, questionType, fileName, forceNew })
+        body: JSON.stringify({ text, amount, questionType, fileName, forceNew, stream })
     })
+    
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to generate quiz')
     }
+
+    const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
+
+    if (stream && isStream && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let finalData: QuizResponse | null = null;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') continue;
+                    
+                    try {
+                        const parsed = JSON.parse(dataStr);
+                        if (parsed.content) {
+                            onChunk!(parsed.content);
+                            fullContent += parsed.content;
+                        }
+                        if (parsed.done) {
+                            finalData = {
+                                success: true,
+                                data: parsed.questions,
+                                sessionId: parsed.sessionId
+                            };
+                        }
+                        if (parsed.error) throw new Error(parsed.error);
+                    } catch (e) {
+                        // might be partial JSON in some cases, though SSE usually prevents this
+                    }
+                }
+            }
+        }
+        
+        if (finalData) return finalData;
+    }
+
     return response.json()
 }
 
@@ -109,17 +157,54 @@ export const deleteQuizSession = async (id: string): Promise<{ success: boolean;
 
 export const generateStudyNotes = async (
     text: string,
-    fileName?: string
+    fileName?: string,
+    onChunk?: (chunk: string) => void
 ): Promise<{ success: boolean; notes: string }> => {
+    const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ text, fileName })
+        body: JSON.stringify({ text, fileName, stream })
     })
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to generate study notes')
     }
+
+    const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
+
+    if (stream && isStream && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullNotes = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(dataStr);
+                        if (parsed.content) {
+                            onChunk!(parsed.content);
+                            fullNotes += parsed.content;
+                        }
+                        if (parsed.error) throw new Error(parsed.error);
+                    } catch (e) { }
+                }
+            }
+        }
+        return { success: true, notes: fullNotes };
+    }
+
     return response.json()
 }
 
@@ -161,17 +246,54 @@ export const deleteStudyNote = async (id: string): Promise<{ success: boolean; m
 export const chatWithTutor = async (
     message: string,
     context?: string,
-    chatHistory: { role: string; content: string }[] = []
+    chatHistory: { role: string; content: string }[] = [],
+    onChunk?: (chunk: string) => void
 ): Promise<{ success: boolean; reply: string }> => {
+    const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ message, context, chatHistory })
+        body: JSON.stringify({ message, context, chatHistory, stream })
     })
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Tutor is currently unavailable')
     }
+
+    const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
+
+    if (stream && isStream && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullReply = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(dataStr);
+                        if (parsed.content) {
+                            onChunk!(parsed.content);
+                            fullReply += parsed.content;
+                        }
+                        if (parsed.error) throw new Error(parsed.error);
+                    } catch (e) { }
+                }
+            }
+        }
+        return { success: true, reply: fullReply };
+    }
+
     return response.json()
 }
 
