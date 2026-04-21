@@ -9,8 +9,6 @@ import {
     FiMapPin, FiBook, FiRepeat, FiFilter, FiSearch,
     FiMail, FiMessageSquare, FiSettings, FiInfo
 } from 'react-icons/fi'
-import { MdWhatsapp } from 'react-icons/md'
-import WhatsAppNumberInput from '@/components/WhatsAppNumberInput'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'react-hot-toast'
@@ -29,8 +27,6 @@ export default function TimetableReminders() {
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
-    const [whatsappNumber, setWhatsappNumber] = useState('')
-    const [whatsappSetupDone, setWhatsappSetupDone] = useState(false)
     const [testingSend, setTestingSend] = useState(false)
     const [sendSuccess, setSendSuccess] = useState(false)
     const [sendError, setSendError] = useState('')
@@ -44,8 +40,7 @@ export default function TimetableReminders() {
         type: 'study' as Reminder['type'],
         subject: '',
         location: '',
-        whatsappEnabled: false,
-        emailEnabled: false,
+        emailEnabled: true,
         notifyBefore: 15,
         recurring: 'none' as Reminder['recurring'],
         recurringDays: [] as number[]
@@ -54,7 +49,6 @@ export default function TimetableReminders() {
     useEffect(() => {
         if (user?.uid) {
             loadReminders()
-            loadWhatsAppNumber()
             reminderService.requestNotificationPermission()
             reminderService.init()
         }
@@ -75,17 +69,6 @@ export default function TimetableReminders() {
         }
     }
 
-    const loadWhatsAppNumber = async () => {
-        try {
-            const response = await apiClient.get('/settings')
-            if (response.data.profile?.phone) {
-                setWhatsappNumber(response.data.profile.phone)
-                setWhatsappSetupDone(true)
-            }
-        } catch (error) {
-            console.error('Failed to load WhatsApp number from backend:', error)
-        }
-    }
 
 
 
@@ -127,9 +110,7 @@ export default function TimetableReminders() {
         if (!user?.uid) return
 
         const reminderData = {
-            ...formData,
-            sendWhatsApp: formData.whatsappEnabled,
-            whatsappNumber: formData.whatsappEnabled ? whatsappNumber : undefined
+            ...formData
         }
 
         try {
@@ -164,8 +145,7 @@ export default function TimetableReminders() {
             type: reminder.type,
             subject: reminder.subject || '',
             location: reminder.location || '',
-            whatsappEnabled: !!reminder.sendWhatsApp,
-            emailEnabled: reminder.emailEnabled || false,
+            emailEnabled: reminder.emailEnabled ?? true,
             notifyBefore: reminder.notifyBefore || 15,
             recurring: reminder.recurring || 'none',
             recurringDays: reminder.recurringDays || []
@@ -189,8 +169,7 @@ export default function TimetableReminders() {
             type: 'study',
             subject: '',
             location: '',
-            whatsappEnabled: whatsappSetupDone,
-            emailEnabled: false,
+            emailEnabled: true,
             notifyBefore: 15,
             recurring: 'none',
             recurringDays: []
@@ -199,65 +178,6 @@ export default function TimetableReminders() {
         setShowAddForm(false)
     }
 
-    const handleSaveWhatsApp = async () => {
-        if (!whatsappNumber.trim()) {
-            toast.error('Please enter your WhatsApp number')
-            return
-        }
-        try {
-            await apiClient.put('/settings', { profile: { phone: whatsappNumber } })
-            setWhatsappSetupDone(true)
-            toast.success(`WhatsApp number saved: ${whatsappNumber}. You can now enable WhatsApp notifications for your reminders.`)
-        } catch (error) {
-            console.error('Failed to save WhatsApp number:', error)
-            toast.error('Failed to save WhatsApp number to backend')
-        }
-    }
-
-    const handleTestWhatsApp = async (forceText = true) => {
-        if (!whatsappNumber) {
-            setSendError('Please save your WhatsApp number first')
-            setTimeout(() => setSendError(''), 3000)
-            return
-        }
-
-        setTestingSend(true)
-        setSendSuccess(false)
-        setSendError('')
-
-        try {
-            const testReminder: Reminder = {
-                id: 'test',
-                title: 'Calculus Exam Preparation',
-                description: 'Review Chapter 4 and 5 notes. Solve practice problems from the textbook.',
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toTimeString().slice(0, 5),
-                type: 'study',
-                sendWhatsApp: true,
-                whatsappEnabled: true,
-                whatsappNumber: whatsappNumber,
-                emailEnabled: false,
-                notifyBefore: 15,
-                completed: false,
-                createdAt: Date.now()
-            }
-
-            const result = await reminderService.sendWhatsAppNotification(testReminder)
-
-            if (result.success) {
-                setSendSuccess(true)
-                setTimeout(() => setSendSuccess(false), 5000)
-            } else {
-                setSendError(result.error || 'Failed to send')
-                setTimeout(() => setSendError(''), 5000)
-            }
-        } catch (error: any) {
-            setSendError(error.message)
-            setTimeout(() => setSendError(''), 5000)
-        } finally {
-            setTestingSend(false)
-        }
-    }
 
     const typeOptions = [
         { value: 'study', label: 'Study Session', color: 'blue', icon: '📚' },
@@ -371,114 +291,19 @@ export default function TimetableReminders() {
             {activeTab === 'settings' && (
                 <div className="space-y-6">
 
-                    {/* WhatsApp Setup */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                                <MdWhatsapp className="text-green-600 dark:text-green-400 text-2xl" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white">WhatsApp Notifications</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Get reminders directly on WhatsApp
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Phone Number Input */}
-                        <div className="space-y-3">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Your WhatsApp Number
-                            </label>
-                            <WhatsAppNumberInput
-                                value={whatsappNumber}
-                                onChange={setWhatsappNumber}
-                                onValidChange={(valid) => {
-                                    // Optional: disable save button if invalid
-                                    console.log('Number is valid:', valid)
-                                }}
-                            />
-                            <div className="flex gap-2 mt-2">
-                                <button
-                                    onClick={handleSaveWhatsApp}
-                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white 
-                             rounded-lg transition font-medium"
-                                >
-                                    <FiCheck className="inline mr-1" /> Save
-                                </button>
-                                {sendError && (
-                                    <div className="absolute top-full left-0 mt-2 p-3 bg-red-100 text-red-700 text-sm rounded shadow-lg z-10 w-64">
-                                        ❌ {sendError}
-                                    </div>
-                                )}
-                                {sendSuccess && (
-                                    <div className="absolute top-full left-0 mt-2 p-3 bg-green-100 text-green-700 text-sm rounded shadow-lg z-10 w-64">
-                                        ✅ Reminder Sent!<br />
-                                        <span className="text-xs opacity-75">Check your WhatsApp app.</span>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => handleTestWhatsApp(true)}
-                                    disabled={!whatsappSetupDone || testingSend}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white 
-                             rounded-lg transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {testingSend ? 'Sending...' : <><FiMessageSquare /> Send Test Reminder</>}
-                                </button>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Format: whatsapp:+[country code][number] (e.g., whatsapp:+12345678901)
-                            </p>
-                            {whatsappSetupDone && (
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
-                                    <FiCheckCircle /> WhatsApp configured successfully
-                                </div>
-                            )}
-
-                            {/* Twilio sandbox join instructions */}
-                            <div className="mt-4 rounded-lg border border-dashed border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-900/20 p-4 space-y-2">
-                                <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                                    How to start getting reminders on WhatsApp
-                                </p>
-                                <ol className="list-decimal list-inside text-xs text-gray-700 dark:text-gray-300 space-y-1">
-                                    <li>
-                                        Tap{' '}
-                                        <a
-                                            href="https://wa.me/14155238886?text=join%20freedom-explore"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-green-700 dark:text-green-400 font-semibold underline"
-                                        >
-                                            this WhatsApp link
-                                        </a>{' '}
-                                        to open a chat with the StudyHelp WhatsApp number.
-                                    </li>
-                                    <li>
-                                        Send the join code{' '}
-                                        <span className="font-mono font-semibold bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded">
-                                            freedom-explore
-                                        </span>{' '}
-                                        as a message in that chat to join the StudyHelp WhatsApp sandbox.
-                                    </li>
-                                    <li>
-                                        Come back here, enter your WhatsApp number above and click{' '}
-                                        <span className="font-semibold">Save</span>, then use{' '}
-                                        <span className="font-semibold">Send Test Reminder</span> to confirm it works.
-                                    </li>
-                                </ol>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                    This join step is required by WhatsApp/Twilio so we are allowed to message you.
-                                    You only need to do it once for this number.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Notification Preferences */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-4">
-                            Notification Preferences
-                        </h3>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                                <FiBell className="text-blue-600 dark:text-blue-400 text-2xl" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white">Notification Preferences</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Manage how you want to be reminded
+                                </p>
+                            </div>
+                        </div>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div className="flex items-center gap-2">
@@ -489,21 +314,20 @@ export default function TimetableReminders() {
                                 </div>
                                 <button
                                     onClick={() => reminderService.requestNotificationPermission()}
-                                    className="text-sm text-blue-500 hover:text-blue-600"
+                                    className="text-sm font-semibold text-blue-500 hover:text-blue-600 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-md"
                                 >
                                     Enable
                                 </button>
                             </div>
                             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div className="flex items-center gap-2">
-                                    <MdWhatsapp className="text-green-500" />
+                                    <FiMail className="text-indigo-500" />
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        WhatsApp Notifications
+                                        Email Notifications
                                     </span>
                                 </div>
-                                <span className={`text-sm font-medium ${whatsappSetupDone ? 'text-green-600' : 'text-gray-400'
-                                    }`}>
-                                    {whatsappSetupDone ? 'Enabled' : 'Not configured'}
+                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                    Active (Sent to {user?.email})
                                 </span>
                             </div>
                         </div>
@@ -778,19 +602,10 @@ export default function TimetableReminders() {
                                     <label className="flex items-center gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={formData.whatsappEnabled}
-                                            onChange={e => setFormData({ ...formData, whatsappEnabled: e.target.checked })}
-                                            disabled={!whatsappSetupDone}
-                                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                            checked={formData.emailEnabled}
+                                            onChange={e => setFormData({ ...formData, emailEnabled: e.target.checked })}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                                         />
-                                        <MdWhatsapp className="text-green-500 text-xl" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                            WhatsApp Notification
-                                            {!whatsappSetupDone && (
-                                                <span className="ml-2 text-xs text-orange-500">(Configure in Settings)</span>
-                                            )}
-                                        </span>
-                                    </label>
                                     <label className="flex items-center gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -895,12 +710,6 @@ function ReminderCard({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                        {reminder.whatsappEnabled && (
-                            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 
-                               bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                                <MdWhatsapp /> WhatsApp
-                            </span>
-                        )}
                         {reminder.emailEnabled && (
                             <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 
                                bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">

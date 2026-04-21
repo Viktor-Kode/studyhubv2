@@ -12,9 +12,6 @@ export interface Reminder {
     location?: string
     priority?: 'low' | 'medium' | 'high'
     completed: boolean
-    sendWhatsApp: boolean // backend model name
-    whatsappEnabled?: boolean // frontend used this too
-    whatsappNumber?: string
     emailEnabled?: boolean
     notifyBefore?: number
     recurring?: 'none' | 'daily' | 'weekly' | 'monthly'
@@ -87,28 +84,6 @@ export const reminderService = {
         return this.update(userId, id, { completed: true })
     },
 
-    // Forward WhatsApp notification
-    async sendWhatsAppNotification(reminder: Reminder): Promise<{ success: boolean; error?: string }> {
-        if (!reminder.sendWhatsApp || !reminder.whatsappNumber) {
-            return { success: false, error: 'WhatsApp not enabled' }
-        }
-
-        try {
-            const response = await apiClient.post('/reminders/whatsapp', {
-                phoneNumber: reminder.whatsappNumber,
-                message: this.formatWhatsAppMessage(reminder)
-            })
-            return { success: true }
-        } catch (error: any) {
-            return { success: false, error: error.message }
-        }
-    },
-
-    formatWhatsAppMessage(reminder: Reminder): string {
-        const date = new Date(`${reminder.date}T${reminder.time}`)
-        return `📚 *Study Reminder*\n\n*${reminder.title}*\n${reminder.description || ''}\n\n📅 Date: ${date.toLocaleDateString()}\n⏰ Time: ${reminder.time}\n\nGood luck! 💪`
-    },
-
     // Browser Notification Permission
     async requestNotificationPermission() {
         if (typeof window === 'undefined' || !('Notification' in window)) return false
@@ -120,15 +95,5 @@ export const reminderService = {
     // Legacy support for TimetableReminders
     init() {
         console.log('[reminderService] initialized')
-    },
-
-    getWhatsAppNumber(): string {
-        if (typeof window === 'undefined') return ''
-        return localStorage.getItem('user_whatsapp_number') || ''
-    },
-
-    saveWhatsAppNumber(num: string) {
-        if (typeof window === 'undefined') return
-        localStorage.setItem('user_whatsapp_number', num)
     }
 }
