@@ -19,16 +19,18 @@ export async function GET(
     // 1. Resolve Params safely
     let id = '';
     try {
-      const params = await context.params;
-      id = params?.id || '';
+      // In Next.js 15, context.params is a Promise. In 14, it's an object.
+      // We resolve it safely here.
+      const resolvedParams = await context.params;
+      id = resolvedParams?.id || context.params?.id || '';
     } catch (e) {
-      console.error(`[PDF Proxy][${requestId}] Params resolve failed:`, e);
-      // Fallback for Next.js 14 or direct access
+      console.warn(`[PDF Proxy][${requestId}] Params resolve notice:`, e);
       id = context.params?.id || '';
     }
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing document ID' }, { status: 400 });
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error(`[PDF Proxy][${requestId}] Invalid ID received:`, id);
+      return NextResponse.json({ error: 'Invalid or missing document ID' }, { status: 400 });
     }
 
     // 2. Extract Token
@@ -64,47 +66,63 @@ export async function GET(
 
     try {
       // Priority 1: User's own document
-      const doc = await LibraryDocument.findOne({
+      // Use mongoose.Types.ObjectId.isValid for better compatibility
+      const isValidId = mongoose.Types.ObjectId.isValid(id);
+      
+      const libraryQuery: any = {
         $or: [
-          { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
+          ...(isValidId ? [{ _id: id }] : []),
           { publicId: id }
         ],
         userId: user.userId
-      }).lean();
+      };
+
+      const doc = await LibraryDocument.findOne(libraryQuery).lean();
 
       if (doc) {
         fileUrl = doc.fileUrl;
         foundSource = 'LibraryDocument';
       } else {
         // Priority 2: Shared/Community document
-        const shared = await SharedLibraryItem.findOne({
+        const sharedQuery: any = {
           $or: [
-            { _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() },
+            ...(isValidId ? [{ _id: id }] : []),
             { publicId: id }
           ],
           moderationStatus: 'approved'
-        }).lean();
+        };
+
+        const shared = await SharedLibraryItem.findOne(sharedQuery).lean();
 
         if (shared) {
           fileUrl = shared.fileUrl;
           foundSource = 'SharedLibraryItem';
         } else {
           // Priority 3: Legacy collection (librarymaterials)
-          const legacy = await mongoose.connection.db?.collection('librarymaterials').findOne({
-            $or: [
-              { _id: mongoose.isValidObjectId(id) ? new mongoose.Types.ObjectId(id) : null },
-              { publicId: id }
-            ]
-          });
-          if (legacy) {
-            fileUrl = legacy.fileUrl as string;
-            foundSource = 'LibraryMaterial (legacy)';
+          // Safely access the raw collection
+          const db = mongoose.connection.db;
+          if (db) {
+            const legacyQuery: any = {
+              $or: [
+                ...(isValidId ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+                { publicId: id }
+              ]
+            };
+            const legacy = await db.collection('librarymaterials').findOne(legacyQuery);
+            if (legacy) {
+              fileUrl = legacy.fileUrl as string;
+              foundSource = 'LibraryMaterial (legacy)';
+            }
           }
         }
       }
     } catch (lookupErr: any) {
-      console.error(`[PDF Proxy][${requestId}] Lookup Error:`, lookupErr.message);
-      return NextResponse.json({ error: 'Document lookup failed', details: lookupErr.message }, { status: 500 });
+      console.error(`[PDF Proxy][${requestId}] Lookup Error:`, lookupErr.message, lookupErr.stack);
+      return NextResponse.json({ 
+        error: 'Document lookup failed', 
+        details: lookupErr.message,
+        path: id
+      }, { status: 500 });
     }
 
     if (!fileUrl) {
