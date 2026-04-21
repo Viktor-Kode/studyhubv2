@@ -6,11 +6,10 @@ import { NextRequest } from 'next/server'
 function proxyTimeoutMs(pathAfterApi: string): number {
   const p = pathAfterApi.toLowerCase()
   if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt') || p.includes('library/documents') || p.includes('library/proxy-pdf')) {
-    return 55_000
+    return 115_000
   }
-  // Default: 50 s — gives Render's cold start enough time to respond while
-  // staying safely under Vercel's 60 s maxDuration limit.
-  return 50_000
+  // Default: 60 s
+  return 60_000
 }
 
 /**

@@ -25,10 +25,14 @@ apiClient.interceptors.request.use(
     if (token) {
       // DEBUG LOGGING
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]))
+        const base64Url = token.split('.')[1]
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const pad = base64.length % 4
+        const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64
+        const payload = JSON.parse(atob(paddedBase64))
         console.log(`[apiClient] Request: ${config.url} | Token Expiry: ${new Date(payload.exp * 1000).toLocaleString()}`)
       } catch (e) {
-        console.warn('[apiClient] Could not parse token payload for logging')
+        console.warn('[apiClient] Could not parse token payload for logging', e)
       }
       
       config.headers.Authorization = `Bearer ${token}`

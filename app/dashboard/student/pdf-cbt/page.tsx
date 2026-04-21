@@ -125,8 +125,8 @@ export default function PdfCbtPage() {
       setError('PDF exceeds 20MB limit.')
       return
     }
-    if (candidate.size > 5 * 1024 * 1024) {
-      setWarning('Large PDF detected. For best results, upload a PDF with 30 pages or less. We will extract from the most relevant sections.')
+    if (candidate.size > 15 * 1024 * 1024) {
+      setWarning('This is a large PDF. Processing may take longer than usual. For best results, use PDFs with fewer images or under 30 pages.')
     } else {
       setWarning('')
     }
