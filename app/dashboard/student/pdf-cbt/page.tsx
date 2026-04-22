@@ -219,10 +219,20 @@ export default function PdfCbtPage() {
       
       // Determine extraction URL: direct to backend in production to bypass Vercel's 4.5MB limit
       const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
-      const isLocal = !publicApiUrl || publicApiUrl.includes('localhost')
-      const extractUrl = isLocal 
-        ? '/api/backend/pdf-cbt/extract' 
-        : `${publicApiUrl.replace(/\/+$/, '')}/pdf-cbt/extract`
+      
+      // Heuristic: if we are on a .vercel.app or .site domain, we should use the production backend
+      const isVercel = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('studyhelp.site'));
+      
+      let extractUrl = '/api/backend/pdf-cbt/extract'
+      
+      if (isVercel || (!publicApiUrl.includes('localhost') && publicApiUrl)) {
+        const base = (publicApiUrl && !publicApiUrl.includes('localhost')) 
+          ? publicApiUrl 
+          : 'https://studyhelp-zyqw.onrender.com/api'
+        extractUrl = `${base.replace(/\/+$/, '')}/pdf-cbt/extract`
+      }
+
+      console.log('[PDF CBT] Using extraction URL:', extractUrl)
 
       const response = await fetch(extractUrl, {
         method: 'POST',
