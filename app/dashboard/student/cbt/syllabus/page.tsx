@@ -1,8 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuthStore } from '@/lib/store/authStore'
+import { useUpgrade } from '@/context/UpgradeContext'
 import BackButton from '@/components/BackButton'
 import {
   SYLLABUS_SUBJECTS,
@@ -71,6 +73,16 @@ export default function SyllabusStudyPage() {
   const [exam, setExam] = useState<SyllabusExamKey | null>(null)
   const [subject, setSubject] = useState<SyllabusSubjectKey | null>(null)
   const [step, setStep] = useState<'pick' | 'topics'>('pick')
+
+  const { user } = useAuthStore()
+  const { showUpgrade } = useUpgrade()
+
+  useEffect(() => {
+    if (user && (user.plan?.type === 'free' || !user.plan?.type)) {
+      router.replace('/dashboard/cbt')
+      showUpgrade('cbt')
+    }
+  }, [user, router, showUpgrade])
 
   const topics = useMemo(() => {
     if (!exam || !subject) return []

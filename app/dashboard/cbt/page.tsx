@@ -11,7 +11,7 @@ import {
   FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft,
   FiClock, FiAward, FiLoader, FiAlertTriangle,
   FiRefreshCw, FiHome, FiTarget, FiBookOpen,
-  FiChevronRight, FiGrid, FiInfo,
+  FiChevronRight, FiGrid, FiInfo, FiLock,
   FiTrendingUp, FiCheck, FiX, FiFilter
 } from 'react-icons/fi'
 import Link from 'next/link'
@@ -650,6 +650,13 @@ export default function CBTPage() {
           </p>
         </div>
 
+        {/* PRO Badge / Status for Debugging or clarity if needed */}
+        {/* {user?.plan?.type && (
+          <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider">
+            Plan: {user.plan.type}
+          </div>
+        )} */}
+
         <AdBanner className="mb-8" />
 
         {/* ====== EXAM SELECTION ====== */}
@@ -926,6 +933,10 @@ export default function CBTPage() {
 
                       <button
                         onClick={() => {
+                          if (user?.plan?.type === 'free' || !user?.plan?.type) {
+                            showUpgrade('cbt')
+                            return
+                          }
                           if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
                             setError('Please complete the exam setup before starting Study Mode.')
                             return
@@ -935,19 +946,30 @@ export default function CBTPage() {
                         className="w-full md:flex-1 flex items-center justify-center gap-2 py-4 px-6 
                                bg-white dark:bg-gray-900 border-2 border-blue-600/80 
                                text-blue-700 dark:text-blue-300 font-black uppercase tracking-widest rounded-xl 
-                               transition hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                               transition hover:bg-blue-50 dark:hover:bg-blue-950/40 relative group"
                       >
                         <FiBookOpen className="text-xl" />
                         Study Mode
+                        {(user?.plan?.type === 'free' || !user?.plan?.type) && (
+                          <div className="absolute top-2 right-2 p-1 bg-amber-100 dark:bg-amber-900/40 rounded-full text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-sm">
+                            <FiLock size={12} />
+                          </div>
+                        )}
                       </button>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => router.push('/dashboard/student/cbt/syllabus')}
+                      onClick={() => {
+                        if (user?.plan?.type === 'free' || !user?.plan?.type) {
+                          showUpgrade('cbt')
+                          return
+                        }
+                        router.push('/dashboard/student/cbt/syllabus')
+                      }}
                       className="cbt-topic-btn w-full flex flex-col sm:flex-row items-center justify-center gap-2 py-4 px-6 
                         bg-white dark:bg-gray-900 border-2 border-[#10B981] text-[#10B981] font-bold rounded-[14px] 
-                        transition hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        transition hover:bg-emerald-50 dark:hover:bg-emerald-950/30 relative group"
                       style={{ borderWidth: '1.5px' }}
                     >
                       <span className="flex items-center gap-2">
@@ -957,6 +979,11 @@ export default function CBTPage() {
                       <span className="cbt-topic-badge text-[10px] uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 font-semibold">
                         JAMB • WAEC • NECO • Post-UTME
                       </span>
+                      {(user?.plan?.type === 'free' || !user?.plan?.type) && (
+                        <div className="absolute top-2 right-2 p-1 bg-amber-100 dark:bg-amber-900/40 rounded-full text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-sm">
+                          <FiLock size={12} />
+                        </div>
+                      )}
                     </button>
                   </div>
 

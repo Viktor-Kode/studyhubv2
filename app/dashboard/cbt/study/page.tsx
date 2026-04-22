@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuthStore } from '@/lib/store/authStore'
+import { useUpgrade } from '@/context/UpgradeContext'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { CBTQuestion, ExamType, cbtApi, renderQuestion } from '@/lib/api/cbt'
@@ -30,6 +33,17 @@ export default function StudyModePage() {
   const [selectedYear] = usePersistedState<string>('cbt_year', '')
   const [selectedSubject] = usePersistedState<string>('cbt_subject', '')
   const [questionCount] = usePersistedState<number>('cbt_count', 20)
+
+  const { user } = useAuthStore()
+  const { showUpgrade } = useUpgrade()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (user && (user.plan?.type === 'free' || !user.plan?.type)) {
+      router.replace('/dashboard/cbt')
+      showUpgrade('cbt')
+    }
+  }, [user, router, showUpgrade])
 
   const [questions, setQuestions] = useState<CBTQuestion[]>([])
   const [current, setCurrent] = useState(0)
