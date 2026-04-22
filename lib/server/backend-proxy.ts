@@ -159,6 +159,24 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
     })
   }
 
+  // SSE / event-stream: pipe the body through directly so the browser
+  // can consume the stream chunk-by-chunk. Buffering via .text() would
+  // break streaming AND strip the Content-Type, causing JSON parse errors.
+  if (contentType.includes('text/event-stream')) {
+    const outHeaders = new Headers()
+    outHeaders.set('content-type', contentType)
+    // Allow the streaming response to stay open on Vercel
+    outHeaders.set('cache-control', 'no-cache')
+    outHeaders.set('x-accel-buffering', 'no')
+    return new Response(resp.body, {
+      status: resp.status,
+      headers: outHeaders,
+    })
+  }
+
+  // All other text responses — forward with the original Content-Type
   const text = await resp.text()
-  return new Response(text, { status: resp.status })
+  const outHeaders = new Headers()
+  outHeaders.set('content-type', contentType || 'text/plain')
+  return new Response(text, { status: resp.status, headers: outHeaders })
 }
