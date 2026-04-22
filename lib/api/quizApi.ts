@@ -88,7 +88,8 @@ export const generateQuiz = async (
     
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to generate quiz')
+        const errorMessage = errorData.message || errorData.error || errorData.detail || 'Failed to generate quiz'
+        throw new Error(errorMessage)
     }
 
     const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
@@ -169,7 +170,8 @@ export const generateStudyNotes = async (
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to generate study notes')
+        const errorMessage = errorData.message || errorData.error || errorData.detail || 'Failed to generate study notes'
+        throw new Error(errorMessage)
     }
 
     const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
@@ -221,7 +223,8 @@ export const saveStudyNote = async (
     })
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to save study note')
+        const errorMessage = errorData.message || errorData.error || errorData.detail || 'Failed to save study note'
+        throw new Error(errorMessage)
     }
     return response.json()
 }
@@ -258,7 +261,8 @@ export const chatWithTutor = async (
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Tutor is currently unavailable')
+        const errorMessage = errorData.message || errorData.error || errorData.detail || 'Tutor is currently unavailable'
+        throw new Error(errorMessage)
     }
 
     const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');

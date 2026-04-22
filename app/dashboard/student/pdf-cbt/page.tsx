@@ -6,7 +6,6 @@ import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
 import { jsPDF } from 'jspdf'
-import { extractPDFText } from '@/lib/utils/pdfExtractor'
 
 import './PdfCbt.css'
 
@@ -205,20 +204,11 @@ export default function PdfCbtPage() {
     setError('')
     setExtracting(true)
     try {
-      setExtractStatus('Reading PDF content...')
+      setExtractStatus('Uploading PDF and generating questions...')
       
-      // 1. Extract text in frontend (handles OCR fallback)
-      const extractionResult = await extractPDFText(file, (msg) => setExtractStatus(msg))
-      
-      if (!extractionResult.success || !extractionResult.text) {
-        throw new Error(extractionResult.error || 'Failed to extract text from PDF.')
-      }
-
-      setExtractStatus('Generating questions...')
-
-      // 2. Send extracted text to backend
       const formData = new FormData()
-      formData.append('text', extractionResult.text)
+      // The backend multer expects the field name to be 'pdf'
+      formData.append('pdf', file)
       
       const selectedCount =
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
