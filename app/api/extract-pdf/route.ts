@@ -55,7 +55,13 @@ export async function POST(request: NextRequest) {
             if (!isPDF) throw new Error("File has mismatching extension; headers do not match %PDF magic bytes.");
 
             stage = "extracting_pdf_text";
-            const pdfParse = (await import('pdf-parse')).default || await import('pdf-parse');
+            const pdfModule = await import('pdf-parse');
+            const pdfParse = typeof pdfModule.default === 'function' 
+              ? pdfModule.default 
+              : pdfModule;
+            if (typeof pdfParse !== 'function') {
+              throw new Error('pdf-parse module not callable');
+            }
             const data = await pdfParse(buffer);
             extractedText = data.text;
 
