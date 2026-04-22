@@ -369,6 +369,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setSuccess(null)
     setWarning(null)
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Camera access is not supported in this browser or requires HTTPS.')
+      return
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -383,7 +388,16 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         }
       })
     } catch (err: any) {
-      setError(err?.message || 'Unable to open camera. Please allow camera access and try again.')
+      const name = err?.name || ''
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setError('Camera access was blocked. Please click the camera icon in your browser\'s address bar and allow access, then try again.')
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setError('No camera found on this device. Please upload an image instead.')
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setError('Camera is already in use by another app. Please close it and try again.')
+      } else {
+        setError(err?.message || 'Unable to open camera. Please allow camera access and try again.')
+      }
     }
   }
 
