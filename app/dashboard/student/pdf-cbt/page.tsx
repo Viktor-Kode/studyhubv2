@@ -45,7 +45,7 @@ export default function PdfCbtPage() {
   const [stage, setStage] = useState<Stage>('upload')
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [numQuestions, setNumQuestions] = useState('all')
+  const [numQuestions, setNumQuestions] = useState('10')
   const [customQuestionCount, setCustomQuestionCount] = useState('40')
   const [timeLimit, setTimeLimit] = useState('0')
   const [shuffle, setShuffle] = useState(true)
@@ -706,6 +706,22 @@ export default function PdfCbtPage() {
                 }}
               >
                 Retry Same Questions
+              </button>
+              <button
+                className="pcbt-btn-primary"
+                style={{ background: '#4F46E5' }}
+                onClick={() => {
+                  if (extractedData) {
+                    setQuestionsToUse(buildQuestionSet(extractedData.questions))
+                    setAnswers({})
+                    setCurrentQ(0)
+                    setResultSaved(false)
+                    setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
+                    setStage('test')
+                  }
+                }}
+              >
+                Practice New Set
               </button>
             </div>
           </div>
