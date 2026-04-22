@@ -216,7 +216,15 @@ export default function PdfCbtPage() {
       formData.append('requestedCount', String(requestedCount))
       
       const token = await getFirebaseToken()
-      const response = await fetch('/api/backend/pdf-cbt/extract', {
+      
+      // Determine extraction URL: direct to backend in production to bypass Vercel's 4.5MB limit
+      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const isLocal = !publicApiUrl || publicApiUrl.includes('localhost')
+      const extractUrl = isLocal 
+        ? '/api/backend/pdf-cbt/extract' 
+        : `${publicApiUrl.replace(/\/+$/, '')}/pdf-cbt/extract`
+
+      const response = await fetch(extractUrl, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData
