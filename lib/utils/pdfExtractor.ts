@@ -30,9 +30,9 @@ async function extractPageText(pdf: PDFDocumentProxy, pageNum: number): Promise<
 
 /**
  * Robust PDF text extraction using pdfjs-dist.
- * Pages are processed in small parallel batches so multi-page PDFs finish much faster than strict sequential extraction.
+ * Includes OCR fallback for scanned/handwritten documents using Tesseract.js.
  */
-export async function extractPDFText(file: File): Promise<ExtractionResult> {
+export async function extractPDFText(file: File, onProgress?: (msg: string) => void): Promise<ExtractionResult> {
     try {
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
@@ -48,6 +48,8 @@ export async function extractPDFText(file: File): Promise<ExtractionResult> {
         const pdf = await loadingTask.promise;
         const numPages = pdf.numPages;
         const pageTextsOrdered: string[] = new Array(numPages);
+
+        onProgress?.(`Parsing ${numPages} PDF pages...`);
 
         for (let start = 1; start <= numPages; start += PAGE_BATCH_SIZE) {
             const end = Math.min(start + PAGE_BATCH_SIZE - 1, numPages);
@@ -70,17 +72,59 @@ export async function extractPDFText(file: File): Promise<ExtractionResult> {
             }
         }
 
-        await pdf.destroy();
-
         const cleanedText = fullText.trim();
 
-        if (!cleanedText || cleanedText.length < 100) {
+        // IF NO TEXT FOUND (SCANNED PDF), TRY OCR FALLBACK
+        if (!cleanedText || cleanedText.length < 50) {
+            onProgress?.('No text layer found. Attempting OCR (Optical Character Recognition)...');
+            console.log('[pdfExtractor] No text found, starting OCR fallback...');
+            
+            const { createWorker } = await import('tesseract.js');
+            const worker = await createWorker('eng');
+            
+            let ocrFullText = '';
+            
+            // Limit OCR to first 10 pages to avoid crashing/hanging on large scans
+            const ocrLimit = Math.min(numPages, 10);
+            
+            for (let p = 1; p <= ocrLimit; p++) {
+                onProgress?.(`Performing OCR on page ${p} of ${ocrLimit}...`);
+                const page = await pdf.getPage(p);
+                const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                if (context) {
+                    await page.render({ canvasContext: context, viewport }).promise;
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    const result = await worker.recognize(dataUrl);
+                    ocrFullText += result.data.text + '\n\n';
+                }
+            }
+            
+            await worker.terminate();
+            await pdf.destroy();
+
+            const cleanedOcrText = ocrFullText.trim();
+            if (!cleanedOcrText || cleanedOcrText.length < 50) {
+                return {
+                    success: false,
+                    error: 'This PDF appears to be a scan or handwritten document, and OCR could not read it clearly. Please try a clearer document.',
+                    pageCount: numPages
+                };
+            }
+
             return {
-                success: false,
-                error: 'PDF contains insufficient readable text. This may be a scanned document or image-based PDF. Please try:\n1. Converting to .txt or .docx \n2. Using OCR software first \n3. Copying and pasting the text directly',
+                success: true,
+                text: cleanedOcrText,
                 pageCount: numPages
             };
         }
+
+        await pdf.destroy();
 
         return {
             success: true,

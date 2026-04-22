@@ -6,6 +6,7 @@ import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
 import { jsPDF } from 'jspdf'
+import { extractPDFText } from '@/lib/utils/pdfExtractor'
 
 import './PdfCbt.css'
 
@@ -204,22 +205,38 @@ export default function PdfCbtPage() {
     setError('')
     setExtracting(true)
     try {
+      setExtractStatus('Reading PDF content...')
+      
+      // 1. Extract text in frontend (handles OCR fallback)
+      const extractionResult = await extractPDFText(file, (msg) => setExtractStatus(msg))
+      
+      if (!extractionResult.success || !extractionResult.text) {
+        throw new Error(extractionResult.error || 'Failed to extract text from PDF.')
+      }
+
+      setExtractStatus('Generating questions...')
+
+      // 2. Send extracted text to backend
       const formData = new FormData()
-      formData.append('pdf', file)
+      formData.append('text', extractionResult.text)
+      
       const selectedCount =
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
       const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
       formData.append('requestedCount', String(requestedCount))
+      
       const token = await getFirebaseToken()
       const response = await fetch('/api/backend/pdf-cbt/extract', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData
       })
+      
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data?.error || data?.message || 'Failed to extract questions.')
+        throw new Error(data?.error || data?.message || 'Failed to generate questions.')
       }
+      
       const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({
         type: String(q.type || '').toLowerCase() === 'theory' ? 'theory' : 'objective',
         question: String(q.question || ''),
@@ -240,7 +257,7 @@ export default function PdfCbtPage() {
       })
 
       if (!cleanQuestions.length) {
-        throw new Error('No usable questions were extracted from this PDF.')
+        throw new Error('No usable questions were generated from this content.')
       }
 
       const prepared: ExtractedData = {
@@ -253,8 +270,7 @@ export default function PdfCbtPage() {
       setQuestionsToUse(buildQuestionSet(prepared.questions))
       setStage('preview')
     } catch (err: any) {
-      const errorMsg = err?.response?.data?.error || err?.message || 'Failed to extract questions.'
-      setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to extract questions.')
+      setError(err?.message || 'Failed to extract questions.')
     } finally {
       setExtracting(false)
     }
