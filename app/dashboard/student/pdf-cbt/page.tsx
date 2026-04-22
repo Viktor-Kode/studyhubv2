@@ -222,7 +222,22 @@ export default function PdfCbtPage() {
         body: formData
       })
       
-      const data = await response.json()
+      const rawText = await response.text()
+      let data
+      try {
+        data = JSON.parse(rawText)
+      } catch (err) {
+        // If not JSON, it's likely a proxy/server error like "Request Entity Too Large"
+        console.error('[PDF CBT] Non-JSON response:', rawText)
+        if (response.status === 413) {
+          throw new Error('The PDF file is too large for the server to process (Vercel limit: 4.5MB). Please try a smaller file or one with fewer images.')
+        }
+        if (response.status === 504) {
+          throw new Error('The request timed out. Large PDFs take longer to process; please try a shorter document.')
+        }
+        throw new Error(`Server Error (${response.status}): ${rawText.slice(0, 100)}...`)
+      }
+
       if (!response.ok) {
         throw new Error(data?.error || data?.message || 'Failed to generate questions.')
       }
