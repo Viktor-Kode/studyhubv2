@@ -226,13 +226,17 @@ export default function PdfCbtPage() {
       formData.append('requestedCount', String(requestedCount))
       
       const token = await getFirebaseToken()
-      const response = await fetch('/api/backend/pdf-cbt/extract', {
+      const response = await fetch('/api/backend/pdf-cbt/extract-debug', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData
       })
       
-      const data = await response.json()
+      const debugData = await response.json()
+      console.log('[DEBUG] PDF Upload Response:', debugData)
+      alert('Debug Data: ' + JSON.stringify(debugData, null, 2))
+      
+      const data = debugData // Use debug data as response for now to see what happens
       if (!response.ok) {
         throw new Error(data?.error || data?.message || 'Failed to generate questions.')
       }
