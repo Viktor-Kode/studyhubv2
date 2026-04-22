@@ -15,12 +15,17 @@ export async function GET(request: NextRequest) {
         }
 
         await connectDB()
+        
+        if (!user.userId || !mongoose.Types.ObjectId.isValid(user.userId)) {
+            return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
+        }
+
         const userObjectId = new mongoose.Types.ObjectId(user.userId)
 
         // Fetch or create high-level stats
-        let stats = await UserStats.findOne({ userId: user.userId })
+        let stats = await UserStats.findOne({ userId: userObjectId })
         if (!stats) {
-            stats = await UserStats.create({ userId: user.userId })
+            stats = await UserStats.create({ userId: userObjectId })
         }
 
         // Aggregate session totals
@@ -36,11 +41,11 @@ export async function GET(request: NextRequest) {
         ])
 
         // Flashcard stats
-        const flashcardCount = await FlashCard.countDocuments({ userId: user.userId })
-        const masteredCards = await FlashCard.countDocuments({ userId: user.userId, masteryLevel: { $gte: 4 } })
+        const flashcardCount = await FlashCard.countDocuments({ userId: userObjectId })
+        const masteredCards = await FlashCard.countDocuments({ userId: userObjectId, masteryLevel: { $gte: 4 } })
 
         // Question stats
-        const questionCount = await Question.countDocuments({ userId: user.userId })
+        const questionCount = await Question.countDocuments({ userId: userObjectId })
 
         return NextResponse.json({
             stats: {
@@ -54,6 +59,9 @@ export async function GET(request: NextRequest) {
         })
     } catch (error) {
         console.error('Error fetching stats:', error)
-        return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
+        return NextResponse.json({ 
+            error: 'Failed to fetch stats',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
     }
 }
