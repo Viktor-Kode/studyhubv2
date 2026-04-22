@@ -147,8 +147,9 @@ function ProfileSection({
             type="button"
             className="avatar-edit-btn"
             onClick={() => fileRef.current?.click()}
+            title="Change Avatar"
           >
-            <Camera size={14} />
+            <Camera size={16} />
           </button>
         </div>
         <input
@@ -161,6 +162,7 @@ function ProfileSection({
         <div className="avatar-info">
           <h4 className="avatar-name">{form.displayName || 'Student'}</h4>
           <p className="avatar-email">{user?.email}</p>
+          <div className="avatar-badge">Verified Account</div>
         </div>
       </div>
 
@@ -222,14 +224,26 @@ function ProfileSection({
           <span className="field-hint">What you are studying at university; leave blank if not applicable</span>
         </div>
 
-        <button
-          type="button"
-          className="save-btn"
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? 'Saving...' : 'Save Profile'}
-        </button>
+        <div className="form-actions">
+          <button
+            type="button"
+            className="save-btn"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check size={18} />
+                Save Profile
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -289,15 +303,19 @@ function AccountSection({
       </div>
 
       <div className="form-group full-width">
-        <label>Subscription</label>
-        <div className="subscription-status">
-          <div className="sub-info">
-            <span className={`sub-badge ${isActive ? 'active' : 'free'}`}>
-              {isActive ? `${planType} Plan` : 'Free Plan'}
+        <label>Subscription & Plan</label>
+        <div className="subscription-status-card">
+          <div className="sub-icon-wrap">
+            <Shield className="sub-icon" />
+          </div>
+          <div className="sub-details">
+            <span className="sub-label">Current Plan</span>
+            <span className={`sub-value ${isActive ? 'active' : 'free'}`}>
+              {isActive ? `${planType.toUpperCase()} PLAN` : 'FREE TIER'}
             </span>
           </div>
           <a href="/dashboard/pricing" className="upgrade-link-btn">
-            {isActive ? 'Manage Plan' : 'Upgrade'}
+            {isActive ? 'Manage Subscription' : 'Upgrade to Pro'}
           </a>
         </div>
       </div>
@@ -315,7 +333,7 @@ function AccountSection({
             </div>
             {resetSent ? (
               <div className="reset-sent">
-                <Check size={14} /> Email sent!
+                <Check size={16} /> <span>Email sent successfully!</span>
               </div>
             ) : (
               <button
@@ -324,7 +342,7 @@ function AccountSection({
                 onClick={handlePasswordReset}
                 disabled={loading}
               >
-                {loading ? 'Sending...' : 'Send Reset Email'}
+                {loading ? 'Sending...' : 'Send Reset Link'}
               </button>
             )}
           </div>
@@ -504,14 +522,16 @@ function NotificationsSection({
         ))}
       </div>
 
-      <button
-        type="button"
-        className="save-btn"
-        onClick={handleSave}
-        disabled={loading}
-      >
-        {loading ? 'Saving...' : 'Save Preferences'}
-      </button>
+      <div className="form-actions">
+        <button
+          type="button"
+          className="save-btn"
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? 'Saving...' : 'Update Preferences'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -816,55 +836,56 @@ export default function SettingsPage() {
           )}
         </div>
 
-        <div className="settings-stack">
-          <div className="settings-mobile-nav md:hidden">
-            <label className="settings-mobile-label" htmlFor="settings-section-select">
-              Section
-            </label>
-            <select
-              id="settings-section-select"
-              className="settings-section-select"
-              value={activeSection}
-              onChange={(e) => setActiveSection(e.target.value)}
-            >
-              {SECTIONS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="settings-mobile-logout" onClick={handleLogout}>
-              <LogOut size={18} />
-              Log Out
-            </button>
-          </div>
-
-          <div className="settings-desktop-wrap">
-            <aside className="settings-sidebar hidden md:flex">
+        <div className="settings-layout">
+          {/* Mobile Navigation - Horizontal Scrollable Tabs */}
+          <nav className="settings-mobile-tabs md:hidden">
+            <div className="tabs-container">
               {SECTIONS.map((s) => (
                 <button
                   key={s.id}
                   type="button"
-                  className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
+                  className={`mobile-tab-item ${activeSection === s.id ? 'active' : ''}`}
                   onClick={() => setActiveSection(s.id)}
                 >
-                  <div className="flex items-center gap-x-3">
-                    <s.icon size={18} />
-                    <span>{s.label}</span>
-                  </div>
-                  <ChevronRight size={15} className="nav-arrow" />
+                  <s.icon size={20} />
+                  <span>{s.label.split(' ')[0]}</span>
                 </button>
               ))}
-              <button
-                type="button"
-                className="settings-nav-item logout"
-                onClick={handleLogout}
-              >
-                <div className="flex items-center gap-x-3">
-                  <LogOut size={18} />
-                  <span>Log Out</span>
-                </div>
-              </button>
+            </div>
+          </nav>
+
+          <div className="settings-desktop-wrap">
+            <aside className="settings-sidebar hidden md:flex">
+              <div className="sidebar-nav-group">
+                {SECTIONS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`settings-nav-item ${activeSection === s.id ? 'active' : ''}`}
+                    onClick={() => setActiveSection(s.id)}
+                  >
+                    <div className="nav-item-content">
+                      <s.icon size={20} className="nav-icon" />
+                      <span>{s.label}</span>
+                    </div>
+                    {activeSection === s.id && <div className="active-indicator" />}
+                    <ChevronRight size={16} className="nav-arrow" />
+                  </button>
+                ))}
+              </div>
+
+              <div className="sidebar-footer">
+                <button
+                  type="button"
+                  className="settings-nav-item logout-btn"
+                  onClick={handleLogout}
+                >
+                  <div className="nav-item-content">
+                    <LogOut size={20} className="nav-icon" />
+                    <span>Log Out</span>
+                  </div>
+                </button>
+              </div>
             </aside>
 
             <div className="settings-content">
