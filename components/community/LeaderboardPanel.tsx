@@ -10,6 +10,7 @@ export type BoardRow = {
   userId: string
   isMe?: boolean
   name: string
+  avatar?: string | null
   examType?: string | null
   weeklyXP: number
   totalXP: number
@@ -96,69 +97,6 @@ export default function LeaderboardPanel({
 
   return (
     <div className="space-y-6">
-      <div className="gw-seg p-1" role="tablist" aria-label="Leaderboard filter">
-        {(
-          [
-            ['all', 'All'],
-            ['exam', 'By exam'],
-            ['subject', 'By subject'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`relative py-2 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
-              filter === id
-                ? 'text-white shadow-lg'
-                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            data-active={filter === id}
-            onClick={() => setFilter(id)}
-          >
-            {filter === id && (
-              <motion.div
-                layoutId="activeFilter"
-                className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl -z-10"
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="gw-pick">
-        {filter === 'exam' && (
-          <motion.select
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            value={examSubject}
-            onChange={(e) => setExamSubject(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold focus:ring-2 focus:ring-violet-500 outline-none"
-          >
-            {EXAM_FILTERS.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </motion.select>
-        )}
-        {filter === 'subject' && (
-          <motion.select
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            value={subjectPick}
-            onChange={(e) => setSubjectPick(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold focus:ring-2 focus:ring-violet-500 outline-none"
-          >
-            {SUBJECT_FILTERS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </motion.select>
-        )}
-      </div>
 
       {lbLoading ? (
         <div className="grid grid-cols-3 gap-4 h-48 mb-8">
@@ -199,8 +137,8 @@ export default function LeaderboardPanel({
                       {order !== 1 && <div className="h-10 mb-2" />}
 
                       <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-3 border-2 border-white/30 shadow-inner overflow-hidden">
-                        {row.userId === user?.uid && user?.avatar ? (
-                          <img src={user.avatar} className="w-full h-full object-cover" alt="" />
+                        {row.avatar ? (
+                          <img src={row.avatar} className="w-full h-full object-cover" alt="" />
                         ) : (
                           <span className="text-2xl">🎓</span>
                         )}
@@ -252,8 +190,8 @@ export default function LeaderboardPanel({
                   </div>
 
                   <div className="relative flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-violet-400 transition-colors">
-                    {row.userId === user?.uid && user?.avatar ? (
-                      <img src={user.avatar} className="w-full h-full object-cover" alt="" />
+                    {row.avatar ? (
+                      <img src={row.avatar} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <span className="text-xl">👤</span>
                     )}
