@@ -51,35 +51,20 @@ const PDFReader = ({ material, onClose, onProgressSaved }: PDFReaderProps) => {
 
     const loadPdf = async () => {
       try {
-        const { apiClient } = await import('@/lib/api/client')
-        
-        console.log(`[PDFReader] Fetching proxy via apiClient for: ${material._id}`)
+        if (!material.fileUrl) {
+          throw new Error('Document has no file URL.')
+        }
 
-        const response = await apiClient.get(`/library/proxy-pdf/${material._id}`, {
-          responseType: 'arraybuffer'
-        })
+        console.log(`[PDFReader] Loading PDF directly from Cloudinary: ${material._id}`)
 
-        if (!isMounted) return
-
-        const blob = new Blob([response.data], { type: 'application/pdf' })
-        objectUrl = URL.createObjectURL(blob)
-        
-        console.log(`[PDFReader] Blob created. Size: ${blob.size} bytes. Type: ${blob.type}`)
-        
-        setPdfData(objectUrl)
+        setPdfData(material.fileUrl)
         setLoading(false)
         setFetchError(false)
       } catch (err: any) {
         console.error('[PDFReader] Load failed:', err)
         if (!isMounted) return
-        
-        if (err.response?.status === 401) {
-          setErrorHeader('Session Expired')
-          setErrorDetail('Please refresh the page to reload your document.')
-        } else if (err.response?.status === 404) {
-          setErrorDetail('Document not found or access denied.')
-        }
-
+        setErrorHeader('Load Failed')
+        setErrorDetail(err.message || 'Could not load PDF.')
         setFetchError(true)
         setLoading(false)
       }

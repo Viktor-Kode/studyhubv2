@@ -78,42 +78,21 @@ export default function PDFViewer({
 
     const loadPdf = async () => {
       try {
-        const { apiClient } = await import('@/lib/api/client')
+        if (!documentItem.fileUrl) {
+          throw new Error('Document has no file URL.')
+        }
         
-        console.log(`[PDFViewer] Attempting to load document: ${documentItem._id}`)
+        console.log(`[PDFViewer] Loading PDF directly from Cloudinary: ${documentItem._id}`)
         
-        // Fetch the PDF binary via the proxy
-        const response = await apiClient.get(`/library/proxy-pdf/${documentItem._id}`, {
-          responseType: 'arraybuffer',
-          // apiClient handles token attachment and 401 retry (refresh) automatically.
-        })
-
-        if (!mounted) return
-
-        const blob = new Blob([response.data], { type: 'application/pdf' })
-        objectUrl = URL.createObjectURL(blob)
-        
-        console.log(`[PDFViewer] Blob created. Size: ${blob.size} bytes. Type: ${blob.type}`)
-        
-        setFileSource(objectUrl)
+        setFileSource(documentItem.fileUrl)
         setErrorStatus(null)
         setIsPdfLoading(false)
 
       } catch (err: any) {
         if (!mounted) return
-        console.error('[PDFViewer] Failed to load PDF:', err)
-        
-        let msg = 'Could not load PDF. Please try again.'
-        if (err.response?.status === 401) {
-          msg = 'Session expired. Please refresh the page or log in again.'
-        } else if (err.response?.status === 404) {
-          msg = 'Document not found or access denied.'
-        } else if (err.response?.status >= 500) {
-          msg = 'The document server is currently busy. Please try again in a few moments.'
-        }
-        
+        console.error('[PDFViewer] Failed to set PDF source:', err)
         setPdfFetchFailed(true)
-        setErrorStatus(msg)
+        setErrorStatus(err.message || 'Could not load PDF.')
         setIsPdfLoading(false)
       }
     }

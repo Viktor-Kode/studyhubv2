@@ -404,7 +404,9 @@ function UploadModal({
       formData.append('signature', sigData.signature)
       formData.append('folder', sigData.folder)
 
-      const cloudUrl = `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      const resourceType = isPdf ? 'raw' : 'auto'
+      const cloudUrl = `https://api.cloudinary.com/v1_1/${sigData.cloudName}/${resourceType}/upload`
 
       const uploadResp = await new Promise<any>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
