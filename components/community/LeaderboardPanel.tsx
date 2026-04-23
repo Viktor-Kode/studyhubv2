@@ -151,7 +151,7 @@ export default function LeaderboardPanel({
                         </p>
                         <div className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
                           <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                          {row.weeklyXP.toLocaleString()}
+                          {row.totalXP.toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -220,7 +220,7 @@ export default function LeaderboardPanel({
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 font-black text-sm">
                       <Zap className="w-4 h-4 fill-current" />
-                      {row.weeklyXP}
+                      {row.totalXP.toLocaleString()}
                     </div>
                     <div className="flex -space-x-1.5 overflow-hidden">
                        {row.badges.slice(0, 3).map((b) => (
@@ -273,8 +273,8 @@ export default function LeaderboardPanel({
                 <div className="text-right">
                    <div className="flex items-center gap-2 bg-black/20 p-2 rounded-2xl">
                       <div className="text-right">
-                        <p className="text-[10px] font-black text-white/60 uppercase m-0 leading-none">Weekly XP</p>
-                        <p className="text-xl font-black m-0 tracking-tight">{myWeeklyXP.toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-white/60 uppercase m-0 leading-none">Total XP</p>
+                        <p className="text-xl font-black m-0 tracking-tight">{(progress?.xp || 0).toLocaleString()}</p>
                       </div>
                       <Zap className="w-8 h-8 text-yellow-300 fill-yellow-300 drop-shadow-lg" />
                    </div>
