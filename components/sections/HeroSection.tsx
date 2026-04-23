@@ -107,39 +107,15 @@ export default function HeroSection() {
           <div className="max-w-xl mx-auto mb-12">
             {/* Dashboard Preview */}
             <div className="dashboard-preview relative group opacity-100">
-              <div className="bg-white/5 backdrop-blur-md border-2 border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-500/60 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20">
-                {/* Student Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-emerald-500/20 border border-emerald-500/50 rounded-lg flex items-center justify-center">
-                    <FaUserGraduate className="text-emerald-400 text-xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">Student Dashboard</h3>
-                    <p className="text-white/60 text-sm">AI-Powered Study Tools</p>
-                  </div>
-                </div>
-
-                {/* Preview Content */}
-                <div className="space-y-3">
-                  <div className="glass-panel bg-white/5 border border-white/10 rounded-lg p-4 opacity-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white/80 text-sm font-medium">Study Progress</span>
-                      <span className="text-emerald-400 text-sm font-bold">75%</span>
-                    </div>
-                    <div className="h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 w-3/4"></div>
-                    </div>
-                  </div>
-
-                  <div className="glass-panel bg-white/5 border border-white/10 rounded-lg p-4 opacity-100">
-                    <div className="grid grid-cols-3 gap-2">
-                      {['Timer', 'CGPA', 'Reminder'].map((tool) => (
-                        <div key={tool} className="h-12 bg-emerald-500/10 border border-emerald-500/30 rounded flex items-center justify-center">
-                          <span className="text-emerald-400 text-xs font-medium">{tool}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <div className="bg-white/5 backdrop-blur-md border-2 border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/20">
+                {/* Video Embed */}
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden">
+                  <iframe 
+                    src="https://marketing-motion-maker--victorand804.replit.app" 
+                    className="absolute top-0 left-0 w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
                 </div>
               </div>
 
