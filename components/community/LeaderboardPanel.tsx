@@ -158,20 +158,22 @@ export default function LeaderboardPanel({
                       )}
                       {order !== 1 && <div className="h-10 mb-2" />}
 
-                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-3 border-2 border-white/30 shadow-inner overflow-hidden">
+                      <div className={`rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-3 border-2 border-white/30 shadow-inner overflow-hidden ${
+                        order === 1 ? 'w-20 h-20 ring-4 ring-amber-400/30' : 'w-14 h-14'
+                      }`}>
                         {row.avatar ? (
                           <img src={row.avatar} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <span className="text-2xl">🎓</span>
+                          <span className={order === 1 ? 'text-3xl' : 'text-xl'}>🎓</span>
                         )}
                       </div>
 
-                      <div className="text-center">
+                      <div className={`text-center transition-transform ${order === 1 ? 'scale-105 origin-bottom' : 'scale-90 opacity-90 origin-bottom'}`}>
                         <p className="text-[10px] font-black tracking-widest uppercase opacity-80">Rank #{row.rank}</p>
-                        <p className="font-extrabold text-sm md:text-lg mb-1 drop-shadow-sm truncate w-full px-2">
+                        <p className={`font-extrabold mb-1 drop-shadow-sm truncate w-full px-2 ${order === 1 ? 'text-lg md:text-xl' : 'text-sm'}`}>
                           {row.name}
                         </p>
-                        <div className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                        <div className={`inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full font-bold ${order === 1 ? 'text-sm' : 'text-xs'}`}>
                           <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
                           {row.displayXP?.toLocaleString() || row.totalXP.toLocaleString()}
                         </div>
