@@ -82,15 +82,27 @@ export default function PDFViewer({
           throw new Error('Document has no file URL.')
         }
         
-        console.log(`[PDFViewer] Loading PDF directly from Cloudinary: ${documentItem._id}`)
-        
-        setFileSource(documentItem.fileUrl)
+        setIsPdfLoading(true)
         setErrorStatus(null)
-        setIsPdfLoading(false)
+
+        console.log(`[PDFViewer] Fetching PDF blob from Cloudinary: ${documentItem._id}`)
+        
+        const response = await fetch(documentItem.fileUrl)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF from storage: ${response.status} ${response.statusText}`)
+        }
+
+        const blob = await response.blob()
+        objectUrl = URL.createObjectURL(blob)
+        
+        if (mounted) {
+          setFileSource(objectUrl)
+          setIsPdfLoading(false)
+        }
 
       } catch (err: any) {
         if (!mounted) return
-        console.error('[PDFViewer] Failed to set PDF source:', err)
+        console.error('[PDFViewer] Failed to load PDF blob:', err)
         setPdfFetchFailed(true)
         setErrorStatus(err.message || 'Could not load PDF.')
         setIsPdfLoading(false)

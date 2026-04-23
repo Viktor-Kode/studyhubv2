@@ -403,6 +403,9 @@ function UploadModal({
       formData.append('timestamp', sigData.timestamp)
       formData.append('signature', sigData.signature)
       formData.append('folder', sigData.folder)
+      if (sigData.accessControl) {
+        formData.append('access_control', sigData.accessControl)
+      }
 
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
       const resourceType = isPdf ? 'raw' : 'auto'
