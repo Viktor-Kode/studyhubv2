@@ -89,7 +89,7 @@ export default function LeaderboardPanel({
 
   return (
     <div className="space-y-6">
-      <div className="gw-seg p-1" role="tablist" aria-label="Leaderboard filter">
+      <div className="gw-seg p-1 hide-scrollbar" role="tablist" aria-label="Leaderboard filter">
         {(
           [
             ['today', 'Today'],

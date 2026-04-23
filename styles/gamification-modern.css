@@ -490,7 +490,9 @@
 /* ─── Community: segmented filter ─────────────────────────────────────────── */
 .gw-seg {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
   gap: 6px;
   padding: 5px;
   background: #fff;
@@ -526,11 +528,6 @@
 }
 
 @media (max-width: 400px) {
-  .gw-seg {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
   .gw-seg button {
     flex: 0 0 auto;
     white-space: nowrap;
@@ -573,7 +570,7 @@
 
 .gw-podium-slot {
   border-radius: var(--gw-radius-lg);
-  padding: 16px 12px;
+  padding: 12px 6px;
   text-align: center;
   color: #fff;
   font-weight: 800;
@@ -581,6 +578,12 @@
   overflow: hidden;
   box-shadow: var(--gw-card-shadow);
   transition: transform 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .gw-podium-slot {
+    padding: 16px 12px;
+  }
 }
 
 .gw-podium-slot:hover {
