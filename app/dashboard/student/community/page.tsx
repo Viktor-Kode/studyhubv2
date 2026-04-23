@@ -16,9 +16,7 @@ export default function CommunityPage() {
   const { user } = useAuthStore()
   const { progress, loading: progLoading } = useProgress()
   const [tab, setTab] = useState<'leaderboard' | 'badges' | 'share'>('leaderboard')
-  const [filter, setFilter] = useState<'all' | 'exam' | 'subject'>('all')
-  const [examSubject, setExamSubject] = useState<string>('JAMB')
-  const [subjectPick, setSubjectPick] = useState<string>('Mathematics')
+  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'lifetime'>('today')
   const [leaderboard, setLeaderboard] = useState<BoardRow[]>([])
   const [myRank, setMyRank] = useState(0)
   const [myWeeklyXP, setMyWeeklyXP] = useState(0)
@@ -27,25 +25,18 @@ export default function CommunityPage() {
   const loadBoard = useCallback(async () => {
     setLbLoading(true)
     try {
-      const params: { filter?: string; subject?: string } = {}
-      if (filter === 'exam') {
-        params.filter = 'exam'
-        params.subject = examSubject
-      } else if (filter === 'subject') {
-        params.filter = 'subject'
-        params.subject = subjectPick
-      }
+      const params = { timeframe }
       const res = await progressApi.getLeaderboard(params)
-      const d = res.data as { leaderboard: BoardRow[]; myRank: number; myWeeklyXP: number }
+      const d = res.data as { leaderboard: BoardRow[]; myRank: number; myDisplayXP: number }
       setLeaderboard(d.leaderboard || [])
       setMyRank(d.myRank || 0)
-      setMyWeeklyXP(d.myWeeklyXP ?? 0)
+      setMyWeeklyXP(d.myDisplayXP ?? 0)
     } catch (e) {
       console.error(e)
     } finally {
       setLbLoading(false)
     }
-  }, [filter, examSubject, subjectPick])
+  }, [timeframe])
 
   useEffect(() => {
     void loadBoard()
@@ -125,12 +116,8 @@ export default function CommunityPage() {
           >
             {tab === 'leaderboard' && (
               <LeaderboardPanel
-                filter={filter}
-                setFilter={setFilter}
-                examSubject={examSubject}
-                setExamSubject={setExamSubject}
-                subjectPick={subjectPick}
-                setSubjectPick={setSubjectPick}
+                timeframe={timeframe}
+                setTimeframe={setTimeframe}
                 leaderboard={leaderboard}
                 lbLoading={lbLoading}
                 myRank={myRank}

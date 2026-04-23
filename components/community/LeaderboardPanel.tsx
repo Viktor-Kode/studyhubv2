@@ -37,15 +37,11 @@ const SUBJECT_FILTERS = [
   'Agriculture',
 ]
 
-type FilterMode = 'all' | 'exam' | 'subject'
+type TimeframeMode = 'today' | 'week' | 'lifetime'
 
 type Props = {
-  filter: FilterMode
-  setFilter: (f: FilterMode) => void
-  examSubject: string
-  setExamSubject: (s: string) => void
-  subjectPick: string
-  setSubjectPick: (s: string) => void
+  timeframe: TimeframeMode
+  setTimeframe: (f: TimeframeMode) => void
   leaderboard: BoardRow[]
   lbLoading: boolean
   myRank: number
@@ -71,12 +67,8 @@ const itemVariants = {
 }
 
 export default function LeaderboardPanel({
-  filter,
-  setFilter,
-  examSubject,
-  setExamSubject,
-  subjectPick,
-  setSubjectPick,
+  timeframe,
+  setTimeframe,
   leaderboard,
   lbLoading,
   myRank,
@@ -97,6 +89,36 @@ export default function LeaderboardPanel({
 
   return (
     <div className="space-y-6">
+      <div className="gw-seg p-1" role="tablist" aria-label="Leaderboard filter">
+        {(
+          [
+            ['today', 'Today'],
+            ['week', 'This Week'],
+            ['lifetime', 'Lifetime'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`relative py-2 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+              timeframe === id
+                ? 'text-white shadow-lg'
+                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            data-active={timeframe === id}
+            onClick={() => setTimeframe(id as TimeframeMode)}
+          >
+            {timeframe === id && (
+              <motion.div
+                layoutId="activeTimeframeFilter"
+                className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl -z-10"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            {label}
+          </button>
+        ))}
+      </div>
 
       {lbLoading ? (
         <div className="grid grid-cols-3 gap-4 h-48 mb-8">
@@ -116,7 +138,7 @@ export default function LeaderboardPanel({
               {[1, 0, 2].map((slot) => {
                 const row = top3[slot]
                 if (!row) return <div key={slot} />
-                const order = slot === 1 ? 1 : slot === 0 ? 0 : 2
+                const order = slot === 0 ? 1 : slot === 1 ? 0 : 2
                 return (
                   <motion.div
                     key={row.userId}
@@ -151,7 +173,7 @@ export default function LeaderboardPanel({
                         </p>
                         <div className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
                           <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                          {row.totalXP.toLocaleString()}
+                          {row.displayXP?.toLocaleString() || row.totalXP.toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -220,7 +242,7 @@ export default function LeaderboardPanel({
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 font-black text-sm">
                       <Zap className="w-4 h-4 fill-current" />
-                      {row.totalXP.toLocaleString()}
+                      {row.displayXP?.toLocaleString() || row.totalXP.toLocaleString()}
                     </div>
                     <div className="flex -space-x-1.5 overflow-hidden">
                        {row.badges.slice(0, 3).map((b) => (
@@ -273,8 +295,8 @@ export default function LeaderboardPanel({
                 <div className="text-right">
                    <div className="flex items-center gap-2 bg-black/20 p-2 rounded-2xl">
                       <div className="text-right">
-                        <p className="text-[10px] font-black text-white/60 uppercase m-0 leading-none">Total XP</p>
-                        <p className="text-xl font-black m-0 tracking-tight">{(progress?.xp || 0).toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-white/60 uppercase m-0 leading-none">XP</p>
+                        <p className="text-xl font-black m-0 tracking-tight">{(myWeeklyXP).toLocaleString()}</p>
                       </div>
                       <Zap className="w-8 h-8 text-yellow-300 fill-yellow-300 drop-shadow-lg" />
                    </div>
