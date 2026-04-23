@@ -17,14 +17,14 @@ const footerLinks = {
     { label: 'Upgrade', href: '/dashboard/pricing' },
   ],
   Resources: [
-    { label: 'Help Center', href: '#help' },
-    { label: 'Contact', href: '#contact' },
-    { label: 'Privacy', href: '#privacy' },
+    { label: 'Help Center', href: '/help-center' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Privacy', href: '/privacy-policy' },
   ],
   Legal: [
-    { label: 'Terms', href: '#terms' },
-    { label: 'Privacy Policy', href: '#privacy-policy' },
-    { label: 'Cookie Policy', href: '#cookies' },
+    { label: 'Terms', href: '/terms' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Cookie Policy', href: '/cookie-policy' },
   ],
 }
 
