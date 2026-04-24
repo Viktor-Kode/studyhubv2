@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   Download,
   Zap,
+  Lock,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -1192,6 +1193,156 @@ function ActivityTab() {
   )
 }
 
+function PaywallEventsTab() {
+  const [data, setData] = useState<{
+    events: any[]
+    totalCount: number
+    dailyStats: any[]
+    hottestLeads: any[]
+    pagination: any
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await apiClient.get(`/admin/paywall-events?page=${page}&limit=50`)
+      if (res.data?.success) setData(res.data.data)
+    } catch {
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [page])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (!data && loading) return <p className="text-slate-500">Loading events…</p>
+
+  const events = data?.events || []
+  const daily = data?.dailyStats || []
+  const leads = data?.hottestLeads || []
+
+  return (
+    <div className="space-y-6">
+      <div className="admin-grid-kpi-4">
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">Total Paywall Hits</span>
+          <span className="admin-kpi-value">{data?.totalCount?.toLocaleString() || 0}</span>
+          <span className="admin-kpi-sub">Lifetime across all users</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">Hottest Leads</span>
+          <span className="admin-kpi-value">{leads.length}</span>
+          <span className="admin-kpi-sub">Users with multiple hits</span>
+        </div>
+      </div>
+
+      <div className="admin-grid-charts-2">
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Daily Paywall Hits (Last 30 Days)</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={daily}>
+              <XAxis dataKey="_id" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Area type="monotone" dataKey="count" stroke="#EF4444" fill="#FEF2F2" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="admin-card-v2">
+          <h3 className="admin-chart-title-v2">Hottest Leads (Repeat Hits)</h3>
+          <div className="space-y-2 overflow-y-auto max-h-[200px] pr-2">
+            {leads.length === 0 && <p className="text-xs text-slate-500">No repeat hits yet.</p>}
+            {leads.map((lead, i) => (
+              <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-red-50 border border-red-100">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">{lead._id}</p>
+                  <p className="text-xs text-slate-500">
+                    Last hit: {formatDistanceToNow(new Date(lead.lastHit), { addSuffix: true })}
+                  </p>
+                </div>
+                <span className="px-2 py-1 bg-red-600 text-white text-xs font-black rounded-full">
+                  {lead.hitCount} hits
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-card-v2" style={{ padding: 0 }}>
+        <h3 className="admin-chart-title-v2 p-5 pb-0">Raw Paywall Events</h3>
+        <table className="admin-table-v2">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Action</th>
+              <th>Context</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 && !loading && (
+              <tr>
+                <td colSpan={4} className="text-center p-8 text-slate-500">No events recorded.</td>
+              </tr>
+            )}
+            {events.map((ev, i) => (
+              <tr key={ev._id || i}>
+                <td>
+                  <span className="font-bold block">{ev.userEmail}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">{ev.userId}</span>
+                </td>
+                <td>
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px] font-bold uppercase tracking-tight">
+                    {ev.action?.replace(/_/g, ' ')}
+                  </span>
+                </td>
+                <td>
+                  <div className="text-xs text-slate-600">
+                    {ev.context?.subject && <span className="block italic">Subject: {ev.context.subject}</span>}
+                    {ev.context?.examType && <span className="block italic">Exam: {ev.context.examType}</span>}
+                    {ev.context?.planType && <span className="block italic">Plan: {ev.context.planType}</span>}
+                    {!ev.context?.subject && !ev.context?.examType && <span className="text-slate-400">—</span>}
+                  </div>
+                </td>
+                <td className="text-xs text-slate-500">
+                  {formatDistanceToNow(new Date(ev.timestamp), { addSuffix: true })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination">
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span>Page {page} of {data?.pagination?.totalPages || 1}</span>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => p + 1)}
+          disabled={page >= (data?.pagination?.totalPages || 1)}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 const SIDEBAR = [
@@ -1199,6 +1350,7 @@ const SIDEBAR = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'activity', label: 'Activity', icon: Activity },
+  { id: 'paywall', label: 'Paywall Events', icon: Lock },
   { id: 'campaigns', label: 'Campaigns', icon: Mail },
 ] as const
 
@@ -1392,6 +1544,7 @@ export default function AdminDashboardPage() {
             <RevenueTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
           )}
           {activeTab === 'activity' && <ActivityTab />}
+          {activeTab === 'paywall' && <PaywallEventsTab />}
           {activeTab === 'campaigns' && <AdminCampaignsTab />}
         </main>
 
