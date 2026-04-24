@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation'
 const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   cbt: { title: 'Unlock Unlimited CBT Practice', desc: 'Free users get 1 test per day. Upgrade for unlimited access.' },
   ai: { title: 'Unlock AI Explanations', desc: 'You have used all your free AI messages. Upgrade to continue.' },
-  flashcard: { title: 'Unlock More Flashcard Sets', desc: 'You have reached your free flashcard generation limit.' },
+  flashcard: { title: "You're one step away", desc: "Your flashcards are ready to generate. Upgrade now and it runs instantly." },
   analytics: { title: 'Unlock Advanced Analytics', desc: 'Detailed progress tracking is available on paid plans.' },
   mock: { title: 'Unlock Mock Exams', desc: 'Full mock exams are available on paid plans only.' },
-  notes: { title: 'Unlock Unlimited Notes', desc: 'You have reached your free notes limit. Upgrade to save more.' },
+  notes: { title: "You're one step away", desc: "Your study notes are ready to generate. Upgrade now and it runs instantly." },
   postutme: { title: 'Unlock Post-UTME Practice', desc: 'Post-UTME past questions require a paid plan.' },
-  quiz: { title: 'Unlock Practice Quizzes', desc: 'Generating quizzes from notes requires a paid plan.' },
+  quiz: { title: "You're one step away", desc: "Your quiz is ready to generate. Upgrade now and it runs instantly." },
   default: { title: 'Upgrade to Continue', desc: 'This feature is available on paid plans.' }
 }
 
@@ -39,12 +39,20 @@ export default function UpgradeModal({
   const msg = FEATURE_MESSAGES[feature] || FEATURE_MESSAGES.default
   const displayTitle = title ?? msg.title
   const displayDesc = message ?? msg.desc
-  const showPlanCards = !title && !message
+  const isGeneratorFlow = ['quiz', 'flashcard', 'notes'].includes(feature)
+  const showPlanCards = !title && !message && !isGeneratorFlow
 
   const goToPricing = (plan?: string) => {
     const url = plan ? `/dashboard/pricing?plan=${plan}` : '/dashboard/pricing'
     router.push(url)
     onClose()
+  }
+
+  const getButtonText = () => {
+      if (feature === 'quiz') return 'Upgrade & Generate My Quiz'
+      if (feature === 'flashcard') return 'Upgrade & Generate Flashcards'
+      if (feature === 'notes') return 'Upgrade & Generate Notes'
+      return 'Upgrade & Continue'
   }
 
   if (!isOpen) return null
@@ -56,7 +64,7 @@ export default function UpgradeModal({
       role="presentation"
     >
       <div
-        className="upgrade-modal"
+        className={`upgrade-modal ${isGeneratorFlow ? 'max-w-md' : ''}`}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -71,15 +79,38 @@ export default function UpgradeModal({
         </button>
 
         <div className="upgrade-icon-wrap">
-          <div className="upgrade-icon">
-            <FiZap size={28} className="text-white" />
+          <div className="upgrade-icon bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/20">
+            <FiZap size={28} className="text-white animate-pulse" />
           </div>
         </div>
 
-        <h3 className="upgrade-title">{displayTitle}</h3>
-        <p className="upgrade-desc">{displayDesc}</p>
+        <h3 className="upgrade-title text-2xl font-black text-gray-900 dark:text-white mt-4">{displayTitle}</h3>
+        <p className="upgrade-desc text-gray-600 dark:text-gray-400 mt-2 px-4">{displayDesc}</p>
 
-        {showPlanCards ? (
+        {isGeneratorFlow ? (
+          <div className="flex flex-col gap-4 mt-8 px-2 w-full">
+            <button
+              type="button"
+              onClick={() => goToPricing('monthly')}
+              className="w-full py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 transform transition hover:scale-[1.02] active:scale-[0.98] group"
+            >
+              <span className="text-lg">{getButtonText()}</span>
+              <FiArrowRight className="text-2xl group-hover:translate-x-1 transition-transform" />
+            </button>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em]">
+                UNLIMITED AI + CBT + ANALYTICS
+              </p>
+              <button 
+                type="button"
+                onClick={onClose} 
+                className="text-sm text-gray-400 dark:text-gray-500 font-bold hover:text-gray-600 dark:hover:text-gray-300 transition"
+              >
+                 Maybe later
+              </button>
+            </div>
+          </div>
+        ) : showPlanCards ? (
           <>
             <div className="upgrade-plans">
               <div className="upgrade-plan">

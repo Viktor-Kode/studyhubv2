@@ -25,6 +25,17 @@ export interface QuizSession {
     questionCount: number
     questions: Question[]
     createdAt: string
+    lastResult?: {
+        correctAnswers: number
+        totalQuestions: number
+        accuracy: number
+        answers: {
+            questionId: String
+            selectedAnswer: String
+            correctAnswer: String
+            isCorrect: Boolean
+        }[]
+    }
 }
 
 export interface QuizResponse {

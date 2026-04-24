@@ -37,7 +37,7 @@ const TUTOR_SAVE_DEBOUNCE_MS = 1500
 
 function isUpgradeError(msg: string): boolean {
   const m = (msg || '').toLowerCase()
-  return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached')
+  return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached') || m.includes('expired') || m.includes('renew')
 }
 
 function getExtractionLabel(file: File): string {
@@ -641,11 +641,17 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       const resultsData = {
         subject: newQuestions[0].subject || 'AI Generated Quiz',
         examType: 'AI_STUDY',
+        sessionId: newQuestions[0].sessionId || (newQuestions[0] as any).sessionId || (newQuestions[0] as any).quizSessionId, 
         totalQuestions: newQuestions.length,
         correctAnswers: finalScore,
         wrongAnswers: newQuestions.length - finalScore,
         accuracy: accuracy,
         answers: processedAnswers
+      }
+
+      // If we have a sessionId from the generation response, use it
+      if (!resultsData.sessionId && (newQuestions as any).sessionId) {
+          resultsData.sessionId = (newQuestions as any).sessionId;
       }
 
       await cbtApi.saveResult(resultsData)
@@ -841,11 +847,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setSuccess(`Successfully generated ${response.data.length} questions!`)
       }
 
-      setNewQuestions(response.data)
+      setNewQuestions(response.data.map(q => ({ ...q, sessionId: response.sessionId })))
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
-        showUpgrade('ai')
+        showUpgrade('quiz')
         return
       }
       setError(msg || 'Failed to generate quiz')
@@ -909,7 +915,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
-        showUpgrade('ai')
+        showUpgrade('notes')
         return
       }
       setError(msg || 'Failed to generate study notes')

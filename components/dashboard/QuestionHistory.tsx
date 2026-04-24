@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
     FiClock, FiSearch, FiLoader, FiChevronDown,
     FiChevronUp, FiFileText, FiCheckCircle, FiTrash2,
-    FiHelpCircle, FiZap, FiBook
+    FiHelpCircle, FiZap, FiBook, FiXCircle
 } from 'react-icons/fi'
 import { getAllQuizSessions, deleteQuizSession, QuizSession } from '@/lib/api/quizApi'
 import { formatDistanceToNow } from 'date-fns'
@@ -147,25 +147,59 @@ export default function QuestionHistory() {
 
                             {expandedSession === session._id && (
                                 <div className="px-6 pb-6 bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                                    <div className="grid gap-4 mt-6">
-                                        {session.questions.map((q, idx) => (
-                                            <div key={q._id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex gap-2">
-                                                    <span className="text-emerald-500">Q{idx + 1}.</span> {q.content || (q as any).question}
+                                    {session.lastResult && (
+                                        <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-emerald-500/30 shadow-sm flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] mb-1">LATEST PERFORMANCE</p>
+                                                <p className="text-xl font-black text-gray-900 dark:text-white">
+                                                    {session.lastResult.correctAnswers} / {session.lastResult.totalQuestions} <span className="text-emerald-500 text-sm ml-1">({session.lastResult.accuracy}%)</span>
                                                 </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full border border-emerald-100 dark:border-emerald-500/20">
+                                                <FiCheckCircle className="text-emerald-500" />
+                                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">COMPLETED</span>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                                {q.options && q.options.length > 0 && (
-                                                    <div className="space-y-2 ml-7 mb-4">
-                                                        {q.options.map((opt, i) => (
-                                                            <div key={i} className={`text-xs p-2 rounded-lg border flex items-center gap-2 ${Number(q.answer) === i ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-bold' : 'border-gray-50 dark:border-gray-700 text-gray-500'}`}>
-                                                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${Number(q.answer) === i ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                                                                    {String.fromCharCode(65 + i)}
-                                                                </span>
-                                                                {opt}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                    <div className="grid gap-4 mt-6">
+                                        {session.questions.map((q, idx) => {
+                                            const userResult = session.lastResult?.answers.find(a => String(a.questionId) === String(q._id));
+                                            
+                                            return (
+                                                <div key={q._id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex gap-2">
+                                                        <span className="text-emerald-500">Q{idx + 1}.</span> {q.content || (q as any).question}
+                                                    </p>
+
+                                                    {q.options && q.options.length > 0 && (
+                                                        <div className="space-y-2 ml-7 mb-4">
+                                                            {q.options.map((opt, i) => {
+                                                                const isCorrect = Number(q.answer) === i;
+                                                                const isUserPick = userResult?.selectedAnswer === opt;
+                                                                const isWrongPick = isUserPick && !isCorrect;
+
+                                                                return (
+                                                                    <div key={i} className={`text-xs p-2.5 rounded-xl border flex items-center gap-2 transition-all ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-bold' : isWrongPick ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' : 'border-gray-50 dark:border-gray-700 text-gray-500'}`}>
+                                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCorrect ? 'bg-emerald-500 text-white' : isWrongPick ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                                                                            {String.fromCharCode(65 + i)}
+                                                                        </span>
+                                                                        {opt}
+                                                                        {isWrongPick && (
+                                                                            <span className="ml-auto flex items-center gap-1 text-[9px] font-black uppercase text-red-500 tracking-wider">
+                                                                                <FiXCircle /> YOUR ANSWER
+                                                                            </span>
+                                                                        )}
+                                                                        {isCorrect && userResult && isUserPick && (
+                                                                            <span className="ml-auto flex items-center gap-1 text-[9px] font-black uppercase text-emerald-500 tracking-wider">
+                                                                                <FiCheckCircle /> CORRECT
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
 
                                                 <div className="mt-2 pt-3 border-t border-gray-100 dark:border-gray-700">
                                                     <div className="flex items-center gap-2 mb-1">

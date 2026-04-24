@@ -30,6 +30,12 @@ import {
   FlashCard,
   FlashCardDeck
 } from '@/lib/api/flashcardApi'
+import { useUpgrade } from '@/context/UpgradeContext'
+
+function isUpgradeError(msg: string): boolean {
+  const m = (msg || '').toLowerCase()
+  return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached') || m.includes('expired') || m.includes('renew')
+}
 
 type ViewMode = 'study' | 'review' | 'list' | 'decks' | 'mastered'
 
@@ -37,6 +43,7 @@ export default function FlipCardsPage() {
   // Auth
   const { user } = useAuthStore()
   const userId = user?.uid || ''
+  const { showUpgrade } = useUpgrade()
 
   // Data state
   const [cards, setCards] = useState<FlashCard[]>([])
@@ -426,8 +433,14 @@ export default function FlipCardsPage() {
       setShowAIModal(false)
       setAiText('')
       showSuccess('AI Flashcards generated!')
-    } catch (error) {
-      setError('AI Generation failed')
+    } catch (err: any) {
+      const msg = err.message || ''
+      if (isUpgradeError(msg)) {
+          showUpgrade('flashcard')
+          setShowAIModal(false)
+          return
+      }
+      setError(msg || 'AI Generation failed')
     } finally {
       setIsGenerating(false)
     }
