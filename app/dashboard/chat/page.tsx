@@ -19,6 +19,7 @@ import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
 import { HiOutlineArrowLeft, HiOutlineSparkles } from 'react-icons/hi'
 import { FiTrash2, FiSend, FiCopy, FiCheck } from 'react-icons/fi'
+import { useUpgrade } from '@/context/UpgradeContext'
 
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/github.css'
@@ -54,6 +55,11 @@ type Subject = (typeof SUBJECTS)[number]
 
 const PURPLE = '#5B4CF5'
 
+function isUpgradeError(msg: string): boolean {
+  const m = (msg || '').toLowerCase()
+  return m.includes('upgrade') || m.includes('ai limit') || m.includes('limit reached') || m.includes('expired') || m.includes('renew')
+}
+
 function parseFollowUps(raw: string): { cleanText: string; followUps: string[] } {
   const match = raw.match(/\[\[(.*?)\]\]\s*$/s)
   if (!match) return { cleanText: raw.trim(), followUps: [] }
@@ -78,6 +84,7 @@ function extractTopicFromMessage(message: string): string | null {
 }
 
 export default function ChatPage() {
+  const { showUpgrade } = useUpgrade()
   const profileClassLevel = useAuthStore((s) => s.user?.classLevel)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -258,7 +265,13 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (err: any) {
-      const errorText = err?.message || 'Something went wrong. Please try again.'
+      const errorText = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.'
+      
+      if (isUpgradeError(errorText)) {
+        showUpgrade('ai')
+        return
+      }
+
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-error`,
         role: 'assistant',

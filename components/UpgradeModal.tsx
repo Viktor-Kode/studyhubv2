@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   cbt: { title: 'Unlock Unlimited CBT Practice', desc: 'Free users get 1 test per day. Upgrade for unlimited access.' },
-  ai: { title: 'Unlock AI Explanations', desc: 'You have used all your free AI messages. Upgrade to continue.' },
+  ai: { title: "You're one step away", desc: "Your explanation is ready to generate. Upgrade now and it runs instantly." },
   flashcard: { title: "You're one step away", desc: "Your flashcards are ready to generate. Upgrade now and it runs instantly." },
   analytics: { title: 'Unlock Advanced Analytics', desc: 'Detailed progress tracking is available on paid plans.' },
   mock: { title: 'Unlock Mock Exams', desc: 'Full mock exams are available on paid plans only.' },
@@ -39,7 +39,7 @@ export default function UpgradeModal({
   const msg = FEATURE_MESSAGES[feature] || FEATURE_MESSAGES.default
   const displayTitle = title ?? msg.title
   const displayDesc = message ?? msg.desc
-  const isGeneratorFlow = ['quiz', 'flashcard', 'notes'].includes(feature)
+  const isGeneratorFlow = ['quiz', 'flashcard', 'notes', 'ai'].includes(feature)
   const showPlanCards = !title && !message && !isGeneratorFlow
 
   const goToPricing = (plan?: string) => {
@@ -52,6 +52,7 @@ export default function UpgradeModal({
       if (feature === 'quiz') return 'Upgrade & Generate My Quiz'
       if (feature === 'flashcard') return 'Upgrade & Generate Flashcards'
       if (feature === 'notes') return 'Upgrade & Generate Notes'
+      if (feature === 'ai') return 'Upgrade & Unlock AI Explanations'
       return 'Upgrade & Continue'
   }
 
