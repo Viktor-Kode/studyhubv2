@@ -50,8 +50,7 @@ export default function StudentDashboardPage() {
     cbtExamsTaken: 0,
     cbtAccuracy: 0,
     bestCBTSubject: 'N/A',
-    masteryRate: '0%',
-    lastPractice: null as { subject: string; examType: string; accuracy: number; date: string } | null
+    masteryRate: '0%'
   })
   const [activities, setActivities] = useState<any[]>([])
   const [enrolledClasses, setEnrolledClasses] = useState<Class[]>([])
@@ -94,8 +93,7 @@ export default function StudentDashboardPage() {
             upcomingReminders: reminders.length,
             cbtExamsTaken: sumData.cbt.examsTaken || 0,
             cbtAccuracy: parseInt(sumData.cbt.overallAccuracy) || 0,
-            bestCBTSubject: sumData.cbt.bestSubject || 'N/A',
-            lastPractice: sumData.lastPractice || null
+            bestCBTSubject: sumData.cbt.bestSubject || 'N/A'
           })
           setStrengthsWeaknesses(sumData.cbt?.strengthsWeaknesses || { strengths: [], weaknesses: [] })
 
@@ -275,11 +273,6 @@ export default function StudentDashboardPage() {
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="space-y-8">
-        <ContinuePracticingCard 
-          lastPractice={stats.lastPractice} 
-          loading={loading} 
-        />
-
         {user && user.onboarding?.completed === false && (
           <SetupWizard
             user={user}
@@ -870,74 +863,6 @@ function SubscriptionUsageCard() {
           Loading your subscription status...
         </p>
       )}
-    </div>
-  )
-}
-
-function ContinuePracticingCard({ lastPractice, loading }: { lastPractice: any, loading: boolean }) {
-  const router = useRouter()
-  
-  if (loading && !lastPractice) {
-    return (
-      <div className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4"></div>
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-6"></div>
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full"></div>
-      </div>
-    )
-  }
-
-  const practicedToday = lastPractice?.date && new Date(lastPractice.date).toDateString() === new Date().toDateString()
-
-  return (
-    <div className="w-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
-      <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-48 h-48 bg-blue-400 opacity-10 rounded-full blur-2xl"></div>
-
-      <div className="relative z-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-              <FiTarget className="text-yellow-400" />
-              Focus Mode
-            </div>
-            
-            {lastPractice ? (
-              <div className="space-y-1">
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                  Continue Practicing {lastPractice.subject}
-                </h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-blue-100/80 text-sm font-medium">
-                  <span className="flex items-center gap-1">
-                    <FiBook className="shrink-0" /> {lastPractice.examType}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FiAward className="shrink-0 text-yellow-400" /> Last score: <span className="font-black text-white">{lastPractice.accuracy}%</span>
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                  Level up your skills today
-                </h2>
-                <p className="text-blue-100/80 text-sm font-medium">
-                  Practice past questions to master your subjects and hit your goals.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => router.push('/dashboard/cbt')}
-            className="shrink-0 w-full md:w-auto px-8 py-4 bg-white text-blue-600 rounded-xl font-black text-lg shadow-lg hover:shadow-xl hover:bg-blue-50 active:scale-95 transition-all flex items-center justify-center gap-3 group/btn"
-          >
-            {practicedToday ? 'Continue Practice' : "Start Today's Practice"}
-            <FiArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
