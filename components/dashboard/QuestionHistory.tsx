@@ -216,8 +216,9 @@ export default function QuestionHistory() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        );
+                                    })}
                                     </div>
                                 </div>
                             )}
