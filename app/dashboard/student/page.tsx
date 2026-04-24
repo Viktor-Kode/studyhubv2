@@ -725,7 +725,6 @@ export default function StudentDashboardPage() {
           </div>
         </div>
 
-        <AdBanner className="mt-8" />
       </div>
     </ProtectedRoute >
   )
@@ -763,11 +762,11 @@ function SubscriptionUsageCard() {
         <FiZap className="text-8xl transform rotate-12" />
       </div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-300 mb-1">Your Plan</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-300 mb-1">Your Plan</h3>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-gray-900 dark:text-white capitalize">
+            <span className="text-2xl font-black text-gray-900 dark:text-white capitalize">
               {status?.subscription?.plan || status?.subscription?.status || 'free'}
             </span>
             <FiStar className="text-yellow-500 fill-yellow-500 text-sm" />
@@ -775,11 +774,19 @@ function SubscriptionUsageCard() {
         </div>
         <Link
           href="/dashboard/pricing"
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors"
+          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-black rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-95 text-center"
         >
-          Upgrade
+          Unlock Full Access — Upgrade Now
         </Link>
       </div>
+
+      {(status?.subscription?.plan === 'free' || !status?.subscription?.plan) && (
+        <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl text-center">
+           <p className="text-xs font-bold text-blue-800 dark:text-blue-300">
+             You&apos;re limited to 1 test/day. Upgrade to practice unlimited.
+           </p>
+        </div>
+      )}
 
       {status ? (
         <div className="space-y-5">

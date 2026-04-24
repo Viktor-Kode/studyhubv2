@@ -17,7 +17,6 @@ export default function QuestionBankPage() {
             AI-generated practice questions based on your syllabus
           </p>
         </div>
-        <AdBanner className="mb-6" />
         <Suspense fallback={<div>Loading...</div>}>
           <QuestionBank />
         </Suspense>

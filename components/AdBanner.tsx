@@ -23,23 +23,42 @@ const AdBanner = ({
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    // If the user's plan is already loaded in the auth store, use it
-    if (user?.plan === 'premium' || user?.plan === 'pro') {
-      setIsPremium(true)
-      return
-    }
+    // 1. Ads should not appear to any user who has an active or expired paid plan
+    // 2. Remove all advertisement placements from the logged-in student dashboard
+    
+    const isDashboard = typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard');
 
-    // Fallback/Double check with API if user exists but plan is 'free' or unknown
     if (user) {
+      // Check roles first - admins and teachers don't see ads
+      if (user.role === 'admin' || user.role === 'teacher') {
+        setIsPremium(true)
+        return
+      }
+
+      // Check subscription status
+      // We check both the store and the API for accuracy
       paymentApi.getStatus()
         .then(status => {
-          if (status?.success && (status.subscription?.plan === 'premium' || status.subscription?.plan === 'pro')) {
-            setIsPremium(true)
+          if (status?.success) {
+            const sub = status.subscription;
+            // If plan is not 'free' OR status is 'active' or 'expired', it's a paid user (ever)
+            const hasEverPaid = sub?.plan !== 'free' || sub?.status === 'active' || sub?.status === 'expired';
+            
+            if (hasEverPaid || isDashboard) {
+              setIsPremium(true)
+            }
           }
         })
-        .catch(err => console.error('Error checking subscription for ads:', err))
+        .catch(err => {
+          console.error('Error checking subscription for ads:', err)
+          // Fallback: if on dashboard, hide ads anyway
+          if (isDashboard) setIsPremium(true)
+        })
+    } else {
+       // Public/landing pages - ads are allowed unless explicitly disabled
+       setIsPremium(false)
     }
-  }, [user, user?.plan])
+  }, [user, user?.role])
 
   useEffect(() => {
     if (!isPremium && !isLoaded) {

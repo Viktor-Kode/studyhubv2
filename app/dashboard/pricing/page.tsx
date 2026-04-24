@@ -97,6 +97,17 @@ export default function PricingPage() {
                               ? 'Choose the right plan to unlock StudyHelp Teacher Tools for lesson notes, result sheets, schemes of work and more.'
                               : 'Choose the right plan to accelerate your study journey. Unlock more tests, subjects, and AI power.'}
                         </p>
+
+                        {!isTeacherFlow && (status?.subscription?.plan === 'free' || !status?.subscription?.plan) && (
+                           <div className="mt-8 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-2xl max-w-2xl mx-auto animate-pulse">
+                              <p className="text-sm font-black text-orange-800 dark:text-orange-400">
+                                 You&apos;ve used your 1 free test today. Come back tomorrow or upgrade now to keep practicing.
+                              </p>
+                              <p className="text-xs font-bold text-orange-700 dark:text-orange-500 mt-1">
+                                 WAEC/JAMB is coming. Don&apos;t limit your practice.
+                              </p>
+                           </div>
+                        )}
                         {!isTeacherFlow && (
                           <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-900">
                             <button
@@ -239,7 +250,7 @@ export default function PricingPage() {
                                     >
                                         {loadingPlan === mappedType ? (
                                             <FiLoader className="animate-spin" />
-                                        ) : meta.type === 'free' ? 'Current Plan' : buttonText}
+                                        ) : meta.type === 'free' ? 'Current Plan' : 'Start Practicing Unlimited'}
                                     </button>
                                 </div>
 

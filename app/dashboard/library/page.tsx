@@ -118,7 +118,6 @@ export default function LibraryPage() {
           />
         </div>
 
-        <AdBanner className="mb-6" />
 
         {loading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

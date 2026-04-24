@@ -657,7 +657,6 @@ export default function CBTPage() {
           </div>
         )} */}
 
-        <AdBanner className="mb-8" />
 
         {/* ====== EXAM SELECTION ====== */}
         {viewMode === 'exam-select' && (
