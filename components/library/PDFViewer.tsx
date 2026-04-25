@@ -33,6 +33,7 @@ type Props = {
   onEditDetails?: () => void
   onDeleted: (id: string) => void
   onProgressSaved: (id: string, currentPage: number, percentage: number) => void
+  onLoadError?: (id: string, status: number) => void
 }
 
 export default function PDFViewer({
@@ -41,6 +42,7 @@ export default function PDFViewer({
   onEditDetails,
   onDeleted,
   onProgressSaved,
+  onLoadError,
 }: Props) {
   const [numPages, setNumPages] = useState<number>(documentItem.pages || 0)
   const [currentPage, setCurrentPage] = useState<number>(1)
@@ -120,8 +122,15 @@ export default function PDFViewer({
         const detail = err.response?.data?.error || err.message
         
         setPdfFetchFailed(true)
-        setErrorStatus(status === 401 ? 'Unauthorized. Please refresh and try again.' : `Failed to load: ${detail}`)
+        setErrorStatus(
+          status === 401 
+            ? 'Unauthorized. Please refresh and try again.' 
+            : status === 404
+            ? 'This PDF could not be loaded. Please re-upload it.'
+            : `Failed to load: ${detail}`
+        )
         setIsPdfLoading(false)
+        if (onLoadError) onLoadError(documentItem._id, status || 500)
       }
     }
 

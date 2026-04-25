@@ -25,6 +25,7 @@ export type LibraryDocument = {
     percentage: number
     lastReadAt?: string | null
   }
+  isMissing?: boolean
 }
 
 const DEFAULT_COVER = '#5B4CF5'
@@ -143,10 +144,17 @@ export default function LibraryPage() {
                 key={doc._id}
                 className="overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-[#5B4CF5] hover:shadow-[0_4px_16px_rgba(91,76,245,0.12)] dark:border-slate-700 dark:bg-slate-800 dark:hover:border-[#7c6cf0] dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
               >
-                <div className="h-2" style={{ backgroundColor: doc.coverColor || DEFAULT_COVER }} />
-                <div className="p-4">
+                <div className="h-2" style={{ backgroundColor: doc.isMissing ? '#ef4444' : (doc.coverColor || DEFAULT_COVER) }} />
+                <div className={`p-4 ${doc.isMissing ? 'opacity-75' : ''}`}>
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <FileText size={22} className="shrink-0 text-slate-700 dark:text-slate-300" />
+                    <div className="flex items-center gap-2">
+                      <FileText size={22} className={`shrink-0 ${doc.isMissing ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`} />
+                      {doc.isMissing && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                          UNAVAILABLE
+                        </span>
+                      )}
+                    </div>
                     <div className="flex shrink-0 gap-1">
                       <button
                         type="button"
@@ -180,6 +188,11 @@ export default function LibraryPage() {
                       style={{ width: `${doc.progress?.percentage || 0}%`, background: doc.coverColor || DEFAULT_COVER }}
                     />
                   </div>
+                  {doc.isMissing && (
+                    <p className="mb-3 text-[11px] font-medium text-red-500">
+                      This file is missing from storage. Please re-upload.
+                    </p>
+                  )}
                   <div className="flex justify-end">
                     <button
                       type="button"
@@ -233,6 +246,11 @@ export default function LibraryPage() {
             }}
             onDeleted={(id) => setDocuments((prev) => prev.filter((doc) => doc._id !== id))}
             onProgressSaved={handleProgressSaved}
+            onLoadError={(id, status) => {
+              if (status === 404) {
+                setDocuments(prev => prev.map(d => d._id === id ? { ...d, isMissing: true } : d))
+              }
+            }}
           />
         )}
       </div>
