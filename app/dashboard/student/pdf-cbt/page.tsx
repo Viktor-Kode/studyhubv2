@@ -96,7 +96,12 @@ export default function PdfCbtPage() {
   const score = useMemo(() => {
     const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
     const total = objectiveQuestions.length
-    const correct = questionsToUse.filter((q, i) => q.type === 'objective' && answers[i] === q.answer).length
+    const correct = questionsToUse.filter((q, i) => {
+      if (q.type !== 'objective') return false
+      const userAns = String(answers[i] || '').trim().toUpperCase()
+      const correctAns = String(q.answer || '').trim().toUpperCase()
+      return userAns === correctAns
+    }).length
     const pct = total ? Math.round((correct / total) * 100) : 0
     return { total, correct, pct }
   }, [answers, questionsToUse])
@@ -317,7 +322,12 @@ export default function PdfCbtPage() {
     setSavingResult(true)
     try {
       const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
-      const correct = questionsToUse.filter((q, i) => q.type === 'objective' && answers[i] === q.answer).length
+      const correct = questionsToUse.filter((q, i) => {
+        if (q.type !== 'objective') return false
+        const userAns = String(answers[i] || '').trim().toUpperCase()
+        const correctAns = String(q.answer || '').trim().toUpperCase()
+        return userAns === correctAns
+      }).length
       const total = objectiveQuestions.length
       const wrong = Math.max(total - correct, 0)
       const skipped = questionsToUse.reduce((acc, _q, i) => {
@@ -343,9 +353,9 @@ export default function PdfCbtPage() {
           questionId: String(i + 1),
           question: q.question,
           selectedAnswer: String(answers[i] || '').trim(),
-          correctAnswer: String(q.answer || ''),
+          correctAnswer: String(q.answer || '').trim(),
           explanation: q.type === 'theory' ? 'Theory question' : undefined,
-          isCorrect: q.type === 'objective' ? answers[i] === q.answer : undefined
+          isCorrect: q.type === 'objective' ? String(answers[i] || '').trim().toUpperCase() === String(q.answer || '').trim().toUpperCase() : undefined
         }))
       })
       setResultSaved(true)
@@ -638,7 +648,9 @@ export default function PdfCbtPage() {
             <div className="pcbt-review">
               {questionsToUse.map((q, i) => {
                 const userAnswer = answers[i]
-                const isCorrect = q.type === 'objective' ? userAnswer === q.answer : false
+                const userAnsNorm = String(userAnswer || '').trim().toUpperCase()
+                const correctAnsNorm = String(q.answer || '').trim().toUpperCase()
+                const isCorrect = q.type === 'objective' ? userAnsNorm === correctAnsNorm : false
                 return (
                   <div key={i} className={`pcbt-review-item ${isCorrect ? 'correct' : 'wrong'}`}>
                     <div className="pcbt-review-header">
