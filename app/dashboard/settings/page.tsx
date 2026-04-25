@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import {
   User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
   ChevronRight, Shield, LifeBuoy,
 } from 'lucide-react'
+import { MdSchool, MdQuiz } from 'react-icons/md'
+import { FiGrid, FiBookOpen } from 'react-icons/fi'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
