@@ -2748,8 +2748,8 @@ html {
 
 /* ─── Settings Page ───────────────────────────────────────────────────────────── */
 .settings-page {
-  max-width: 1000px;
   width: 100%;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 16px;
   min-height: 100vh;
@@ -2757,9 +2757,9 @@ html {
   flex-direction: column;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .settings-page {
-    padding: 32px 20px 80px;
+    padding: 32px 24px;
   }
 }
 
@@ -2844,19 +2844,26 @@ html {
   color: white;
 }
 
-/* Desktop Sidebar */
+/* Desktop Layout Wrap */
 .settings-desktop-wrap {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .settings-desktop-wrap {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
 }
 
 @media (min-width: 1024px) {
   .settings-desktop-wrap {
-    display: grid;
-    grid-template-columns: 220px 1fr;
     gap: 40px;
-    align-items: start;
   }
 }
 
@@ -2977,12 +2984,20 @@ html {
 /* Settings Content Area */
 .settings-content {
   background: white;
-  border-radius: 32px;
+  border-radius: 24px;
   border: 1px solid #E2E8F0;
   padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
+  min-width: 0; /* Prevent flex overflow */
+}
+
+@media (min-width: 768px) {
+  .settings-content {
+    padding: 32px;
+    border-radius: 32px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -3172,11 +3187,11 @@ html {
   transition: all 0.2s;
 }
 
-/* Form Styling Refined */
 .settings-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
 }
 
 @media (min-width: 640px) {
@@ -3185,14 +3200,21 @@ html {
     grid-template-columns: 1fr 1fr;
     gap: 24px 32px;
   }
-  .full-width { grid-column: span 2; }
+  .form-group.full-width { grid-column: span 2; }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
 .form-group label {
   font-size: 14px;
   font-weight: 700;
   color: #334155;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 
 .dark .form-group label {

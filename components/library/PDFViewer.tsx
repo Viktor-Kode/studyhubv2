@@ -78,21 +78,32 @@ export default function PDFViewer({
 
     const loadPdf = async () => {
       try {
-        if (!documentItem.fileUrl) {
-          throw new Error('Document has no file URL.')
+        if (!documentItem._id) {
+          throw new Error('Document ID is missing.')
         }
         
         setIsPdfLoading(true)
         setErrorStatus(null)
 
-        console.log(`[PDFViewer] Fetching PDF blob from Cloudinary: ${documentItem._id}`)
+        console.log(`[PDFViewer] Fetching PDF blob via proxy for: ${documentItem._id}`)
         
-        const response = await fetch(documentItem.fileUrl)
-        if (!response.ok) {
-          throw new Error(`Failed to fetch PDF from storage: ${response.status} ${response.statusText}`)
+        const { apiClient } = await import('@/lib/api/client')
+        
+        // We use the internal proxy route which handles auth and Cloudinary fetch logic (including signed URLs)
+        const response = await apiClient.get(`/library/proxy-pdf/${documentItem._id}`, {
+          responseType: 'blob',
+          // Ensure we don't cache the PDF blob to avoid stale signed URLs or other issues
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        })
+
+        const blob = response.data
+        if (!(blob instanceof Blob)) {
+          throw new Error('Response data is not a blob.')
         }
 
-        const blob = await response.blob()
         objectUrl = URL.createObjectURL(blob)
         
         if (mounted) {
@@ -103,8 +114,13 @@ export default function PDFViewer({
       } catch (err: any) {
         if (!mounted) return
         console.error('[PDFViewer] Failed to load PDF blob:', err)
+        
+        // Better error messaging based on status
+        const status = err.response?.status
+        const detail = err.response?.data?.error || err.message
+        
         setPdfFetchFailed(true)
-        setErrorStatus(err.message || 'Could not load PDF.')
+        setErrorStatus(status === 401 ? 'Unauthorized. Please refresh and try again.' : `Failed to load: ${detail}`)
         setIsPdfLoading(false)
       }
     }
