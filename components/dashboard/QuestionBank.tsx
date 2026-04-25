@@ -220,23 +220,47 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     return matrix[b.length][a.length];
   };
 
-  const compareAnswers = (userAnsw: any, correctAnsw: any) => {
+  const compareAnswers = (userAnsw: any, correctAnsw: any, options: string[] = []) => {
     if (userAnsw === undefined || userAnsw === null || correctAnsw === undefined || correctAnsw === null) return false;
 
-    // Direct letter match for ALOC MCQs (a/b/c/d)
     const normalize = (s: any) => String(s).toLowerCase().trim();
-    if (normalize(userAnsw) === normalize(correctAnsw)) return true;
+    const uNorm = normalize(userAnsw);
+    const cNorm = normalize(correctAnsw);
 
-    // Numeric index fallback (legacy)
-    if (!isNaN(Number(userAnsw)) && !isNaN(Number(correctAnsw))) {
-      return Number(userAnsw) === Number(correctAnsw);
+    // 1. Direct match
+    if (uNorm === cNorm) return true;
+
+    // 2. Letter to Index match (MCQ)
+    // userAnsw is typically 'a', 'b', 'c', 'd' and correctAnsw might be 0, 1, 2, 3
+    const isLetter = (s: string) => /^[a-e]$/.test(s);
+    const isIndex = (s: string) => /^[0-4]$/.test(s);
+
+    if (isLetter(uNorm) && isIndex(cNorm)) {
+      if (uNorm.charCodeAt(0) - 97 === parseInt(cNorm)) return true;
+    }
+    if (isIndex(uNorm) && isLetter(cNorm)) {
+      if (cNorm.charCodeAt(0) - 97 === parseInt(uNorm)) return true;
     }
 
-    // Fuzzy match for fill-in-the-blank
-    const u = normalize(userAnsw).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
-    const c = normalize(correctAnsw).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
+    // 3. Letter to Text match (MCQ)
+    // Sometimes correctAnsw is the text of the option itself (e.g. "Photosynthesis")
+    // and userAnsw is the letter ('a')
+    if (options && options.length > 0 && isLetter(uNorm)) {
+      const idx = uNorm.charCodeAt(0) - 97;
+      if (idx < options.length && normalize(options[idx]) === cNorm) return true;
+    }
 
-    if (u.length >= 3 && c.length >= 3) {
+    // 4. Numeric index fallback (legacy)
+    if (!isNaN(Number(userAnsw)) && !isNaN(Number(correctAnsw)) && uNorm !== '' && cNorm !== '') {
+      if (Number(userAnsw) === Number(correctAnsw)) return true;
+    }
+
+    // 5. Fuzzy match for fill-in-the-blank
+    const u = uNorm.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
+    const c = cNorm.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\b(a|an|the|is|are|was|were)\b/g, '').replace(/\s+/g, ' ').trim();
+
+    if (u.length >= 2 && c.length >= 2) {
+      if (u === c) return true;
       const distance = getLevenshteinDistance(u, c);
       let threshold = 1;
       if (c.length > 5) threshold = 2;
@@ -615,7 +639,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         const userAnswer = userAnswers[q._id]
         const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
 
-        const isCorrect = compareAnswers(userAnswer, correctAnswer);
+        const isCorrect = compareAnswers(userAnswer, correctAnswer, q.options);
 
         if (isCorrect) finalScore++
 
@@ -988,7 +1012,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     setCheckedAnswers(prev => ({ ...prev, [questionId]: true }))
 
-    const isCorrect = compareAnswers(userAnswer, correctAnswer);
+    const q = newQuestions.find(q => q._id === questionId);
+    const isCorrect = compareAnswers(userAnswer, correctAnswer, q?.options || []);
 
     if (isCorrect) setScore(prev => prev + 1)
   }
@@ -1742,8 +1767,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         newQuestions[currentQuestionIndex].options.map((opt, oIdx) => (
                           <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
                             ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
+                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
+                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
                           `}>
                             <input type="radio"
                               name={`q-${newQuestions[currentQuestionIndex]._id}`}
@@ -1758,8 +1783,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                               content={opt}
                               className="text-gray-600 dark:text-gray-300 font-medium"
                             />
-                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) && <FiXCircle className="ml-auto text-red-400" />}
+                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
+                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) && <FiXCircle className="ml-auto text-red-400" />}
                           </label>
                         ))
                       ) : (
@@ -1784,7 +1809,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       ) : (
                         <div className="flex-1 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
                           <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
-                            {compareAnswers(userAnswers[newQuestions[currentQuestionIndex]._id], newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) ? (
+                            {compareAnswers(userAnswers[newQuestions[currentQuestionIndex]._id], newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? (
                               <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
                             ) : (
                               <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
