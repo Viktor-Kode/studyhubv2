@@ -1740,7 +1740,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             {newQuestions.length > 0 && (
               <div key={newQuestions[currentQuestionIndex]._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-start gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-sm">{currentQuestionIndex + 1}</span>
+                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-md">{currentQuestionIndex + 1}</span>
                   <div className="flex-1 space-y-4">
                     <MarkdownText
                       content={newQuestions[currentQuestionIndex].content || (newQuestions[currentQuestionIndex] as any).question || ''}
