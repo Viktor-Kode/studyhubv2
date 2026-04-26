@@ -233,6 +233,8 @@ export default function DashboardLayout({
                                         key={item.href}
                                         href={item.href}
                                         onClick={() => setSidebarOpen(false)}
+                                        // Disable prefetch for the library to avoid unused CSS preload warnings from PDF components
+                                        prefetch={item.href === '/dashboard/library' ? false : undefined}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition min-w-0 ${isActive
                                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'

@@ -9,6 +9,7 @@ import Providers from '@/components/Providers'
 import HelpWidgetLayer from '@/components/help/HelpWidgetLayer'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/next'
+import GoogleAdSense from '@/components/GoogleAdSense'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -90,12 +91,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon.png" />
         
-        {/* AdSense Script - Using plain script tag to avoid data-nscript attribute which AdSense doesn't support in the head */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6986605854364658"
-          crossOrigin="anonymous"
-        ></script>
+        <GoogleAdSense />
       </head>
       <body className={inter.className}>
         <Providers>

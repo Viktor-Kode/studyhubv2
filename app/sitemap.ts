@@ -5,7 +5,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getSiteUrl()
   const now = new Date()
 
-  const staticRoutes = ['/', '/payment/verify']
+  const staticRoutes = [
+    '/',
+    '/contact',
+    '/help-center',
+    '/privacy-policy',
+    '/terms',
+    '/cookie-policy',
+    '/upgrade',
+    '/payment/verify'
+  ]
 
   return staticRoutes.map((route) => ({
     url: `${siteUrl}${route}`,

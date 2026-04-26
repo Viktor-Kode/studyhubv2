@@ -127,6 +127,8 @@ export default function PDFViewer({
             ? 'Unauthorized. Please refresh and try again.' 
             : status === 404
             ? 'This PDF could not be loaded. Please re-upload it.'
+            : status === 502
+            ? 'This PDF couldn\'t be loaded. Please try again or re-upload it.'
             : `Failed to load: ${detail}`
         )
         setIsPdfLoading(false)
