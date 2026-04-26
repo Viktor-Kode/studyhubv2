@@ -225,6 +225,13 @@ export default function StudentDashboardPage() {
     },
 
     {
+      href: '/dashboard/student/community',
+      icon: FiAward,
+      label: 'Hall of Fame',
+      color: 'amber',
+      description: 'Leaderboard, badges & achievements'
+    },
+    {
       href: '/dashboard/analytics',
       icon: FiBarChart2,
       label: 'Progress Analytics',
@@ -381,7 +388,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div className="max-w-md">
-          <ProgressWidget />
+          <ProgressWidget onViewFull={() => router.push('/dashboard/student/community')} />
         </div>
 
         {/* Stats Grid */}

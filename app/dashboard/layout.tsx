@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student', 'teacher'] },
     { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student', 'teacher'] },
     { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student', 'teacher'] },
+    { href: '/dashboard/student/community', label: 'Hall of Fame', icon: FiAward, roles: ['student', 'teacher'] },
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student', 'teacher'] },
 
     // Shared (but logically separates history by role maybe, both can use it)
