@@ -386,8 +386,8 @@ export default function StudentDashboardPage() {
 
         {/* Stats Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
-            {[1, 2, 3, 4].map(i => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+            {[1, 2, 3].map(i => (
               <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg h-32 flex flex-col justify-between border border-gray-100 dark:border-gray-700">
                 <div className="flex justify-between items-start">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-4"></div>
@@ -401,7 +401,7 @@ export default function StudentDashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className={`rounded-xl p-6 text-white shadow-lg ${stats.studyStreak > 0 && !stats.studiedToday ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-2 border-amber-400' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
               <div className="flex items-center justify-between">
                 <div>
@@ -519,8 +519,8 @@ export default function StudentDashboardPage() {
                 <FiGrid className="text-blue-500" />
                 Quick Access
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quickLinks.slice(0, 4).map((link) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {quickLinks.map((link) => {
                   const Icon = link.icon
                   return (
                     <Link
