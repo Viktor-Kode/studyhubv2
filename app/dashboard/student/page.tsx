@@ -461,64 +461,7 @@ export default function StudentDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Classes & Quick Links */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Enrolled Classes */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <MdClass className="text-blue-500" />
-                My Enrolled Classes
-              </h2>
-              {enrolledClasses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {enrolledClasses.map((cls) => (
-                    <div key={cls.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <FiBook className="text-blue-600" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{cls.subject}</p>
-                      <Link href={`/dashboard/timetable?classId=${cls.id}`} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                        View Timetable <FiArrowRight />
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : fallbackClassesFromOnboarding.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fallbackClassesFromOnboarding.map((cls) => (
-                    <div key={cls.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                          <FiBook className="text-emerald-600" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white">{cls.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{cls.subject}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
-                        Suggested from your onboarding subjects{cls.examLabel ? ` (${cls.examLabel})` : ''}.
-                      </p>
-                      <Link href="/dashboard/timetable" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                        Create Class Timetable <FiArrowRight />
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center">
-                  <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">You haven&apos;t enrolled in any classes yet.</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    Start by adding subjects in your profile.
-                  </p>
-                  <Link
-                    href="/dashboard/settings"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
-                  >
-                    Add subjects in your profile <FiArrowRight />
-                  </Link>
-                </div>
-              )}
-            </div>
+
 
             {/* Quick Access */}
             <div data-tour="student-quick-access">
