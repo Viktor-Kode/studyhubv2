@@ -23,7 +23,7 @@ import {
 
 const studentMenuItems = [
   { href: '/dashboard/student', icon: FaHome, label: 'Dashboard' },
-  { href: '/community', icon: FaTrophy, label: 'Community' },
+
   { href: '/dashboard/question-bank', icon: FaBrain, label: 'Question Generator' },
   { href: '/dashboard/tutor', icon: FaGraduationCap, label: 'AI Tutor' },
   { href: '/dashboard/library', icon: FaBook, label: 'My Library' },
@@ -35,7 +35,7 @@ const studentMenuItems = [
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
   { href: '/dashboard/cbt', icon: FaLaptop, label: 'CBT Practice' },
   { href: '/dashboard/student/pdf-cbt', icon: FaFileAlt, label: 'PDF to CBT' },
-  { href: '/dashboard/flip-cards', icon: FaBook, label: 'Flip Cards' },
+
   { href: '/dashboard/analytics', icon: FaChartBar, label: 'Analytics' },
 ]
 

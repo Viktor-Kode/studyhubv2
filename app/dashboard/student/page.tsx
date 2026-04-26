@@ -223,13 +223,7 @@ export default function StudentDashboardPage() {
       color: 'orange',
       description: 'WAEC, JAMB, NECO past questions'
     },
-    {
-      href: '/dashboard/flip-cards',
-      icon: BiCard,
-      label: 'Flashcard Hub',
-      color: 'pink',
-      description: 'Interactive flashcards'
-    },
+
     {
       href: '/dashboard/analytics',
       icon: FiBarChart2,
@@ -387,7 +381,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div className="max-w-md">
-          <ProgressWidget onViewFull={() => router.push('/dashboard/student/community')} />
+          <ProgressWidget />
         </div>
 
         {/* Stats Grid */}
@@ -452,19 +446,7 @@ export default function StudentDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex-1">
-                  <p className="text-sm text-white/90 mb-1">Flashcards Created</p>
-                  <p className="text-3xl font-bold">{stats.totalFlashcards}</p>
-                  <p className="text-xs text-white/80 mt-1">{stats.masteredCards} mastered</p>
-                </div>
-                <div className="bg-white/20 rounded-full p-3 ml-4">
-                  <BiCard className="text-3xl" />
-                </div>
-              </div>
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-            </div>
+
           </div>
         )}
 
@@ -670,7 +652,7 @@ export default function StudentDashboardPage() {
               <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-12 text-center">
                 <FiZap className="text-3xl text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-                  No recent activity - try taking a CBT or creating flashcards!
+                  No recent activity - try taking a CBT practice session!
                 </p>
               </div>
             )}

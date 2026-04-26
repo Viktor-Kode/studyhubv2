@@ -36,14 +36,10 @@ const navItems: NavItem[] = [
     { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student', 'teacher'] },
     { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen, roles: ['student', 'teacher'] },
     { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student', 'teacher'] },
-    { href: '/dashboard/flip-cards', label: 'Flashcard Hub', icon: BiCard, roles: ['student', 'teacher'] },
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student', 'teacher'] },
     { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student', 'teacher'] },
     { href: '/dashboard/cbt', label: 'CBT Practice', icon: MdQuiz, roles: ['student', 'teacher'] },
     { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student', 'teacher'] },
-    { href: '/dashboard/student/study-groups', label: 'Study Groups', icon: FiUsers, roles: ['student', 'teacher'] },
-    { href: '/dashboard/student/visual-lab', label: 'Visual Lab', icon: FiGrid, roles: ['student', 'teacher'] },
-    { href: '/community', label: 'Community', icon: FiAward, roles: ['student', 'teacher'] },
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student', 'teacher'] },
 
     // Shared (but logically separates history by role maybe, both can use it)
