@@ -35,7 +35,7 @@ const studentMenuItems = [
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
   { href: '/dashboard/cbt', icon: FaLaptop, label: 'CBT Practice' },
   { href: '/dashboard/student/pdf-cbt', icon: FaFileAlt, label: 'PDF to CBT' },
-  { href: '/dashboard/student/community', icon: FaTrophy, label: 'Hall of Fame' },
+
   { href: '/dashboard/analytics', icon: FaChartBar, label: 'Analytics' },
 ]
 
