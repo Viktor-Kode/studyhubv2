@@ -30,7 +30,7 @@ interface NavItem {
 const navItems: NavItem[] = [
     // Shared
     { href: '/dashboard', label: 'Dashboard', icon: FiHome },
-    { href: '/dashboard/settings', label: 'Settings', icon: FiSettings },
+
 
     // Learner tools (students + teachers; no separate teacher dashboard)
     { href: '/dashboard/question-bank', label: 'Question Generator', icon: FiBook, roles: ['student', 'teacher'] },
