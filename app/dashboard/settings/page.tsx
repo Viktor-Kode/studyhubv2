@@ -432,7 +432,7 @@ function AccountSection({
 
 const NOTIFICATION_ITEMS = [
   { key: 'streakReminder' as const, label: 'Daily Streak Reminder', desc: 'Get reminded if you have not studied today' },
-  { key: 'cbtResults' as const, label: 'CBT Result Notifications', desc: 'Receive your score after every CBT practice' },
+  { key: 'cbtResults' as const, label: 'Past Question Result Notifications', desc: 'Receive your score after every practice' },
   { key: 'goalReminder' as const, label: 'Goal Reminders', desc: 'Get reminded about your study goals' },
   { key: 'planExpiry' as const, label: 'Plan Expiry Warnings', desc: 'Be notified before your plan expires' },
   { key: 'weeklyReport' as const, label: 'Weekly Progress Report', desc: 'Receive a summary of your weekly activity' },
@@ -541,7 +541,7 @@ function NotificationsSection({
             Push Notifications
           </h4>
           <p className="settings-push-desc text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-            Get instant alerts for study reminders, CBT results, and more even when the app is closed.
+            Get instant alerts for study reminders, Past Question results, and more even when the app is closed.
           </p>
         </div>
         <button

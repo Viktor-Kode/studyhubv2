@@ -219,7 +219,7 @@ export default function StudentDashboardPage() {
     {
       href: '/dashboard/cbt',
       icon: MdQuiz,
-      label: 'CBT Practice',
+      label: 'Past Question',
       color: 'orange',
       description: 'WAEC, JAMB, NECO past questions'
     },

@@ -4,7 +4,7 @@ import { FiArrowRight, FiZap, FiCheck, FiX } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 
 const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
-  cbt: { title: 'Unlock Unlimited CBT Practice', desc: 'Free users get 1 test per day. Upgrade for unlimited access.' },
+  cbt: { title: 'Unlock Unlimited Past Questions', desc: 'Free users get 1 test per day. Upgrade for unlimited access.' },
   ai: { title: "You're one step away", desc: "Your explanation is ready to generate. Upgrade now and it runs instantly." },
   flashcard: { title: "You're one step away", desc: "Your flashcards are ready to generate. Upgrade now and it runs instantly." },
   analytics: { title: 'Unlock Advanced Analytics', desc: 'Detailed progress tracking is available on paid plans.' },
@@ -100,7 +100,7 @@ export default function UpgradeModal({
             </button>
             <div className="flex flex-col items-center gap-2">
               <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em]">
-                UNLIMITED AI + CBT + ANALYTICS
+                UNLIMITED AI + PAST QUESTIONS + ANALYTICS
               </p>
               <button 
                 type="button"
@@ -119,7 +119,7 @@ export default function UpgradeModal({
                 <div className="plan-price">₦600<span>/week</span></div>
                 <ul className="plan-perks">
                   <li><FiCheck size={13} /> 80 AI messages</li>
-                  <li><FiCheck size={13} /> Unlimited CBT</li>
+                  <li><FiCheck size={13} /> Unlimited Past Questions</li>
                   <li><FiCheck size={13} /> 40 flashcard sets</li>
                 </ul>
                 <button type="button" className="plan-btn weekly" onClick={() => goToPricing('weekly')}>
@@ -132,7 +132,7 @@ export default function UpgradeModal({
                 <div className="plan-price">₦2,300<span>/month</span></div>
                 <ul className="plan-perks">
                   <li><FiCheck size={13} /> 250 AI messages</li>
-                  <li><FiCheck size={13} /> Unlimited CBT</li>
+                  <li><FiCheck size={13} /> Unlimited Past Questions</li>
                   <li><FiCheck size={13} /> 120 flashcard sets</li>
                   <li><FiCheck size={13} /> Mock exams</li>
                   <li><FiCheck size={13} /> Advanced analytics</li>

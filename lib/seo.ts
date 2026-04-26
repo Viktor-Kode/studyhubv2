@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 const siteName = 'StudyHelp'
-const defaultTitle = 'StudyHelp - Free online CBT Practice & JAMB/WAEC Study Tools'
+const defaultTitle = 'StudyHelp - Free online Past Question & JAMB/WAEC Study Tools'
 const defaultDescription =
   'The #1 AI-powered study platform for students. Free online CBT practice, JAMB/WAEC prep, collaborative study groups, and AI-driven notes.'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.studyhelp.site'

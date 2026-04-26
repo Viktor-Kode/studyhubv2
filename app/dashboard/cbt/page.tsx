@@ -642,7 +642,7 @@ export default function CBTPage() {
               <MdOutlineQuiz className="text-blue-600 dark:text-blue-400 text-xl" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              CBT Practice
+              Past Question
             </h1>
           </div>
           <p className="text-gray-600 dark:text-gray-400">

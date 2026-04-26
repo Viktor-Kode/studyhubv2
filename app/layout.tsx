@@ -17,14 +17,14 @@ const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   ...buildSeoMetadata({
-    title: 'StudyHelp - #1 Best Online CBT Practice, JAMB, WAEC & AI Study Tools',
+    title: 'StudyHelp - #1 Best Online Past Question, JAMB, WAEC & AI Study Tools',
     description:
-      'Prepare for success with StudyHelp. The most advanced AI study platform for students. Free CBT practice for JAMB, WAEC, NECO, and Post-UTME with real-time analytics and AI explanations.',
+      'Prepare for success with StudyHelp. The most advanced AI study platform for students. Free Past Question practice for JAMB, WAEC, NECO, and Post-UTME with real-time analytics and AI explanations.',
     path: '/',
     keywords: [
-      'JAMB CBT practice',
+      'JAMB past questions',
       'WAEC past questions',
-      'NECO CBT',
+      'NECO past questions',
       'Post-UTME practice',
       'online study tools',
       'AI study assistant',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
       'education Nigeria',
       'exam prep platform',
       'study help JAMB',
-      'studyhelp CBT',
+      'studyhelp Past Question',
     ],
   }),
   metadataBase: new URL(siteUrl),

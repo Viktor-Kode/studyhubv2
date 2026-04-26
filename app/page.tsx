@@ -78,7 +78,7 @@ export default function Home() {
                 {
                   '@type': 'ListItem',
                   position: 1,
-                  name: 'CBT Practice',
+                  name: 'Past Question',
                 },
                 {
                   '@type': 'ListItem',

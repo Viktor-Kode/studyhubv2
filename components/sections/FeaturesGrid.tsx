@@ -7,7 +7,7 @@ import { FaRobot, FaClipboardList, FaLayerGroup, FaClock, FaChartLine, FaStickyN
 
 const REAL_FEATURES = [
   { Icon: FaRobot, title: 'AI Question Generator', desc: 'Generate custom practice questions for any subject and topic instantly' },
-  { Icon: FaClipboardList, title: 'CBT Practice', desc: 'Timed practice tests for JAMB, WAEC, NECO and Post-UTME' },
+  { Icon: FaClipboardList, title: 'Past Question', desc: 'Timed practice tests for JAMB, WAEC, NECO and Post-UTME' },
   { Icon: FaLayerGroup, title: 'Flashcard System', desc: 'Smart flashcards with spaced repetition to help you memorise faster' },
   { Icon: FaClock, title: 'Study Timer', desc: 'Pomodoro-style timer to keep your study sessions focused' },
   { Icon: FaChartLine, title: 'Progress Analytics', desc: 'Track your scores, streaks and improvement over time' },

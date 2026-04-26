@@ -12,7 +12,7 @@ function getSteps(user: AppUser) {
     {
       id: 'cbt',
       icon: '📝',
-      title: isUni ? 'Practice past exam questions' : 'Take your first CBT practice test',
+      title: isUni ? 'Practice past exam questions' : 'Take your first Past Question practice',
       description: isUni
         ? `Practice ${user.onboarding?.subjects?.[0] || 'your course'} questions`
         : `Practice ${subj} past questions`,
