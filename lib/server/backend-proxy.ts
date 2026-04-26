@@ -80,12 +80,20 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
   let resp: Response
   try {
     resp = await runFetch()
+    
+    // Retry on 502/503 (Render cold starts or transient errors)
+    if ((resp.status === 502 || resp.status === 503) && req.method === 'GET') {
+       console.warn(`[Proxy] Backend returned ${resp.status} for ${pathAfterApi}. Retrying...`)
+       await new Promise((r) => setTimeout(r, 2000))
+       resp = await runFetch()
+    }
   } catch (error) {
     const isAbort = (error as Error)?.name === 'AbortError'
     const retryableGet = req.method === 'GET' && !isAbort
     if (retryableGet) {
       try {
-        await new Promise((r) => setTimeout(r, 800))
+        console.warn(`[Proxy] Fetch failed for ${pathAfterApi}. Retrying...`, (error as Error).message)
+        await new Promise((r) => setTimeout(r, 1500))
         resp = await runFetch()
       } catch (e2) {
         const isAbort2 = (e2 as Error)?.name === 'AbortError'
@@ -93,6 +101,7 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
           JSON.stringify({
             success: false,
             error: isAbort2 ? 'Backend request timed out' : 'Backend request failed',
+            detail: (e2 as Error).message
           }),
           {
             status: isAbort2 ? 504 : 502,
@@ -105,6 +114,7 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
         JSON.stringify({
           success: false,
           error: isAbort ? 'Backend request timed out' : 'Backend request failed',
+          detail: (error as Error).message
         }),
         {
           status: isAbort ? 504 : 502,
