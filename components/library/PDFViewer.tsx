@@ -219,7 +219,7 @@ export default function PDFViewer({
           {!errorStatus && fileSource && (
             <div className="mx-auto flex h-full w-full justify-center shadow-sm dark:bg-slate-800">
               <iframe
-                src={`https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(fileSource)}#page=${currentPage}`}
+                src={`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileSource)}#page=${currentPage}`}
                 width="100%"
                 height="100%"
                 style={{ border: 'none' }}
