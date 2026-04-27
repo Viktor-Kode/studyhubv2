@@ -932,7 +932,7 @@ export default function CBTPage() {
 
                       <button
                         onClick={() => {
-                          if (user?.plan?.type === 'free' || !user?.plan?.type) {
+                          if (user?.plan?.type === 'free') {
                             showUpgrade('cbt')
                             return
                           }
@@ -949,7 +949,7 @@ export default function CBTPage() {
                       >
                         <FiBookOpen className="text-xl" />
                         Study Mode
-                        {(user?.plan?.type === 'free' || !user?.plan?.type) && (
+                        {user?.plan?.type === 'free' && (
                           <div className="absolute top-2 right-2 p-1 bg-amber-100 dark:bg-amber-900/40 rounded-full text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-sm">
                             <FiLock size={12} />
                           </div>
@@ -960,7 +960,7 @@ export default function CBTPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (user?.plan?.type === 'free' || !user?.plan?.type) {
+                        if (user?.plan?.type === 'free') {
                           showUpgrade('cbt')
                           return
                         }
@@ -978,7 +978,7 @@ export default function CBTPage() {
                       <span className="cbt-topic-badge text-[10px] uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 font-semibold">
                         JAMB • WAEC • NECO • Post-UTME
                       </span>
-                      {(user?.plan?.type === 'free' || !user?.plan?.type) && (
+                      {user?.plan?.type === 'free' && (
                         <div className="absolute top-2 right-2 p-1 bg-amber-100 dark:bg-amber-900/40 rounded-full text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-sm">
                           <FiLock size={12} />
                         </div>
