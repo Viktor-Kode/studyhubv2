@@ -625,11 +625,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     if (newQuestions.length === 0) return
     if (quizSubmitted) return
 
-    const allChecked = newQuestions.length === Object.keys(checkedAnswers).length
-    if (!allChecked) {
-      if (!confirm('You haven\'t verified all answers yet. Submit anyway?')) return
-    }
-
     try {
       setSubmitting(true)
 
@@ -1863,9 +1858,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                           Next →
                         </button>
                       ) : (
-                        <div className="flex items-center justify-center text-[10px] font-black text-emerald-500 uppercase tracking-widest border-2 border-emerald-100 dark:border-emerald-900/30 rounded-xl px-2">
-                          Last Question
-                        </div>
+                        <button
+                          onClick={handleSubmitQuiz}
+                          disabled={submitting}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20 uppercase tracking-widest"
+                        >
+                          {submitting ? <FiLoader className="animate-spin" /> : 'Calculate Score'}
+                        </button>
                       )}
                       <div className="col-span-2 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest mt-1">
                         Question {currentQuestionIndex + 1} of {newQuestions.length}
