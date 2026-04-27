@@ -11,12 +11,6 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { Document, Page, pdfjs } from 'react-pdf'
-import 'react-pdf/dist/Page/AnnotationLayer.css'
-import 'react-pdf/dist/Page/TextLayer.css'
-import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
-
-pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
 
 type LibraryDocument = {
   _id: string
@@ -221,52 +215,22 @@ export default function PDFViewer({
             </div>
           )}
 
-          {/* PDF document */}
+          {/* PDF document iframe */}
           {!errorStatus && fileSource && (
-            <Document
-              file={fileSource}
-              options={{ 
-                withCredentials: false,
-                disableStream: false,
-                disableAutoFetch: false
-              }}
-              onLoadSuccess={({ numPages: pages }) => {
-                setNumPages(pages)
-                setCurrentPage((prev) => Math.min(prev, pages))
-                setIsPdfLoading(false)
-              }}
-              onLoadError={async (err) => {
-                console.error('[PDFViewer] react-pdf load error:', err)
-                
-                if (!hasTriedFallback) {
-                  console.log('[PDFViewer] Attempting fallback through /url endpoint...')
-                  setHasTriedFallback(true)
-                  try {
-                    const { apiClient } = await import('@/lib/api/client')
-                    const res = await apiClient.get(`/library/documents/${documentItem._id}/url`)
-                    if (res.data?.success && res.data.url) {
-                      setFileSource(res.data.url)
-                      return // Let it retry with the new URL
-                    }
-                  } catch (fallbackErr) {
-                    console.error('[PDFViewer] Fallback failed:', fallbackErr)
-                  }
-                }
-                
-                setIsPdfLoading(false)
-                setErrorStatus('Failed to render PDF. Try downloading it instead.')
-                if (onLoadError) onLoadError(documentItem._id, 502)
-              }}
-              loading={""}
-            >
-              <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
-                <Page 
-                  pageNumber={currentPage} 
-                  width={pageWidth} 
-                  renderTextLayer={false}
-                />
-              </div>
-            </Document>
+            <div className="mx-auto flex h-full w-full justify-center shadow-sm dark:bg-slate-800">
+              <iframe
+                src={`https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(fileSource)}#page=${currentPage}`}
+                width="100%"
+                height="100%"
+                style={{ border: 'none' }}
+                title="PDF Viewer"
+                onLoad={() => setIsPdfLoading(false)}
+                onError={() => {
+                  setIsPdfLoading(false)
+                  setErrorStatus('Failed to load PDF viewer.')
+                }}
+              />
+            </div>
           )}
         </div>
 
