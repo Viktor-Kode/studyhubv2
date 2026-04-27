@@ -226,7 +226,9 @@ export default function PDFViewer({
             <Document
               file={fileSource}
               options={{ 
-                withCredentials: false
+                withCredentials: false,
+                disableStream: false,
+                disableAutoFetch: false
               }}
               onLoadSuccess={({ numPages: pages }) => {
                 setNumPages(pages)
@@ -258,7 +260,11 @@ export default function PDFViewer({
               loading={""}
             >
               <div className="mx-auto w-fit rounded-md bg-white p-2 shadow dark:bg-slate-800">
-                <Page pageNumber={currentPage} width={pageWidth} />
+                <Page 
+                  pageNumber={currentPage} 
+                  width={pageWidth} 
+                  renderTextLayer={false}
+                />
               </div>
             </Document>
           )}
