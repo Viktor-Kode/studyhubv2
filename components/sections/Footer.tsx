@@ -26,6 +26,11 @@ const footerLinks = {
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'Cookie Policy', href: '/cookie-policy' },
   ],
+  Contact: [
+    { label: 'Email Support', href: 'mailto:studyhelp440@gmail.com' },
+    { label: 'Call Us', href: 'tel:+2349163345794' },
+    { label: 'WhatsApp', href: 'https://wa.me/2349163345794' },
+  ],
 }
 
 const socialLinks = [

@@ -18,7 +18,10 @@ import {
   FaHistory,
   FaStickyNote,
   FaGraduationCap,
+  FaGraduationCap,
   FaTrophy,
+  FaPhone,
+  FaWhatsapp
 } from 'react-icons/fa'
 
 const studentMenuItems = [
@@ -104,9 +107,32 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
         })}
       </nav>
 
+      {/* Support Section */}
+      <div className="mt-auto px-6 py-6 border-t border-gray-100 dark:border-gray-700">
+        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">Support</h4>
+        <div className="space-y-2">
+          <a
+            href="tel:+2349163345794"
+            className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+          >
+            <FaPhone className="text-lg text-blue-600 dark:text-blue-400" />
+            <span>Call Support</span>
+          </a>
+          <a
+            href="https://wa.me/2349163345794"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+          >
+            <FaWhatsapp className="text-lg text-green-500" />
+            <span>WhatsApp Support</span>
+          </a>
+        </div>
+      </div>
+
       {/* Download App Button */}
       {!isInstalled && (
-        <div className="mt-8 px-4">
+        <div className="mt-4 px-4">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
             <div className="relative z-10 flex flex-col items-center text-center">
               <FaLaptop className="text-3xl mb-2 opacity-90" />
