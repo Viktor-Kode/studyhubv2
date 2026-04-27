@@ -251,8 +251,8 @@ export default function TimetableReminders() {
             {/* Stats Cards */}
             {activeTab !== 'settings' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 
-                          rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="bg-transparent dark:bg-gradient-to-br dark:from-blue-900/30 dark:to-blue-800/30 
+                          rounded-xl p-4 border border-blue-500/30 dark:border-blue-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">Today</p>
@@ -262,8 +262,8 @@ export default function TimetableReminders() {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 
-                          rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+                    <div className="bg-transparent dark:bg-gradient-to-br dark:from-orange-900/30 dark:to-orange-800/30 
+                          rounded-xl p-4 border border-orange-500/30 dark:border-orange-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-orange-800 dark:text-orange-300 mb-1">Next 7 Days</p>
@@ -273,8 +273,8 @@ export default function TimetableReminders() {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 
-                          rounded-xl p-4 border border-green-200 dark:border-green-800">
+                    <div className="bg-transparent dark:bg-gradient-to-br dark:from-green-900/30 dark:to-green-800/30 
+                          rounded-xl p-4 border border-green-500/30 dark:border-green-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-green-800 dark:text-green-300 mb-1">Total Active</p>

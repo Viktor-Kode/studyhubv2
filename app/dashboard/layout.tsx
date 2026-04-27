@@ -219,7 +219,7 @@ export default function DashboardLayout({
 
                 {/* Sidebar */}
                 <aside
-                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                 >
                     <div className="h-full overflow-y-auto overflow-x-hidden py-4 min-w-0">
@@ -236,7 +236,7 @@ export default function DashboardLayout({
                                         // Disable prefetch for the library to avoid unused CSS preload warnings from PDF components
                                         prefetch={item.href === '/dashboard/library' ? false : undefined}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition min-w-0 ${isActive
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            ? 'border-2 border-blue-600 bg-transparent text-blue-600 dark:bg-blue-900/20 dark:border-transparent dark:text-blue-400'
                                             : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                                             }`}
                                     >

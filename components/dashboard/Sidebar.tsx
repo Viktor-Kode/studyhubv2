@@ -93,7 +93,7 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
               href={item.href}
               onClick={onMobileClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                ? 'bg-blue-500 text-white dark:bg-blue-600'
+                ? 'border-2 border-blue-600 bg-transparent text-blue-600 dark:bg-blue-600 dark:text-white'
                 : 'text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
@@ -146,7 +146,7 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto flex-shrink-0">
+      <aside className="hidden lg:block w-64 bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto flex-shrink-0">
         {sidebarContent}
       </aside>
 
