@@ -51,6 +51,7 @@ export default function PDFViewer({
   const [fileSource, setFileSource] = useState<string | null>(null)
   const [isPdfLoading, setIsPdfLoading] = useState(true)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
+  const [hasTriedFallback, setHasTriedFallback] = useState(false)
 
   const percentage = useMemo(() => {
     if (!numPages) return 0
@@ -224,13 +225,32 @@ export default function PDFViewer({
           {!errorStatus && fileSource && (
             <Document
               file={fileSource}
+              options={{ 
+                withCredentials: false
+              }}
               onLoadSuccess={({ numPages: pages }) => {
                 setNumPages(pages)
                 setCurrentPage((prev) => Math.min(prev, pages))
                 setIsPdfLoading(false)
               }}
-              onLoadError={(err) => {
+              onLoadError={async (err) => {
                 console.error('[PDFViewer] react-pdf load error:', err)
+                
+                if (!hasTriedFallback) {
+                  console.log('[PDFViewer] Attempting fallback through /url endpoint...')
+                  setHasTriedFallback(true)
+                  try {
+                    const { apiClient } = await import('@/lib/api/client')
+                    const res = await apiClient.get(`/library/documents/${documentItem._id}/url`)
+                    if (res.data?.success && res.data.url) {
+                      setFileSource(res.data.url)
+                      return // Let it retry with the new URL
+                    }
+                  } catch (fallbackErr) {
+                    console.error('[PDFViewer] Fallback failed:', fallbackErr)
+                  }
+                }
+                
                 setIsPdfLoading(false)
                 setErrorStatus('Failed to render PDF. Try downloading it instead.')
                 if (onLoadError) onLoadError(documentItem._id, 502)
