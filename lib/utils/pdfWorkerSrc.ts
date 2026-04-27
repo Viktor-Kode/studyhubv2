@@ -1,7 +1,9 @@
-import { pdfjs } from 'react-pdf';
-
 /**
- * PDF.js worker — using unpkg CDN for matching version to avoid bundling issues in serverless environments like Vercel.
+ * PDF.js worker — dynamically imported and bundled locally by Webpack/Next.js
+ * This guarantees the worker is always the exact same version as the installed react-pdf package,
+ * and eliminates any external CDN dependency or 404/CORS errors.
  */
-// Use dynamic version to prevent API vs Worker version mismatches
-export const PDF_WORKER_PUBLIC_PATH = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+export const PDF_WORKER_PUBLIC_PATH = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
