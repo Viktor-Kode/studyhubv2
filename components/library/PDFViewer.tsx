@@ -47,10 +47,20 @@ export default function PDFViewer({
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
   const [hasTriedFallback, setHasTriedFallback] = useState(false)
 
+  const [timeSpentSeconds, setTimeSpentSeconds] = useState(0)
+
   const percentage = useMemo(() => {
-    if (!numPages) return 0
-    return Math.min(100, Math.max(0, Math.round((currentPage / numPages) * 100)))
-  }, [currentPage, numPages])
+    const estimatedReadTimeSeconds = Math.max(1, numPages || 1) * 30
+    return Math.min(100, Math.max(0, Math.round((timeSpentSeconds / estimatedReadTimeSeconds) * 100)))
+  }, [timeSpentSeconds, numPages])
+
+  // Time-based tracking interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeSpentSeconds((prev) => prev + 30)
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const onResize = () => {
@@ -85,8 +95,14 @@ export default function PDFViewer({
     const run = async () => {
       const { apiClient } = await import('@/lib/api/client')
       const res = await apiClient.get(`/library/progress/${documentItem._id}`)
-      if (mounted && res.data?.success && res.data.progress?.currentPage) {
-        setCurrentPage(res.data.progress.currentPage)
+      if (mounted && res.data?.success && res.data.progress) {
+        if (res.data.progress.currentPage) {
+          setCurrentPage(res.data.progress.currentPage)
+        }
+        if (res.data.progress.percentage) {
+          const estimatedReadTimeSeconds = Math.max(1, documentItem.pages || 1) * 30
+          setTimeSpentSeconds(Math.round((res.data.progress.percentage / 100) * estimatedReadTimeSeconds))
+        }
       }
     }
 
@@ -94,7 +110,7 @@ export default function PDFViewer({
     return () => {
       mounted = false
     }
-  }, [documentItem._id])
+  }, [documentItem._id, documentItem.pages])
 
   useEffect(() => {
     const timeout = setTimeout(async () => {
@@ -116,7 +132,7 @@ export default function PDFViewer({
     }, 600)
 
     return () => clearTimeout(timeout)
-  }, [currentPage, documentItem._id, numPages, onProgressSaved, percentage])
+  }, [currentPage, documentItem._id, numPages, onProgressSaved, percentage, timeSpentSeconds])
 
   const goToPage = (page: number) => {
     if (!numPages) return
