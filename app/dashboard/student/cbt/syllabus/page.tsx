@@ -78,7 +78,7 @@ export default function SyllabusStudyPage() {
   const { showUpgrade } = useUpgrade()
 
   useEffect(() => {
-    if (user && (user.plan?.type === 'free' || !user.plan?.type)) {
+    if (user && user.plan?.type === 'free') {
       router.replace('/dashboard/cbt')
       showUpgrade('cbt')
     }

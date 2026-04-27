@@ -39,7 +39,7 @@ export default function StudyModePage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (user && (user.plan?.type === 'free' || !user.plan?.type)) {
+    if (user && user.plan?.type === 'free') {
       router.replace('/dashboard/cbt')
       showUpgrade('cbt')
     }
