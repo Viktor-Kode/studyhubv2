@@ -14,7 +14,6 @@ import {
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { getFirebaseToken } from '@/lib/store/authStore'
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc'
 
 pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH
@@ -49,12 +48,9 @@ export default function PDFViewer({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [pageWidth, setPageWidth] = useState(800)
-  // Start as null — prevents react-pdf from making an unauthenticated request on first render
   const [fileSource, setFileSource] = useState<string | null>(null)
   const [isPdfLoading, setIsPdfLoading] = useState(true)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
-  // Hard stop flag — once set, the effect will NEVER retry the fetch
-  const [pdfFetchFailed, setPdfFetchFailed] = useState(false)
 
   const percentage = useMemo(() => {
     if (!numPages) return 0
@@ -72,77 +68,22 @@ export default function PDFViewer({
   }, [])
 
   useEffect(() => {
-    // Hard stop — if a previous fetch already failed and we've shown the error, stop trying.
-    if (pdfFetchFailed) return
-
-    let mounted = true
-    let objectUrl = ''
-
-    const loadPdf = async () => {
-      try {
-        if (!documentItem._id) {
-          throw new Error('Document ID is missing.')
-        }
-        
-        setIsPdfLoading(true)
-        setErrorStatus(null)
-
-        console.log(`[PDFViewer] Fetching PDF blob via proxy for: ${documentItem._id}`)
-        
-        const { apiClient } = await import('@/lib/api/client')
-        
-        // We use the internal proxy route which handles auth and Cloudinary fetch logic (including signed URLs)
-        const response = await apiClient.get(`/library/proxy-pdf/${documentItem._id}`, {
-          responseType: 'blob',
-          // Ensure we don't cache the PDF blob to avoid stale signed URLs or other issues
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        })
-
-        const blob = response.data
-        if (!(blob instanceof Blob)) {
-          throw new Error('Response data is not a blob.')
-        }
-
-        objectUrl = URL.createObjectURL(blob)
-        
-        if (mounted) {
-          setFileSource(objectUrl)
-          setIsPdfLoading(false)
-        }
-
-      } catch (err: any) {
-        if (!mounted) return
-        console.error('[PDFViewer] Failed to load PDF blob:', err)
-        
-        // Better error messaging based on status
-        const status = err.response?.status
-        const detail = err.response?.data?.error || err.message
-        
-        setPdfFetchFailed(true)
-        setErrorStatus(
-          status === 401 
-            ? 'Unauthorized. Please refresh and try again.' 
-            : status === 404
-            ? 'This PDF could not be loaded. Please re-upload it.'
-            : status === 502
-            ? 'This PDF couldn\'t be loaded. Please try again or re-upload it.'
-            : `Failed to load: ${detail}`
-        )
-        setIsPdfLoading(false)
-        if (onLoadError) onLoadError(documentItem._id, status || 500)
-      }
+    // Load PDF directly from Cloudinary — no backend proxy needed.
+    // The fileUrl (stored in the document record) is a direct Cloudinary URL with
+    // anonymous access control, so react-pdf can load it without any server round-trip.
+    if (!documentItem.fileUrl) {
+      console.error('[PDFViewer] Document has no fileUrl:', documentItem._id)
+      setErrorStatus('This document has no file attached. Please re-upload it.')
+      setIsPdfLoading(false)
+      if (onLoadError) onLoadError(documentItem._id, 404)
+      return
     }
 
-    void loadPdf()
-
-    return () => {
-      mounted = false
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [documentItem._id, pdfFetchFailed])
+    console.log(`[PDFViewer] Loading PDF directly from Cloudinary: ${documentItem._id}`)
+    setErrorStatus(null)
+    setIsPdfLoading(true)
+    setFileSource(documentItem.fileUrl)
+  }, [documentItem._id, documentItem.fileUrl])
 
   useEffect(() => {
     let mounted = true
@@ -286,10 +227,13 @@ export default function PDFViewer({
               onLoadSuccess={({ numPages: pages }) => {
                 setNumPages(pages)
                 setCurrentPage((prev) => Math.min(prev, pages))
+                setIsPdfLoading(false)
               }}
               onLoadError={(err) => {
                 console.error('[PDFViewer] react-pdf load error:', err)
+                setIsPdfLoading(false)
                 setErrorStatus('Failed to render PDF. Try downloading it instead.')
+                if (onLoadError) onLoadError(documentItem._id, 502)
               }}
               loading={""}
             >
