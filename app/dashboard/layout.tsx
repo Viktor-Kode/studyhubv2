@@ -219,7 +219,7 @@ export default function DashboardLayout({
 
                 {/* Sidebar */}
                 <aside
-                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                 >
                     <div className="h-full overflow-y-auto overflow-x-hidden py-4 min-w-0">
