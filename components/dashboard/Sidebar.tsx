@@ -94,7 +94,7 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
               onClick={onMobileClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
                 ? 'bg-blue-500 text-white dark:bg-blue-600'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               <Icon className="text-lg" />

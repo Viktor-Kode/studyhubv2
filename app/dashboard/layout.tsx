@@ -125,7 +125,7 @@ export default function DashboardLayout({
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
                                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
                             >
-                                {sidebarOpen ? <FiX className="text-xl text-gray-700 dark:text-gray-300" /> : <FiMenu className="text-xl text-gray-700 dark:text-gray-300" />}
+                                {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
                             </button>
 
                             <Link href="/dashboard" className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export default function DashboardLayout({
                                         prefetch={item.href === '/dashboard/library' ? false : undefined}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition min-w-0 ${isActive
                                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                            : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                                             }`}
                                     >
                                         <Icon className={`text-lg flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />

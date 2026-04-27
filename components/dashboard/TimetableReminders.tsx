@@ -255,8 +255,8 @@ export default function TimetableReminders() {
                           rounded-xl p-4 border border-blue-200 dark:border-blue-800">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Today</p>
-                                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{todayReminders.length}</p>
+                                <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">Today</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-blue-100">{todayReminders.length}</p>
                             </div>
                             <FiCalendar className="text-3xl text-blue-500" />
                         </div>
@@ -266,8 +266,8 @@ export default function TimetableReminders() {
                           rounded-xl p-4 border border-orange-200 dark:border-orange-800">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-orange-700 dark:text-orange-300 mb-1">Next 7 Days</p>
-                                <p className="text-2xl font-bold text-orange-900 dark:text-blue-100">{upcomingRemindersCount}</p>
+                                <p className="text-sm text-orange-800 dark:text-orange-300 mb-1">Next 7 Days</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-orange-100">{upcomingRemindersCount}</p>
                             </div>
                             <FiBell className="text-3xl text-orange-500" />
                         </div>
@@ -277,8 +277,8 @@ export default function TimetableReminders() {
                           rounded-xl p-4 border border-green-200 dark:border-green-800">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-green-700 dark:text-green-300 mb-1">Total Active</p>
-                                <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                                <p className="text-sm text-green-800 dark:text-green-300 mb-1">Total Active</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-green-100">
                                     {reminders.filter(r => !r.completed).length}
                                 </p>
                             </div>
@@ -363,7 +363,7 @@ export default function TimetableReminders() {
                                             month: 'short', day: 'numeric'
                                         })} Reminders
                                     </h3>
-                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-500">
+                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300">
                                         {filteredReminders.length} tasks
                                     </span>
                                 </div>
@@ -371,7 +371,7 @@ export default function TimetableReminders() {
                                 {filteredReminders.length === 0 ? (
                                     <div className="text-center py-12 bg-gray-50/50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-600">
                                         <FiCalendar className="mx-auto text-4xl mb-3 text-gray-300" />
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Rest day! No tasks</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Rest day! No tasks</p>
                                         <button
                                             onClick={() => {
                                                 setFormData({ ...formData, date: selectedDate })
@@ -722,7 +722,7 @@ function CalendarGrid({
             {/* Grid */}
             <div className="grid grid-cols-7 gap-1 md:gap-2">
                 {weekdays.map(day => (
-                    <div key={day} className="py-2 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    <div key={day} className="py-2 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         {day}
                     </div>
                 ))}
