@@ -108,46 +108,48 @@ export const generateQuiz = async (
     if (stream && isStream && response.body) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let fullContent = '';
         let finalData: QuizResponse | null = null;
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep the partial line in the buffer
             
             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.slice(6).trim();
-                    if (dataStr === '[DONE]') continue;
-                    
-                    try {
-                        const parsed = JSON.parse(dataStr);
-                        if (parsed.content) {
-                            onChunk!(parsed.content);
-                            fullContent += parsed.content;
-                        }
-                        if (parsed.done) {
-                            finalData = {
-                                success: true,
-                                data: parsed.questions,
-                                sessionId: parsed.sessionId
-                            };
-                        }
-                        if (parsed.error) throw new Error(parsed.error);
-                    } catch (e) {
-                        // might be partial JSON in some cases, though SSE usually prevents this
+                const trimmedLine = line.trim();
+                if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                
+                const dataStr = trimmedLine.slice(6).trim();
+                if (dataStr === '[DONE]') continue;
+                
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.content) {
+                        onChunk!(parsed.content);
                     }
+                    if (parsed.done) {
+                        finalData = {
+                            success: true,
+                            data: parsed.questions,
+                            sessionId: parsed.sessionId
+                        };
+                    }
+                    if (parsed.error) throw new Error(parsed.error);
+                } catch (e) {
+                    // Ignore partial JSON or parse errors during stream
                 }
             }
         }
         
         if (finalData) return finalData;
+        throw new Error('Stream ended without completion metadata');
     }
 
-    return response.json()
+    return response.json();
 }
 
 export const getAllQuizSessions = async (): Promise<SessionsListResponse> => {
@@ -191,28 +193,31 @@ export const generateStudyNotes = async (
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullNotes = '';
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.slice(6).trim();
-                    if (dataStr === '[DONE]') continue;
+                const trimmedLine = line.trim();
+                if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                
+                const dataStr = trimmedLine.slice(6).trim();
+                if (dataStr === '[DONE]') continue;
 
-                    try {
-                        const parsed = JSON.parse(dataStr);
-                        if (parsed.content) {
-                            onChunk!(parsed.content);
-                            fullNotes += parsed.content;
-                        }
-                        if (parsed.error) throw new Error(parsed.error);
-                    } catch (e) { }
-                }
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.content) {
+                        onChunk!(parsed.content);
+                        fullNotes += parsed.content;
+                    }
+                    if (parsed.error) throw new Error(parsed.error);
+                } catch (e) { }
             }
         }
         return { success: true, notes: fullNotes };
@@ -282,28 +287,31 @@ export const chatWithTutor = async (
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullReply = '';
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.slice(6).trim();
-                    if (dataStr === '[DONE]') continue;
+                const trimmedLine = line.trim();
+                if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                
+                const dataStr = trimmedLine.slice(6).trim();
+                if (dataStr === '[DONE]') continue;
 
-                    try {
-                        const parsed = JSON.parse(dataStr);
-                        if (parsed.content) {
-                            onChunk!(parsed.content);
-                            fullReply += parsed.content;
-                        }
-                        if (parsed.error) throw new Error(parsed.error);
-                    } catch (e) { }
-                }
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.content) {
+                        onChunk!(parsed.content);
+                        fullReply += parsed.content;
+                    }
+                    if (parsed.error) throw new Error(parsed.error);
+                } catch (e) { }
             }
         }
         return { success: true, reply: fullReply };
