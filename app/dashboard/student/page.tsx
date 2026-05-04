@@ -724,10 +724,13 @@ function SubscriptionUsageCard() {
         <div className="space-y-5">
           {/* AI usage */}
           <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                AI Messages: {status.usage.ai.used} / {status.usage.ai.limit}
-              </span>
+            <div className="flex justify-between items-start mb-1.5">
+              <div>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Total AI Usage: {status.usage.ai.used} / {status.usage.ai.limit}
+                </span>
+                <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-none">Includes Tutor, Quizzes, & Flashcards</p>
+              </div>
               <span className="text-[10px] font-black text-purple-600">
                 {Math.round((status.usage.ai.used / Math.max(status.usage.ai.limit, 1)) * 100)}%
               </span>

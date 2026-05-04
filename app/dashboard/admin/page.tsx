@@ -542,7 +542,7 @@ function OverviewTab({
               <strong>Library files:</strong> {stats.library.files}
             </li>
             <li>
-              <strong>AI usage (sum):</strong> {(stats.aiUsageTotal ?? 0).toLocaleString()} prompts
+              <strong>Total AI Prompts (Global):</strong> {(stats.aiUsageTotal ?? 0).toLocaleString()}
             </li>
             <li>
               <strong>Teacher tool runs:</strong> {teacherToolsUsed.toLocaleString()}
