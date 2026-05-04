@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { FileText, Pencil, Search, Trash2, Upload } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
-import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import AdBanner from '@/components/AdBanner'
-
-const PDFViewer = dynamic(() => import('@/components/library/PDFViewer'), { ssr: false })
 
 export type LibraryDocument = {
   _id: string
@@ -31,11 +29,11 @@ export type LibraryDocument = {
 const DEFAULT_COVER = '#5B4CF5'
 
 export default function LibraryPage() {
+  const router = useRouter()
   const [documents, setDocuments] = useState<LibraryDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
-  const [selectedDocument, setSelectedDocument] = useState<LibraryDocument | null>(null)
   const [editingDocument, setEditingDocument] = useState<LibraryDocument | null>(null)
 
   const handleProgressSaved = useCallback((id: string, currentPage: number, percentage: number) => {
@@ -198,7 +196,7 @@ export default function LibraryPage() {
                       type="button"
                       onClick={() => {
                         if ((doc.fileType || '').toLowerCase().includes('pdf')) {
-                          setSelectedDocument(doc)
+                          router.push(`/dashboard/library/${doc._id}`)
                         } else {
                           window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
                         }
@@ -230,26 +228,7 @@ export default function LibraryPage() {
             onClose={() => setEditingDocument(null)}
             onSaved={(updated) => {
               setDocuments((prev) => prev.map((d) => (d._id === updated._id ? { ...d, ...updated } : d)))
-              setSelectedDocument((sel) => (sel && sel._id === updated._id ? { ...sel, ...updated } : sel))
               setEditingDocument(null)
-            }}
-          />
-        )}
-
-        {selectedDocument && (
-          <PDFViewer
-            documentItem={selectedDocument}
-            onClose={() => setSelectedDocument(null)}
-            onEditDetails={() => {
-              setEditingDocument(selectedDocument)
-              setSelectedDocument(null)
-            }}
-            onDeleted={(id) => setDocuments((prev) => prev.filter((doc) => doc._id !== id))}
-            onProgressSaved={handleProgressSaved}
-            onLoadError={(id, status) => {
-              if (status === 404) {
-                setDocuments(prev => prev.map(d => d._id === id ? { ...d, isMissing: true } : d))
-              }
             }}
           />
         )}
