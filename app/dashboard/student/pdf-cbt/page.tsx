@@ -122,12 +122,22 @@ export default function PdfCbtPage() {
 
   const validateAndSetFile = (candidate: File) => {
     setError('')
-    if (candidate.type !== 'application/pdf' && !candidate.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please upload a valid PDF file.')
+    const name = candidate.name.toLowerCase()
+    const type = candidate.type.toLowerCase()
+    
+    const isPdf = name.endsWith('.pdf') || type === 'application/pdf'
+    const isDoc = name.endsWith('.docx') || name.endsWith('.doc') || type.includes('word')
+    const isPpt = name.endsWith('.pptx') || name.endsWith('.ppt') || type.includes('presentation')
+    const isText = name.endsWith('.txt') || name.endsWith('.md') || type.startsWith('text/')
+    const isImage = type.startsWith('image/')
+
+    if (!isPdf && !isDoc && !isPpt && !isText && !isImage && type !== 'application/octet-stream') {
+      setError('Please upload a valid document (PDF, Word, or Text).')
       return
     }
-    if (candidate.size > 20 * 1024 * 1024) {
-      setError('PDF exceeds 20MB limit.')
+
+    if (candidate.size > 25 * 1024 * 1024) {
+      setError('File exceeds 25MB limit.')
       return
     }
     if (candidate.size > 15 * 1024 * 1024) {
@@ -209,10 +219,10 @@ export default function PdfCbtPage() {
     setError('')
     setExtracting(true)
     try {
-      setExtractStatus('Uploading PDF and generating questions...')
+      setExtractStatus('Analyzing document and generating questions...')
       
       const formData = new FormData()
-      // The backend multer expects the field name to be 'pdf'
+      // The backend expects 'pdf' field name for compatibility, but it now handles all types
       formData.append('pdf', file)
       
       const selectedCount =
@@ -381,8 +391,8 @@ export default function PdfCbtPage() {
       {stage === 'upload' && (
         <>
           <div className="pcbt-header">
-            <h1>PDF to CBT</h1>
-            <p>Upload any past question PDF with answers and practice all extracted question types.</p>
+            <h1>Document to CBT</h1>
+            <p>Upload any past question PDF, Word, or Text file and practice all extracted question types.</p>
           </div>
 
           <div
@@ -396,10 +406,16 @@ export default function PdfCbtPage() {
             onDrop={handleDrop}
           >
             <div className="pcbt-drop-icon">📄</div>
-            <h3>Drop your PDF here</h3>
+            <h3>Drop your file here</h3>
             <p>or click to browse</p>
-            <span className="pcbt-drop-limit">PDF only · Max 20MB</span>
-            <input ref={fileInputRef} type="file" accept=".pdf" hidden onChange={handleFileSelect} />
+            <span className="pcbt-drop-limit">PDF, Word, Text · Max 25MB</span>
+            <input 
+              ref={fileInputRef} 
+              type="file" 
+              accept=".pdf,.docx,.doc,.txt,.md,.pptx,.ppt,image/*" 
+              hidden 
+              onChange={handleFileSelect} 
+            />
           </div>
           <div className="pcbt-camera-row">
             <button type="button" className="pcbt-btn-secondary" onClick={openCamera}>
@@ -485,7 +501,7 @@ export default function PdfCbtPage() {
           <div className="pcbt-how-it-works">
             <h4>How it works</h4>
             <div className="pcbt-steps">
-              <div className="pcbt-step"><span>1</span><p>Upload your PDF with questions and answers</p></div>
+              <div className="pcbt-step"><span>1</span><p>Upload your document with questions and answers</p></div>
               <div className="pcbt-step"><span>2</span><p>AI extracts objective and theory questions</p></div>
               <div className="pcbt-step"><span>3</span><p>Answers stay hidden while you practice</p></div>
               <div className="pcbt-step"><span>4</span><p>Submit to see score and corrections</p></div>

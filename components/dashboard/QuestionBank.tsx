@@ -727,16 +727,21 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setWarning(null)
 
     // Validate file type
-    const allowedTypes = ['.pdf', '.docx', '.txt', '.md', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.webp']
+    const allowedTypes = ['.pdf', '.docx', '.doc', '.txt', '.md', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.webp']
     const extension = '.' + file.name.split('.').pop()?.toLowerCase()
-    if (!allowedTypes.includes(extension)) {
-      setError('Unsupported format. Use PDF, DOCX, PPT, PPTX, TXT, MD, JPG, JPEG, PNG, or WEBP.')
+    const mimetype = file.mimetype?.toLowerCase()
+
+    const isValidExtension = allowedTypes.includes(extension)
+    const isValidMime = mimetype?.includes('pdf') || mimetype?.includes('word') || mimetype?.includes('presentation') || mimetype?.includes('text') || mimetype?.startsWith('image/')
+    
+    if (!isValidExtension && !isValidMime && mimetype !== 'application/octet-stream' && mimetype !== '') {
+      setError('Unsupported format. Use PDF, DOCX, PPT, TXT, or Image files.')
       return
     }
 
-    // Validate size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File too large (Max 5MB).')
+    // Validate size (15MB)
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File too large (Max 15MB).')
       return
     }
 
@@ -1221,7 +1226,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept=".pdf,.docx,.txt,.md,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
+                    accept=".pdf,.docx,.doc,.txt,.md,.ppt,.pptx,image/*"
                     onChange={handleFileSelect}
                     disabled={extracting}
                   />
@@ -1233,7 +1238,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       </div>
                       <div className="text-center">
                         <p className="font-medium text-gray-700 dark:text-gray-200">Select Study Material</p>
-                        <p className="text-xs text-gray-500">PDF, Word, PPT, Notes, or Images (Max 5MB)</p>
+                        <p className="text-xs text-gray-500">PDF, Word, PPT, Notes, or Images (Max 15MB)</p>
                       </div>
                     </>
                   ) : (

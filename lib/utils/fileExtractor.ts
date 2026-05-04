@@ -12,7 +12,16 @@ export interface FileExtractionResult {
  * Main file extraction coordinator supporting PDF, DOCX, TXT, and MD.
  */
 export async function extractTextFromFile(file: File): Promise<FileExtractionResult> {
-    const extension = file.name.split('.').pop()?.toLowerCase();
+    let extension = file.name.split('.').pop()?.toLowerCase();
+    const mimetype = file.type?.toLowerCase();
+
+    // Fallback detection for mobile devices or files without extensions
+    if (!extension || extension === file.name.toLowerCase()) {
+        if (mimetype === 'application/pdf') extension = 'pdf';
+        else if (mimetype?.includes('word')) extension = 'docx';
+        else if (mimetype?.includes('presentation') || mimetype?.includes('powerpoint')) extension = 'pptx';
+        else if (mimetype?.startsWith('text/')) extension = 'txt';
+    }
 
     try {
         switch (extension) {
