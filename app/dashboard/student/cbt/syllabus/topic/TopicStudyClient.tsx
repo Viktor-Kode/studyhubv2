@@ -49,24 +49,16 @@ function parseFollowUps(raw: string): { cleanText: string; followUps: string[] }
 function normalizeQuestion(q: TopicGeneratedQuestion): {
   question: string
   options: string[]
-  correctIndex: number
-  explanation: string
 } | null {
   const opts = q?.options
   if (!opts) return null
   const order = ['A', 'B', 'C', 'D'] as const
   const arr = order.map((k) => String(opts[k] ?? '').trim())
   if (arr.some((x) => !x)) return null
-  const letter = String(q.answer || 'A')
-    .toUpperCase()
-    .trim()
-    .charAt(0)
-  const idx = 'ABCD'.indexOf(letter)
+  
   return {
     question: q.question,
     options: arr,
-    correctIndex: idx >= 0 ? idx : 0,
-    explanation: q.explanation || '',
   }
 }
 
@@ -119,7 +111,7 @@ export default function TopicStudyClient() {
   const [score, setScore] = useState(0)
   const [roundDone, setRoundDone] = useState(false)
   const [attemptedRound, setAttemptedRound] = useState(0)
-  const [topicAnswers, setTopicAnswers] = useState<Record<number, { selectedIndex: number; isCorrect: boolean; explanation: string }>>({})
+  const [topicAnswers, setTopicAnswers] = useState<Record<number, { selectedIndex: number; correctIndex: number; isCorrect: boolean; explanation: string }>>({})
 
   useEffect(() => {
     setMobileTab(tabParam)
@@ -275,37 +267,40 @@ export default function TopicStudyClient() {
 
   const handleSelectOption = async (idx: number) => {
     const q = questions[qIndex]
+    const letters = ['A', 'B', 'C', 'D']
+    const selectedLetter = letters[idx]
     if (!q || revealed) return
+    
     setSelected(idx)
     setRevealed(true)
-    const correct = idx === q.correctIndex
-    if (correct) setScore((s) => s + 1)
-    setAttemptedRound((a) => a + 1)
-    bumpProgress()
-    void progressApi.award('study_question').catch(() => {})
-
     setExpLoading(true)
-    let expText = ''
-    if (q.explanation) {
-      expText = q.explanation
+
+    try {
+      const { correct, actualAnswer, explanation: expText } = await cbtApi.verifyAnswer({
+        questionId: qIndex, // For AI generated, we use the text hash on backend
+        selectedAnswer: selectedLetter,
+        questionText: q.question,
+        isAiGenerated: true
+      })
+
+      const correctIndex = letters.indexOf(String(actualAnswer).toUpperCase())
+      if (correct) setScore((s) => s + 1)
+      setAttemptedRound((a) => a + 1)
+      bumpProgress()
+      void progressApi.award('study_question').catch(() => {})
+
       setExplanation(expText)
+      
+      setTopicAnswers(prev => ({
+        ...prev,
+        [qIndex]: { selectedIndex: idx, correctIndex, isCorrect: correct, explanation: expText }
+      }))
+    } catch (err: any) {
+      console.error('[VerifyAnswer] Failed:', err)
+      setExplanation('Could not verify answer. Please check your connection.')
+    } finally {
       setExpLoading(false)
-    } else {
-      try {
-        expText = await cbtApi.getExplanation(q.question, q.options[q.correctIndex], q.options)
-        setExplanation(expText)
-      } catch {
-        expText = 'Review the correct option above.'
-        setExplanation(expText)
-      } finally {
-        setExpLoading(false)
-      }
     }
-    
-    setTopicAnswers(prev => ({
-      ...prev,
-      [qIndex]: { selectedIndex: idx, isCorrect: correct, explanation: expText }
-    }))
   }
 
   const handleNextQ = () => {
@@ -497,8 +492,9 @@ export default function TopicStudyClient() {
             <div className="grid gap-2">
               {current.options.map((opt, i) => {
                 const letter = ['A', 'B', 'C', 'D'][i]
-                const wrong = revealed && selected === i && i !== current.correctIndex
-                const right = revealed && i === current.correctIndex
+                const ans = topicAnswers[qIndex]
+                const wrong = revealed && selected === i && !ans?.isCorrect
+                const right = revealed && i === ans?.correctIndex
                 return (
                   <button
                     key={i}

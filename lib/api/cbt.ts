@@ -602,4 +602,24 @@ export const cbtApi = {
     }
     return data.questions as TopicGeneratedQuestion[]
   },
+
+  /**
+   * Server-side answer verification (Security Hardening)
+   */
+  verifyAnswer: async (params: {
+    questionId: string | number
+    selectedAnswer: string
+    questionText?: string
+    isAiGenerated?: boolean
+  }): Promise<{ correct: boolean; actualAnswer: string; explanation: string }> => {
+    const res = await fetchWithAuth('/api/backend/cbt/verify-answer', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to verify answer')
+    }
+    return data
+  },
 }

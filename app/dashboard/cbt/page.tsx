@@ -481,21 +481,14 @@ export default function CBTPage() {
   const handleSubmitTest = async () => {
     setIsTimerRunning(false)
     setIsPaused(false)
-    setShowResults(true)
-    clearCbtPersistedState()
-
-    // Calculate final score
-    const finalScore = getScore()
+    setLoading(true)
+    setLoadingStage('Calculating your results...')
 
     // Save to DB
     try {
-      const results = questions.map(q => ({
+      const resultsPayload = questions.map(q => ({
         questionId: q.id,
-        question: q.question,
-        selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped',
-        correctAnswer: q.options[q.correctAnswer],
-        explanation: q.explanation || '',
-        isCorrect: selectedAnswers[q.id] === q.correctAnswer
+        selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped'
       }))
 
       const resultData = {
@@ -503,20 +496,22 @@ export default function CBTPage() {
         examType: selectedExam,
         year: selectedYear,
         totalQuestions: questions.length,
-        correctAnswers: finalScore.correct,
-        wrongAnswers: finalScore.attempted - finalScore.correct,
-        skipped: finalScore.total - finalScore.attempted,
-        accuracy: finalScore.percentage,
         timeTaken: Math.max(0, (examDurationAtStartSeconds || (currentExamConfig?.duration || 120) * 60) - timeRemaining),
-        answers: results
+        answers: resultsPayload
       }
 
-      await cbtApi.saveResult(resultData)
-    } catch (err) {
+      const response = await cbtApi.saveResult(resultData)
+      setSummary(response.data) // Store verified results from backend
+      setShowResults(true)
+      setViewMode('results')
+      clearCbtPersistedState()
+    } catch (err: any) {
       console.error('Failed to save CBT result:', err)
+      toast.error('Failed to save results. Please try again.')
+    } finally {
+      setLoading(false)
+      setLoadingStage('')
     }
-
-    setViewMode('results')
   }
 
   const handleGetAiExplanation = async (q: Question) => {
@@ -534,16 +529,17 @@ export default function CBTPage() {
   }
 
   const getScore = () => {
-    let correct = 0
-    questions.forEach(q => {
-      if (selectedAnswers[q.id] === q.correctAnswer) {
-        correct++
+    if (summary) {
+      return { 
+        correct: summary.correctAnswers, 
+        total: summary.totalQuestions, 
+        attempted: summary.totalQuestions - summary.skipped, 
+        percentage: summary.accuracy 
       }
-    })
+    }
     const total = questions.length
     const attempted = Object.keys(selectedAnswers).length
-    const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
-    return { correct, total, attempted, percentage }
+    return { correct: 0, total, attempted, percentage: 0 }
   }
 
   const formatTime = (seconds: number) => {
@@ -1457,18 +1453,21 @@ export default function CBTPage() {
             <div>
               <h3 className="mb-3 font-bold text-gray-900 dark:text-white" style={{ fontSize: 16 }}>Review All Questions</h3>
               <div className="answer-review-list">
-                {questions.map((q, idx) => {
-                  const userAnswer = selectedAnswers[q.id]
-                  const isCorrect = userAnswer === q.correctAnswer
-                  const isAttempted = userAnswer !== undefined
+                {(summary?.answers || questions).map((q: any, idx: number) => {
+                  const verifiedAns = summary?.answers?.find((a: any) => a.questionId === (q.id || q.questionId))
+                  const isCorrect = verifiedAns ? verifiedAns.isCorrect : false
+                  const isAttempted = verifiedAns ? (verifiedAns.selectedAnswer && verifiedAns.selectedAnswer !== 'Skipped') : false
                   const optionLetters = ['A', 'B', 'C', 'D', 'E']
                   const cardClass = isCorrect ? 'correct' : isAttempted ? 'wrong' : 'skipped'
                   const badgeClass = isCorrect ? 'badge-correct' : isAttempted ? 'badge-wrong' : 'badge-skipped'
                   const badgeText = isCorrect ? 'Correct' : isAttempted ? 'Wrong' : 'Skipped'
 
+                  // Finding original question for options if q is from summary
+                  const originalQ = questions.find(oq => oq.id === (q.id || q.questionId)) || q
+
                   return (
                     <div
-                      key={q.id}
+                      key={q.id || q.questionId}
                       className={`answer-card ${cardClass}`}
                     >
                       <div className="answer-card-header">
@@ -1476,43 +1475,48 @@ export default function CBTPage() {
                         <span className={`answer-status-badge ${badgeClass}`}>{badgeText}</span>
                       </div>
 
-                      {q.instruction && (
+                      {originalQ.instruction && (
                         <p className="text-xs text-amber-700 dark:text-amber-300 
                                     bg-amber-50 dark:bg-amber-900/20 
                                     border border-amber-200 dark:border-amber-800 
                                     rounded-lg px-2 py-1 mb-2 inline-block">
-                          {q.instruction}
+                          {originalQ.instruction}
                         </p>
                       )}
                       <p
                         className="answer-question-text"
-                        dangerouslySetInnerHTML={{ __html: renderQuestion(q.question) }}
+                        dangerouslySetInnerHTML={{ __html: renderQuestion(originalQ.question) }}
                       />
-                      <QuestionImage question={q} />
+                      <QuestionImage question={originalQ} />
 
                       <div className="answer-options">
-                        {q.options.map((opt, optIdx) => (
-                          <div
-                            key={optIdx}
-                            className={`answer-option ${optIdx === q.correctAnswer ? 'correct-opt' : optIdx === userAnswer && !isCorrect ? 'user-wrong' : ''}`}
-                          >
-                            <span className="answer-opt-key">{optionLetters[optIdx]}.</span>
-                            <span dangerouslySetInnerHTML={{ __html: renderQuestion(opt) }} />
-                          </div>
-                        ))}
+                        {originalQ.options.map((opt: string, optIdx: number) => {
+                          const isCorrectOpt = verifiedAns ? String(opt).toLowerCase() === String(verifiedAns.correctAnswer).toLowerCase() : false
+                          const isUserSelected = verifiedAns ? String(opt).toLowerCase() === String(verifiedAns.selectedAnswer).toLowerCase() : false
+                          
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`answer-option ${isCorrectOpt ? 'correct-opt' : isUserSelected && !isCorrect ? 'user-wrong' : ''}`}
+                            >
+                              <span className="answer-opt-key">{optionLetters[optIdx]}.</span>
+                              <span dangerouslySetInnerHTML={{ __html: renderQuestion(opt) }} />
+                            </div>
+                          )
+                        })}
                       </div>
 
-                      {(q.explanation || aiExplanations[q.id]) ? (
+                      {(verifiedAns?.explanation || aiExplanations[q.id || q.questionId]) ? (
                         <div className="answer-explanation">
-                          <span dangerouslySetInnerHTML={{ __html: renderQuestion(q.explanation || aiExplanations[q.id] || '') }} />
+                          <span dangerouslySetInnerHTML={{ __html: renderQuestion(verifiedAns?.explanation || aiExplanations[q.id || q.questionId] || '') }} />
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleGetAiExplanation(q)}
-                          disabled={isExplaining === q.id}
+                          onClick={() => handleGetAiExplanation(originalQ)}
+                          disabled={isExplaining === (q.id || q.questionId)}
                           className="mt-3 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
                         >
-                          {isExplaining === q.id ? (
+                          {isExplaining === (q.id || q.questionId) ? (
                             <><FiLoader className="animate-spin" /> Generating Explanation...</>
                           ) : (
                             <><HiOutlineLightBulb /> Get AI Explanation</>

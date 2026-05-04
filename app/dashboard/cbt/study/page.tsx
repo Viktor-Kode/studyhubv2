@@ -89,11 +89,6 @@ export default function StudyModePage() {
       if (!currentQuestion || revealed) return
 
       const options = Array.isArray(currentQuestion.options) ? currentQuestion.options : []
-      const correctIndex =
-        typeof currentQuestion.correctAnswer === 'number'
-          ? currentQuestion.correctAnswer
-          : 0
-
       if (!options.length) {
         console.error('[Study Mode] Question has no options', currentQuestion)
         return
@@ -101,49 +96,38 @@ export default function StudyModePage() {
 
       setSelected(optionIndex)
       setRevealed(true)
+      setLoadingExp(true)
 
-      const isCorrect = optionIndex === correctIndex
-      if (isCorrect) setScore((s) => s + 1)
+      const selectedLetter = optionLetters[optionIndex]
+      
+      const { correct, actualAnswer, explanation: expText } = await cbtApi.verifyAnswer({
+        questionId: currentQuestion.id,
+        selectedAnswer: selectedLetter,
+        isAiGenerated: false
+      })
+
+      if (correct) setScore((s) => s + 1)
+      const correctIndex = optionLetters.indexOf(String(actualAnswer).toUpperCase())
 
       setAnswers((prev) => {
         const next = [...prev]
         next[current] = {
-          isCorrect,
+          isCorrect: correct,
           correctIndex,
-          selectedIndex: optionIndex
+          selectedIndex: optionIndex,
+          explanation: expText
         }
         return next
       })
 
       void progressApi.award('study_question').catch(() => {})
-
-      setLoadingExp(true)
-      let expText = ''
-      try {
-        const correctText = options[correctIndex] ?? ''
-        expText = await cbtApi.getExplanation(currentQuestion.question, correctText, options)
-        setExplanation(expText)
-      } catch (err) {
-        console.error('[Study Mode] Failed to get explanation:', err)
-        expText = 'The correct answer is highlighted above.'
-        setExplanation(expText)
-      } finally {
-        setLoadingExp(false)
-        setAnswers((prev) => {
-          const next = [...prev]
-          if (next[current]) {
-            next[current].explanation = expText
-          }
-          return next
-        })
-      }
+      setExplanation(expText)
     } catch (err) {
       console.error('[Study Mode] Error while selecting option:', err)
       setExplanation('Something went wrong while handling your answer. Please try the next question.')
       setRevealed(true)
-      setLoadingExp(false)
     } finally {
-      // no-op; loadingExp handled in inner try/finally
+      setLoadingExp(false)
     }
   }
 
@@ -275,7 +259,7 @@ export default function StudyModePage() {
                   {questions.map((question, index) => {
                     const record = answers[index]
                     const isCorrect = record?.isCorrect
-                    const correctLetter = optionLetters[question.correctAnswer] || ''
+                    const correctLetter = optionLetters[record?.correctIndex ?? 0] || ''
 
                     return (
                       <div
@@ -357,7 +341,8 @@ export default function StudyModePage() {
                 <div className="space-y-2.5">
                   {questions[current].options.map((opt, idx) => {
                     const isSelected = selected === idx
-                    const isCorrect = idx === questions[current].correctAnswer
+                    const ans = answers[current]
+                    const isCorrect = idx === ans?.correctIndex
 
                     let base =
                       'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left text-sm transition shadow-sm'
