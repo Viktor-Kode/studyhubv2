@@ -145,6 +145,24 @@ export const generateQuiz = async (
             }
         }
         
+        // Final pass for anything left in the buffer
+        if (buffer.trim()) {
+            const line = buffer.trim();
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.done) {
+                        finalData = {
+                            success: true,
+                            data: parsed.questions,
+                            sessionId: parsed.sessionId
+                        };
+                    }
+                } catch (e) {}
+            }
+        }
+        
         if (finalData) return finalData;
         throw new Error('Stream ended without completion metadata');
     }
@@ -218,6 +236,20 @@ export const generateStudyNotes = async (
                     }
                     if (parsed.error) throw new Error(parsed.error);
                 } catch (e) { }
+            }
+        }
+
+        // Final pass for notes
+        if (buffer.trim()) {
+            const line = buffer.trim();
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.content) {
+                        fullNotes += parsed.content;
+                    }
+                } catch (e) {}
             }
         }
         return { success: true, notes: fullNotes };
@@ -312,6 +344,20 @@ export const chatWithTutor = async (
                     }
                     if (parsed.error) throw new Error(parsed.error);
                 } catch (e) { }
+            }
+        }
+
+        // Final pass for tutor
+        if (buffer.trim()) {
+            const line = buffer.trim();
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (parsed.content) {
+                        fullReply += parsed.content;
+                    }
+                } catch (e) {}
             }
         }
         return { success: true, reply: fullReply };
