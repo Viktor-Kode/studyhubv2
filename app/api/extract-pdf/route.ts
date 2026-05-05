@@ -75,11 +75,17 @@ export async function POST(request: NextRequest) {
             // Using createRequire to handle the CommonJS pdf-parse module in an ESM environment
             const { createRequire } = await import('module');
             const require = createRequire(import.meta.url);
-            const pdfParse = require('pdf-parse');
+            const pdfParseModule = require('pdf-parse');
+
+            // Handle potential default export wrapping in some build environments
+            const pdfParse = typeof pdfParseModule === 'function' 
+              ? pdfParseModule 
+              : (pdfParseModule?.default || pdfParseModule);
 
             if (typeof pdfParse !== 'function') {
-              throw new Error('pdf-parse module not callable after require');
+              throw new Error(`pdf-parse imported incorrectly (type: ${typeof pdfParse}). Keys: ${Object.keys(pdfParseModule || {}).join(', ')}`);
             }
+
             const data = await pdfParse(buffer);
             extractedText = data.text;
 
