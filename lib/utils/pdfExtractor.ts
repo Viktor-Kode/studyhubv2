@@ -1,3 +1,23 @@
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() {
+      this.a = 1; this.b = 0;
+      this.c = 0; this.d = 1;
+      this.e = 0; this.f = 0;
+    }
+  };
+}
+
+if (typeof globalThis.DOMRect === 'undefined') {
+  globalThis.DOMRect = class DOMRect {
+    constructor(x = 0, y = 0, width = 0, height = 0) {
+      this.x = x; this.y = y;
+      this.width = width;
+      this.height = height;
+    }
+  };
+}
+
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
