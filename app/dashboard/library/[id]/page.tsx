@@ -171,7 +171,6 @@ export default function LibraryReaderPage() {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-slate-900 dark:text-white sm:text-base">{document.title}</h1>
               <div className="flex items-center gap-2">
-                 <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">{percentage}% read</span>
                  {isSaving && <span className="text-[10px] text-[#5B4CF5] animate-pulse">Saving...</span>}
               </div>
             </div>
@@ -209,12 +208,6 @@ export default function LibraryReaderPage() {
 
         {/* Footer Controls */}
         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 sm:px-6">
-          <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div 
-              className="h-full transition-all duration-500" 
-              style={{ width: `${percentage}%`, background: document.coverColor || '#5B4CF5' }} 
-            />
-          </div>
           
           <div className="flex items-center justify-between">
             <button

@@ -177,15 +177,6 @@ export default function LibraryPage() {
                   </div>
                   <h3 className="mb-1 line-clamp-2 text-base font-bold text-slate-900 dark:text-white">{doc.title}</h3>
                   <p className="mb-3 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{doc.subject || 'General'}</p>
-                  <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-                    Progress: {doc.progress?.percentage || 0}%
-                  </p>
-                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-                    <div
-                      className="h-full transition-all"
-                      style={{ width: `${doc.progress?.percentage || 0}%`, background: doc.coverColor || DEFAULT_COVER }}
-                    />
-                  </div>
                   {doc.isMissing && (
                     <p className="mb-3 text-[11px] font-medium text-red-500">
                       This file is missing from storage. Please re-upload.
