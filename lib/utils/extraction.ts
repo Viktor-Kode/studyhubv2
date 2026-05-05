@@ -18,7 +18,8 @@ if (typeof globalThis.DOMRect === 'undefined') {
   };
 }
 
-
+/**
+ * Utility to extract text from various file formats.
  * Handles PDF (Client-side and Server-side fallback), DOCX, TXT, and MD.
  */
 

@@ -1,12 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 /**
- * Server-side File Extraction Pipeline.
- * Handles PDF, DOCX, and TXT.
- * Uses dynamic import for pdfjs-dist v5 to avoid CJS/ESM requirement errors on Vercel.
+ * Polyfill for DOMMatrix and DOMRect.
+ * Required for pdfjs-dist v5+ in environments without a DOM (like Node.js or Edge).
  */
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() {
+      this.a = 1; this.b = 0;
+      this.c = 0; this.d = 1;
+      this.e = 0; this.f = 0;
+    }
+  };
+}
 
-// No DOMMatrix polyfill needed for pdf-parse
+if (typeof globalThis.DOMRect === 'undefined') {
+  globalThis.DOMRect = class DOMRect {
+    constructor(x = 0, y = 0, width = 0, height = 0) {
+      this.x = x; this.y = y;
+      this.width = width;
+      this.height = height;
+    }
+  };
+}
+
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Normalize and clean extracted text.
