@@ -157,9 +157,9 @@ export default function LibraryReaderPage() {
 
   return (
     <ProtectedRoute>
-      <div className="fixed inset-0 z-[60] flex flex-col bg-white dark:bg-slate-900">
+      <div className="fixed inset-0 z-[60] flex h-screen w-screen flex-col overflow-hidden bg-white dark:bg-slate-900">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.push('/dashboard/library')}
@@ -198,23 +198,17 @@ export default function LibraryReaderPage() {
         </div>
 
         {/* Viewer Content */}
-        <div className="flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950">
-          <div className="h-full w-full">
-            <iframe
-              src={`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(document.fileUrl)}#page=${currentPage}`}
-              width="100%"
-              height="100%"
-              style={{ border: 'none' }}
-              title="PDF Viewer"
-              onLoad={() => {
-                 // Try to detect page changes if possible, though iframe is restricted
-              }}
-            />
-          </div>
+        <div className="relative flex-1 bg-slate-100 dark:bg-slate-950">
+          <iframe
+            src={`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(document.fileUrl)}#page=${currentPage}`}
+            className="absolute inset-0 h-full w-full"
+            style={{ border: 'none' }}
+            title="PDF Viewer"
+          />
         </div>
 
         {/* Footer Controls */}
-        <div className="border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 sm:px-6">
+        <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 sm:px-6">
           <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div 
               className="h-full transition-all duration-500" 
