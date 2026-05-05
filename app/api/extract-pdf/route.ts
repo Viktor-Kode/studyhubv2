@@ -71,12 +71,14 @@ export async function POST(request: NextRequest) {
             if (!isPDF) throw new Error("File has mismatching extension; headers do not match %PDF magic bytes.");
 
             stage = "extracting_pdf_text";
-            const pdfModule = await import('pdf-parse');
-            const pdfParse = typeof pdfModule.default === 'function' 
-              ? pdfModule.default 
-              : pdfModule;
+            
+            // Using createRequire to handle the CommonJS pdf-parse module in an ESM environment
+            const { createRequire } = await import('module');
+            const require = createRequire(import.meta.url);
+            const pdfParse = require('pdf-parse');
+
             if (typeof pdfParse !== 'function') {
-              throw new Error('pdf-parse module not callable');
+              throw new Error('pdf-parse module not callable after require');
             }
             const data = await pdfParse(buffer);
             extractedText = data.text;
