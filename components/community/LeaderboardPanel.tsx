@@ -119,7 +119,7 @@ export default function LeaderboardPanel({
                   <motion.div
                     key={row.userId}
                     variants={itemVariants}
-                    className={`lb-v2-podium-card ${isFirst ? 'lb-v2-podium-card--1st' : ''} ${isThird ? 'lb-v2-podium-card--3rd' : ''}`}
+                    className={`lb-v2-podium-card ${isFirst ? 'lb-v2-podium-card--1st' : ''} ${isSecond ? 'lb-v2-podium-card--2nd' : ''} ${isThird ? 'lb-v2-podium-card--3rd' : ''}`}
                   >
                     <span className="lb-v2-rank-badge">{row.rank}</span>
                     

@@ -43,6 +43,14 @@
   border-radius: 12px;
   margin-bottom: 32px;
   border: 1px solid var(--lb-card-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 4px;
+}
+
+.lb-v2-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .lb-v2-tab {
@@ -90,7 +98,6 @@
   text-align: center;
   transition: transform 0.3s ease;
   backdrop-filter: blur(10px);
-  order: 2; /* Default order (2nd place) */
 }
 
 .lb-v2-podium-card--1st {
@@ -102,20 +109,24 @@
   order: 1; /* 1st place at top on mobile */
 }
 
+.lb-v2-podium-card--2nd {
+  order: 2; /* 2nd place second on mobile */
+}
+
 .lb-v2-podium-card--3rd {
-  order: 3;
+  order: 3; /* 3rd place third on mobile */
 }
 
 @media (min-width: 480px) {
   .lb-v2-podium-card--1st {
     transform: translateY(-10px);
-    order: 2; /* Middle on desktop */
+    order: 2; /* Middle on desktop (213) */
   }
-  .lb-v2-podium-card:not(.lb-v2-podium-card--1st) {
-    order: 1; /* Left on desktop */
+  .lb-v2-podium-card--2nd {
+    order: 1; /* Left on desktop (213) */
   }
   .lb-v2-podium-card--3rd {
-    order: 3; /* Right on desktop */
+    order: 3; /* Right on desktop (213) */
   }
 }
 
