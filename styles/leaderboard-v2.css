@@ -38,12 +38,20 @@
 
 /* Podium Styles */
 .lb-v2-podium {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
-  gap: 12px;
-  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 40px;
   padding-top: 20px;
+}
+
+@media (min-width: 480px) {
+  .lb-v2-podium {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 12px;
+    align-items: flex-end;
+  }
 }
 
 .lb-v2-podium-card {
@@ -55,14 +63,33 @@
   text-align: center;
   transition: transform 0.3s ease;
   backdrop-filter: blur(10px);
+  order: 2; /* Default order (2nd place) */
 }
 
 .lb-v2-podium-card--1st {
   background: rgba(0, 210, 255, 0.05);
   border: 1.5px solid rgba(0, 210, 255, 0.3);
   box-shadow: 0 0 30px rgba(0, 210, 255, 0.1);
-  transform: translateY(-10px);
+  transform: translateY(0);
   padding-top: 30px;
+  order: 1; /* 1st place at top on mobile */
+}
+
+.lb-v2-podium-card--3rd {
+  order: 3;
+}
+
+@media (min-width: 480px) {
+  .lb-v2-podium-card--1st {
+    transform: translateY(-10px);
+    order: 2; /* Middle on desktop */
+  }
+  .lb-v2-podium-card:not(.lb-v2-podium-card--1st) {
+    order: 1; /* Left on desktop */
+  }
+  .lb-v2-podium-card--3rd {
+    order: 3; /* Right on desktop */
+  }
 }
 
 .lb-v2-podium-card--1st::after {
