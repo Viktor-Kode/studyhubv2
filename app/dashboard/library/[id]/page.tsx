@@ -16,6 +16,7 @@ import {
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import dynamic from 'next/dynamic'
+import { confirmToast } from '@/lib/utils/confirm'
 
 // We still want to use some of the same logic for progress tracking
 export default function LibraryReaderPage() {
@@ -112,7 +113,12 @@ export default function LibraryReaderPage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm(`Delete “${document?.title}”? This cannot be undone.`)) return
+    const ok = await confirmToast(`Delete “${document?.title}”? This cannot be undone.`, {
+      title: 'Delete Document',
+      confirmText: 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
     try {
        const { apiClient } = await import('@/lib/api/client')
        const res = await apiClient.delete(`/library/documents/${id}`)

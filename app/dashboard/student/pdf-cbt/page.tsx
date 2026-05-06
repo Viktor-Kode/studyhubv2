@@ -6,6 +6,8 @@ import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
 import { jsPDF } from 'jspdf'
+import { toast } from 'react-hot-toast'
+import { confirmToast } from '@/lib/utils/confirm'
 
 import './PdfCbt.css'
 
@@ -562,9 +564,16 @@ export default function PdfCbtPage() {
                 </div>
               )}
               <button
-                onClick={() => {
+                onClick={async () => {
                   const remaining = questionsToUse.length - answeredCount
-                  if (remaining > 0 && !window.confirm(`You have ${remaining} unanswered question(s). Submit anyway?`)) return
+                  if (remaining > 0) {
+                    const ok = await confirmToast(`You have ${remaining} unanswered question(s). Submit anyway?`, {
+                      title: 'Submit Exam',
+                      confirmText: 'Submit',
+                      variant: 'info'
+                    })
+                    if (!ok) return
+                  }
                   void handleSubmit()
                 }}
                 className="nav-submit"

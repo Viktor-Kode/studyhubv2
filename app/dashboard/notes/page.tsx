@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'react-hot-toast'
+import { confirmToast } from '@/lib/utils/confirm'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
@@ -323,7 +324,12 @@ export default function MyNotesPage() {
   }, [fetchNotes])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this note?')) return
+    const ok = await confirmToast('Are you sure you want to delete this note?', {
+      title: 'Delete Note',
+      confirmText: 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
     try {
       await notesApi.delete(id)
       fetchNotes()

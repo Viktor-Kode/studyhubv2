@@ -23,6 +23,7 @@ import {
 import { cbtApi } from '@/lib/api/cbt'
 import { extractTextFromFile } from '@/lib/utils/fileExtractor'
 import { toast } from 'react-hot-toast'
+import { confirmToast } from '@/lib/utils/confirm'
 import { useUpgrade } from '@/context/UpgradeContext'
 
 interface QuestionBankProps {
@@ -697,13 +698,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
-  const handleStartNewSession = () => {
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm('Start a new session? Your current questions and progress will be cleared.')
-    ) {
-      return
-    }
+  const handleStartNewSession = async () => {
+    const ok = await confirmToast('Start a new session? Your current questions and progress will be cleared.', {
+      title: 'New Session',
+      confirmText: 'Start New',
+      variant: 'info'
+    })
+    if (!ok) return
     clearSavedSession()
     setNewQuestions([])
     setUserAnswers({})

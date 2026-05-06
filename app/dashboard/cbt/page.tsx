@@ -27,6 +27,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { useUpgrade } from '@/context/UpgradeContext'
 import { toast } from 'react-hot-toast'
 import AdBanner from '@/components/AdBanner'
+import { confirmToast } from '@/lib/utils/confirm'
 
 interface Question extends CBTQuestion { }
 
@@ -596,9 +597,21 @@ export default function CBTPage() {
   // Warn before leaving active exam — must be before any early return to satisfy Rules of Hooks
   useEffect(() => {
     if (viewMode !== 'test' || questions.length === 0) return
-    const handlePopState = () => {
-      const confirmed = window.confirm('You have an active exam. Leaving will lose your progress. Are you sure?')
-      if (!confirmed) window.history.pushState(null, '', window.location.href)
+    const handlePopState = async () => {
+      const ok = await confirmToast('You have an active exam. Leaving will lose your progress. Are you sure?', {
+        title: 'Active Exam',
+        confirmText: 'Leave',
+        variant: 'danger'
+      })
+      if (!ok) {
+        window.history.pushState(null, '', window.location.href)
+      } else {
+        // Since popstate happened, we are already "back" in history logic, 
+        // but pushState(null) might have added one. 
+        // If they confirm, we just let them stay where they are or go back again.
+        // Actually, if they confirm, they want to go back.
+        router.back()
+      }
     }
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
@@ -1143,8 +1156,13 @@ export default function CBTPage() {
                   <FiGrid className="inline-block mr-1" /> Questions
                 </button>
                 <button
-                  onClick={() => {
-                    if (window.confirm('Exit test? Your progress will be lost.')) resetAll()
+                  onClick={async () => {
+                    const ok = await confirmToast('Exit test? Your progress will be lost.', {
+                      title: 'End Exam',
+                      confirmText: 'End Now',
+                      variant: 'danger'
+                    })
+                    if (ok) resetAll()
                   }}
                   className="px-3 py-1 rounded-lg bg-red-500/20 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition"
                 >
@@ -1341,10 +1359,15 @@ export default function CBTPage() {
 
               {currentIndex === questions.length - 1 ? (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const unanswered = questions.length - answeredCount
                     if (unanswered > 0) {
-                      if (!window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return
+                      const ok = await confirmToast(`You have ${unanswered} unanswered question(s). Submit anyway?`, {
+                        title: 'Submit Exam',
+                        confirmText: 'Submit',
+                        variant: 'info'
+                      })
+                      if (!ok) return
                     }
                     handleSubmitTest()
                   }}

@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 import { toast } from 'react-hot-toast'
+import { confirmToast } from '@/lib/utils/confirm'
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 
@@ -849,8 +850,13 @@ function DangerSection() {
   }
 
   const handleClearData = async () => {
-    const ok = window.confirm(
-      'This will clear all your study history, streaks, CBT results and flashcard progress. This cannot be undone. Continue?'
+    const ok = await confirmToast(
+      'This will clear all your study history, streaks, CBT results and flashcard progress. This cannot be undone. Continue?',
+      {
+        title: 'Clear All Study Data',
+        confirmText: 'Clear Data',
+        variant: 'danger'
+      }
     )
     if (!ok) return
     try {

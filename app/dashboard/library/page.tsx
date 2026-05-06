@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import AdBanner from '@/components/AdBanner'
+import { confirmToast } from '@/lib/utils/confirm'
 
 export type LibraryDocument = {
   _id: string
@@ -73,7 +74,12 @@ export default function LibraryPage() {
 
   const handleDeleteFromGrid = async (doc: LibraryDocument, e: MouseEvent) => {
     e.stopPropagation()
-    if (!confirm(`Delete “${doc.title}”? This cannot be undone.`)) return
+    const ok = await confirmToast(`Delete “${doc.title}”? This cannot be undone.`, {
+      title: 'Delete Document',
+      confirmText: 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
     try {
       const token = await getFirebaseToken()
       const res = await fetch(`/api/backend/library/documents/${doc._id}`, {

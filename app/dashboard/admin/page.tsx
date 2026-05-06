@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'react-hot-toast'
+import { confirmToast } from '@/lib/utils/confirm'
 import {
   LayoutDashboard,
   Users,
@@ -207,10 +208,12 @@ function AdminCampaignsTab() {
   const handleSend = async () => {
     if (!form.testMode) {
       const count = audiences?.[form.targetAudience]?.count ?? 0
-      const confirmed = window.confirm(
-        `You are about to send a REAL email to ${count} users.\n\nAre you sure?`
-      )
-      if (!confirmed) return
+      const ok = await confirmToast(`You are about to send a REAL email to ${count} users. Are you sure?`, {
+        title: 'Send Mass Email',
+        confirmText: 'Send Now',
+        variant: 'danger'
+      })
+      if (!ok) return
     }
 
     setSending(true)
