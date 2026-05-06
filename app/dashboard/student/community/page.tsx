@@ -49,34 +49,34 @@ export default function CommunityPage() {
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4 pb-28 max-w-5xl mx-auto">
-        <div className="mb-8">
-            <BackButton label="Back to dashboard" href="/dashboard/student" />
+      <div className="min-h-screen bg-[#0B1220] py-8 px-4 pb-28 max-w-5xl mx-auto overflow-hidden">
+        <div className="mb-6">
+            <BackButton label="Back" href="/dashboard/student" />
         </div>
 
         <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10"
+            className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8"
         >
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             <div className="relative">
-                <div className="absolute inset-0 bg-violet-600 blur-xl opacity-20 animate-pulse" />
-                <div className="relative p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl text-violet-600">
-                    <Trophy className="w-8 h-8" />
+                <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20" />
+                <div className="relative p-3 rounded-2xl bg-white/5 border border-white/10 text-blue-400">
+                    <Trophy className="w-6 h-6" />
                 </div>
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                Hall of Fame
+              <h1 className="text-2xl font-black text-white tracking-tight leading-none mb-1">
+                Leaderboard
               </h1>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                Leaderboard, badges & achievements
+              <p className="text-xs font-bold text-slate-400">
+                Track your progress & earn rewards
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-x-auto no-scrollbar">
             {(
               [
                 ['leaderboard', 'Ranking', Medal],
@@ -88,18 +88,18 @@ export default function CommunityPage() {
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
-                className={`relative flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300 whitespace-nowrap ${
-                  tab === id ? 'text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                className={`relative flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black transition-all duration-300 whitespace-nowrap ${
+                  tab === id ? 'text-white' : 'text-slate-500 hover:bg-white/5'
                 }`}
               >
                 {tab === id && (
                     <motion.div 
                         layoutId="activeTab"
-                        className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl shadow-lg shadow-violet-500/20"
+                        className="absolute inset-0 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/20"
                         transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                     />
                 )}
-                <Icon className={`w-4 h-4 relative z-10 ${tab === id ? 'animate-pulse' : ''}`} />
+                <Icon className={`w-3.5 h-3.5 relative z-10 ${tab === id ? 'animate-pulse' : ''}`} />
                 <span className="relative z-10">{label}</span>
               </button>
             ))}

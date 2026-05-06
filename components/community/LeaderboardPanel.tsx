@@ -1,9 +1,10 @@
 'use client'
 
-import { Crown, Flame, Zap, TrendingUp, ChevronUp } from 'lucide-react'
+import { Crown, Flame, Zap, ChevronUp, Bell, MapPin, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { ProgressPayload } from '@/hooks/useProgress'
 import type { AppUser } from '@/lib/types/auth'
+import '@/styles/leaderboard-v2.css'
 
 export type BoardRow = {
   rank: number
@@ -18,24 +19,8 @@ export type BoardRow = {
   levelName: string
   streak: number
   badges: { id: string; name: string; icon: string }[]
+  displayXP?: number
 }
-
-const EXAM_FILTERS = ['JAMB', 'WAEC', 'NECO', 'POST_UTME', 'BECE'] as const
-
-const SUBJECT_FILTERS = [
-  'Mathematics',
-  'English',
-  'Physics',
-  'Chemistry',
-  'Biology',
-  'Economics',
-  'Government',
-  'Literature',
-  'Geography',
-  'Commerce',
-  'Accounting',
-  'Agriculture',
-]
 
 type TimeframeMode = 'today' | 'week' | 'lifetime'
 
@@ -78,106 +63,109 @@ export default function LeaderboardPanel({
   user,
 }: Props) {
   const top3 = leaderboard.slice(0, 3)
-  const rest = leaderboard.slice(3)
-  const meInList = leaderboard.some((r) => r.isMe)
-
-  const podiumClass = (order: number) => {
-    if (order === 1) return 'gw-podium-slot gw-podium-slot--gold'
-    if (order === 0) return 'gw-podium-slot gw-podium-slot--silver'
-    return 'gw-podium-slot gw-podium-slot--bronze'
-  }
+  const rest = leaderboard.slice(3, 10) // Limit to rank 4-10 as per screenshot
+  
+  // Sort top3 for podium: [2nd, 1st, 3rd]
+  const podiumData = [top3[1], top3[0], top3[2]]
 
   return (
-    <div className="space-y-6">
-      <div className="gw-seg p-1 hide-scrollbar" role="tablist" aria-label="Leaderboard filter">
-        {(
-          [
-            ['today', 'Today'],
-            ['week', 'This Week'],
-            ['lifetime', 'Lifetime'],
-          ] as const
-        ).map(([id, label]) => (
+    <div className="lb-v2-container">
+      {/* Mini Header / Location - As seen in screenshot */}
+      <div className="flex items-center gap-2 mb-6 text-slate-400">
+        <MapPin className="w-4 h-4" />
+        <span className="text-xs font-bold">Abeokuta, Nigeria</span>
+      </div>
+
+      {/* Tabs */}
+      <div className="lb-v2-tabs mb-8">
+        {[
+          { id: 'lifetime', label: 'Global Hall of Fame' },
+          { id: 'week', label: 'Weekly Sprints' },
+          { id: 'today', label: 'Subject Kings' },
+        ].map((tab) => (
           <button
-            key={id}
-            type="button"
-            className={`relative py-2 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
-              timeframe === id
-                ? 'text-white shadow-lg'
-                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            data-active={timeframe === id}
-            onClick={() => setTimeframe(id as TimeframeMode)}
+            key={tab.id}
+            onClick={() => setTimeframe(tab.id as TimeframeMode)}
+            className={`lb-v2-tab ${timeframe === tab.id ? 'active' : ''}`}
           >
-            {timeframe === id && (
-              <motion.div
-                layoutId="activeTimeframeFilter"
-                className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl -z-10"
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-            {label}
+            {tab.label}
           </button>
         ))}
       </div>
 
       {lbLoading ? (
         <div className="grid grid-cols-3 gap-4 h-48 mb-8">
-          <div className="bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
-          <div className="bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse transform translate-y-[-10%]" />
-          <div className="bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse transform translate-y-[5%]" />
+          <div className="bg-white/5 rounded-3xl animate-pulse" />
+          <div className="bg-white/5 rounded-3xl animate-pulse transform -translate-y-4" />
+          <div className="bg-white/5 rounded-3xl animate-pulse" />
         </div>
       ) : (
         <>
+          {/* Podium */}
           {top3.length > 0 && (
             <motion.div
               initial="hidden"
               animate="visible"
               variants={containerVariants}
-              className="gw-podium items-end mb-8 pt-4"
+              className="lb-v2-podium"
             >
-              {[1, 0, 2].map((slot) => {
-                const row = top3[slot]
-                if (!row) return <div key={slot} />
-                const order = slot === 0 ? 1 : slot === 1 ? 0 : 2
+              {podiumData.map((row, idx) => {
+                if (!row) return <div key={idx} />
+                const isFirst = row.rank === 1
+                const isSecond = row.rank === 2
+                const isThird = row.rank === 3
+                
                 return (
                   <motion.div
                     key={row.userId}
                     variants={itemVariants}
-                    className={`${podiumClass(order)} ${
-                      row.isMe ? 'ring-4 ring-violet-500 ring-offset-4 dark:ring-offset-slate-900' : ''
-                    }`}
+                    className={`lb-v2-podium-card ${isFirst ? 'lb-v2-podium-card--1st' : ''}`}
                   >
-                    <div className="relative z-10 flex flex-col items-center">
-                      {order === 1 && (
-                        <motion.div
-                          animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                          transition={{ repeat: Infinity, duration: 3 }}
-                        >
-                          <Crown className="w-10 h-10 mb-2 text-amber-200 drop-shadow-md" />
-                        </motion.div>
-                      )}
-                      {order !== 1 && <div className="h-10 mb-2" />}
-
-                      <div className={`rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-3 border-2 border-white/30 shadow-inner overflow-hidden ${
-                        order === 1 ? 'w-20 h-20 ring-4 ring-amber-400/30' : 'w-14 h-14'
-                      }`}>
-                        {row.avatar ? (
-                          <img src={row.avatar} className="w-full h-full object-cover" alt="" />
-                        ) : (
-                          <span className={order === 1 ? 'text-3xl' : 'text-xl'}>🎓</span>
-                        )}
-                      </div>
-
-                      <div className={`text-center transition-transform ${order === 1 ? 'scale-105 origin-bottom' : 'scale-90 opacity-90 origin-bottom'}`}>
-                        <p className="text-[10px] font-black tracking-widest uppercase opacity-80">Rank #{row.rank}</p>
-                        <p className={`font-extrabold mb-1 drop-shadow-sm truncate w-full px-2 ${order === 1 ? 'text-lg md:text-xl' : 'text-sm'}`}>
-                          {row.name}
-                        </p>
-                        <div className={`inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full font-bold ${order === 1 ? 'text-sm' : 'text-xs'}`}>
-                          <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                          {row.displayXP?.toLocaleString() || row.totalXP.toLocaleString()}
+                    <span className="lb-v2-rank-badge">{row.rank}</span>
+                    
+                    <div className="lb-v2-avatar-wrap">
+                      {isFirst && (
+                        <div className="lb-v2-crown">
+                          <Crown className="w-8 h-8 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
                         </div>
-                      </div>
+                      )}
+                      {row.avatar ? (
+                        <img src={row.avatar} className="lb-v2-avatar" alt="" />
+                      ) : (
+                        <div className="lb-v2-avatar bg-slate-800 flex items-center justify-center text-2xl">
+                          👤
+                        </div>
+                      )}
+                      
+                      {/* Floating mini crowns for 1st place as seen in screenshot */}
+                      {isFirst && (
+                         <>
+                            <Crown className="absolute -right-2 top-2 w-4 h-4 text-amber-400 fill-amber-400 rotate-12" />
+                            <Crown className="absolute -left-2 top-8 w-4 h-4 text-amber-400 fill-amber-400 -rotate-12" />
+                         </>
+                      )}
+                    </div>
+
+                    <p className="lb-v2-name truncate">{row.name}</p>
+                    
+                    <div className="lb-v2-xp-badge">
+                      {isFirst && <Crown className="w-3 h-3" />}
+                      {(row.displayXP || row.totalXP).toLocaleString()} XP
+                    </div>
+
+                    <div className="lb-v2-badges-row">
+                      {row.badges.slice(0, 3).map((b) => (
+                        <div key={b.id} className="lb-v2-badge-mini" title={b.name}>
+                          {b.icon}
+                        </div>
+                      ))}
+                      {row.badges.length === 0 && (
+                        <>
+                          <div className="lb-v2-badge-mini">🏆</div>
+                          <div className="lb-v2-badge-mini">🛡️</div>
+                          <div className="lb-v2-badge-mini">📚</div>
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 )
@@ -185,127 +173,91 @@ export default function LeaderboardPanel({
             </motion.div>
           )}
 
-          <div className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {rest.map((row, idx) => (
-                <motion.div
-                  key={row.userId}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className={`group relative overflow-hidden flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 ${
-                    row.isMe
-                      ? 'bg-violet-50/50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 shadow-md ring-1 ring-violet-500'
-                      : 'bg-white/70 dark:bg-slate-900/70 border-slate-100 dark:border-slate-800 hover:border-violet-300 dark:hover:border-violet-700 backdrop-blur-sm shadow-sm'
-                  }`}
-                >
-                  {/* Decorative background pulse for 'Me' */}
-                  {row.isMe && (
-                    <div className="absolute inset-0 bg-violet-500/5 animate-pulse pointer-events-none" />
-                  )}
-
-                  <div className="flex-shrink-0 w-10 text-center">
-                    <span className={`text-lg font-black ${
-                      row.isMe ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400'
-                    }`}>
-                      #{row.rank}
-                    </span>
-                  </div>
-
-                  <div className="relative flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-violet-400 transition-colors">
-                    {row.avatar ? (
-                      <img src={row.avatar} className="w-full h-full object-cover" alt="" />
-                    ) : (
-                      <span className="text-xl">👤</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-extrabold text-slate-900 dark:text-white truncate flex items-center gap-2">
-                      {row.name}
-                      {row.isMe && (
-                          <span className="px-2 py-0.5 bg-violet-600 text-[10px] text-white rounded-full font-black uppercase">You</span>
+          {/* Rank 4-10 Grid */}
+          <div className="mb-12">
+            <h3 className="lb-v2-list-header">Rank 4-10</h3>
+            <div className="lb-v2-grid">
+              <AnimatePresence mode="popLayout">
+                {rest.map((row, idx) => (
+                  <motion.div
+                    key={row.userId}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="lb-v2-row"
+                  >
+                    <div className="lb-v2-row-avatar relative">
+                      {row.avatar ? (
+                         <img src={row.avatar} className="w-full h-full rounded-full object-cover" alt="" />
+                      ) : (
+                         <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center text-lg">👤</div>
                       )}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                        {row.levelName}
-                      </p>
-                      <p className="text-xs font-bold text-slate-400">·</p>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <Flame className="w-3.5 h-3.5 text-orange-500" />
-                        {row.streak}d
-                      </p>
                     </div>
-                  </div>
+                    
+                    <div className="lb-v2-row-info">
+                      <p className="lb-v2-row-name truncate">{row.name}</p>
+                      <p className="lb-v2-row-xp">{(row.displayXP || row.totalXP).toLocaleString()} XP</p>
+                    </div>
 
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 font-black text-sm">
-                      <Zap className="w-4 h-4 fill-current" />
-                      {row.displayXP?.toLocaleString() || row.totalXP.toLocaleString()}
+                    <div className="lb-v2-row-badge">
+                      {row.badges[0]?.icon || (idx % 3 === 0 ? '🏆' : idx % 3 === 1 ? '🛡️' : '📚')}
                     </div>
-                    <div className="flex -space-x-1.5 overflow-hidden">
-                       {row.badges.slice(0, 3).map((b) => (
-                           <div key={b.id} title={b.name} className="w-6 h-6 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-xs shadow-sm">
-                               {b.icon}
-                           </div>
-                       ))}
-                       {row.badges.length > 3 && (
-                           <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-[8px] font-bold text-slate-600 dark:text-slate-300">
-                               +{row.badges.length - 3}
-                           </div>
-                       )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {leaderboard.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800"
-              >
-                <div className="text-4xl mb-4">🌍</div>
-                <p className="text-slate-500 font-bold">No rankings yet this week. Be the first!</p>
-              </motion.div>
-            )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
           </div>
 
-          {progress && !progLoading && !meInList && (
-            <motion.div
-              initial={{ y: 100 }}
-              animate={{ y: 0 }}
-              className="sticky bottom-6 left-1/2 -ml-[45%] w-[90%] md:ml-0 md:left-0 md:w-full z-40"
-            >
-              <div className="bg-gradient-to-r from-violet-600 to-indigo-700 rounded-3xl p-5 shadow-2xl flex items-center justify-between gap-4 text-white">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-white/20 rounded-lg text-[10px] font-black uppercase">Your Rank</span>
-                    <ChevronUp className="w-4 h-4 animate-bounce" />
-                  </div>
-                  <p className="font-extrabold text-xl truncate tracking-tight">{user?.name || 'Student'}</p>
-                  <p className="text-xs text-white/70 font-bold flex items-center gap-2">
-                    {myRank > 0 ? `#${myRank} overall` : 'Join the competition'}
-                    <span className="w-1 h-1 rounded-full bg-white/30" />
-                    Level {progress.level}
-                  </p>
-                </div>
-                <div className="text-right">
-                   <div className="flex items-center gap-2 bg-black/20 p-2 rounded-2xl">
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-white/60 uppercase m-0 leading-none">XP</p>
-                        <p className="text-xl font-black m-0 tracking-tight">{(myWeeklyXP).toLocaleString()}</p>
-                      </div>
-                      <Zap className="w-8 h-8 text-yellow-300 fill-yellow-300 drop-shadow-lg" />
+          {/* Sticky You Bar */}
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            className="lb-v2-you-bar"
+          >
+            <div className="lb-v2-you-info">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
+                {user?.image ? (
+                   <img src={user.image} className="w-full h-full object-cover" alt="" />
+                ) : (
+                   <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                     {user?.name?.charAt(0) || 'Y'}
                    </div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                   <p className="lb-v2-you-label">YOU</p>
+                   <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] font-black rounded-md">Pinned</span>
+                </div>
+                <div className="lb-v2-you-streak">
+                  <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
+                  <span>{progress?.streak || 0} Day Streak</span>
                 </div>
               </div>
-            </motion.div>
-          )}
+            </div>
+
+            <div className="lb-v2-streak-recovery">
+               {/* Svg Circle Progress */}
+               <svg className="w-full h-full -rotate-90">
+                 <circle
+                   cx="25" cy="25" r="20"
+                   fill="transparent"
+                   stroke="rgba(255,255,255,0.1)"
+                   strokeWidth="4"
+                 />
+                 <circle
+                   cx="25" cy="25" r="20"
+                   fill="transparent"
+                   stroke="#00D2FF"
+                   strokeWidth="4"
+                   strokeDasharray="125.6"
+                   strokeDashoffset="30"
+                   strokeLinecap="round"
+                 />
+               </svg>
+               <span className="lb-v2-streak-recovery-text">Streak<br/>Recovery</span>
+            </div>
+          </motion.div>
         </>
       )}
     </div>
