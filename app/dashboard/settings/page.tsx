@@ -16,6 +16,7 @@ import { firebaseSignOut } from '@/lib/firebase-auth'
 import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
+import { toast } from 'react-hot-toast'
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ function ProfileSection({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be under 2MB')
+      toast.error('Image must be under 2MB')
       return
     }
     const canvas = document.createElement('canvas')
@@ -102,7 +103,7 @@ function ProfileSection({
 
   const handleSave = async () => {
     if (!form.displayName.trim()) {
-      alert('Display name cannot be empty')
+      toast.error('Display name cannot be empty')
       return
     }
     setLoading(true)
@@ -127,7 +128,7 @@ function ProfileSection({
       })
       onSaved()
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save')
+      toast.error(err.response?.data?.message || 'Failed to save')
     } finally {
       setLoading(false)
     }
@@ -312,7 +313,7 @@ function AccountSection({
       await sendPasswordResetEmail(auth, user.email)
       setResetSent(true)
     } catch (err: any) {
-      alert('Failed to send reset email: ' + (err?.message || 'Unknown error'))
+      toast.error('Failed to send reset email: ' + (err?.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -491,11 +492,11 @@ function NotificationsSection({
           setPushEnabled(true)
           await useAuthStore.getState().refreshUser()
           onSaved()
-          alert('Notifications enabled. You can get updates even when the app is closed.')
+          toast.success('Notifications enabled. You can get updates even when the app is closed.')
         } else if (result.reason === 'Permission denied') {
-          alert('Please allow notifications in your browser settings and try again.')
+          toast.error('Please allow notifications in your browser settings and try again.')
         } else {
-          alert(result.reason || 'Could not enable push notifications.')
+          toast.error(result.reason || 'Could not enable push notifications.')
         }
       } else {
         const { disablePushNotifications } = await import('@/lib/services/pushNotifications')
@@ -515,7 +516,7 @@ function NotificationsSection({
       await apiClient.put('/settings', { notificationPrefs: prefs })
       onSaved()
     } catch {
-      alert('Failed to save notification preferences')
+      toast.error('Failed to save notification preferences')
     } finally {
       setLoading(false)
     }
@@ -824,7 +825,7 @@ function DangerSection() {
 
   const handleDeleteAccount = async () => {
     if (confirmDelete !== 'DELETE') {
-      alert('Type DELETE to confirm')
+      toast.error('Type DELETE to confirm')
       return
     }
     setLoading(true)
@@ -835,13 +836,13 @@ function DangerSection() {
         useAuthStore.getState().logout()
         router.push('/auth/login')
       } else {
-        alert(res.data?.message || 'Failed to delete account')
+        toast.error(res.data?.message || 'Failed to delete account')
       }
     } catch (err: any) {
       const msg =
         err.response?.data?.message ||
         'Account deletion may not be supported. Contact support.'
-      alert(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -854,9 +855,9 @@ function DangerSection() {
     if (!ok) return
     try {
       await apiClient.post('/users/clear-data')
-      alert('All study data cleared.')
+      toast.success('All study data cleared.')
     } catch (err: any) {
-      alert(
+      toast.error(
         err.response?.data?.message ||
           'Clear data may not be supported. Your data may be stored locally.'
       )

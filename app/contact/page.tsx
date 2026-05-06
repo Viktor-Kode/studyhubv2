@@ -1,6 +1,7 @@
 'use client'
 import LandingNavbar from '@/components/LandingNavbar'
 import Footer from '@/components/sections/Footer'
+import { toast } from 'react-hot-toast'
 
 export default function ContactPage() {
   return (
@@ -92,7 +93,7 @@ export default function ContactPage() {
               </div>
               <button 
                 type="button" 
-                onClick={() => alert("Message submitted! We will get back to you at studyhelp440@gmail.com.")}
+                onClick={() => toast.success("Message submitted! We will get back to you at studyhelp440@gmail.com.")}
                 className="w-full bg-[#5B4CF5] hover:bg-[#4a3df0] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 Send Message

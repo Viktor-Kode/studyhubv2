@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
+import { toast } from 'react-hot-toast'
 import {
   LayoutDashboard,
   Users,
@@ -691,7 +692,7 @@ function UsersTab({
       a.click()
       window.URL.revokeObjectURL(url)
     } catch {
-      alert('Export failed')
+      toast.error('Export failed')
     }
   }
 
@@ -710,10 +711,10 @@ function UsersTab({
         onRefreshUsers()
         load()
       } else {
-        alert(res.data?.error || 'Failed')
+        toast.error(res.data?.error || 'Failed')
       }
     } catch (e: unknown) {
-      alert((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
+      toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
     }
   }
 
@@ -722,7 +723,7 @@ function UsersTab({
       await apiClient.patch(`/admin/users/${user._id}/verify`, { isVerified: !user.isVerified })
       load()
     } catch (e: unknown) {
-      alert((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
+      toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed')
     }
   }
 

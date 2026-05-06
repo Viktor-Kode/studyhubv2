@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'react-hot-toast'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import GeneratorTabsHeader from '@/components/dashboard/GeneratorTabsHeader'
@@ -327,7 +328,7 @@ export default function MyNotesPage() {
       await notesApi.delete(id)
       fetchNotes()
     } catch {
-      alert('Failed to delete note.')
+      toast.error('Failed to delete note.')
     }
   }
 
@@ -336,7 +337,7 @@ export default function MyNotesPage() {
       await notesApi.togglePin(id)
       fetchNotes()
     } catch {
-      alert('Failed to update pin.')
+      toast.error('Failed to update pin.')
     }
   }
 
@@ -345,7 +346,7 @@ export default function MyNotesPage() {
       await notesApi.update(id, { color })
       fetchNotes()
     } catch {
-      alert('Failed to update color.')
+      toast.error('Failed to update color.')
     }
   }
 
@@ -360,7 +361,7 @@ export default function MyNotesPage() {
       setEditingNote(null)
       fetchNotes()
     } catch {
-      alert('Failed to save note.')
+      toast.error('Failed to save note.')
     }
   }
 
