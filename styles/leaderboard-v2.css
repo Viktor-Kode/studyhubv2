@@ -188,6 +188,10 @@
   left: 10px;
   font-size: 14px;
   font-weight: 900;
+  color: #000000; /* Darker in light mode */
+}
+
+.dark .lb-v2-rank-badge {
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -283,12 +287,16 @@
   background: var(--lb-tab-bg);
 }
 
-.lb-v2-row-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #1E293B;
+.lb-v2-row-rank {
+  font-size: 16px;
+  font-weight: 900;
+  color: #000000; /* Black in light mode */
+  width: 24px;
   flex-shrink: 0;
+}
+
+.dark .lb-v2-row-rank {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .lb-v2-row-info {

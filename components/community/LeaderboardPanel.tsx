@@ -186,6 +186,9 @@ export default function LeaderboardPanel({
                     transition={{ delay: idx * 0.05 }}
                     className="lb-v2-row"
                   >
+                    <div className="lb-v2-row-rank">
+                      {row.rank}
+                    </div>
                     <div className="lb-v2-row-avatar relative">
                       {row.avatar ? (
                          <img src={row.avatar} className="w-full h-full rounded-full object-cover" alt="" />
