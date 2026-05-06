@@ -214,7 +214,7 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <h2 className="text-lg font-bold mb-4 px-2">Core Study Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Link href="/dashboard/cbt" className="action-card teal">
+                <Link href="/dashboard/cbt?start=true" className="action-card teal">
                     <div className="action-icon-wrap"><FiZap className="text-2xl" /></div>
                     <div><h3 className="action-title">Past Question</h3><p className="action-subtitle">WAEC/JAMB/NECO</p></div>
                 </Link>

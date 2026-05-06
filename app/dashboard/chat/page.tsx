@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { motion, AnimatePresence } from 'framer-motion'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
@@ -321,37 +322,43 @@ export default function ChatPage() {
 
   const renderEmptyState = () => (
     <div className="flex h-full items-center justify-center">
-      <div className="text-center px-6">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm dark:bg-slate-900">
-          <HiOutlineSparkles size={28} color={PURPLE} />
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center px-6"
+      >
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-xl shadow-purple-500/20">
+          <HiOutlineSparkles size={36} className="text-white" />
         </div>
-        <h2 className="mb-1 text-xl font-semibold text-gray-900 dark:text-white">
-          Hi there 👋
+        <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
+          Meet your AI Study Tutor 👋
         </h2>
-        <p className="mb-2 text-sm text-gray-500 dark:text-slate-300">
-          I&apos;m your AI tutor. Set your <strong className="text-gray-700 dark:text-slate-200">subject</strong>,{' '}
-          <strong className="text-gray-700 dark:text-slate-200">topic</strong>, and{' '}
-          <strong className="text-gray-700 dark:text-slate-200">class</strong> above, then type your question below.
+        <p className="mx-auto max-w-sm mb-8 text-sm text-gray-500 dark:text-slate-400">
+          I can help you understand complex topics, solve problems, or prepare for exams. Set your context above and let&apos;s begin!
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            'Explain the water cycle 💧',
-            'Solve: 2x² + 5x - 3 = 0 ✏️',
-            'What caused World War I? 🌍',
-            'Describe photosynthesis 🌿',
-          ].map((example) => (
-            <button
-              key={example}
+            { text: 'Explain the water cycle 💧', icon: '💧' },
+            { text: 'Solve: 2x² + 5x - 3 = 0 ✏️', icon: '✏️' },
+            { text: 'What caused World War I? 🌍', icon: '🌍' },
+            { text: 'Describe photosynthesis 🌿', icon: '🌿' },
+          ].map((example, i) => (
+            <motion.button
+              key={example.text}
+              initial={{ opacity: 0, x: i % 2 === 0 ? -10 : 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1 }}
               type="button"
-              onClick={() => handleSend(example)}
-              className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+              onClick={() => handleSend(example.text)}
+              className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm text-gray-700 transition-all hover:border-purple-300 hover:bg-purple-50/50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-purple-900 dark:hover:bg-purple-900/10"
+              style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
             >
-              {example}
-            </button>
+              <span className="flex-1">{example.text}</span>
+              <FiChevronRight className="text-gray-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 
@@ -364,40 +371,51 @@ export default function ChatPage() {
 
     if (isUser) {
       return (
-        <div key={message.id} className="mb-3 flex justify-end">
-          <div className="max-w-[75%] text-right">
+        <motion.div 
+          key={message.id} 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-4 flex justify-end"
+        >
+          <div className="max-w-[85%] text-right">
             <div
-              className="inline-block rounded-[18px_18px_4px_18px] px-4 py-2 text-sm text-white"
+              className="inline-block rounded-[20px_20px_4px_20px] px-4 py-2.5 text-sm text-white shadow-lg shadow-purple-500/10"
               style={{ backgroundColor: PURPLE }}
             >
               {message.content}
             </div>
-            <div className="mt-1 text-xs text-gray-400 dark:text-slate-400">{time}</div>
+            <div className="mt-1.5 flex items-center justify-end gap-1 text-[10px] font-medium text-gray-400 dark:text-slate-500">
+              {time}
+            </div>
           </div>
-        </div>
+        </motion.div>
       )
     }
 
     return (
-      <div key={message.id} className="mb-4 flex items-start gap-3">
+      <motion.div 
+        key={message.id} 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="mb-6 flex items-start gap-3"
+      >
         <div
-          className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: PURPLE }}
+          className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md shadow-purple-500/20"
         >
-          <HiOutlineSparkles size={16} className="text-white" />
+          <HiOutlineSparkles size={18} className="text-white" />
         </div>
-        <div className="relative max-w-[80%]">
+        <div className="relative max-w-[85%] min-w-[200px]">
           <div
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-gray-800 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="group rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-[15px] leading-relaxed text-gray-800 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
           >
             <button
               type="button"
               onClick={() => handleCopy(message)}
-              className="absolute right-3 top-3 text-gray-300 hover:text-gray-500 dark:text-slate-500 dark:hover:text-slate-300"
+              className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-purple-500 dark:text-slate-500 dark:hover:text-purple-400"
             >
               {copiedId === message.id ? <FiCheck size={14} /> : <FiCopy size={14} />}
             </button>
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+            <div className="prose prose-sm max-w-none dark:prose-invert prose-p:leading-relaxed prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800/50">
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex, rehypeHighlight]}
@@ -406,16 +424,20 @@ export default function ChatPage() {
               </ReactMarkdown>
             </div>
           </div>
-          <div className="mt-1 text-xs text-gray-400 dark:text-slate-400">{time}</div>
+          <div className="mt-1.5 flex items-center gap-2 text-[10px] font-medium text-gray-400 dark:text-slate-500">
+            <span>{time}</span>
+            <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span>AI Study Tutor</span>
+          </div>
 
           {message.followUps && message.followUps.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {message.followUps.map((q) => (
                 <button
                   key={q}
                   type="button"
                   onClick={() => handleFollowUpClick(q)}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="rounded-full border border-purple-100 bg-purple-50/50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:border-purple-200 hover:bg-purple-100 transition-all dark:border-purple-900/30 dark:bg-purple-900/10 dark:text-purple-300 dark:hover:bg-purple-900/20"
                 >
                   {q}
                 </button>
@@ -423,7 +445,7 @@ export default function ChatPage() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     )
   }
 
@@ -589,61 +611,78 @@ export default function ChatPage() {
                 {messages.length === 0 ? (
                   renderEmptyState()
                 ) : (
-                  <>
-                    {messages.map((m) => renderMessage(m))}
+                  <div className="space-y-2 pb-4">
+                    <AnimatePresence initial={false}>
+                      {messages.map((m) => renderMessage(m))}
+                    </AnimatePresence>
                     {isSending && (
-                      <div className="mb-4 flex items-start gap-3">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 flex items-start gap-3"
+                      >
                         <div
-                          className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-                          style={{ backgroundColor: PURPLE }}
+                          className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md shadow-purple-500/20"
                         >
-                          <HiOutlineSparkles size={16} className="text-white" />
+                          <HiOutlineSparkles size={18} className="text-white" />
                         </div>
-                        <div className="max-w-[80%]">
+                        <div className="max-w-[85%]">
                           <div
-                            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                           >
-                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
-                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0.15s]" />
-                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0.3s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:0.15s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:0.3s]" />
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                     <div ref={bottomRef} />
-                  </>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           <div
-            className="sticky bottom-0 mt-auto w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-3"
+            className="sticky bottom-0 mt-auto w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-lg dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-3"
+            style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.03)' }}
           >
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                data-tour="ai-tutor-input"
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                placeholder="Ask anything... e.g. Explain photosynthesis in simple terms"
-                className="max-h-32 flex-1 resize-none border-none bg-transparent px-1 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
-              />
-              <button
+            <div className="flex items-end gap-3">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  data-tour="ai-tutor-input"
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  placeholder="Ask anything... e.g. Explain photosynthesis"
+                  className="w-full max-h-32 resize-none border-none bg-transparent px-1 py-2.5 text-[15px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 type="button"
                 data-tour="ai-tutor-send"
                 onClick={() => handleSend()}
                 disabled={!input.trim() || isSending}
-                className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"
+                className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl text-white transition-all shadow-lg"
                 style={{
-                  backgroundColor: !input.trim() || isSending ? '#E5E7EB' : PURPLE,
+                  background: !input.trim() || isSending 
+                    ? '#E5E7EB' 
+                    : `linear-gradient(135deg, ${PURPLE} 0%, #6366f1 100%)`,
+                  boxShadow: !input.trim() || isSending ? 'none' : '0 4px 12px rgba(139, 92, 246, 0.3)',
                   cursor: !input.trim() || isSending ? 'not-allowed' : 'pointer',
                 }}
               >
-                <FiSend size={15} />
-              </button>
+                {isSending ? (
+                  <FiLoader size={18} className="animate-spin" />
+                ) : (
+                  <FiSend size={18} className={input.trim() ? 'translate-x-0.5 -translate-y-0.5' : ''} />
+                )}
+              </motion.button>
             </div>
             <div className="mt-1 flex justify-between">
               <span className="text-xs text-gray-400 dark:text-slate-400">

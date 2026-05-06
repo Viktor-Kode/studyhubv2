@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
@@ -259,6 +259,25 @@ export default function CBTPage() {
   const [loadingStage, setLoadingStage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { showUpgrade } = useUpgrade()
+
+  const searchParams = useSearchParams()
+
+  // When arriving with ?start=true (e.g. from the dashboard card),
+  // always reset to the exam-select screen so the user picks fresh.
+  useEffect(() => {
+    if (searchParams.get('start') === 'true') {
+      clearCbtPersistedState()
+      setSelectedExam(null)
+      setSelectedYear('')
+      setSelectedSubject('')
+      setSelectedSchool('')
+      setQuestionCount(40)
+      setViewMode('exam-select')
+      // Remove the param from the URL without a page reload
+      router.replace('/dashboard/cbt')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const currentExamConfig = examTypes.find(e => e.value === selectedExam)
 
