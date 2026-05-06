@@ -264,7 +264,7 @@ export default function StudentDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <section>
                 <h2 className="text-lg font-bold mb-4 px-2">My Progress</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="streak-card-pinned v3-card">
                         <span className="pinned-badge">Pinned</span>
                         <div className="mt-6 flex flex-col items-center justify-center py-4">
@@ -287,13 +287,11 @@ export default function StudentDashboardPage() {
                             <p className="text-sm text-purple-400 font-bold mt-2">XP: {stats.xp.toLocaleString()}</p>
                         </div>
                     </div>
-                    <Link href="/dashboard/student/community" className="v3-card group border-dashed border-purple-500/30 hover:border-purple-500/60 transition-all flex flex-col justify-center items-center text-center py-6">
-                        <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                            <FiUsers className="text-2xl text-purple-500" />
-                        </div>
-                        <h3 className="font-bold text-sm">Study Community</h3>
-                        <p className="text-[10px] text-gray-500 mt-1">Join thousands of students learning together</p>
-                        <div className="mt-3 text-[10px] text-purple-400 font-bold flex items-center gap-1">Join Now <FiArrowRight className="group-hover:translate-x-1 transition-transform" /></div>
+                </div>
+                <div className="mt-4 px-2">
+                    <Link href="/dashboard/student/community" className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-800 hover:border-purple-500/50 hover:bg-purple-500/5 rounded-xl transition-all group">
+                        <FiUsers className="text-gray-500 group-hover:text-purple-500" />
+                        <span className="text-xs font-bold text-gray-400 group-hover:text-purple-400">Join Study Community</span>
                     </Link>
                 </div>
             </section>
