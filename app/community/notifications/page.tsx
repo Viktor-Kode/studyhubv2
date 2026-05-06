@@ -94,7 +94,7 @@ export default function CommunityNotificationsPage() {
               className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Community
+              Back to Leaderboard
             </Link>
           </div>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

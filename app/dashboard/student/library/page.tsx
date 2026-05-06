@@ -129,7 +129,7 @@ export default function SharedLibraryPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Shared library</h1>
           </div>
           <div className="hidden sm:block shrink-0">
-            <ProgressWidget onViewFull={() => router.push('/community')} />
+            <ProgressWidget onViewFull={() => router.push('/dashboard/student/community')} />
           </div>
         </div>
 

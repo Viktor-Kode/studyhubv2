@@ -640,7 +640,7 @@ export default function CommunityPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Back to dashboard
                 </Link>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">StudyHelp Community</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">StudyHelp Leaderboard</h1>
               </div>
               <div className="relative w-full max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -649,7 +649,7 @@ export default function CommunityPage() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search posts, people, tags…"
                   className="h-10 w-full pl-9"
-                  aria-label="Search community"
+                  aria-label="Search leaderboard"
                 />
               </div>
             </div>
@@ -761,7 +761,7 @@ export default function CommunityPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                     <Users className="h-4 w-4 text-indigo-600" />
-                    Community stats
+                    Leaderboard stats
                   </div>
                   <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
                     <li className="flex justify-between">

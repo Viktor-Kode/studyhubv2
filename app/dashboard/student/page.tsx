@@ -290,8 +290,8 @@ export default function StudentDashboardPage() {
                 </div>
                 <div className="mt-4 px-2">
                     <Link href="/dashboard/student/community" className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-800 hover:border-purple-500/50 hover:bg-purple-500/5 rounded-xl transition-all group">
-                        <FiUsers className="text-gray-500 group-hover:text-purple-500" />
-                        <span className="text-xs font-bold text-gray-400 group-hover:text-purple-400">Join Study Community</span>
+                        <FiAward className="text-gray-500 group-hover:text-purple-500" />
+                        <span className="text-xs font-bold text-gray-400 group-hover:text-purple-400">View Leaderboard</span>
                     </Link>
                 </div>
             </section>
@@ -377,7 +377,7 @@ export default function StudentDashboardPage() {
             <Link href="/dashboard/student" className="nav-item active"><FiHome className="text-xl" /><span>Home</span></Link>
             <Link href="/dashboard/library" className="nav-item"><FiBook className="text-xl" /><span>Library</span></Link>
 
-            <Link href="/dashboard/student/community" className="nav-item"><FiUsers className="text-xl" /><span>Community</span></Link>
+            <Link href="/dashboard/student/community" className="nav-item"><FiAward className="text-xl" /><span>Leaderboard</span></Link>
         </nav>
       </div>
     </ProtectedRoute>

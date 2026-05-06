@@ -48,7 +48,7 @@ const navItems: NavItem[] = [
 
     // Admin only
     { href: '/dashboard/admin', label: 'Admin Dashboard', icon: FiShield, roles: ['admin'] },
-    { href: '/dashboard/student/community', label: 'Community', icon: FiUsers, roles: ['student', 'teacher', 'admin'] },
+    { href: '/dashboard/student/community', label: 'Leaderboard', icon: FiAward, roles: ['student', 'teacher', 'admin'] },
     { href: '/dashboard/admin/logins', label: 'Dashboard Logins', icon: FiClock, roles: ['admin'] },
 ]
 

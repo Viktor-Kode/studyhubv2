@@ -382,7 +382,7 @@ function CommunityProfileInner() {
               className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Community
+              Back to Leaderboard
             </Link>
           </div>
 
@@ -424,7 +424,7 @@ function CommunityProfileInner() {
                     <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                       <Award className="h-4 w-4 shrink-0 text-violet-600" />
                       <span>
-                        Community: {(profile.communityPoints ?? 0).toLocaleString()} · CBT:{' '}
+                        Leaderboard: {(profile.communityPoints ?? 0).toLocaleString()} · CBT:{' '}
                         {(profile.cbtPoints ?? 0).toLocaleString()}
                       </span>
                     </div>
@@ -542,7 +542,7 @@ function CommunityProfileInner() {
                         href="/community"
                         className="mt-4 inline-block rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
                       >
-                        Go to community feed
+                        Go to leaderboard feed
                       </Link>
                     )}
                     {tab === 'bookmarks' && profile.isSelf && (
@@ -550,7 +550,7 @@ function CommunityProfileInner() {
                         href="/community"
                         className="mt-4 inline-block rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
                       >
-                        Browse community
+                        Browse leaderboard
                       </Link>
                     )}
                   </div>
