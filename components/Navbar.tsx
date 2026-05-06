@@ -25,7 +25,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
               <Image
-                src="/favicon-32x32.png"
+                src="/apple-touch-icon.png"
                 alt="StudyHelp Logo"
                 width={32}
                 height={32}

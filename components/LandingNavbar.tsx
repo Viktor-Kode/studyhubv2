@@ -31,7 +31,7 @@ export default function LandingNavbar() {
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="w-10 h-10 border border-cyan-400 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:border-cyan-300 group-hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] overflow-hidden">
               <Image
-                src="/favicon-32x32.png"
+                src="/apple-touch-icon.png"
                 alt="StudyHelp Logo"
                 width={32}
                 height={32}

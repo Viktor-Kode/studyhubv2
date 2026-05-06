@@ -7,8 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
-import {
-    FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
+import { FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut, FiAward,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
     FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone
@@ -19,7 +18,6 @@ import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
-import NotificationBell from '@/components/notifications/NotificationBell'
 import BackButton from '@/components/BackButton'
 
 interface NavItem {
@@ -131,8 +129,12 @@ export default function DashboardLayout({
                             </button>
 
                             <Link href="/dashboard" className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                    <MdSchool className="text-white text-xl" />
+                                <div className="w-8 h-8 overflow-hidden rounded-lg flex items-center justify-center">
+                                    <img 
+                                        src="/apple-touch-icon.png" 
+                                        alt="StudyHelp" 
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
                                 <span className="font-bold text-xl hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                                     StudyHelp
@@ -142,20 +144,6 @@ export default function DashboardLayout({
 
                         {/* Right: User Menu + Theme Toggle */}
                         <div className="flex items-center gap-3">
-
-                            <NotificationBell />
-
-                            {/* WhatsApp Support Quick Link */}
-                            <a
-                                href="https://wa.me/2349163345794"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 transition"
-                                title="Chat on WhatsApp"
-                            >
-                                <FaWhatsapp className="text-xl" />
-                            </a>
-
                             {/* Theme Toggle */}
                             <button
                                 onClick={toggleTheme}
