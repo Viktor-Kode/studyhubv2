@@ -290,6 +290,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     if (tabParam === 'notes') setActiveTab('notes')
     if (tabParam === 'quiz') setActiveTab('quiz')
+    if (tabParam === 'tutor') setActiveTab('tutor')
 
     // Prefer sessionStorage from Practice with Quiz (avoids URI length/decode issues)
     if ((sourceParam === 'notes' || sourceParam === 'library') && typeof window !== 'undefined') {
