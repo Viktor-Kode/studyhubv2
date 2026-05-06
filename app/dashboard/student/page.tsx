@@ -16,7 +16,7 @@ import './dashboard-v3.css'
 import {
   FiBook, FiClock, FiCreditCard, FiBarChart2,
   FiCalendar, FiGrid, FiArrowRight, FiZap, FiBell,
-  FiTarget, FiLoader, FiStar, FiSearch, FiHome, FiUsers, FiCheckCircle, FiAward
+  FiTarget, FiLoader, FiStar, FiHome, FiUsers, FiAward
 } from 'react-icons/fi'
 import { BiTimer, BiBrain } from 'react-icons/bi'
 import Link from 'next/link'
@@ -370,7 +370,7 @@ export default function StudentDashboardPage() {
         <nav className="v3-bottom-nav">
             <Link href="/dashboard/student" className="nav-item active"><FiHome className="text-xl" /><span>Home</span></Link>
             <Link href="/dashboard/library" className="nav-item"><FiBook className="text-xl" /><span>Library</span></Link>
-            <Link href="/dashboard/search" className="nav-item"><FiSearch className="text-xl" /><span>Search</span></Link>
+
             <Link href="/dashboard/student/community" className="nav-item"><FiUsers className="text-xl" /><span>Community</span></Link>
         </nav>
       </div>
@@ -381,15 +381,52 @@ export default function StudentDashboardPage() {
 function SubscriptionStatusCard() {
     const [status, setStatus] = useState<any | null>(null)
     useEffect(() => { paymentApi.getStatus().then(d => d?.success && setStatus(d)) }, [])
+    
     return (
       <div className="sub-card v3-card">
         <div className="flex items-center justify-between mb-4">
-            <div><h3 className="text-xl font-black">{status?.subscription?.plan === 'free' ? 'Standard' : 'Pro'}</h3></div>
-            <Link href="/dashboard/pricing"><FiArrowRight className="text-2xl" /></Link>
+            <div>
+                <h3 className="text-xl font-black">{status?.subscription?.plan === 'free' ? 'Standard' : 'Pro'}</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subscription Status</p>
+            </div>
+            <Link href="/dashboard/pricing" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                <FiArrowRight className="text-lg" />
+            </Link>
         </div>
-        <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-gray-300"><FiCheckCircle className="text-green-500" /><span>Unlimited CBT</span></div>
-            <div className="flex items-center gap-2 text-xs text-gray-300"><FiCheckCircle className="text-green-500" /><span>AI Explanations</span></div>
+
+        <div className="mt-4 p-3 bg-black/20 rounded-xl space-y-3">
+            <p className="text-xs font-bold text-gray-300">Your Current Usage</p>
+            
+            <div className="space-y-2">
+                <div className="flex justify-between items-center text-[11px]">
+                    <span className="flex items-center gap-1.5 text-gray-300">🤖 AI Messages</span>
+                    <span className="font-bold">{status?.usage?.ai?.used ?? 0}/{status?.usage?.ai?.limit ?? 50}</span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-blue-500 transition-all duration-500" 
+                        style={{ width: `${Math.min(100, ((status?.usage?.ai?.used ?? 0) / (status?.usage?.ai?.limit ?? 50)) * 100)}%` }}
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex justify-between items-center text-[11px]">
+                    <span className="flex items-center gap-1.5 text-gray-300">📇 Flashcard Sets</span>
+                    <span className="font-bold">{status?.usage?.flashcards?.used ?? 0}/{status?.usage?.flashcards?.limit ?? 10}</span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-purple-500 transition-all duration-500" 
+                        style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 10)) * 100)}%` }}
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 text-[11px] text-gray-400 bg-orange-500/10 p-2 rounded-lg">
+            <FiClock className="text-orange-500" />
+            <span>Plan expires in <span className="text-orange-400 font-bold">{status?.subscription?.daysLeft ?? 0} day(s)</span></span>
         </div>
       </div>
     )
