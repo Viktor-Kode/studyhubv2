@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
+import ReactMarkdown from 'react-markdown'
 import { fetchStudyNotes, deleteStudyNote, StudyNote } from '@/lib/api/quizApi'
 import { toast } from 'react-hot-toast'
 
@@ -140,8 +141,8 @@ export default function NotesHistory() {
                                 Practice with Quiz
                             </button>
                         </div>
-                        <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300 flex-1 overflow-y-auto">
-                            {selectedNote.content}
+                        <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300 flex-1 overflow-y-auto">
+                            <ReactMarkdown>{selectedNote.content}</ReactMarkdown>
                         </div>
                     </div>
                 ) : (

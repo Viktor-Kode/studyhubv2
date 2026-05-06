@@ -264,7 +264,7 @@ export default function StudentDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <section>
                 <h2 className="text-lg font-bold mb-4 px-2">My Progress</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div className="streak-card-pinned v3-card">
                         <span className="pinned-badge">Pinned</span>
                         <div className="mt-6 flex flex-col items-center justify-center py-4">
@@ -287,6 +287,14 @@ export default function StudentDashboardPage() {
                             <p className="text-sm text-purple-400 font-bold mt-2">XP: {stats.xp.toLocaleString()}</p>
                         </div>
                     </div>
+                    <Link href="/dashboard/student/community" className="v3-card group border-dashed border-purple-500/30 hover:border-purple-500/60 transition-all flex flex-col justify-center items-center text-center py-6">
+                        <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <FiUsers className="text-2xl text-purple-500" />
+                        </div>
+                        <h3 className="font-bold text-sm">Study Community</h3>
+                        <p className="text-[10px] text-gray-500 mt-1">Join thousands of students learning together</p>
+                        <div className="mt-3 text-[10px] text-purple-400 font-bold flex items-center gap-1">Join Now <FiArrowRight className="group-hover:translate-x-1 transition-transform" /></div>
+                    </Link>
                 </div>
             </section>
             <section>
@@ -428,6 +436,19 @@ function SubscriptionStatusCard() {
             <FiClock className="text-orange-500" />
             <span>Plan expires in <span className="text-orange-400 font-bold">{status?.subscription?.daysLeft ?? 0} day(s)</span></span>
         </div>
+
+        {status?.subscription?.plan === 'free' && (
+            <div className="mt-6">
+                <Link 
+                    href="/dashboard/pricing" 
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    <FiZap className="animate-pulse text-yellow-300" />
+                    <span>Upgrade to Pro Plan</span>
+                </Link>
+                <p className="text-[10px] text-center text-gray-500 mt-2 font-medium">Unlock unlimited AI messages & more</p>
+            </div>
+        )}
       </div>
     )
 }
