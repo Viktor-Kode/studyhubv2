@@ -39,12 +39,26 @@ export const reminderService = {
     async getUpcoming(userId: string, days: number = 7): Promise<Reminder[]> {
         const all = await this.getAll(userId)
         const now = new Date()
-        const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+        
+        // Start of today in local time
+        const startOfToday = new Date(now)
+        startOfToday.setHours(0, 0, 0, 0)
+        
+        // End of the range (X days from now)
+        const futureDate = new Date(startOfToday.getTime() + (days + 1) * 24 * 60 * 60 * 1000)
 
         return all
             .filter(r => {
+                // Parse date and time in local context
                 const reminderDate = new Date(`${r.date}T${r.time}`)
-                return reminderDate >= now && reminderDate <= futureDate && !r.completed
+                // Include if it's today (even if time passed) or in the future range, and not completed
+                return reminderDate >= startOfToday && reminderDate <= futureDate && !r.completed
+            })
+            .sort((a, b) => {
+                // Sort by date then time
+                const dateCompare = a.date.localeCompare(b.date)
+                if (dateCompare !== 0) return dateCompare
+                return a.time.localeCompare(b.time)
             })
     },
 

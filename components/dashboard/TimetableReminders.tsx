@@ -12,6 +12,10 @@ import {
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'react-hot-toast'
+import { format } from 'date-fns'
+
+// Helper for local YYYY-MM-DD
+const getLocalDate = (date: Date = new Date()) => format(date, 'yyyy-MM-dd')
 
 type TabMode = 'calendar' | 'list' | 'settings'
 type FilterType = 'all' | 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
@@ -26,7 +30,7 @@ export default function TimetableReminders() {
     const [loading, setLoading] = useState(true)
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDate())
     const [viewDate, setViewDate] = useState(new Date()) // Month/Year currently being viewed
     const [testingSend, setTestingSend] = useState(false)
     const [sendSuccess, setSendSuccess] = useState(false)
@@ -36,7 +40,7 @@ export default function TimetableReminders() {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDate(),
         time: '09:00',
         type: 'study' as Reminder['type'],
         subject: '',
@@ -57,7 +61,7 @@ export default function TimetableReminders() {
 
     useEffect(() => {
         filterReminders()
-    }, [reminders, filterType, searchQuery, selectedDate])
+    }, [reminders, filterType, searchQuery, selectedDate, activeTab])
 
     const loadReminders = async () => {
         if (!user?.uid) return
@@ -69,9 +73,6 @@ export default function TimetableReminders() {
             setLoading(false)
         }
     }
-
-
-
 
     const filterReminders = () => {
         let filtered = [...reminders]
@@ -110,15 +111,13 @@ export default function TimetableReminders() {
         e.preventDefault()
         if (!user?.uid) return
 
-        const reminderData = {
-            ...formData
-        }
-
         try {
             if (editingId) {
-                await reminderService.update(user.uid, editingId, reminderData)
+                await reminderService.update(user.uid, editingId, formData)
+                toast.success('Reminder updated')
             } else {
-                await reminderService.add(user.uid, reminderData)
+                await reminderService.add(user.uid, formData)
+                toast.success('Reminder added')
             }
 
             loadReminders()
@@ -134,6 +133,7 @@ export default function TimetableReminders() {
         if (confirm('Delete this reminder?')) {
             await reminderService.delete(user.uid, id)
             loadReminders()
+            toast.success('Reminder deleted')
         }
     }
 
@@ -159,6 +159,7 @@ export default function TimetableReminders() {
         if (!user?.uid) return
         await reminderService.markCompleted(user.uid, id)
         loadReminders()
+        toast.success('Task completed!')
     }
 
     const resetForm = () => {
@@ -178,7 +179,6 @@ export default function TimetableReminders() {
         setEditingId(null)
         setShowAddForm(false)
     }
-
 
     const typeOptions = [
         { value: 'study', label: 'Study Session', color: 'blue', icon: '📚' },
@@ -200,7 +200,7 @@ export default function TimetableReminders() {
         return colorMap[type] || colorMap.study
     }
 
-    const todayReminders = reminders.filter(r => r.date === new Date().toISOString().split('T')[0] && !r.completed)
+    const todayReminders = reminders.filter(r => r.date === getLocalDate() && !r.completed)
     const [upcomingRemindersCount, setUpcomingRemindersCount] = useState(0)
 
     useEffect(() => {
@@ -213,11 +213,9 @@ export default function TimetableReminders() {
 
     return (
         <div className="space-y-6">
-
             {/* Top Bar */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                    {/* Tab Switcher */}
                     <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
                         {(['calendar', 'list', 'settings'] as TabMode[]).map(tab => (
                             <button
@@ -288,11 +286,8 @@ export default function TimetableReminders() {
                 </div>
             )}
 
-            {/* Settings Tab */}
             {activeTab === 'settings' && (
                 <div className="space-y-6">
-
-                    {/* Notification Preferences */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
@@ -334,117 +329,51 @@ export default function TimetableReminders() {
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
 
-            {/* Calendar View */}
-            {
-                activeTab === 'calendar' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* Monthly Calendar Grid */}
-                        <div className="lg:col-span-8 flex flex-col gap-4">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                                <CalendarGrid
-                                    viewDate={viewDate}
-                                    setViewDate={setViewDate}
-                                    selectedDate={selectedDate}
-                                    setSelectedDate={setSelectedDate}
-                                    reminders={reminders}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Reminders for Selected Date */}
-                        <div className="lg:col-span-4">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm sticky top-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-gray-900 dark:text-white">
-                                        {new Date(selectedDate).toLocaleDateString('en-US', {
-                                            month: 'short', day: 'numeric'
-                                        })} Reminders
-                                    </h3>
-                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300">
-                                        {filteredReminders.length} tasks
-                                    </span>
-                                </div>
-
-                                {filteredReminders.length === 0 ? (
-                                    <div className="text-center py-12 bg-gray-50/50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-600">
-                                        <FiCalendar className="mx-auto text-4xl mb-3 text-gray-300" />
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Rest day! No tasks</p>
-                                        <button
-                                            onClick={() => {
-                                                setFormData({ ...formData, date: selectedDate })
-                                                setShowAddForm(true)
-                                            }}
-                                            className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-semibold inline-flex items-center gap-1"
-                                        >
-                                            <FiPlus /> Add Task
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                                        {filteredReminders.map(reminder => (
-                                            <ReminderCardSmall
-                                                key={reminder.id}
-                                                reminder={reminder}
-                                                onEdit={handleEdit}
-                                                onDelete={handleDelete}
-                                                onComplete={handleMarkComplete}
-                                                getTypeColor={getTypeColor}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+            {activeTab === 'calendar' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-8 flex flex-col gap-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <CalendarGrid
+                                viewDate={viewDate}
+                                setViewDate={setViewDate}
+                                selectedDate={selectedDate}
+                                setSelectedDate={setSelectedDate}
+                                reminders={reminders}
+                            />
                         </div>
                     </div>
-                )
-            }
 
-            {/* List View */}
-            {
-                activeTab === 'list' && (
-                    <div className="space-y-4">
-                        {/* Filters */}
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                            <div className="flex flex-wrap gap-3">
-                                <div className="flex-1 min-w-64 relative">
-                                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                        placeholder="Search reminders..."
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 
-                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                    />
-                                </div>
-                                <select
-                                    value={filterType}
-                                    onChange={e => setFilterType(e.target.value as FilterType)}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 
-                           rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                >
-                                    <option value="all">All Types</option>
-                                    {typeOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
+                    <div className="lg:col-span-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm sticky top-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-gray-900 dark:text-white">
+                                    {format(new Date(`${selectedDate}T12:00:00`), 'MMM d')} Reminders
+                                </h3>
+                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300">
+                                    {filteredReminders.length} tasks
+                                </span>
                             </div>
-                        </div>
 
-                        {/* Reminders List */}
-                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                             {filteredReminders.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                                    <FiFilter className="mx-auto text-4xl mb-3 opacity-50" />
-                                    <p>No reminders found</p>
+                                <div className="text-center py-12 bg-gray-50/50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-600">
+                                    <FiCalendar className="mx-auto text-4xl mb-3 text-gray-300" />
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">Rest day! No tasks</p>
+                                    <button
+                                        onClick={() => {
+                                            setFormData({ ...formData, date: selectedDate })
+                                            setShowAddForm(true)
+                                        }}
+                                        className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-semibold inline-flex items-center gap-1"
+                                    >
+                                        <FiPlus /> Add Task
+                                    </button>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
                                     {filteredReminders.map(reminder => (
-                                        <ReminderCard
+                                        <ReminderCardSmall
                                             key={reminder.id}
                                             reminder={reminder}
                                             onEdit={handleEdit}
@@ -457,200 +386,242 @@ export default function TimetableReminders() {
                             )}
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
-            {/* Add/Edit Form Modal */}
-            {
-                showAddForm && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {editingId ? 'Edit Reminder' : 'Add New Reminder'}
-                                </h2>
-                                <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                                    <FiX className="text-gray-500" />
-                                </button>
+            {activeTab === 'list' && (
+                <div className="space-y-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="flex flex-wrap gap-3">
+                            <div className="flex-1 min-w-64 relative">
+                                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="Search reminders..."
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 
+                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                />
+                            </div>
+                            <select
+                                value={filterType}
+                                onChange={e => setFilterType(e.target.value as FilterType)}
+                                className="px-4 py-2 border border-gray-300 dark:border-gray-600 
+                           rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                            >
+                                <option value="all">All Types</option>
+                                {typeOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        {filteredReminders.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                                <FiFilter className="mx-auto text-4xl mb-3 opacity-50" />
+                                <p>No reminders found</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {filteredReminders.map(reminder => (
+                                    <ReminderCard
+                                        key={reminder.id}
+                                        reminder={reminder}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onComplete={handleMarkComplete}
+                                        getTypeColor={getTypeColor}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {showAddForm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {editingId ? 'Edit Reminder' : 'Add New Reminder'}
+                            </h2>
+                            <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                                <FiX className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Title *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.title}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    placeholder="e.g., Math Exam, Chemistry Assignment"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                />
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {/* Title */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    rows={3}
+                                    placeholder="Additional details..."
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Title *
+                                        Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.date}
+                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Time *
+                                    </label>
+                                    <input
+                                        type="time"
+                                        required
+                                        value={formData.time}
+                                        onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Type *
+                                    </label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                    >
+                                        {typeOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.icon} {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Notify Before
+                                    </label>
+                                    <select
+                                        value={formData.notifyBefore}
+                                        onChange={e => setFormData({ ...formData, notifyBefore: Number(e.target.value) })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                    >
+                                        <option value={5}>5 minutes</option>
+                                        <option value={15}>15 minutes</option>
+                                        <option value={30}>30 minutes</option>
+                                        <option value={60}>1 hour</option>
+                                        <option value={1440}>1 day</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Subject (optional)
                                     </label>
                                     <input
                                         type="text"
-                                        required
-                                        value={formData.title}
-                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                        placeholder="e.g., Math Exam, Chemistry Assignment"
+                                        value={formData.subject}
+                                        onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                                        placeholder="e.g., Mathematics"
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                                     />
                                 </div>
-
-                                {/* Description */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Description
+                                        Location (optional)
                                     </label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        rows={3}
-                                        placeholder="Additional details..."
+                                    <input
+                                        type="text"
+                                        value={formData.location}
+                                        onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                        placeholder="e.g., Room 101"
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                             rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                                rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                                     />
                                 </div>
+                            </div>
 
-                                {/* Date and Time */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Date *
-                                        </label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={formData.date}
-                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Time *
-                                        </label>
-                                        <input
-                                            type="time"
-                                            required
-                                            value={formData.time}
-                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        />
-                                    </div>
-                                </div>
+                            <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2">
+                                    Notification Channels
+                                </h4>
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.emailEnabled}
+                                        onChange={e => setFormData({ ...formData, emailEnabled: e.target.checked })}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <FiMail className="text-blue-500 text-lg" />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                                        Email Notification
+                                    </span>
+                                </label>
+                            </div>
 
-                                {/* Type and Notify Before */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Type *
-                                        </label>
-                                        <select
-                                            value={formData.type}
-                                            onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        >
-                                            {typeOptions.map(opt => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.icon} {opt.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Notify Before
-                                        </label>
-                                        <select
-                                            value={formData.notifyBefore}
-                                            onChange={e => setFormData({ ...formData, notifyBefore: Number(e.target.value) })}
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        >
-                                            <option value={5}>5 minutes</option>
-                                            <option value={15}>15 minutes</option>
-                                            <option value={30}>30 minutes</option>
-                                            <option value={60}>1 hour</option>
-                                            <option value={1440}>1 day</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Subject and Location */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Subject (optional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.subject}
-                                            onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                                            placeholder="e.g., Mathematics"
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Location (optional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.location}
-                                            onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                            placeholder="e.g., Room 101"
-                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 
-                               rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Notifications */}
-                                <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                    <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2">
-                                        Notification Channels
-                                    </h4>
-                                    <label className="flex items-center gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.emailEnabled}
-                                            onChange={e => setFormData({ ...formData, emailEnabled: e.target.checked })}
-                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                        />
-                                        <FiMail className="text-blue-500 text-lg" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                            Email Notification
-                                        </span>
-                                    </label>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex gap-3 pt-4">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white 
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white 
                              rounded-xl transition font-bold"
-                                    >
-                                        {editingId ? 'Update Reminder' : 'Add Reminder'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={resetForm}
-                                        className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white 
+                                >
+                                    {editingId ? 'Update Reminder' : 'Add Reminder'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white 
                              rounded-xl transition font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div >
     )
 }
 
-// Calendar Grid Component
 function CalendarGrid({
     viewDate,
     setViewDate,
@@ -679,12 +650,8 @@ function CalendarGrid({
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     const calendarDays = []
-    for (let i = 0; i < startDay; i++) {
-        calendarDays.push(null)
-    }
-    for (let i = 1; i <= totalDays; i++) {
-        calendarDays.push(i)
-    }
+    for (let i = 0; i < startDay; i++) { calendarDays.push(null) }
+    for (let i = 1; i <= totalDays; i++) { calendarDays.push(i) }
 
     const isToday = (day: number) => {
         const today = new Date()
@@ -698,7 +665,6 @@ function CalendarGrid({
 
     return (
         <div className="select-none">
-            {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                     {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(viewDate)}
@@ -719,7 +685,6 @@ function CalendarGrid({
                 </div>
             </div>
 
-            {/* Grid */}
             <div className="grid grid-cols-7 gap-1 md:gap-2">
                 {weekdays.map(day => (
                     <div key={day} className="py-2 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -766,7 +731,6 @@ function CalendarGrid({
     )
 }
 
-// Smaller Reminder Card for Calendar View
 function ReminderCardSmall({
     reminder,
     onEdit,
@@ -810,7 +774,6 @@ function ReminderCardSmall({
     )
 }
 
-// Reminder Card Component
 function ReminderCard({
     reminder,
     onEdit,
@@ -825,17 +788,20 @@ function ReminderCard({
     getTypeColor: (type: Reminder['type']) => string
 }) {
     const isPast = new Date(`${reminder.date}T${reminder.time}`) < new Date()
-    const isToday = reminder.date === new Date().toISOString().split('T')[0]
+    const isToday = reminder.date === format(new Date(), 'yyyy-MM-dd')
+
+    const displayDate = (dateStr: string) => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    };
 
     return (
-        <div className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${reminder.completed ? 'opacity-60' : ''
-            }`}>
+        <div className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${reminder.completed ? 'opacity-60' : ''}`}>
             <div className="flex items-start gap-3">
                 <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                         <div>
-                            <h4 className={`font-semibold text-gray-900 dark:text-white ${reminder.completed ? 'line-through' : ''
-                                }`}>
+                            <h4 className={`font-semibold text-gray-900 dark:text-white ${reminder.completed ? 'line-through' : ''}`}>
                                 {reminder.title}
                             </h4>
                             {reminder.description && (
@@ -852,7 +818,7 @@ function ReminderCard({
                     <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400 mb-2">
                         <span className="flex items-center gap-1">
                             <FiCalendar className="text-xs" />
-                            {isToday ? 'Today' : new Date(reminder.date).toLocaleDateString()}
+                            {isToday ? 'Today' : displayDate(reminder.date)}
                         </span>
                         <span className="flex items-center gap-1">
                             <FiClock className="text-xs" />
@@ -874,20 +840,17 @@ function ReminderCard({
 
                     <div className="flex items-center gap-2 flex-wrap">
                         {reminder.emailEnabled && (
-                            <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 
-                               bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                            <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
                                 <FiMail /> Email
                             </span>
                         )}
                         {reminder.recurring !== 'none' && (
-                            <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 
-                               bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded">
+                            <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded">
                                 <FiRepeat /> {reminder.recurring}
                             </span>
                         )}
                         {isPast && !reminder.completed && (
-                            <span className="text-xs text-red-600 dark:text-red-400 
-                               bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
+                            <span className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
                                 <FiAlertTriangle className="inline mr-1" /> Overdue
                             </span>
                         )}
@@ -898,8 +861,7 @@ function ReminderCard({
                     {!reminder.completed && (
                         <button
                             onClick={() => onComplete(reminder.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 
-                         rounded-lg transition"
+                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
                             title="Mark as complete"
                         >
                             <FiCheckCircle />
@@ -907,15 +869,13 @@ function ReminderCard({
                     )}
                     <button
                         onClick={() => onEdit(reminder)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 
-                       rounded-lg transition"
+                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                     >
                         <FiEdit2 />
                     </button>
                     <button
                         onClick={() => onDelete(reminder.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 
-                       rounded-lg transition"
+                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                     >
                         <FiTrash2 />
                     </button>

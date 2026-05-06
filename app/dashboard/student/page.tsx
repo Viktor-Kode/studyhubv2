@@ -239,12 +239,25 @@ export default function StudentDashboardPage() {
                 <Link href="/dashboard/timetable" className="text-purple-400 text-xs font-bold flex items-center gap-1">Manage <FiArrowRight /></Link>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-                {upcomingReminders.length > 0 ? upcomingReminders.map((reminder) => (
-                    <div key={reminder.id} className="v3-card min-w-[280px] flex items-center justify-between">
-                        <div><p className="font-bold text-sm">{reminder.title}</p><p className="text-xs text-gray-400">{reminder.time} • {new Date(reminder.date).toLocaleDateString()}</p></div>
-                        <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center"><FiClock className="text-orange-500" /></div>
-                    </div>
-                )) : <div className="v3-card w-full flex items-center justify-center py-6 border-dashed opacity-60"><p className="text-sm text-gray-400 italic">No reminders for now</p></div>}
+                {upcomingReminders.length > 0 ? upcomingReminders.map((reminder) => {
+                    // Avoid UTC shifting for display
+                    const [y, m, d] = reminder.date.split('-').map(Number);
+                    const localDate = new Date(y, m - 1, d);
+                    
+                    return (
+                        <div key={reminder.id} className="v3-card min-w-[280px] flex items-center justify-between">
+                            <div>
+                                <p className="font-bold text-sm">{reminder.title}</p>
+                                <p className="text-xs text-gray-400">
+                                    {reminder.time} • {localDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                <FiClock className="text-orange-500" />
+                            </div>
+                        </div>
+                    );
+                }) : <div className="v3-card w-full flex items-center justify-center py-6 border-dashed opacity-60"><p className="text-sm text-gray-400 italic">No reminders for now</p></div>}
             </div>
         </section>
 
