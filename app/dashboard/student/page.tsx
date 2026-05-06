@@ -75,22 +75,28 @@ export default function StudentDashboardPage() {
         
         if (summaryRes?.data?.data) {
           const sumData = summaryRes.data.data;
+          
+          // Use login streak if it's higher than activity streak
+          const loginStreak = progData?.streak || 0;
+          const activityStreak = sumData.streak?.current || 0;
+          const displayStreak = Math.max(loginStreak, activityStreak);
+
           setStats({
-            totalQuestions: sumData.cbt.totalQuestions || 0,
-            quizSessions: sumData.studyTimer.totalSessions || 0,
-            studyHours: sumData.studyTimer.totalTime || '0m',
-            studyHoursToday: sumData.studyTimer.todayTime || '0m',
-            studyStreak: sumData.streak.current || 0,
-            longestStreak: sumData.streak.longest || 0,
-            studiedToday: sumData.streak.studiedToday || false,
-            completedSessions: sumData.studyTimer.totalSessions || 0,
-            totalFlashcards: sumData.flashcards.totalCards || 0,
-            masteredCards: sumData.flashcards.mastered || 0,
-            masteryRate: sumData.flashcards.masteryRate || '0%',
+            totalQuestions: sumData.cbt?.totalQuestions || 0,
+            quizSessions: sumData.studyTimer?.totalSessions || 0,
+            studyHours: sumData.studyTimer?.totalTime || '0m',
+            studyHoursToday: sumData.studyTimer?.todayTime || '0m',
+            studyStreak: displayStreak,
+            longestStreak: Math.max(sumData.streak?.longest || 0, loginStreak),
+            studiedToday: sumData.streak?.studiedToday || false,
+            completedSessions: sumData.studyTimer?.totalSessions || 0,
+            totalFlashcards: sumData.flashcards?.totalCards || 0,
+            masteredCards: sumData.flashcards?.mastered || 0,
+            masteryRate: sumData.flashcards?.masteryRate || '0%',
             upcomingReminders: reminders.length,
-            cbtExamsTaken: sumData.cbt.examsTaken || 0,
-            cbtAccuracy: parseInt(sumData.cbt.overallAccuracy) || 0,
-            bestCBTSubject: sumData.cbt.bestSubject || 'N/A',
+            cbtExamsTaken: sumData.cbt?.examsTaken || 0,
+            cbtAccuracy: parseInt(sumData.cbt?.overallAccuracy) || 0,
+            bestCBTSubject: sumData.cbt?.bestSubject || 'N/A',
             xp: progData?.xp || 0,
             level: progData?.levelInfo?.level || 1,
             rank: progData?.levelInfo?.name || 'Novice',
@@ -110,9 +116,21 @@ export default function StudentDashboardPage() {
             }
           })
           setActivities(timeline)
+        } else if (progData) {
+          // Fallback if summary API fails but progress API works
+          setStats(prev => ({
+            ...prev,
+            xp: progData.xp || 0,
+            level: progData.levelInfo?.level || 1,
+            rank: progData.levelInfo?.name || 'Novice',
+            nextRank: progData.levelInfo?.nextLevel?.name || 'Scholar',
+            progressToNext: progData.levelInfo?.progress || 0,
+            studyStreak: progData.streak || 0
+          }));
         }
       }
     } catch (err: any) {
+      console.error('Dashboard Load Error:', err);
       setDashboardError(getErrorMessage(err))
     } finally {
       setLoading(false)
@@ -131,6 +149,8 @@ export default function StudentDashboardPage() {
       const d = res.data as { xpAdded?: number; newBadges?: { icon: string; name: string }[] }
       if (d.xpAdded != null) showXPToast(d.xpAdded)
       if (d.newBadges?.length) showBadgeToast(d.newBadges[0])
+      // Refresh to update streak
+      loadDashboardData();
     }).catch(() => { })
   }, [user?.uid])
 
@@ -143,7 +163,7 @@ export default function StudentDashboardPage() {
           <div className="dashboard-v3-container flex items-center justify-center min-h-screen">
               <div className="text-center">
                   <FiLoader className="w-12 h-12 animate-spin text-purple-500 mx-auto mb-4" />
-                  <p className="text-gray-400 font-medium">Preparing your study hub...</p>
+                  <p className="font-medium opacity-60">Preparing your study hub...</p>
               </div>
           </div>
       )
