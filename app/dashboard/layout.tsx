@@ -323,11 +323,35 @@ export default function DashboardLayout({
                 {/* Main Content */}
                 <main className="pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))] lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
                     <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-hidden">
-                        {pathname !== '/dashboard' && pathname !== '/dashboard/student' && pathname !== '/dashboard/admin' && (
-                            <div className="mb-4">
-                                <BackButton />
-                            </div>
-                        )}
+                        {(() => {
+                            const noGlobalBack = [
+                                '/dashboard',
+                                '/dashboard/student',
+                                '/dashboard/admin',
+                            ]
+                            const hasOwnBack = [
+                                '/dashboard/student/study-groups',
+                                '/dashboard/student/pomodoro',
+                                '/dashboard/student/notes',
+                                '/dashboard/student/library',
+                                '/dashboard/student/group-cbt',
+                                '/dashboard/student/community',
+                                '/dashboard/student/cbt/syllabus',
+                                '/dashboard/cbt/study',
+                                '/dashboard/tutor',
+                                '/dashboard/admin/logins',
+                                '/dashboard/admin/logins-today',
+                                '/dashboard/admin/email-test',
+                                '/dashboard/settings/test-email',
+                            ]
+                            const shouldShow = !noGlobalBack.includes(pathname) &&
+                                !hasOwnBack.some(p => pathname === p || pathname.startsWith(p + '/'))
+                            return shouldShow ? (
+                                <div className="mb-4">
+                                    <BackButton />
+                                </div>
+                            ) : null
+                        })()}
                         <ProtectedRoute>
                             {children}
                         </ProtectedRoute>

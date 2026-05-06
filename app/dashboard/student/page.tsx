@@ -57,80 +57,92 @@ export default function StudentDashboardPage() {
   })
 
   const loadDashboardData = async () => {
+    if (!user?.uid) return
     try {
-      if (user?.uid) {
-        setLoading(true)
-        setDashboardError(null)
-        const [classes, reminders, summaryRes, progressRes] = await Promise.all([
-          classService.getStudentClasses(user.uid),
-          reminderService.getUpcoming(user.uid, 7),
-          apiClient.get('/dashboard/summary').catch(() => null),
-          progressApi.getProgress().catch(() => null)
-        ])
+      setLoading(true)
+      setDashboardError(null)
 
-        setEnrolledClasses(classes)
-        setUpcomingReminders(reminders)
+      // Fire all requests in parallel — each has its own .catch so one failure doesn't kill the rest
+      const [classes, reminders, summaryRes, progressRes] = await Promise.all([
+        classService.getStudentClasses(user.uid).catch(() => [] as Class[]),
+        reminderService.getUpcoming(user.uid, 7).catch(() => [] as Reminder[]),
+        apiClient.get('/dashboard/summary').catch(() => null),
+        progressApi.getMe().catch(() => null),   // ← was getProgress() which doesn't exist
+      ])
 
-        const progData = progressRes?.data?.data || progressRes?.data;
-        
-        if (summaryRes?.data?.data) {
-          const sumData = summaryRes.data.data;
-          
-          // Use login streak if it's higher than activity streak
-          const loginStreak = progData?.streak || 0;
-          const activityStreak = sumData.streak?.current || 0;
-          const displayStreak = Math.max(loginStreak, activityStreak);
+      setEnrolledClasses(classes)
+      setUpcomingReminders(reminders)
 
-          setStats({
-            totalQuestions: sumData.cbt?.totalQuestions || 0,
-            quizSessions: sumData.studyTimer?.totalSessions || 0,
-            studyHours: sumData.studyTimer?.totalTime || '0m',
-            studyHoursToday: sumData.studyTimer?.todayTime || '0m',
-            studyStreak: displayStreak,
-            longestStreak: Math.max(sumData.streak?.longest || 0, loginStreak),
-            studiedToday: sumData.streak?.studiedToday || false,
-            completedSessions: sumData.studyTimer?.totalSessions || 0,
-            totalFlashcards: sumData.flashcards?.totalCards || 0,
-            masteredCards: sumData.flashcards?.mastered || 0,
-            masteryRate: sumData.flashcards?.masteryRate || '0%',
-            upcomingReminders: reminders.length,
-            cbtExamsTaken: sumData.cbt?.examsTaken || 0,
-            cbtAccuracy: parseInt(sumData.cbt?.overallAccuracy) || 0,
-            bestCBTSubject: sumData.cbt?.bestSubject || 'N/A',
-            xp: progData?.xp || 0,
-            level: progData?.levelInfo?.level || 1,
-            rank: progData?.levelInfo?.name || 'Novice',
-            nextRank: progData?.levelInfo?.nextLevel?.name || 'Scholar',
-            progressToNext: progData?.levelInfo?.progress || 0
-          })
-          setStrengthsWeaknesses(sumData.cbt?.strengthsWeaknesses || { strengths: [], weaknesses: [] })
+      // getMyProgress returns a FLAT object: { xp, streak, level, levelName, levelInfo, ... }
+      // (not wrapped in .data.data — that's only the dashboard summary endpoint)
+      const progData = progressRes?.data
 
-          const timeline = (sumData.recentActivity || []).map((item: any, i: number) => {
-            const icon = item.type === 'cbt_result' ? FiTarget : item.type === 'flashcard_created' ? BiBrain : FiClock
-            return {
-              id: item.id || i,
-              title: item.title || 'Activity',
-              subtitle: item.subtitle || 'Recent action',
-              date: item.date,
-              icon,
-            }
-          })
-          setActivities(timeline)
-        } else if (progData) {
-          // Fallback if summary API fails but progress API works
-          setStats(prev => ({
-            ...prev,
-            xp: progData.xp || 0,
-            level: progData.levelInfo?.level || 1,
-            rank: progData.levelInfo?.name || 'Novice',
-            nextRank: progData.levelInfo?.nextLevel?.name || 'Scholar',
-            progressToNext: progData.levelInfo?.progress || 0,
-            studyStreak: progData.streak || 0
-          }));
-        }
+      if (summaryRes?.data?.data) {
+        const d = summaryRes.data.data
+
+        // Merge: take the higher of the login streak (from progress) and activity streak (from summary)
+        const loginStreak  = typeof progData?.streak === 'number' ? progData.streak : 0
+        const actStreak    = d.streak?.current ?? 0
+        const displayStreak = Math.max(loginStreak, actStreak)
+
+        setStats({
+          totalQuestions:   d.cbt?.totalQuestions    ?? 0,
+          quizSessions:     d.studyTimer?.totalSessions ?? 0,
+          studyHours:       d.studyTimer?.totalTime  ?? '0m',
+          studyHoursToday:  d.studyTimer?.todayTime  ?? '0m',
+          studyStreak:      displayStreak,
+          longestStreak:    Math.max(d.streak?.longest ?? 0, loginStreak),
+          studiedToday:     d.streak?.studiedToday   ?? false,
+          completedSessions: d.studyTimer?.totalSessions ?? 0,
+          totalFlashcards:  d.flashcards?.totalCards ?? 0,
+          masteredCards:    d.flashcards?.mastered   ?? 0,
+          masteryRate:      d.flashcards?.masteryRate ?? '0%',
+          upcomingReminders: reminders.length,
+          cbtExamsTaken:    d.cbt?.examsTaken        ?? 0,
+          cbtAccuracy:      parseInt(d.cbt?.overallAccuracy) || 0,
+          bestCBTSubject:   d.cbt?.bestSubject       ?? 'N/A',
+          xp:               progData?.xp             ?? 0,
+          level:            progData?.levelInfo?.level ?? progData?.level ?? 1,
+          rank:             progData?.levelInfo?.name  ?? progData?.levelName ?? 'Novice',
+          nextRank:         progData?.levelInfo?.nextLevel?.name ?? 'Scholar',
+          progressToNext:   progData?.levelInfo?.progress ?? 0,
+        })
+
+        // Strengths & Weaknesses from CBT subject breakdown
+        setStrengthsWeaknesses(
+          d.cbt?.strengthsWeaknesses ?? { strengths: [], weaknesses: [] }
+        )
+
+        // Recent Activity — map icon types
+        const timeline = (d.recentActivity ?? []).map((item: any, i: number) => {
+          const icon =
+            item.type === 'cbt_result'       ? FiTarget :
+            item.type === 'flashcard_created' ? BiBrain  : FiClock
+          return {
+            id:       item.id   ?? i,
+            title:    item.title    ?? 'Activity',
+            subtitle: item.subtitle ?? 'Recent action',
+            date:     item.date,
+            icon,
+          }
+        })
+        setActivities(timeline)
+
+      } else if (progData) {
+        // Summary API failed but progress works — show what we can
+        setStats(prev => ({
+          ...prev,
+          xp:             progData.xp              ?? 0,
+          level:          progData.levelInfo?.level ?? progData.level ?? 1,
+          rank:           progData.levelInfo?.name  ?? progData.levelName ?? 'Novice',
+          nextRank:       progData.levelInfo?.nextLevel?.name ?? 'Scholar',
+          progressToNext: progData.levelInfo?.progress ?? 0,
+          studyStreak:    progData.streak ?? 0,
+          upcomingReminders: reminders.length,
+        }))
       }
     } catch (err: any) {
-      console.error('Dashboard Load Error:', err);
+      console.error('Dashboard Load Error:', err)
       setDashboardError(getErrorMessage(err))
     } finally {
       setLoading(false)
@@ -298,16 +310,19 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Recent Activity</h2>
-                <div className="text-purple-400 text-xs font-bold flex items-center gap-1 cursor-pointer">
-                    Filter by <FiArrowRight className="rotate-90" />
-                </div>
+                <Link href="/dashboard/analytics" className="text-purple-400 text-xs font-bold flex items-center gap-1">View all <FiArrowRight /></Link>
             </div>
             <div className="v3-card divide-y divide-gray-800">
-                {activities.slice(0, 3).map((activity) => (
+                {activities.length === 0 ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-center opacity-60">
+                        <FiClock className="text-3xl text-gray-500 mb-2" />
+                        <p className="text-sm text-gray-400">No activity yet — start studying to see your history here!</p>
+                    </div>
+                ) : activities.slice(0, 5).map((activity) => (
                     <div key={activity.id} className="py-4 flex items-center gap-4 first:pt-0 last:pb-0">
                         <div className="p-2 rounded-xl bg-gray-800"><activity.icon className="text-xl" /></div>
                         <div className="flex-1"><p className="font-bold text-sm">{activity.title}</p><p className="text-xs text-gray-400">{activity.subtitle}</p></div>
-                        <p className="text-[10px] text-gray-500 font-medium">{new Date(activity.date).toLocaleDateString()}</p>
+                        <p className="text-[10px] text-gray-500 font-medium">{activity.date ? new Date(activity.date).toLocaleDateString() : ''}</p>
                     </div>
                 ))}
             </div>
@@ -315,20 +330,28 @@ export default function StudentDashboardPage() {
 
         <section className="mb-10">
             <h2 className="text-lg font-bold mb-4 px-2">Strengths & Weaknesses</h2>
-            <div className="sw-grid">
-                {strengthsWeaknesses.weaknesses.slice(0, 3).map((item, i) => (
-                    <div key={i} className="sw-card sw-red">
-                        <p className="font-bold text-sm">{item.subject}</p>
-                        <p className="text-[10px] text-gray-300 mt-1">{item.avgAccuracy}% (Focus)</p>
-                    </div>
-                ))}
-                {strengthsWeaknesses.strengths.slice(0, 3).map((item, i) => (
-                    <div key={i} className="sw-card sw-green">
-                        <p className="font-bold text-sm">{item.subject}</p>
-                        <p className="text-[10px] text-gray-300 mt-1">{item.avgAccuracy}% (Strong)</p>
-                    </div>
-                ))}
-            </div>
+            {(strengthsWeaknesses.strengths.length === 0 && strengthsWeaknesses.weaknesses.length === 0) ? (
+                <div className="v3-card flex flex-col items-center justify-center py-8 text-center opacity-60">
+                    <FiTarget className="text-3xl text-gray-500 mb-2" />
+                    <p className="text-sm text-gray-400">Complete some Past Questions to see your subject strengths and areas to improve.</p>
+                    <Link href="/dashboard/cbt" className="mt-3 text-xs text-purple-400 font-bold">Try Past Questions →</Link>
+                </div>
+            ) : (
+                <div className="sw-grid">
+                    {strengthsWeaknesses.weaknesses.slice(0, 3).map((item, i) => (
+                        <div key={i} className="sw-card sw-red">
+                            <p className="font-bold text-sm">{item.subject}</p>
+                            <p className="text-[10px] text-gray-300 mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Focus)</p>
+                        </div>
+                    ))}
+                    {strengthsWeaknesses.strengths.slice(0, 3).map((item, i) => (
+                        <div key={i} className="sw-card sw-green">
+                            <p className="font-bold text-sm">{item.subject}</p>
+                            <p className="text-[10px] text-gray-300 mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Strong)</p>
+                        </div>
+                    ))}
+                </div>
+            )}
         </section>
 
         <nav className="v3-bottom-nav">
