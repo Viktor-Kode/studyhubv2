@@ -193,7 +193,9 @@ export default function StudentDashboardPage() {
                         <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`} alt="Profile" className="w-full h-full object-cover" />
                     </div>
                 </div>
-                <FiBell className="text-xl text-gray-400 cursor-pointer" />
+                <Link href="/dashboard/notifications">
+                    <FiBell className="text-xl text-gray-400 cursor-pointer hover:text-purple-500 transition-colors" />
+                </Link>
             </div>
         </header>
 
@@ -202,15 +204,15 @@ export default function StudentDashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Link href="/dashboard/cbt" className="action-card teal">
                     <div className="action-icon-wrap"><FiZap className="text-2xl" /></div>
-                    <div><h3 className="action-title">Start Quiz</h3><p className="action-subtitle">WAEC/JAMB</p></div>
+                    <div><h3 className="action-title">Past Question</h3><p className="action-subtitle">WAEC/JAMB/NECO</p></div>
                 </Link>
                 <Link href="/dashboard/notes" className="action-card blue">
                     <div className="action-icon-wrap"><FiBook className="text-2xl" /></div>
                     <div><h3 className="action-title">Practice Topics</h3></div>
                 </Link>
                 <Link href="/dashboard/chat" className="action-card purple">
-                    <div className="action-icon-wrap"><BiBrain className="text-2xl" /></div>
-                    <div><h3 className="action-title">AI Tutor Chat</h3></div>
+                    <div className="action-icon-wrap sparkles-glow"><BiBrain className="text-2xl text-white" /></div>
+                    <div><h3 className="action-title">AI Study Tutor</h3><p className="action-subtitle">Ask anything & Learn</p></div>
                 </Link>
                 <Link href="/dashboard/question-bank" className="action-card gold">
                     <div className="action-icon-wrap"><FiGrid className="text-2xl" /></div>

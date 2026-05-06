@@ -371,7 +371,6 @@ export default function MyNotesPage() {
   return (
     <ProtectedRoute>
       <div className="notes-page w-full min-w-0">
-        <BackButton label="Dashboard" href="/dashboard" />
         <GeneratorTabsHeader />
         <div className="notes-header">
           <div>

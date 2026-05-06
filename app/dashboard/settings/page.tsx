@@ -957,8 +957,6 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="settings-page">
-        <BackButton label="Dashboard" href="/dashboard" />
-
         <div className="settings-header">
           <h2>Settings</h2>
           {saved && (

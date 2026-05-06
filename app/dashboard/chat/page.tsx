@@ -433,7 +433,6 @@ export default function ChatPage() {
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-4 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BackButton label="Dashboard" href="/dashboard" />
               <Link
                 href="/dashboard/student"
                 className="hidden items-center gap-2 text-xs text-gray-500 hover:text-gray-700 dark:text-slate-300 dark:hover:text-slate-100 sm:flex"
@@ -449,15 +448,20 @@ export default function ChatPage() {
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    AI Tutor
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-slate-300">
-                    {currentTopic
-                      ? `Discussing: ${currentTopic}`
-                      : 'Choose subject, topic & class—then ask your question.'}
-                  </span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
+                    <HiOutlineSparkles className="text-white text-lg" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">
+                      AI Study Tutor
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400">
+                      {currentTopic
+                        ? `Discussing: ${currentTopic}`
+                        : 'Choose subject, topic & class—then ask your question.'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

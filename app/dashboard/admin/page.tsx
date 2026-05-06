@@ -1492,7 +1492,6 @@ export default function AdminDashboardPage() {
         </aside>
 
         <main className="admin-content-v2">
-          <BackButton label="Dashboard" href="/dashboard" />
           {apiError && <div className="admin-api-error">{apiError}</div>}
 
           <div className="admin-topbar-v2">

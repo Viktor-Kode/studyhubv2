@@ -630,7 +630,6 @@ export default function CBTPage() {
   return (
     <ProtectedRoute>
       <div>
-        <BackButton label="Dashboard" href="/dashboard" />
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
