@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { paymentApi } from '@/lib/api/paymentApi'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { FiCheck, FiX, FiLoader, FiZap, FiAward } from 'react-icons/fi'
+import { FiCheck, FiX, FiLoader, FiZap, FiAward, FiPhone } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import { PLANS } from '@/lib/config/plans'
 
@@ -279,9 +280,24 @@ export default function PricingPage() {
                             <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Need a custom plan?</h2>
                             <p className="text-gray-600 dark:text-gray-400">For schools and tutorial centers with 50+ students.</p>
                         </div>
-                        <button className="px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-all">
-                            Contact Sales
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                            <a 
+                                href="https://wa.me/2349163345794"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-500/20"
+                            >
+                                <FaWhatsapp className="text-xl" />
+                                Chat on WhatsApp
+                            </a>
+                            <a 
+                                href="tel:+2349163345794"
+                                className="flex items-center justify-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-all shadow-lg"
+                            >
+                                <FiPhone className="text-xl" />
+                                Call for Inquiry
+                            </a>
+                        </div>
                     </div>
                 </div>
 
