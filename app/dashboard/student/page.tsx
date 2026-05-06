@@ -222,7 +222,7 @@ export default function StudentDashboardPage() {
                     <div className="action-icon-wrap"><FiBook className="text-2xl" /></div>
                     <div><h3 className="action-title">Note Generator</h3></div>
                 </Link>
-                <Link href="/dashboard/chat" className="action-card purple">
+                <Link href="/dashboard/question-bank?tab=tutor" className="action-card purple">
                     <div className="action-icon-wrap sparkles-glow"><BiBrain className="text-2xl text-white" /></div>
                     <div><h3 className="action-title">AI Study Tutor</h3><p className="action-subtitle">Ask anything & Learn</p></div>
                 </Link>
