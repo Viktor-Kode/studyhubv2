@@ -49,7 +49,7 @@ export default function CommunityPage() {
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
-      <div className="min-h-screen bg-[#0B1220] py-8 px-4 pb-28 max-w-5xl mx-auto overflow-hidden">
+      <div className="min-h-screen py-8 px-4 pb-28 max-w-5xl mx-auto overflow-hidden transition-colors">
         <div className="mb-6">
             <BackButton label="Back" href="/dashboard/student" />
         </div>
@@ -62,12 +62,12 @@ export default function CommunityPage() {
           <div className="flex items-center gap-4">
             <div className="relative">
                 <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20" />
-                <div className="relative p-3 rounded-2xl bg-white/5 border border-white/10 text-blue-400">
+                <div className="relative p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-blue-500 shadow-sm">
                     <Trophy className="w-6 h-6" />
                 </div>
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white tracking-tight leading-none mb-1">
+              <h1 className="text-2xl font-black tracking-tight leading-none mb-1">
                 Leaderboard
               </h1>
               <p className="text-xs font-bold text-slate-400">
@@ -76,7 +76,7 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 p-1 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm overflow-x-auto no-scrollbar">
             {(
               [
                 ['leaderboard', 'Ranking', Medal],
@@ -89,7 +89,7 @@ export default function CommunityPage() {
                 type="button"
                 onClick={() => setTab(id)}
                 className={`relative flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black transition-all duration-300 whitespace-nowrap ${
-                  tab === id ? 'text-white' : 'text-slate-500 hover:bg-white/5'
+                  tab === id ? 'text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'
                 }`}
               >
                 {tab === id && (
