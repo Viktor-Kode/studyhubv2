@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { 
   ArrowLeft, 
   ChevronLeft, 
@@ -22,6 +22,7 @@ import { confirmToast } from '@/lib/utils/confirm'
 export default function LibraryReaderPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
 
   const [document, setDocument] = useState<any>(null)
@@ -198,6 +199,19 @@ export default function LibraryReaderPage() {
               title="Delete"
             >
               <Trash2 size={18} />
+            </button>
+            <div className="mx-1 h-6 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+            <button
+              onClick={() => router.push(`/dashboard/question-bank?tab=quiz&source=library&documentId=${id}`)}
+              className="hidden sm:flex items-center gap-1.5 rounded-lg bg-[#5B4CF5]/10 px-3 py-1.5 text-xs font-bold text-[#5B4CF5] hover:bg-[#5B4CF5]/20 transition"
+            >
+              <FileText size={14} /> Generate Quiz
+            </button>
+            <button
+              onClick={() => router.push(`/dashboard/question-bank?tab=tutor&source=library&documentId=${id}`)}
+              className="hidden sm:flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/20 transition"
+            >
+              <Loader2 size={14} className="animate-spin-slow" /> AI Tutor
             </button>
           </div>
         </div>

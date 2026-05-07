@@ -238,6 +238,7 @@ export const importFlashCards = async (flashCards: any[], deckId?: string) => {
 
 export const generateAIFlashCards = async (params: {
     text: string;
+    documentId?: string;
     deckId?: string;
     amount?: number;
     category?: string;

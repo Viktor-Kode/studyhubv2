@@ -7,21 +7,10 @@ import ReactMarkdown from 'react-markdown'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2 } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
-import {
-  generateQuiz,
-  Question,
-  generateStudyNotes,
-  saveStudyNote,
-  chatWithTutor,
-  getTutorChatHistory,
-  getTutorChatSession,
-  saveTutorChatSession,
-  deleteTutorChatSession,
-  TutorChatMessage,
-  TutorChatSessionPreview,
-} from '@/lib/api/quizApi'
+import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview } from '@/lib/api/quizApi'
 import { cbtApi } from '@/lib/api/cbt'
-import { extractTextFromFile } from '@/lib/utils/fileExtractor'
+import { apiClient } from '@/lib/api/client'
+import { getFirebaseToken } from '@/lib/store/authStore'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import { useUpgrade } from '@/context/UpgradeContext'
@@ -141,6 +130,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   // Generation State
   const [inputMode, setInputMode] = useState<InputMode>('upload')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [documentId, setDocumentId] = useState<string | null>(null)
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
   const [amount, setAmount] = useState(5)
@@ -278,6 +268,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     const tabParam = searchParams.get('tab')
     const sourceParam = searchParams.get('source')
     const textParam = searchParams.get('text')
+    const docIdParam = searchParams.get('documentId')
+
+    if (docIdParam) {
+      setDocumentId(docIdParam)
+      setInputMode('upload')
+      setUploadedFile({ name: 'Library Document' } as any)
+    }
 
     if ((sourceParam === 'notes' || sourceParam === 'library') && typeof window !== 'undefined') {
       try {
@@ -716,6 +713,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setHasSession(false)
     setShowResumeBanner(false)
     setLastSavedAt(null)
+    setDocumentId(null)
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -749,39 +747,31 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     setUploadedFile(file)
     setExtracting(true)
-    setExtractionHint(getExtractionLabel(file))
+    setExtractionHint('Uploading and analyzing document server-side...')
     setError(null)
 
     try {
-      if (['.jpg', '.jpeg', '.png', '.webp'].includes(extension)) {
-        const { createWorker } = await import('tesseract.js')
-        const worker = await createWorker('eng')
-        const result = await worker.recognize(file)
-        await worker.terminate()
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
 
-        const recognizedText = result?.data?.text?.trim() || ''
-        if (recognizedText.length < 50) {
-          setError('Text in uploaded image is too short/unclear. Try a clearer image with better lighting.')
-          setUploadedFile(null)
-          return
-        }
+      const token = await getFirebaseToken()
+      const response = await fetch('/api/backend/library/documents', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      })
 
-        setExtractedText(recognizedText)
-        setSuccess('Image text extracted successfully!')
-        return
-      }
-
-      const result = await extractTextFromFile(file)
-      if (result.success && result.text) {
-        setExtractedText(result.text)
-        setSuccess('Content analyzed successfully!')
-        setError(null)
+      const data = await response.json()
+      if (data.success && data.document) {
+        setDocumentId(data.document._id)
+        setSuccess('Document uploaded and queued for processing!')
       } else {
-        setError(result.error || 'Failed to extract content')
+        setError(data.error || 'Failed to upload document')
         setUploadedFile(null)
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during extraction')
+      setError(err.message || 'An unexpected error occurred during upload')
       setUploadedFile(null)
     } finally {
       setExtracting(false)
@@ -833,19 +823,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   }
 
   const handleGenerate = async (forcedText?: string, forceNew: boolean = false) => {
-    // Determine which text to use based on mode or override
-    let textToUse = forcedText
+    const contentToUse = forcedText || (inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText)
 
-    if (!textToUse) {
-      if (inputMode === 'upload') {
-        textToUse = extractedText
-      } else {
-        textToUse = manualText
-      }
-    }
-
-    if (!textToUse || textToUse.trim().length < 50) {
-      setError('Please provide valid content (at least 50 characters) to generate questions.')
+    if (!contentToUse || (inputMode !== 'upload' && contentToUse.trim().length < 50)) {
+      setError('Please provide valid content (at least 50 characters) or upload a file to generate questions.')
       return
     }
 
@@ -860,20 +841,24 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setCurrentQuestionIndex(0)
 
     try {
-      const sourceName = inputMode === 'upload' ? uploadedFile?.name : 'Manual Input'
-      let streamBuffer = ''
-      const response = await generateQuiz(textToUse, amount, questionType, sourceName, forceNew, (chunk) => {
-        streamBuffer += chunk
-        // Optionally update a "generating" status here
-      })
+      const sourceName = uploadedFile?.name || fetchedTitle || 'Manual Entry'
+      const data = await generateQuiz(
+          contentToUse,
+          amount,
+          questionType,
+          sourceName,
+          forceNew,
+          undefined,
+          documentId || undefined
+        )
 
-      if (response.isDuplicate && !forceNew) {
+      if (data.isDuplicate && !forceNew) {
         setWarning('Showing existing questions for this content. Click "Generate New Set" for more.')
       } else {
-        setSuccess(`Successfully generated ${response.data.length} questions!`)
+        setSuccess(`Successfully generated ${data.data.length} questions!`)
       }
 
-      setNewQuestions(response.data.map(q => ({ ...q, sessionId: response.sessionId })))
+      setNewQuestions(data.data.map(q => ({ ...q, sessionId: data.sessionId })))
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
@@ -909,16 +894,16 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
   const handleForceRegenerate = () => {
     // Appending a timestamp bypasses the hash check on the backend
-    const currentText = inputMode === 'upload' ? extractedText : manualText
+    const currentText = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
     const saltedText = currentText + `\n\n[Force Regeneration ID: ${Date.now()}]`
     handleGenerate(saltedText)
   }
 
   const handleGenerateNotes = async () => {
-    let textToUse = inputMode === 'upload' ? extractedText : manualText
+    const contentToUse = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
 
-    if (!textToUse || textToUse.trim().length < 50) {
-      setError('Please provide valid content (at least 50 characters) to generate notes.')
+    if (!contentToUse || (inputMode !== 'upload' && contentToUse.trim().length < 50)) {
+      setError('Please provide valid content (at least 50 characters) or upload a file to generate notes.')
       return
     }
 
@@ -928,13 +913,19 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setGeneratedNotes('')
 
     try {
-      const sourceName = inputMode === 'upload' ? uploadedFile?.name : 'Manual Input'
-      const response = await generateStudyNotes(textToUse, sourceName, (chunk) => {
-        setGeneratedNotes(prev => prev + chunk)
-      })
+      const sourceName = uploadedFile?.name || fetchedTitle || 'Manual Entry'
+      const response = await generateStudyNotes(
+          contentToUse,
+          sourceName,
+          (chunk) => {
+            setGeneratedNotes(prev => prev + chunk)
+          },
+          documentId || undefined
+        )
 
       if (response.success && response.notes) {
         setSuccess('Study notes generated successfully!')
+        setGeneratedNotes(response.notes)
       } else {
         setError('Failed to generate study notes. Please try again.')
       }
@@ -977,22 +968,28 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
 
     try {
-      const context = inputMode === 'upload' ? extractedText : manualText
+      const context = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
       const historyForModel = chatMessages.map((msg) => ({ role: msg.role, content: msg.content }))
       
-      const response = await chatWithTutor(userMsg, context, historyForModel, (chunk) => {
-        setChatMessages(prev => {
-          const newMessages = [...prev]
-          const lastIdx = newMessages.length - 1
-          if (lastIdx >= 0 && newMessages[lastIdx].role === 'assistant') {
-            newMessages[lastIdx] = {
-              ...newMessages[lastIdx],
-              content: newMessages[lastIdx].content + chunk
+      const response = await chatWithTutor(
+        userMsg, 
+        context, 
+        historyForModel, 
+        (chunk) => {
+          setChatMessages(prev => {
+            const newMessages = [...prev]
+            const lastIdx = newMessages.length - 1
+            if (lastIdx >= 0) {
+              newMessages[lastIdx] = { 
+                ...newMessages[lastIdx], 
+                content: newMessages[lastIdx].content + chunk 
+              }
             }
-          }
-          return newMessages
-        })
-      })
+            return newMessages
+          })
+        },
+        documentId || undefined
+      )
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
@@ -1255,28 +1252,28 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         </div>
                         {!extracting && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setExtractedText(''); setError(null); setSuccess(null); setWarning(null) }}
+                            onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setDocumentId(null); setError(null); setSuccess(null); setWarning(null) }}
                             className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-500 rounded-lg transition"
                           >
                             <FiX />
                           </button>
                         )}
                       </div>
-                      {extracting || imageExtracting ? (
+                      {extracting ? (
                         <div className="flex items-center justify-center gap-2 py-4">
                           <FiLoader className="animate-spin text-blue-500 shrink-0" />
                           <span className="text-xs font-bold text-blue-500 uppercase tracking-widest text-center leading-snug">
-                            {extractionHint || 'Reading document...'}
+                            {extractionHint || 'Processing...'}
                           </span>
                         </div>
-                      ) : extractedText && (
+                      ) : documentId && (
                         <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">Content Extracted</span>
+                            <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">File Ready</span>
                           </div>
                           <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-3 italic leading-relaxed">
-                            "{extractedText.substring(0, 200)}..."
+                            "{uploadedFile.name}" ready for AI processing.
                           </p>
                         </div>
                       )}
@@ -1293,20 +1290,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       </button>
                       <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700" onClick={handleCaptureFromCamera}>
                         Capture
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {cameraPreviewUrl && !cameraOpen && (
-                  <div className="mt-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/40">
-                    <img src={cameraPreviewUrl} alt="Captured preview" className="w-full rounded-lg object-cover max-h-64" />
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-200 hover:bg-gray-300" onClick={handleOpenCamera}>
-                        Retake
-                      </button>
-                      <button type="button" className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700" onClick={extractTextFromImage}>
-                        Use Photo
                       </button>
                     </div>
                   </div>

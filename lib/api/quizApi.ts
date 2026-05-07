@@ -88,13 +88,14 @@ export const generateQuiz = async (
     questionType: string = 'multiple-choice',
     fileName?: string,
     forceNew: boolean = false,
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    documentId?: string
 ): Promise<QuizResponse> => {
     const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ text, amount, questionType, fileName, forceNew, stream })
+        body: JSON.stringify({ text, amount, questionType, fileName, forceNew, stream, documentId })
     })
     
     if (!response.ok) {
@@ -190,13 +191,14 @@ export const deleteQuizSession = async (id: string): Promise<{ success: boolean;
 export const generateStudyNotes = async (
     text: string,
     fileName?: string,
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    documentId?: string
 ): Promise<{ success: boolean; notes: string }> => {
     const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ text, fileName, stream })
+        body: JSON.stringify({ text, fileName, stream, documentId })
     })
 
     if (!response.ok) {
@@ -298,13 +300,14 @@ export const chatWithTutor = async (
     message: string,
     context?: string,
     chatHistory: { role: string; content: string }[] = [],
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    documentId?: string
 ): Promise<{ success: boolean; reply: string }> => {
     const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ message, context, chatHistory, stream })
+        body: JSON.stringify({ message, context, chatHistory, stream, documentId })
     })
 
     if (!response.ok) {
