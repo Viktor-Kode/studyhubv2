@@ -406,12 +406,12 @@ function SubscriptionStatusCard() {
             <div className="space-y-2">
                 <div className="flex justify-between items-center text-[11px]">
                     <span className="flex items-center gap-1.5 text-gray-300">🤖 AI Messages</span>
-                    <span className="font-bold">{status?.usage?.ai?.used ?? 0}/{status?.usage?.ai?.limit ?? 50}</span>
+                    <span className="font-bold">{status?.usage?.ai?.used ?? 0}/{status?.usage?.ai?.limit ?? 5}</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-blue-500 transition-all duration-500" 
-                        style={{ width: `${Math.min(100, ((status?.usage?.ai?.used ?? 0) / (status?.usage?.ai?.limit ?? 50)) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ((status?.usage?.ai?.used ?? 0) / (status?.usage?.ai?.limit ?? 5)) * 100)}%` }}
                     />
                 </div>
             </div>
@@ -419,12 +419,12 @@ function SubscriptionStatusCard() {
             <div className="space-y-2">
                 <div className="flex justify-between items-center text-[11px]">
                     <span className="flex items-center gap-1.5 text-gray-300">📇 Flashcard Sets</span>
-                    <span className="font-bold">{status?.usage?.flashcards?.used ?? 0}/{status?.usage?.flashcards?.limit ?? 10}</span>
+                    <span className="font-bold">{status?.usage?.flashcards?.used ?? 0}/{status?.usage?.flashcards?.limit ?? 3}</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-purple-500 transition-all duration-500" 
-                        style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 10)) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 3)) * 100)}%` }}
                     />
                 </div>
             </div>
