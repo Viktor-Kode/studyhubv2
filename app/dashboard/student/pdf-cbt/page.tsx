@@ -251,30 +251,43 @@ export default function PdfCbtPage() {
 
       console.log('[PDF CBT] Using extraction URL:', extractUrl)
 
-      const response = await fetch(extractUrl, {
+      // Step 1: Extract Text (Fast)
+      setExtractStatus('Extracting text from document...')
+      const extractResponse = await fetch(extractUrl, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData
       })
       
-      const rawText = await response.text()
-      let data
-      try {
-        data = JSON.parse(rawText)
-      } catch (err) {
-        // If not JSON, it's likely a proxy/server error like "Request Entity Too Large"
-        console.error('[PDF CBT] Non-JSON response:', rawText)
-        if (response.status === 413) {
-          throw new Error('The PDF file is too large for the server to process (Vercel limit: 4.5MB). Please try a smaller file or one with fewer images.')
-        }
-        if (response.status === 504) {
-          throw new Error('The request timed out. Large PDFs take longer to process; please try a shorter document.')
-        }
-        throw new Error(`Server Error (${response.status}): ${rawText.slice(0, 100)}...`)
+      const extractData = await extractResponse.json().catch(() => ({ error: 'Invalid server response' }))
+      
+      if (!extractResponse.ok) {
+        throw new Error(extractData.error || extractData.message || `Extraction failed (${extractResponse.status})`)
       }
 
-      if (!response.ok) {
-        throw new Error(data?.error || data?.message || 'Failed to generate questions.')
+      const extractedText = extractData.text
+      if (!extractedText) throw new Error('No text could be extracted from this document.')
+
+      // Step 2: Generate Questions (AI Request)
+      setExtractStatus('Generating questions from text...')
+      
+      const generateUrl = extractUrl.replace('/extract', '/generate')
+      const generateResponse = await fetch(generateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          text: extractedText,
+          requestedCount: requestedCount
+        })
+      })
+
+      const data = await generateResponse.json().catch(() => ({ error: 'AI generation timed out or failed' }))
+
+      if (!generateResponse.ok) {
+        throw new Error(data.error || data.message || 'Failed to generate questions.')
       }
       
       const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({

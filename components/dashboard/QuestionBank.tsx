@@ -752,26 +752,31 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('pdf', file) // The /ai/extract endpoint expects 'pdf'
       formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
 
       const token = await getFirebaseToken()
-      const response = await fetch('/api/backend/library/documents', {
+      const response = await fetch('/api/backend/ai/extract', {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       })
 
-      const data = await response.json()
-      if (data.success && data.document) {
-        setDocumentId(data.document._id)
-        setSuccess('Document uploaded and queued for processing!')
+      const data = await response.json().catch(() => ({ success: false, error: 'Server returned an invalid response (likely a timeout). Please try a smaller file.' }))
+      
+      if (data.success && data.text) {
+        setManualText(data.text)
+        setSuccess('Document text extracted successfully! Generating questions now...')
+        setInputMode('manual')
+        // Automatically start Step 2 (Generation)
+        handleGenerate(data.text)
       } else {
-        setError(data.error || 'Failed to upload document')
+        setError(data.error || data.message || 'Failed to extract text from document')
         setUploadedFile(null)
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during upload')
+      console.error('[Upload] Error:', err)
+      setError('Connection error or server timeout. Large PDFs take longer to process; please try a shorter document.')
       setUploadedFile(null)
     } finally {
       setExtracting(false)
