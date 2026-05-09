@@ -287,11 +287,16 @@ function NotificationsSection({ user, onSaved }: any) {
         planExpiry: true,
     })
     const [loading, setLoading] = useState(false)
+    const [pushEnabled, setPushEnabled] = useState(false)
 
     useEffect(() => {
         apiClient.get('/settings').then(res => {
             if (res.data?.notificationPrefs) setPrefs(res.data.notificationPrefs)
         })
+        
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setPushEnabled(Notification.permission === 'granted')
+        }
     }, [])
 
     const toggle = (key: string) => {
@@ -308,10 +313,84 @@ function NotificationsSection({ user, onSaved }: any) {
         }
     }
 
+    const requestPushPermission = async () => {
+        try {
+            const permission = await Notification.requestPermission()
+            if (permission === 'granted') {
+                const registration = await navigator.serviceWorker.ready
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+                
+                if (!vapidKey) {
+                    toast.error('Notification configuration missing')
+                    return
+                }
+
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                })
+
+                await apiClient.post('/notifications/subscribe', subscription)
+                setPushEnabled(true)
+                toast.success('Notifications enabled!')
+            } else {
+                toast.error('Permission denied')
+            }
+        } catch (err) {
+            console.error('Push error:', err)
+            toast.error('Failed to enable notifications')
+        }
+    }
+
+    const handleTestPush = async () => {
+        if (!pushEnabled) {
+            await requestPushPermission()
+            return
+        }
+        setLoading(true)
+        try {
+            await apiClient.post('/notifications/test-push')
+            toast.success('Test notification sent!')
+        } catch (err: any) {
+            toast.error(err.response?.data?.error || 'Failed to send test notification')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Notification Preferences</h3>
             
+            <div className="space-y-4 mb-8">
+                <div className="v3-toggle p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
+                    <div>
+                        <p className="font-bold text-slate-900 dark:text-white">Study Reminders</p>
+                        <p className="text-xs text-gray-500">Get push notifications for study sessions and goals</p>
+                    </div>
+                    <button 
+                        onClick={pushEnabled ? undefined : requestPushPermission}
+                        disabled={pushEnabled}
+                        className={`w-11 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${pushEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+
+                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
+                    <p className="font-bold text-sm mb-2">Test Your Setup</p>
+                    <p className="text-xs text-gray-500 mb-4">Make sure you can receive notifications on this device.</p>
+                    <button 
+                        onClick={handleTestPush}
+                        disabled={loading}
+                        className={`w-full py-3 px-4 rounded-xl font-bold transition-all active:scale-[0.98] ${pushEnabled ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                    >
+                        {loading ? 'Sending...' : pushEnabled ? 'Send Test Notification' : 'Enable Notifications First'}
+                    </button>
+                </div>
+            </div>
+
+            <h4 className="font-bold text-sm mb-4 text-gray-400 uppercase tracking-wider">Other Alerts</h4>
             <div className="space-y-4">
                 {[
                     { key: 'streakReminder', label: 'Daily Streak Reminder', desc: 'Stay on track with daily alerts' },
@@ -334,11 +413,22 @@ function NotificationsSection({ user, onSaved }: any) {
                 ))}
             </div>
 
-            <button onClick={save} disabled={loading} className="v3-btn-primary mt-8">
+            <button onClick={save} disabled={loading} className="v3-btn-primary mt-8 w-full md:w-auto">
                 {loading ? 'Saving...' : 'Update Notification Settings'}
             </button>
         </div>
     )
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 }
 
 function AppearanceSection({ onSaved }: any) {

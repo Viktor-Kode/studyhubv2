@@ -29,28 +29,16 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
-      const title = data.title || 'StudyHelp';
-      const body = data.body || '';
-      const icon = data.icon || '/android-chrome-192x192.png';
-      const link = data.data?.url || data.url || '/dashboard/student';
-
       event.waitUntil(
-        self.registration.showNotification(title, {
-          body,
-          icon,
+        self.registration.showNotification(data.title || 'StudyHelp', {
+          body: data.body || '',
+          icon: '/android-chrome-192x192.png', // Using existing icon
           badge: '/android-chrome-192x192.png',
-          data: { link },
+          data: data.data || { link: '/dashboard/student' }
         })
       );
     } catch (err) {
-      event.waitUntil(
-        self.registration.showNotification('StudyHelp', {
-          body: event.data.text(),
-          icon: '/android-chrome-192x192.png',
-          badge: '/android-chrome-192x192.png',
-          data: { link: '/dashboard/student' }
-        })
-      );
+      console.error('Push event error:', err);
     }
   }
 });
