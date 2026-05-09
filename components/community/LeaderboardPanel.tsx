@@ -219,12 +219,10 @@ export default function LeaderboardPanel({
           >
             <div className="lb-v2-you-info">
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
-                {user?.image ? (
-                   <img src={user.image} className="w-full h-full object-cover" alt="" />
+                {user?.avatar ? (
+                   <img src={user.avatar} className="w-full h-full object-cover" alt="" />
                 ) : (
-                   <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                     {user?.name?.charAt(0) || 'Y'}
-                   </div>
+                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`} className="w-full h-full object-cover" alt="" />
                 )}
               </div>
               <div>

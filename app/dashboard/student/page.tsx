@@ -202,7 +202,7 @@ export default function StudentDashboardPage() {
                 </div>
                 <div className="relative">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30">
-                        <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`} alt="Profile" className="w-full h-full object-cover" />
+                        <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`} alt="Profile" className="w-full h-full object-cover" />
                     </div>
                 </div>
                 <Link href="/dashboard/notifications">
