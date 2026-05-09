@@ -111,11 +111,12 @@ export const PLANS = {
     name: 'AI Add-on',
     price: 500,
     label: '₦500 one-time',
-    aiLimit: 100,
+    aiLimit: 60,
+    durationDays: 5,
     features: [
-      '100 extra AI-generated questions',
+      '60 extra AI-generated questions',
       'Added to your current plan',
-      'Never expires',
+      'Expires in 5 days',
     ],
   },
 } as const
