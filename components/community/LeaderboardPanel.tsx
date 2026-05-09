@@ -129,13 +129,11 @@ export default function LeaderboardPanel({
                           <Crown className="w-8 h-8 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
                         </div>
                       )}
-                      {row.avatar ? (
-                        <img src={row.avatar} className="lb-v2-avatar" alt="" />
-                      ) : (
-                        <div className="lb-v2-avatar bg-slate-800 flex items-center justify-center text-2xl">
-                          👤
-                        </div>
-                      )}
+                      <img
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`}
+                        className="lb-v2-avatar"
+                        alt={row.name}
+                      />
                       
                       {/* Floating mini crowns for 1st place as seen in screenshot */}
                       {isFirst && (
@@ -190,11 +188,11 @@ export default function LeaderboardPanel({
                       {row.rank}
                     </div>
                     <div className="lb-v2-row-avatar relative">
-                      {row.avatar ? (
-                         <img src={row.avatar} className="w-full h-full rounded-full object-cover" alt="" />
-                      ) : (
-                         <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center text-lg">👤</div>
-                      )}
+                      <img
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`}
+                        className="w-full h-full rounded-full object-cover"
+                        alt={row.name}
+                      />
                     </div>
                     
                     <div className="lb-v2-row-info">
@@ -219,11 +217,11 @@ export default function LeaderboardPanel({
           >
             <div className="lb-v2-you-info">
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
-                {user?.avatar ? (
-                   <img src={user.avatar} className="w-full h-full object-cover" alt="" />
-                ) : (
-                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`} className="w-full h-full object-cover" alt="" />
-                )}
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`}
+                  className="w-full h-full object-cover"
+                  alt={user?.name || 'You'}
+                />
               </div>
               <div>
                 <div className="flex items-center gap-2">
