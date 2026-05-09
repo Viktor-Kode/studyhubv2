@@ -8,6 +8,7 @@ import { cbtApi } from '@/lib/api/cbt'
 import { jsPDF } from 'jspdf'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
+import { extractTextFromPDFClient } from '@/lib/utils/extraction'
 
 import './PdfCbt.css'
 
@@ -221,75 +222,86 @@ export default function PdfCbtPage() {
     setError('')
     setExtracting(true)
     try {
-      setExtractStatus('Analyzing document and generating questions...')
-      
-      const formData = new FormData()
-      // The backend expects 'pdf' field name for compatibility, but it now handles all types
-      formData.append('pdf', file)
-      
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      const isDocx = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')
+
+      const token = await getFirebaseToken()
+
+      // Determine the backend generate URL
+      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const isVercel =
+        typeof window !== 'undefined' &&
+        (window.location.hostname.includes('vercel.app') ||
+          window.location.hostname.includes('studyhelp.site'))
+      const baseApi =
+        isVercel || (!publicApiUrl.includes('localhost') && publicApiUrl)
+          ? (publicApiUrl && !publicApiUrl.includes('localhost')
+              ? publicApiUrl
+              : 'https://studyhelp-zyqw.onrender.com/api')
+          : ''
+      const generateUrl = baseApi
+        ? `${baseApi.replace(/\/+$/, '')}/pdf-cbt/generate`
+        : '/api/backend/pdf-cbt/generate'
+
       const selectedCount =
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
       const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
-      formData.append('requestedCount', String(requestedCount))
-      
-      const token = await getFirebaseToken()
-      
-      // Determine extraction URL: direct to backend in production to bypass Vercel's 4.5MB limit
-      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
-      
-      // Heuristic: if we are on a .vercel.app or .site domain, we should use the production backend
-      const isVercel = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('studyhelp.site'));
-      
-      let extractUrl = '/api/backend/pdf-cbt/extract'
-      
-      if (isVercel || (!publicApiUrl.includes('localhost') && publicApiUrl)) {
-        const base = (publicApiUrl && !publicApiUrl.includes('localhost')) 
-          ? publicApiUrl 
-          : 'https://studyhelp-zyqw.onrender.com/api'
-        extractUrl = `${base.replace(/\/+$/, '')}/pdf-cbt/extract`
+
+      let extractedText = ''
+
+      if (isPdf) {
+        // ── Browser-side PDF extraction (zero server load) ──────────────────
+        setExtractStatus('Reading your PDF in the browser...')
+        extractedText = await extractTextFromPDFClient(file)
+        if (!extractedText || extractedText.trim().length < 50) {
+          throw new Error('Could not extract readable text from this PDF. Try a text-based (non-scanned) PDF.')
+        }
+      } else if (isDocx) {
+        // ── DOCX — send to server which uses mammoth (fast, no timeout risk) ─
+        setExtractStatus('Uploading document for extraction...')
+        const formData = new FormData()
+        formData.append('pdf', file)
+        formData.append('requestedCount', String(requestedCount))
+        const extractUrl = baseApi
+          ? `${baseApi.replace(/\/+$/, '')}/pdf-cbt/extract`
+          : '/api/backend/pdf-cbt/extract'
+        const extractResp = await fetch(extractUrl, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: formData,
+        })
+        const extractData = await extractResp.json().catch(() => ({ error: 'Invalid server response' }))
+        if (!extractResp.ok) throw new Error(extractData.error || `Extraction failed (${extractResp.status})`)
+        extractedText = extractData.text
+        if (!extractedText) throw new Error('No text could be extracted from this document.')
+      } else {
+        // ── Plain text / markdown ──────────────────────────────────────────
+        setExtractStatus('Reading file...')
+        extractedText = await file.text()
+        if (!extractedText || extractedText.trim().length < 50) {
+          throw new Error('File appears to be empty or too short.')
+        }
       }
 
-      console.log('[PDF CBT] Using extraction URL:', extractUrl)
-
-      // Step 1: Extract Text (Fast)
-      setExtractStatus('Extracting text from document...')
-      const extractResponse = await fetch(extractUrl, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: formData
-      })
-      
-      const extractData = await extractResponse.json().catch(() => ({ error: 'Invalid server response' }))
-      
-      if (!extractResponse.ok) {
-        throw new Error(extractData.error || extractData.message || `Extraction failed (${extractResponse.status})`)
-      }
-
-      const extractedText = extractData.text
-      if (!extractedText) throw new Error('No text could be extracted from this document.')
-
-      // Step 2: Generate Questions (AI Request)
-      setExtractStatus('Generating questions from text...')
-      
-      const generateUrl = extractUrl.replace('/extract', '/generate')
+      // ── Step 2: Send text to AI /generate (no file, no timeout risk) ──────
+      setExtractStatus('Generating questions with AI...')
       const generateResponse = await fetch(generateUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          text: extractedText,
-          requestedCount: requestedCount
-        })
+        body: JSON.stringify({ text: extractedText, requestedCount }),
       })
 
-      const data = await generateResponse.json().catch(() => ({ error: 'AI generation timed out or failed' }))
+      const data = await generateResponse
+        .json()
+        .catch(() => ({ error: 'AI generation timed out or failed' }))
 
       if (!generateResponse.ok) {
         throw new Error(data.error || data.message || 'Failed to generate questions.')
       }
-      
+
       const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({
         type: String(q.type || '').toLowerCase() === 'theory' ? 'theory' : 'objective',
         question: String(q.question || ''),
@@ -298,10 +310,10 @@ export default function PdfCbtPage() {
               A: String(q.options?.A || ''),
               B: String(q.options?.B || ''),
               C: String(q.options?.C || ''),
-              D: String(q.options?.D || '')
+              D: String(q.options?.D || ''),
             }
           : null,
-        answer: String(q.answer || '')
+        answer: String(q.answer || ''),
       }))
       const cleanQuestions = normalizedQuestions.filter((q) => {
         if (!q.question) return false
@@ -316,7 +328,7 @@ export default function PdfCbtPage() {
       const prepared: ExtractedData = {
         subject: data.subject || 'General',
         totalFound: cleanQuestions.length,
-        questions: cleanQuestions
+        questions: cleanQuestions,
       }
 
       setExtractedData(prepared)
