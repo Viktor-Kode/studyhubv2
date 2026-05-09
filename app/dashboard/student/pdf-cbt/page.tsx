@@ -222,8 +222,10 @@ export default function PdfCbtPage() {
     setError('')
     setExtracting(true)
     try {
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-      const isDocx = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')
+      const extension = '.' + file.name.split('.').pop()?.toLowerCase()
+      const mimetype = file.type?.toLowerCase() || ''
+      const isPdf = extension === '.pdf' || mimetype.includes('pdf')
+      const isTxt = extension === '.txt' || extension === '.md' || mimetype.includes('text')
 
       const token = await getFirebaseToken()
 
@@ -250,37 +252,37 @@ export default function PdfCbtPage() {
       let extractedText = ''
 
       if (isPdf) {
-        // ── Browser-side PDF extraction (zero server load) ──────────────────
         setExtractStatus('Reading your PDF in the browser...')
         extractedText = await extractTextFromPDFClient(file)
-        if (!extractedText || extractedText.trim().length < 50) {
-          throw new Error('Could not extract readable text from this PDF. Try a text-based (non-scanned) PDF.')
-        }
-      } else if (isDocx) {
-        // ── DOCX — send to server which uses mammoth (fast, no timeout risk) ─
-        setExtractStatus('Uploading document for extraction...')
+      } else if (isTxt) {
+        setExtractStatus('Reading text file...')
+        extractedText = await file.text()
+      }
+
+      if (extractedText && extractedText.trim().length >= 50) {
+        // success for PDF or TXT
+      } else if (isPdf || isTxt) {
+        throw new Error('Could not extract readable text from this file. It might be scanned or empty.')
+      } else {
+        setExtractStatus('Uploading and analyzing document server-side...')
         const formData = new FormData()
         formData.append('pdf', file)
-        formData.append('requestedCount', String(requestedCount))
-        const extractUrl = baseApi
-          ? `${baseApi.replace(/\/+$/, '')}/pdf-cbt/extract`
-          : '/api/backend/pdf-cbt/extract'
+        formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
+        
+        const extractUrl = baseApi 
+          ? `${baseApi.replace(/\/+$/, '')}/ai/extract`
+          : '/api/backend/ai/extract'
+          
         const extractResp = await fetch(extractUrl, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           body: formData,
         })
         const extractData = await extractResp.json().catch(() => ({ error: 'Invalid server response' }))
-        if (!extractResp.ok) throw new Error(extractData.error || `Extraction failed (${extractResp.status})`)
-        extractedText = extractData.text
-        if (!extractedText) throw new Error('No text could be extracted from this document.')
-      } else {
-        // ── Plain text / markdown ──────────────────────────────────────────
-        setExtractStatus('Reading file...')
-        extractedText = await file.text()
-        if (!extractedText || extractedText.trim().length < 50) {
-          throw new Error('File appears to be empty or too short.')
+        if (!extractData.success || !extractData.text) {
+           throw new Error(extractData.error || extractData.message || 'Failed to extract text from document')
         }
+        extractedText = extractData.text
       }
 
       // ── Step 2: Send text to AI /generate (no file, no timeout risk) ──────
