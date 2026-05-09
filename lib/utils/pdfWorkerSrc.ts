@@ -1,8 +1,6 @@
 import { pdfjs } from 'react-pdf';
 
 /**
- * PDF.js worker — using unpkg CDN for matching version.
- * Next.js 15+ strict ESM resolution blocks local new URL() bundling for .mjs files.
- * The original 404 error occurred because it was requesting '.js' instead of '.mjs'.
+ * PDF.js worker — pinned to exactly 4.4.168 to avoid mismatch errors.
  */
-export const PDF_WORKER_PUBLIC_PATH = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+export const PDF_WORKER_PUBLIC_PATH = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
