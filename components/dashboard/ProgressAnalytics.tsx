@@ -14,9 +14,30 @@ export default function ProgressAnalytics() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await apiClient.get('/analytics/full')
-                if (response.data?.success) {
-                    setStats(response.data.data)
+                const [fullRes, summaryRes, progressRes] = await Promise.all([
+                    apiClient.get('/analytics/full').catch(() => null),
+                    apiClient.get('/dashboard/summary').catch(() => null),
+                    apiClient.get('/progress/me').catch(() => null)
+                ]);
+
+                if (fullRes?.data?.success) {
+                    const data = fullRes.data.data;
+                    const progData = progressRes?.data;
+                    const summaryData = summaryRes?.data?.data;
+
+                    const loginStreak = typeof progData?.streak === 'number' ? progData.streak : 0;
+                    const actStreak = summaryData?.streak?.current ?? 0;
+                    data.studyStreak = Math.max(loginStreak, actStreak);
+
+                    // Also pull question count and sessions from summary if they're higher (since summary aggregates multiple sources)
+                    if (summaryData?.cbt?.totalQuestions > (data.questionCount || 0)) {
+                        data.questionCount = summaryData.cbt.totalQuestions;
+                    }
+                    if (summaryData?.studyTimer?.totalSessions > (data.totalSessions || 0)) {
+                        data.totalSessions = summaryData.studyTimer.totalSessions;
+                    }
+
+                    setStats(data)
                 }
             } catch (error) {
                 console.error('Failed to fetch stats:', error)
