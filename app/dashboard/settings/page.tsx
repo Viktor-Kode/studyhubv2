@@ -322,7 +322,7 @@ function NotificationsSection({ user, onSaved }: any) {
                 
                 if (!vapidKey) {
                     toast.error('Notification configuration missing')
-                    return
+                    return false
                 }
 
                 const subscription = await registration.pushManager.subscribe({
@@ -333,20 +333,29 @@ function NotificationsSection({ user, onSaved }: any) {
                 await apiClient.post('/notifications/subscribe', subscription)
                 setPushEnabled(true)
                 toast.success('Notifications enabled!')
+                return true
             } else {
                 toast.error('Permission denied')
+                return false
             }
         } catch (err) {
             console.error('Push error:', err)
             toast.error('Failed to enable notifications')
+            return false
         }
     }
 
     const handleTestPush = async () => {
-        if (!pushEnabled) {
-            await requestPushPermission()
-            return
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                const success = await requestPushPermission()
+                if (!success) {
+                    alert('Please enable notifications to test this feature');
+                    return
+                }
+            }
         }
+
         setLoading(true)
         try {
             await apiClient.post('/notifications/test-push')
