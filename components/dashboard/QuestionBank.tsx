@@ -14,6 +14,7 @@ import { getFirebaseToken } from '@/lib/store/authStore'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import { useUpgrade } from '@/context/UpgradeContext'
+import { extractTextFromPDFClient } from '@/lib/utils/extraction'
 
 interface QuestionBankProps {
   className?: string
@@ -729,7 +730,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     // Validate file type
     const allowedTypes = ['.pdf', '.docx', '.doc', '.txt', '.md', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.webp']
     const extension = '.' + file.name.split('.').pop()?.toLowerCase()
-    const mimetype = file.mimetype?.toLowerCase()
+    const mimetype = file.mimetype?.toLowerCase() || file.type.toLowerCase()
 
     const isValidExtension = allowedTypes.includes(extension)
     const isValidMime = mimetype?.includes('pdf') || mimetype?.includes('word') || mimetype?.includes('presentation') || mimetype?.includes('text') || mimetype?.startsWith('image/')
@@ -747,10 +748,34 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     setUploadedFile(file)
     setExtracting(true)
-    setExtractionHint('Uploading and analyzing document server-side...')
     setError(null)
 
     try {
+      const isPdf = extension === '.pdf' || mimetype?.includes('pdf')
+      const isTxt = extension === '.txt' || extension === '.md' || mimetype?.includes('text')
+
+      let extractedText = ''
+
+      if (isPdf) {
+        setExtractionHint('Reading PDF in your browser...')
+        extractedText = await extractTextFromPDFClient(file)
+      } else if (isTxt) {
+        setExtractionHint('Reading text file...')
+        extractedText = await file.text()
+      }
+
+      if (extractedText && extractedText.trim().length >= 50) {
+        setManualText(extractedText)
+        setSuccess('Document text extracted successfully! Generating questions now...')
+        setInputMode('manual')
+        // Automatically start Step 2 (Generation)
+        handleGenerate(extractedText)
+        return
+      } else if (isPdf || isTxt) {
+        throw new Error('Could not extract readable text. The document might be scanned or empty.')
+      }
+
+      setExtractionHint('Uploading and analyzing document server-side...')
       const formData = new FormData()
       formData.append('pdf', file) // The /ai/extract endpoint expects 'pdf'
       formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
@@ -776,7 +801,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       }
     } catch (err: any) {
       console.error('[Upload] Error:', err)
-      setError('Connection error or server timeout. Large PDFs take longer to process; please try a shorter document.')
+      setError(err?.message || 'Connection error or server timeout. Large PDFs take longer to process; please try a shorter document.')
       setUploadedFile(null)
     } finally {
       setExtracting(false)
