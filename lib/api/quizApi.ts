@@ -296,6 +296,20 @@ export const deleteStudyNote = async (id: string): Promise<{ success: boolean; m
     return response.json()
 }
 
+export const updateStudyNote = async (id: string, updates: Partial<StudyNote>): Promise<{ success: boolean; note: StudyNote }> => {
+    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+        body: JSON.stringify(updates)
+    })
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.message || errorData.error || errorData.detail || 'Failed to update study note'
+        throw new Error(errorMessage)
+    }
+    return response.json()
+}
+
 export const chatWithTutor = async (
     message: string,
     context?: string,

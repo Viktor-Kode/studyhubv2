@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink } from 'react-icons/fi'
+import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink, FiEdit2, FiSave, FiX } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import ReactMarkdown from 'react-markdown'
-import { fetchStudyNotes, deleteStudyNote, StudyNote } from '@/lib/api/quizApi'
+import { fetchStudyNotes, deleteStudyNote, updateStudyNote, StudyNote } from '@/lib/api/quizApi'
 import { toast } from 'react-hot-toast'
 
 export default function NotesHistory() {
@@ -13,6 +13,9 @@ export default function NotesHistory() {
     const [error, setError] = useState<string | null>(null)
     const [deleting, setDeleting] = useState<string | null>(null)
     const [selectedNote, setSelectedNote] = useState<StudyNote | null>(null)
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [editingTitle, setEditingTitle] = useState('')
+    const [isUpdating, setIsUpdating] = useState(false)
 
     // Helper
     const toLocaleLongDateString = (dateStr: string) => {
@@ -46,11 +49,35 @@ export default function NotesHistory() {
             if (response.success) {
                 setNotes(prev => prev.filter(n => n._id !== id))
                 if (selectedNote?._id === id) setSelectedNote(null)
+                toast.success('Note deleted successfully')
             }
         } catch (err: any) {
             toast.error(err.message || 'Failed to delete note')
         } finally {
             setDeleting(null)
+        }
+    }
+
+    const handleUpdateTitle = async () => {
+        if (!selectedNote || !editingTitle.trim()) return
+        if (editingTitle.trim() === selectedNote.title) {
+            setIsEditingTitle(false)
+            return
+        }
+
+        try {
+            setIsUpdating(true)
+            const response = await updateStudyNote(selectedNote._id, { title: editingTitle.trim() })
+            if (response.success) {
+                setNotes(prev => prev.map(n => n._id === selectedNote._id ? { ...n, title: editingTitle.trim() } : n))
+                setSelectedNote(prev => prev ? { ...prev, title: editingTitle.trim() } : null)
+                setIsEditingTitle(false)
+                toast.success('Note name updated')
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to update note name')
+        } finally {
+            setIsUpdating(false)
         }
     }
 
@@ -118,8 +145,51 @@ export default function NotesHistory() {
                 {selectedNote ? (
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
-                            <div>
-                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{selectedNote.title}</h2>
+                            <div className="flex-1">
+                                {isEditingTitle ? (
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            value={editingTitle}
+                                            onChange={(e) => setEditingTitle(e.target.value)}
+                                            className="text-2xl font-black bg-gray-50 dark:bg-gray-900 border-2 border-emerald-500 rounded-xl px-4 py-1 w-full focus:outline-none text-gray-900 dark:text-white"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleUpdateTitle()
+                                                if (e.key === 'Escape') setIsEditingTitle(false)
+                                            }}
+                                        />
+                                        <button
+                                            onClick={handleUpdateTitle}
+                                            disabled={isUpdating}
+                                            className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition disabled:opacity-50"
+                                            title="Save"
+                                        >
+                                            {isUpdating ? <FiLoader className="animate-spin" /> : <FiSave />}
+                                        </button>
+                                        <button
+                                            onClick={() => setIsEditingTitle(false)}
+                                            className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                                            title="Cancel"
+                                        >
+                                            <FiX />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 mb-2 group/title">
+                                        <h2 className="text-2xl font-black text-gray-900 dark:text-white">{selectedNote.title}</h2>
+                                        <button
+                                            onClick={() => {
+                                                setEditingTitle(selectedNote.title)
+                                                setIsEditingTitle(true)
+                                            }}
+                                            className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition opacity-0 group-hover/title:opacity-100"
+                                            title="Edit Name"
+                                        >
+                                            <FiEdit2 size={16} />
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3 text-xs font-bold text-gray-400">
                                     <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-md">Saved Note</span>
                                     <span>{toLocaleLongDateString(selectedNote.createdAt)}</span>
