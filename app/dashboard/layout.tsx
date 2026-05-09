@@ -19,6 +19,7 @@ import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
 import BackButton from '@/components/BackButton'
+import WebPushPrompt from '@/components/WebPushPrompt'
 
 interface NavItem {
     href: string
@@ -343,6 +344,7 @@ export default function DashboardLayout({
                         <ProtectedRoute>
                             {children}
                         </ProtectedRoute>
+                        <WebPushPrompt />
                     </div>
                 </main>
             </div>
