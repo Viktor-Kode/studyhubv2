@@ -16,7 +16,7 @@ export default function CommunityPage() {
   const { user } = useAuthStore()
   const { progress, loading: progLoading } = useProgress()
   const [tab, setTab] = useState<'leaderboard' | 'badges' | 'share'>('leaderboard')
-  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'lifetime'>('today')
+  const [timeframe, setTimeframe] = useState<'today' | 'lifetime'>('today')
   const [leaderboard, setLeaderboard] = useState<BoardRow[]>([])
   const [myRank, setMyRank] = useState(0)
   const [myWeeklyXP, setMyWeeklyXP] = useState(0)

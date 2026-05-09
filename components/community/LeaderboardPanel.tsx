@@ -22,7 +22,7 @@ export type BoardRow = {
   displayXP?: number
 }
 
-type TimeframeMode = 'today' | 'week' | 'lifetime'
+type TimeframeMode = 'today' | 'lifetime'
 
 type Props = {
   timeframe: TimeframeMode
@@ -79,9 +79,8 @@ export default function LeaderboardPanel({
       {/* Tabs */}
       <div className="lb-v2-tabs mb-8">
         {[
-          { id: 'lifetime', label: 'Global Hall of Fame' },
-          { id: 'week', label: 'Weekly Sprints' },
-          { id: 'today', label: 'Subject Kings' },
+          { id: 'lifetime', label: 'All Time' },
+          { id: 'today', label: 'Daily' },
         ].map((tab) => (
           <button
             key={tab.id}
