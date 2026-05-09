@@ -187,7 +187,7 @@ export default function LeaderboardPanel({
                     <div className="lb-v2-row-rank">
                       {row.rank}
                     </div>
-                    <div className="lb-v2-row-avatar relative">
+                    <div className="lb-v2-row-avatar relative w-10 h-10 shrink-0">
                       <img
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`}
                         className="w-full h-full rounded-full object-cover"
