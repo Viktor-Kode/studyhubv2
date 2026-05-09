@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { getFirebaseToken } from '@/lib/store/authStore'
+import { apiClient } from '@/lib/api/client'
 import { FiTrendingUp, FiCheckCircle, FiClock, FiBook, FiBarChart2, FiAward, FiAlertCircle, FiLoader } from 'react-icons/fi'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { format } from 'date-fns'
@@ -13,14 +14,9 @@ export default function ProgressAnalytics() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const token = await getFirebaseToken()
-                const headers: Record<string, string> = {}
-                if (token) headers['Authorization'] = `Bearer ${token}`
-
-                const response = await fetch('/api/stats', { headers })
-                const data = await response.json()
-                if (data.stats) {
-                    setStats(data.stats)
+                const response = await apiClient.get('/analytics/full')
+                if (response.data?.success) {
+                    setStats(response.data.data)
                 }
             } catch (error) {
                 console.error('Failed to fetch stats:', error)
@@ -50,11 +46,11 @@ export default function ProgressAnalytics() {
     }, [stats?.trendData])
 
     const subjectPerformanceData = useMemo(() => {
-        if (!stats?.subjectAverages) return []
-        return Object.entries(stats.subjectAverages)
-            .map(([subject, score]) => ({ subject, score: Math.round(Number(score)) }))
-            .sort((a, b) => b.score - a.score)
-    }, [stats?.subjectAverages])
+        if (!stats?.cbtStats) return []
+        return stats.cbtStats
+            .map((sub: any) => ({ subject: sub._id, score: Math.round(Number(sub.avgScore)) }))
+            .sort((a: any, b: any) => b.score - a.score)
+    }, [stats?.cbtStats])
 
     const strongestSubjects = subjectPerformanceData.slice(0, 3)
     const weakestSubjects = [...subjectPerformanceData].reverse().slice(0, 3) // Need improvement

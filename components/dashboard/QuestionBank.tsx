@@ -754,22 +754,19 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       const isPdf = extension === '.pdf' || mimetype?.includes('pdf')
       const isTxt = extension === '.txt' || extension === '.md' || mimetype?.includes('text')
 
-      let extractedText = ''
+      let parsedText = ''
 
       if (isPdf) {
         setExtractionHint('Reading PDF in your browser...')
-        extractedText = await extractTextFromPDFClient(file)
+        parsedText = await extractTextFromPDFClient(file)
       } else if (isTxt) {
         setExtractionHint('Reading text file...')
-        extractedText = await file.text()
+        parsedText = await file.text()
       }
 
-      if (extractedText && extractedText.trim().length >= 50) {
-        setManualText(extractedText)
-        setSuccess('Document text extracted successfully! Generating questions now...')
-        setInputMode('manual')
-        // Automatically start Step 2 (Generation)
-        handleGenerate(extractedText)
+      if (parsedText && parsedText.trim().length >= 50) {
+        setExtractedText(parsedText)
+        setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
         return
       } else if (isPdf || isTxt) {
         throw new Error('Could not extract readable text. The document might be scanned or empty.')
@@ -790,11 +787,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       const data = await response.json().catch(() => ({ success: false, error: 'Server returned an invalid response (likely a timeout). Please try a smaller file.' }))
       
       if (data.success && data.text) {
-        setManualText(data.text)
-        setSuccess('Document text extracted successfully! Generating questions now...')
-        setInputMode('manual')
-        // Automatically start Step 2 (Generation)
-        handleGenerate(data.text)
+        setExtractedText(data.text)
+        setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
       } else {
         setError(data.error || data.message || 'Failed to extract text from document')
         setUploadedFile(null)
@@ -853,7 +847,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   }
 
   const handleGenerate = async (forcedText?: string, forceNew: boolean = false) => {
-    const contentToUse = forcedText || (inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText)
+    const contentToUse = forcedText || (inputMode === 'upload' ? extractedText : manualText)
 
     if (!contentToUse || (inputMode !== 'upload' && contentToUse.trim().length < 50)) {
       setError('Please provide valid content (at least 50 characters) or upload a file to generate questions.')
@@ -924,13 +918,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
   const handleForceRegenerate = () => {
     // Appending a timestamp bypasses the hash check on the backend
-    const currentText = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
+    const currentText = inputMode === 'upload' ? extractedText : manualText
     const saltedText = currentText + `\n\n[Force Regeneration ID: ${Date.now()}]`
     handleGenerate(saltedText)
   }
 
   const handleGenerateNotes = async () => {
-    const contentToUse = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
+    const contentToUse = inputMode === 'upload' ? extractedText : manualText
 
     if (!contentToUse || (inputMode !== 'upload' && contentToUse.trim().length < 50)) {
       setError('Please provide valid content (at least 50 characters) or upload a file to generate notes.')
@@ -998,7 +992,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
 
     try {
-      const context = inputMode === 'upload' ? 'SERVER_SIDE_DOC' : manualText
+      const context = inputMode === 'upload' ? extractedText : manualText
       const historyForModel = chatMessages.map((msg) => ({ role: msg.role, content: msg.content }))
       
       const response = await chatWithTutor(
