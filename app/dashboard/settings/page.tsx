@@ -313,57 +313,57 @@ function NotificationsSection({ user, onSaved }: any) {
         }
     }
 
-    const requestPushPermission = async () => {
+    const handleTestPush = async () => {
+        if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+            toast.error('Notifications are not supported in this browser.');
+            return;
+        }
+
         try {
-            const permission = await Notification.requestPermission()
-            if (permission === 'granted') {
-                const registration = await navigator.serviceWorker.ready
-                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-                
+            // Step 1 — Check permission
+            if (Notification.permission === 'default') {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') return;
+            }
+
+            if (Notification.permission === 'denied') {
+                alert('Notifications are blocked. Please enable them in your browser settings.');
+                return;
+            }
+
+            setLoading(true);
+
+            // Step 2 — Subscribe if not already subscribed
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
                 if (!vapidKey) {
-                    toast.error('Notification configuration missing')
-                    return false
+                    toast.error('Configuration error: VAPID key missing.');
+                    setLoading(false);
+                    return;
                 }
 
-                const subscription = await registration.pushManager.subscribe({
+                subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(vapidKey)
-                })
+                });
 
-                await apiClient.post('/notifications/subscribe', subscription)
-                setPushEnabled(true)
-                toast.success('Notifications enabled!')
-                return true
-            } else {
-                toast.error('Permission denied')
-                return false
+                // Save to backend
+                await apiClient.post('/notifications/subscribe', subscription);
+                setPushEnabled(true);
+                toast.success('Subscription saved!');
             }
-        } catch (err) {
-            console.error('Push error:', err)
-            toast.error('Failed to enable notifications')
-            return false
-        }
-    }
 
-    const handleTestPush = async () => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            if (Notification.permission !== 'granted') {
-                const success = await requestPushPermission()
-                if (!success) {
-                    alert('Please enable notifications to test this feature');
-                    return
-                }
-            }
-        }
-
-        setLoading(true)
-        try {
-            await apiClient.post('/notifications/test-push')
-            toast.success('Test notification sent!')
+            // Step 3 — Send test notification
+            await apiClient.post('/notifications/test-push');
+            toast.success('Test notification sent!');
         } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Failed to send test notification')
+            console.error('Push Flow Error:', err);
+            toast.error(err.response?.data?.error || 'Notification setup failed. Try again.');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }
 
@@ -378,7 +378,7 @@ function NotificationsSection({ user, onSaved }: any) {
                         <p className="text-xs text-gray-500">Get push notifications for study sessions and goals</p>
                     </div>
                     <button 
-                        onClick={pushEnabled ? undefined : requestPushPermission}
+                        onClick={pushEnabled ? undefined : handleTestPush}
                         disabled={pushEnabled}
                         className={`w-11 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}
                     >
