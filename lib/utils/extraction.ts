@@ -59,10 +59,6 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
         await pdf.destroy();
 
         const cleanText = fullText.trim();
-        if (cleanText.length < 10) {
-            throw new Error('PDF appears to be empty or scanned. No readable text found.');
-        }
-
         return cleanText;
     } catch (error: any) {
         console.error('Client-side PDF extraction error:', error);
@@ -106,10 +102,6 @@ export const extractTextFromDOCX = async (file: File): Promise<string> => {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
 
-        if (!result.value || result.value.trim().length < 10) {
-            throw new Error('DOCX file appears to be empty or contains no readable text');
-        }
-
         return result.value;
     } catch (error: any) {
         console.error('DOCX extraction error:', error);
@@ -134,10 +126,6 @@ export const extractTextFromPPTX = async (file: File): Promise<string> => {
             text += matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ') + '\n';
         }
 
-        if (text.trim().length < 10) {
-            throw new Error('PPTX file appears to be empty or contains no readable text');
-        }
-
         return text;
     } catch (error: any) {
         console.error('PPTX extraction error:', error);
@@ -152,10 +140,6 @@ export const extractTextFromImageOCR = async (file: File): Promise<string> => {
     try {
         const Tesseract = (await import('tesseract.js')).default;
         const { data: { text } } = await Tesseract.recognize(file, 'eng');
-
-        if (text.trim().length < 10) {
-            throw new Error('No readable text found in image.');
-        }
 
         return text;
     } catch (error: any) {
@@ -183,7 +167,6 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
             case 'txt':
             case 'md':
                 const text = await file.text();
-                if (text.trim().length < 10) throw new Error('File content is too short');
                 return text;
             case 'jpg':
             case 'jpeg':

@@ -749,7 +749,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setExtractionHint(getExtractionLabel(file))
       const parsedText = await extractTextFromFile(file)
 
-      if (parsedText && parsedText.trim().length >= 10) {
+      if (parsedText && parsedText.trim().length > 0) {
         setExtractedText(parsedText)
         setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
       } else {
