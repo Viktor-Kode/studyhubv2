@@ -1,7 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle, FiUpload, FiFileText, FiCamera } from 'react-icons/fi'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { 
+  FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, 
+  FiClock, FiLoader, FiCamera, FiRefreshCw, FiAlertTriangle,
+  FiFlag, FiChevronLeft, FiChevronRight, FiPlay
+} from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
@@ -11,41 +16,29 @@ import { extractTextFromFile } from '@/lib/utils/extraction'
 
 import './PdfCbt.css'
 
-type Stage = 'upload' | 'preview' | 'test' | 'results'
-type OptionKey = 'A' | 'B' | 'C' | 'D'
-type QuestionType = 'objective' | 'theory'
+// Types
 type InputMode = 'upload' | 'manual'
+type Stage = 'setup' | 'practice' | 'results'
+type OptionKey = 'A' | 'B' | 'C' | 'D'
 
-interface PdfQuestion {
-  type: QuestionType
+interface Question {
+  type: 'objective' | 'theory'
   question: string
   options: Record<OptionKey, string> | null
   answer: string
+  explanation?: string
 }
 
 interface ExtractedData {
   subject: string
-  totalFound: number
-  questions: PdfQuestion[]
+  questions: Question[]
 }
-
-const STATUS_MESSAGES = [
-  'Reading your document...',
-  'Identifying questions...',
-  'Stripping answers...',
-  'Organising questions...',
-  'Almost ready...'
-]
 
 const OPTION_KEYS: OptionKey[] = ['A', 'B', 'C', 'D']
 
-const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
-
 function getExtractionLabel(file: File): string {
   const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
-    return 'Scanning image with OCR...'
-  }
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'Scanning photo with OCR...'
   if (ext === '.pdf') return 'Extracting PDF pages...'
   if (ext === '.docx') return 'Reading Word document...'
   if (ext === '.ppt' || ext === '.pptx') return 'Extracting presentation text...'
@@ -53,63 +46,66 @@ function getExtractionLabel(file: File): string {
   return 'Reading document...'
 }
 
-export default function PdfCbtPage() {
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
-  const cameraStreamRef = useRef<MediaStream | null>(null)
+const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
-  const [stage, setStage] = useState<Stage>('upload')
+export default function PdfCbtPage() {
+  // Input State
   const [inputMode, setInputMode] = useState<InputMode>('upload')
-  const [dragging, setDragging] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
   
-  const [numQuestions, setNumQuestions] = useState('10')
-  const [customQuestionCount, setCustomQuestionCount] = useState('40')
-  const [timeLimit, setTimeLimit] = useState('0')
-  const [shuffle, setShuffle] = useState(true)
+  // App State
+  const [stage, setStage] = useState<Stage>('setup')
   const [extracting, setExtracting] = useState(false)
-  const [extractStatus, setExtractStatus] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [warning, setWarning] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
+  const [extractionHint, setExtractionHint] = useState('')
   
+  // Camera State
   const [cameraOpen, setCameraOpen] = useState(false)
   const [capturedImage, setCapturedImage] = useState<File | null>(null)
   const [imageExtracting, setImageExtracting] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
 
-  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
-  const [questionsToUse, setQuestionsToUse] = useState<PdfQuestion[]>([])
+  // Config State
+  const [numQuestions, setNumQuestions] = useState('all')
+  const [timeLimit, setTimeLimit] = useState('0')
+  const [shuffle, setShuffle] = useState(true)
 
-  const [currentQ, setCurrentQ] = useState(0)
+  // Practice State
+  const [allQuestions, setAllQuestions] = useState<Question[]>([])
+  const [practiceQuestions, setPracticeQuestions] = useState<Question[]>([])
+  const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Record<number, string>>({})
-  const [timeLeft, setTimeLeft] = useState(0)
   const [flagged, setFlagged] = useState<Set<number>>(new Set())
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [quizSubmitted, setQuizSubmitted] = useState(false)
   const [savingResult, setSavingResult] = useState(false)
-  const [resultSaved, setResultSaved] = useState(false)
+  const [subject, setSubject] = useState('General Study')
 
-  useEffect(() => {
-    if (!extracting) return
-    let i = 0
-    setExtractStatus(STATUS_MESSAGES[0])
-    const t = setInterval(() => {
-      i = Math.min(i + 1, STATUS_MESSAGES.length - 1)
-      setExtractStatus(STATUS_MESSAGES[i])
-    }, 3000)
-    return () => clearInterval(t)
-  }, [extracting])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Timer Effect
   useEffect(() => {
-    if (stage !== 'test') return
-    if (Number(timeLimit) <= 0) return
+    if (stage !== 'practice' || Number(timeLimit) <= 0 || quizSubmitted) return
     if (timeLeft <= 0) {
       void handleSubmit()
       return
     }
     const t = setInterval(() => setTimeLeft((s) => s - 1), 1000)
     return () => clearInterval(t)
-  }, [stage, timeLimit, timeLeft])
+  }, [stage, timeLimit, timeLeft, quizSubmitted])
+
+  // Helpers
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
 
   const answeredCount = useMemo(
     () => Object.values(answers).filter((val) => String(val || '').trim().length > 0).length,
@@ -117,736 +113,529 @@ export default function PdfCbtPage() {
   )
 
   const score = useMemo(() => {
-    const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
-    const total = objectiveQuestions.length
-    const correct = questionsToUse.filter((q, i) => {
-      if (q.type !== 'objective') return false
+    const objectives = practiceQuestions.filter(q => q.type === 'objective')
+    const total = objectives.length
+    const correct = practiceQuestions.reduce((acc, q, i) => {
+      if (q.type !== 'objective') return acc
       const userAns = String(answers[i] || '').trim().toUpperCase()
       const correctAns = String(q.answer || '').trim().toUpperCase()
-      return userAns === correctAns
-    }).length
+      return userAns === correctAns ? acc + 1 : acc
+    }, 0)
     const pct = total ? Math.round((correct / total) * 100) : 0
     return { total, correct, pct }
-  }, [answers, questionsToUse])
+  }, [answers, practiceQuestions])
 
-  const currentQuestion = questionsToUse[currentQ]
+  // Handlers
+  const handleFileUpload = async (file: File) => {
+    setError(null)
+    setSuccess(null)
+    setWarning(null)
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-  }
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0]
-    if (!selected) return
-    handleFileUpload(selected)
-  }
-
-  const handleFileUpload = async (candidate: File) => {
-    setError('')
-    setSuccess('')
-    setWarning('')
-    
-    // Validate size (25MB)
-    if (candidate.size > 25 * 1024 * 1024) {
+    if (file.size > 25 * 1024 * 1024) {
       setError('File too large (Max 25MB).')
       return
     }
 
-    setFile(candidate)
+    setUploadedFile(file)
     setExtracting(true)
-    setExtractStatus(getExtractionLabel(candidate))
 
     try {
-      const parsedText = await extractTextFromFile(candidate)
-      
-      if (parsedText && parsedText.trim().length > 0) {
-        setExtractedText(parsedText)
-        setSuccess('Document ready! Configure your practice session below.')
+      setExtractionHint(getExtractionLabel(file))
+      const text = await extractTextFromFile(file)
+      if (text && text.trim().length > 0) {
+        setExtractedText(text)
+        setSuccess('Document ready! Click "Start Practice" to begin.')
       } else {
         throw new Error('Could not read this file. Try a text-based PDF or paste your text directly.')
       }
     } catch (err: any) {
-      console.error('[Upload] Error:', err)
       setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
-      setFile(null)
+      setUploadedFile(null)
     } finally {
       setExtracting(false)
-      setExtractStatus('')
+      setExtractionHint('')
     }
   }
 
-  const stopCamera = () => {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => track.stop())
-      cameraStreamRef.current = null
-    }
-  }
-
-  const openCamera = async () => {
-    setError('')
-    setSuccess('')
+  const handleOpenCamera = async () => {
+    setError(null)
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Camera access is not supported in this browser or requires HTTPS.')
+      setError('Camera not supported in this browser.')
       return
     }
-
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       cameraStreamRef.current = stream
       setCameraOpen(true)
       requestAnimationFrame(() => {
-        if (cameraVideoRef.current) {
-          cameraVideoRef.current.srcObject = stream
-          void cameraVideoRef.current.play()
-        }
+        if (videoRef.current) videoRef.current.srcObject = stream
       })
     } catch (err: any) {
-      setError(err?.message || 'Unable to access camera.')
+      setError('Could not access camera.')
     }
   }
 
   const handleCapture = async () => {
-    if (!cameraVideoRef.current) return
-    const video = cameraVideoRef.current
+    if (!videoRef.current) return
+    const video = videoRef.current
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
-    )
-    if (!blob) {
-      setError('Could not capture image.')
-      return
-    }
-
-    const imageFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
-    setCapturedImage(imageFile)
-    setFile(imageFile)
-    stopCamera()
+    
+    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.92))
+    if (!blob) return
+    
+    const imageFile = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    setUploadedFile(imageFile)
     setCameraOpen(false)
+    if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop())
     
-    // Auto-extract from captured image
-    await extractFromCapturedImage(imageFile)
-  }
-
-  const extractFromCapturedImage = async (imgFile: File) => {
     setImageExtracting(true)
-    setExtractStatus('Scanning photo with OCR...')
-    setError('')
-    
+    setExtractionHint('Scanning photo with OCR...')
     try {
-      const recognizedText = await extractTextFromFile(imgFile)
-      if (recognizedText && recognizedText.trim().length > 0) {
-        setExtractedText(recognizedText)
-        setSuccess('Text extracted from photo! Configure your practice session below.')
+      const text = await extractTextFromFile(imageFile)
+      if (text && text.trim().length > 0) {
+        setExtractedText(text)
+        setSuccess('Text extracted! Click "Start Practice" to begin.')
       } else {
-        throw new Error('Could not read this file. Try a text-based PDF or paste your text directly.')
+        throw new Error('No text found in photo.')
       }
     } catch (err: any) {
-      setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
+      setError(err?.message || 'OCR failed.')
     } finally {
       setImageExtracting(false)
-      setExtractStatus('')
+      setExtractionHint('')
     }
   }
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setDragging(false)
-    const dropped = e.dataTransfer.files?.[0]
-    if (!dropped) return
-    handleFileUpload(dropped)
-  }
-
-  const buildQuestionSet = (questions: PdfQuestion[]) => {
-    const selectedCount =
-      numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
-    const count = numQuestions === 'all' ? questions.length : Math.min(selectedCount, questions.length)
-    const base = shuffle ? shuffleArray(questions) : [...questions]
-    return base.slice(0, count)
-  }
-
-  const handleExtract = async () => {
-    const content = inputMode === 'manual' ? manualText : extractedText
-    if (!content || content.trim().length === 0) {
+  const handleStartPractice = async () => {
+    const text = inputMode === 'manual' ? manualText : extractedText
+    if (!text || text.trim().length === 0) {
       setError('Please provide some content first.')
       return
     }
 
-    setError('')
-    setExtracting(true)
-    setExtractStatus('Preparing your practice session...')
-
+    setGenerating(true)
+    setError(null)
     try {
       const token = await getFirebaseToken()
-
-      // Determine the backend generate URL
       const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
-      const isVercel =
-        typeof window !== 'undefined' &&
-        (window.location.hostname.includes('vercel.app') ||
-          window.location.hostname.includes('studyhelp.site'))
-      const baseApi =
-        isVercel || (!publicApiUrl.includes('localhost') && publicApiUrl)
-          ? (publicApiUrl && !publicApiUrl.includes('localhost')
-              ? publicApiUrl
-              : 'https://studyhelp-zyqw.onrender.com/api')
-          : ''
-      const generateUrl = baseApi
-        ? `${baseApi.replace(/\/+$/, '')}/pdf-cbt/generate`
-        : '/api/backend/pdf-cbt/generate'
+      const generateUrl = publicApiUrl ? `${publicApiUrl.replace(/\/+$/, '')}/pdf-cbt/generate` : '/api/backend/pdf-cbt/generate'
 
-      const selectedCount =
-        numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
-      const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
-
-      setExtractStatus('AI is extracting questions from your document...')
-      const generateResponse = await fetch(generateUrl, {
+      const resp = await fetch(generateUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ text: content, requestedCount }),
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ text })
       })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Failed to extract questions.')
 
-      const data = await generateResponse
-        .json()
-        .catch(() => ({ error: 'AI generation timed out or failed' }))
-
-      if (!generateResponse.ok) {
-        throw new Error(data.error || data.message || 'Failed to generate questions.')
-      }
-
-      const normalizedQuestions: PdfQuestion[] = (data.questions || []).map((q: any) => ({
+      const questions: Question[] = (data.questions || []).map((q: any) => ({
         type: String(q.type || '').toLowerCase() === 'theory' ? 'theory' : 'objective',
-        question: String(q.question || ''),
-        options: q?.options
-          ? {
-              A: String(q.options?.A || ''),
-              B: String(q.options?.B || ''),
-              C: String(q.options?.C || ''),
-              D: String(q.options?.D || ''),
-            }
-          : null,
-        answer: String(q.answer || ''),
-      }))
-      const cleanQuestions = normalizedQuestions.filter((q) => {
-        if (!q.question) return false
-        if (q.type === 'objective') return Boolean(q.options && OPTION_KEYS.every((k) => q.options?.[k]))
-        return true
-      })
+        question: q.question || '',
+        options: q.options || null,
+        answer: q.answer || '',
+        explanation: q.explanation || q.knowledgeDeepDive || ''
+      })).filter((q: Question) => q.question)
 
-      if (!cleanQuestions.length) {
-        throw new Error('No usable questions were found in this content.')
+      if (questions.length === 0) throw new Error('No questions found in this document.')
+
+      setAllQuestions(questions)
+      setSubject(data.subject || 'Extracted Practice')
+      
+      // Select subset based on config
+      let finalSet = shuffle ? shuffleArray(questions) : [...questions]
+      if (numQuestions !== 'all') {
+        finalSet = finalSet.slice(0, Number(numQuestions))
       }
-
-      const prepared: ExtractedData = {
-        subject: data.subject || 'General',
-        totalFound: cleanQuestions.length,
-        questions: cleanQuestions,
-      }
-
-      setExtractedData(prepared)
-      setQuestionsToUse(buildQuestionSet(prepared.questions))
-      setStage('preview')
+      
+      setPracticeQuestions(finalSet)
+      setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
+      setStage('practice')
+      setCurrentIdx(0)
+      setAnswers({})
+      setFlagged(new Set())
+      setQuizSubmitted(false)
     } catch (err: any) {
-      setError(err?.message || 'Failed to extract questions.')
+      setError(err?.message || 'Something went wrong.')
     } finally {
-      setExtracting(false)
-      setExtractStatus('')
+      setGenerating(false)
     }
-  }
-
-  const startTest = () => {
-    setAnswers({})
-    setFlagged(new Set())
-    setCurrentQ(0)
-    setResultSaved(false)
-    setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
-    setStage('test')
   }
 
   const handleSubmit = async () => {
-    if (savingResult || resultSaved) {
-      setStage('results')
-      return
-    }
-
+    if (quizSubmitted || savingResult) return
     setSavingResult(true)
     try {
-      const objectiveQuestions = questionsToUse.filter((q) => q.type === 'objective' && q.options)
-      const correct = questionsToUse.filter((q, i) => {
-        if (q.type !== 'objective') return false
-        const userAns = String(answers[i] || '').trim().toUpperCase()
-        const correctAns = String(q.answer || '').trim().toUpperCase()
-        return userAns === correctAns
-      }).length
-      const total = objectiveQuestions.length
-      const wrong = Math.max(total - correct, 0)
-      const skipped = questionsToUse.reduce((acc, _q, i) => {
-        const val = String(answers[i] || '').trim()
-        return val ? acc : acc + 1
-      }, 0)
-      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
-      const selectedTime = Number(timeLimit)
-      const computedTimeTaken =
-        selectedTime > 0 ? Math.max(selectedTime * 60 - Math.max(timeLeft, 0), 0) : undefined
-
+      const accuracy = score.pct
       await cbtApi.saveResult({
-        subject: extractedData?.subject || 'General',
+        subject,
         examType: 'PDF_CBT',
-        year: String(new Date().getFullYear()),
-        totalQuestions: total || questionsToUse.length,
-        correctAnswers: correct,
-        wrongAnswers: wrong,
-        skipped,
+        totalQuestions: practiceQuestions.length,
+        correctAnswers: score.correct,
+        wrongAnswers: practiceQuestions.length - score.correct,
         accuracy,
-        timeTaken: computedTimeTaken,
-        answers: questionsToUse.map((q, i) => ({
+        answers: practiceQuestions.map((q, i) => ({
           questionId: String(i + 1),
           question: q.question,
           selectedAnswer: String(answers[i] || '').trim(),
           correctAnswer: String(q.answer || '').trim(),
-          explanation: q.type === 'theory' ? 'Theory question' : undefined,
-          isCorrect: q.type === 'objective' ? String(answers[i] || '').trim().toUpperCase() === String(q.answer || '').trim().toUpperCase() : undefined
+          isCorrect: q.type === 'objective' ? (String(answers[i] || '').trim().toUpperCase() === String(q.answer || '').trim().toUpperCase()) : undefined
         }))
       })
-      setResultSaved(true)
-    } catch (e) {
-      console.error('Failed to save PDF CBT result:', e)
+      setQuizSubmitted(true)
+      setStage('results')
+      toast.success('Results saved to dashboard!')
+    } catch (err) {
+      console.error('Save failed:', err)
+      setStage('results') // Still show results even if save fails
     } finally {
       setSavingResult(false)
-      setStage('results')
     }
   }
 
   const toggleFlag = () => {
-    setFlagged((prev) => {
+    setFlagged(prev => {
       const next = new Set(prev)
-      if (next.has(currentQ)) next.delete(currentQ)
-      else next.add(currentQ)
+      if (next.has(currentIdx)) next.delete(currentIdx)
+      else next.add(currentIdx)
       return next
     })
   }
 
+  // UI Components
+  const currentQ = practiceQuestions[currentIdx]
+
   return (
     <div className="pcbt-page">
-      {stage === 'upload' && (
-        <>
-          <div className="pcbt-header">
-            <h1>Document to CBT</h1>
-            <p>Upload your past question documents and practice them in a CBT environment.</p>
+      {stage === 'setup' && (
+        <div className="max-w-3xl mx-auto py-8 px-4">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-black text-[#0F172A] mb-2">Document to CBT</h1>
+            <p className="text-[#64748B]">Extract questions from any PDF, Word, or Image and practice immediately.</p>
           </div>
 
-          <div className="qg-source-tabs">
+          <div className="qg-source-tabs mb-6">
             <button className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`} onClick={() => setInputMode('upload')}>
-              <FiUpload size={14} /> Upload File
+              <FiUpload /> Upload File
             </button>
             <button className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`} onClick={() => setInputMode('manual')}>
-              <FiFileText size={14} /> Paste Text
+              <FiFileText /> Paste Text
             </button>
           </div>
 
           {inputMode === 'upload' ? (
-            <>
-              <div
-                className={`pcbt-dropzone ${dragging ? 'dragging' : ''}`}
+            <div className="mb-8">
+              <div 
+                className={`pcbt-dropzone cursor-pointer ${uploadedFile ? 'has-file' : ''}`}
                 onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setDragging(true)
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={handleDrop}
               >
-                <div className="pcbt-drop-icon">📄</div>
-                <h3>Drop your file here</h3>
-                <p>or click to browse</p>
-                <span className="pcbt-drop-limit">PDF, Word, PPT, Text, Images · Max 25MB</span>
-                <input 
-                  ref={fileInputRef} 
-                  type="file" 
-                  accept=".pdf,.docx,.doc,.txt,.md,.pptx,.ppt,image/*" 
-                  hidden 
-                  onChange={handleFileSelect} 
-                />
+                <div className="pcbt-drop-icon">{uploadedFile ? '✅' : '📄'}</div>
+                <h3>{uploadedFile ? uploadedFile.name : 'Click or Drop File'}</h3>
+                <p>{uploadedFile ? `${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB` : 'PDF, Word, PPT, Image'}</p>
+                <input ref={fileInputRef} type="file" hidden onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
               </div>
-              <div className="pcbt-camera-row">
-                <button type="button" className="pcbt-btn-secondary" onClick={openCamera}>
-                  <FiCamera className="inline mr-2" /> Use Camera
+              <div className="mt-4 flex justify-center">
+                <button onClick={handleOpenCamera} className="pcbt-btn-secondary flex items-center gap-2">
+                  <FiCamera /> Scan with Camera
                 </button>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="pcbt-manual-input">
-              <textarea
+            <div className="mb-8">
+              <textarea 
+                className="w-full min-h-[250px] p-5 rounded-2xl border-2 border-[#E8EAED] focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed"
+                placeholder="Paste your questions and answers here..."
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                placeholder="Paste your questions and answers here..."
-                className="w-full min-h-[250px] p-4 rounded-2xl border-2 border-[#E8EAED] focus:border-[#5B4CF5] outline-none transition-all text-sm"
               />
             </div>
           )}
 
           {cameraOpen && (
-            <div className="pcbt-camera-wrap">
-              <video ref={cameraVideoRef} autoPlay playsInline muted className="pcbt-camera-video" />
-              <div className="pcbt-results-actions">
-                <button className="pcbt-btn-secondary" onClick={() => { setCameraOpen(false); stopCamera() }}>Cancel</button>
-                <button className="pcbt-btn-primary" onClick={handleCapture}>Capture</button>
+            <div className="pcbt-camera-wrap mb-8">
+              <video ref={videoRef} autoPlay playsInline muted className="pcbt-camera-video" />
+              <div className="flex gap-4 mt-4">
+                <button onClick={() => { setCameraOpen(false); if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop()); }} className="pcbt-btn-secondary flex-1">Cancel</button>
+                <button onClick={handleCapture} className="pcbt-btn-primary flex-1">Capture Text</button>
               </div>
             </div>
           )}
 
-          {(file || manualText) && (
-            <div className="pcbt-settings">
-              {inputMode === 'upload' && file && (
-                <div className="pcbt-file-info">
-                  <span>📄 {file.name}</span>
-                  <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                  <button onClick={() => { setFile(null); setExtractedText(''); }}>✕ Remove</button>
-                </div>
-              )}
-
-              <div className="pcbt-options">
-                <div className="pcbt-option-group">
-                  <label>Number of questions to practice</label>
-                  <select value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)}>
-                    <option value="all">All extracted questions</option>
-                    <option value="10">10 questions</option>
-                    <option value="20">20 questions</option>
-                    <option value="30">30 questions</option>
-                    <option value="40">40 questions</option>
-                    <option value="50">50 questions</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                  {numQuestions === 'custom' && (
-                    <input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={customQuestionCount}
-                      onChange={(e) => setCustomQuestionCount(e.target.value)}
-                      placeholder="Enter question count"
-                    />
-                  )}
-                </div>
-                <div className="pcbt-option-group">
-                  <label>Time limit</label>
-                  <select value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)}>
-                    <option value="0">No timer</option>
-                    <option value="30">30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">1 hour</option>
-                    <option value="90">1.5 hours</option>
+          {(extractedText || manualText) && (
+            <div className="bg-white p-6 rounded-3xl border border-[#E8EAED] shadow-sm animate-in fade-in slide-in-from-bottom-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                  <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Practice Count</label>
+                  <select value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] outline-none">
+                    <option value="all">All Questions</option>
+                    <option value="10">10 Questions</option>
+                    <option value="20">20 Questions</option>
+                    <option value="50">50 Questions</option>
                   </select>
                 </div>
-                <div className="pcbt-option-group">
-                  <label>Shuffle questions?</label>
-                  <div className="pcbt-toggle">
-                    <button className={shuffle ? 'active' : ''} onClick={() => setShuffle(true)}>Yes</button>
-                    <button className={!shuffle ? 'active' : ''} onClick={() => setShuffle(false)}>No</button>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Time Limit</label>
+                  <select value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] outline-none">
+                    <option value="0">Unlimited Time</option>
+                    <option value="15">15 Minutes</option>
+                    <option value="30">30 Minutes</option>
+                    <option value="60">1 Hour</option>
+                  </select>
                 </div>
               </div>
-
+              
               <button 
-                className="pcbt-extract-btn" 
-                onClick={handleExtract} 
-                disabled={extracting || imageExtracting || (inputMode === 'upload' && !extractedText && !file) || (inputMode === 'manual' && !manualText)}
+                onClick={handleStartPractice}
+                disabled={generating || extracting || imageExtracting}
+                className="w-full py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
               >
-                {extracting || imageExtracting ? (
-                  <><FiLoader className="pcbt-spin" /> {extractStatus || 'Processing...'}</>
+                {generating || extracting || imageExtracting ? (
+                  <><FiLoader className="animate-spin" /> {extractionHint || 'Processing...'}</>
                 ) : (
-                  <><Sparkles size={16} /> Extract Questions & Start</>
+                  <><FiPlay /> Start Practice</>
                 )}
               </button>
-
-              {(extracting || imageExtracting) && extractStatus && (
-                <div className="pcbt-extracting-status">
-                  <p>{extractStatus}</p>
-                </div>
-              )}
-
-              {success && <div className="pcbt-success">✅ {success}</div>}
-              {error && <div className="pcbt-error">❌ {error}</div>}
             </div>
           )}
 
-          <div className="pcbt-how-it-works">
-            <h4>How it works</h4>
-            <div className="pcbt-steps">
-              <div className="pcbt-step"><span>1</span><p>Upload your document with questions and answers</p></div>
-              <div className="pcbt-step"><span>2</span><p>AI extracts objective and theory questions</p></div>
-              <div className="pcbt-step"><span>3</span><p>Answers stay hidden while you practice</p></div>
-              <div className="pcbt-step"><span>4</span><p>Submit to see score and corrections</p></div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {stage === 'preview' && extractedData && (
-        <div className="pcbt-preview">
-          <div className="pcbt-preview-card">
-            <div className="pcbt-preview-icon">✅</div>
-            <h2>Questions Extracted!</h2>
-            <p>Subject detected: <strong>{extractedData.subject}</strong></p>
-
-            <div className="pcbt-preview-stats">
-              <div><span>{extractedData.totalFound}</span><label>Questions found</label></div>
-              <div><span>{questionsToUse.length}</span><label>You&apos;ll practice</label></div>
-              <div><span>{Number(timeLimit) > 0 ? `${timeLimit}m` : '∞'}</span><label>Time limit</label></div>
-            </div>
-
-            <div className="pcbt-preview-questions">
-              <p className="pcbt-preview-label">Preview (first 3 questions):</p>
-              {questionsToUse.slice(0, 3).map((q, i) => (
-                <div key={i} className="pcbt-preview-q">
-                  <p><strong>Q{i + 1}:</strong> {q.question}</p>
-                  {q.type === 'objective' && q.options ? (
-                    <div className="pcbt-preview-options">
-                      {Object.entries(q.options).map(([key, val]) => (
-                        <span key={key} className="pcbt-preview-option">{key}. {val}</span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="pcbt-preview-options">
-                      <span className="pcbt-preview-option">Theory question</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="pcbt-preview-actions">
-              <button className="pcbt-btn-secondary" onClick={() => setStage('upload')}>← Re-upload</button>
-              <button className="pcbt-btn-primary" onClick={startTest}>Start Practice →</button>
-            </div>
-          </div>
+          {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-3 text-sm font-medium"><FiAlertTriangle /> {error}</div>}
+          {success && <div className="mt-6 p-4 bg-green-50 text-green-600 rounded-xl border border-green-100 flex items-center gap-3 text-sm font-medium"><FiCheckCircle /> {success}</div>}
         </div>
       )}
 
-      {stage === 'test' && currentQuestion && (
-        <div className="w-full">
-          <div className="cbt-header">
-            <div className="cbt-subject"><FileQuestion size={14} className="inline mr-1" /> PDF Practice</div>
+      {stage === 'practice' && currentQ && (
+        <div className="w-full max-w-4xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-8 sticky top-0 bg-[#F7F8FA]/80 backdrop-blur-md py-4 z-10">
             <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#E8EAED] shadow-sm font-bold text-[#5B4CF5]">
+                {currentIdx + 1}
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#0F172A]">{subject}</h4>
+                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-widest">Question {currentIdx + 1} of {practiceQuestions.length}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
               {Number(timeLimit) > 0 && (
-                <div className="cbt-timer">
-                  <FiClock className="inline-block mr-1" /> {formatTime(timeLeft)}
+                <div className={`px-4 py-2 rounded-full font-mono font-bold text-sm border shadow-sm ${timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-white border-[#E8EAED] text-[#0F172A]'}`}>
+                  <FiClock className="inline mr-2" /> {formatTime(timeLeft)}
                 </div>
               )}
-              <button
+              <button 
                 onClick={async () => {
-                  const remaining = questionsToUse.length - answeredCount
-                  if (remaining > 0) {
-                    const ok = await confirmToast(`You have ${remaining} unanswered question(s). Submit anyway?`, {
-                      title: 'Submit Exam',
-                      confirmText: 'Submit',
-                      variant: 'info'
-                    })
+                  if (answeredCount < practiceQuestions.length) {
+                    const ok = await confirmToast(`You haven't answered ${practiceQuestions.length - answeredCount} questions. Submit anyway?`, { title: 'Submit Practice', confirmText: 'Submit' })
                     if (!ok) return
                   }
                   void handleSubmit()
                 }}
-                className="nav-submit"
+                className="px-6 py-2 bg-[#0F172A] text-white rounded-full text-sm font-bold shadow-lg hover:opacity-90"
               >
                 Submit
               </button>
             </div>
           </div>
 
-          <div className="mt-2 mb-2 flex items-center justify-between text-xs text-gray-500">
-            <span>Question {currentQ + 1} of {questionsToUse.length}</span>
-            <span>Answered {answeredCount}/{questionsToUse.length}</span>
-          </div>
-
-          <div className="question-navigator mb-3">
-            {questionsToUse.map((_, idx) => {
-              const isAnswered = answers[idx] !== undefined
-              const isFlagged = flagged.has(idx)
-              const isCurrent = idx === currentQ
-              let stateClass = ''
-              if (isCurrent) stateClass = 'current'
-              else if (isFlagged) stateClass = 'skipped'
-              else if (isAnswered) stateClass = 'answered'
-              return (
-                <button key={idx} onClick={() => setCurrentQ(idx)} className={`nav-btn ${stateClass}`}>
-                  {idx + 1}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="question-card">
-            <div className="flex items-start justify-between mb-2">
-              <p className="question-number">Question {currentQ + 1}</p>
-              <button onClick={toggleFlag} className="text-xs px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-1">
-                <FiFlag /> {flagged.has(currentQ) ? 'Flagged' : 'Flag'}
+          <div className="bg-white rounded-[2rem] p-8 border border-[#E8EAED] shadow-sm mb-6">
+            <div className="flex justify-between items-start mb-6">
+              <span className="px-3 py-1 bg-[#EEF2FF] text-[#5B4CF5] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                {currentQ.type === 'theory' ? 'Theory' : 'Multiple Choice'}
+              </span>
+              <button onClick={toggleFlag} className={`text-xs flex items-center gap-2 font-bold ${flagged.has(currentIdx) ? 'text-orange-500' : 'text-[#94A3B8]'}`}>
+                <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag Question'}
               </button>
             </div>
 
-            <div className="question-text">{currentQuestion.question}</div>
+            <div className="text-lg font-medium text-[#0F172A] mb-8 leading-relaxed">
+              {currentQ.question}
+            </div>
 
-            {currentQuestion.type === 'objective' && currentQuestion.options ? (
-              <div className="options-list">
-                {OPTION_KEYS.map((key) => {
-                  const isSelected = answers[currentQ] === key
+            {currentQ.type === 'objective' && currentQ.options ? (
+              <div className="grid grid-cols-1 gap-3">
+                {OPTION_KEYS.map(key => {
+                  if (!currentQ.options![key]) return null
+                  const isSelected = answers[currentIdx] === key
                   return (
-                    <button
-                      key={key}
-                      onClick={() => setAnswers((prev) => ({ ...prev, [currentQ]: key }))}
-                      className={`option-btn ${isSelected ? 'selected' : ''}`}
+                    <button 
+                      key={key} 
+                      onClick={() => setAnswers(prev => ({ ...prev, [currentIdx]: key }))}
+                      className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${isSelected ? 'border-[#5B4CF5] bg-[#EEF2FF] text-[#5B4CF5]' : 'border-[#F1F5F9] hover:border-[#E2E8F0]'}`}
                     >
-                      <span className="option-letter">{key}.</span>
-                      <span>{currentQuestion.options[key]}</span>
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-[#5B4CF5] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                        {key}
+                      </span>
+                      <span className="font-medium">{currentQ.options![key]}</span>
                     </button>
                   )
                 })}
               </div>
             ) : (
-              <div className="options-list">
-                <textarea
-                  value={answers[currentQ] || ''}
-                  onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQ]: e.target.value }))}
-                  placeholder="Type your answer here..."
-                  className="w-full min-h-[120px] rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
+              <textarea 
+                className="w-full min-h-[200px] p-5 rounded-2xl border-2 border-[#F1F5F9] focus:border-[#5B4CF5] outline-none transition-all"
+                placeholder="Type your response here..."
+                value={answers[currentIdx] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [currentIdx]: e.target.value }))}
+              />
             )}
           </div>
 
-          <div className="cbt-nav-buttons">
-            <button onClick={() => setCurrentQ((i) => Math.max(i - 1, 0))} disabled={currentQ === 0} className="nav-prev disabled:opacity-40">Previous</button>
-            <button
-              onClick={() => {
-                if (currentQ === questionsToUse.length - 1) void handleSubmit()
-                else setCurrentQ((i) => Math.min(i + 1, questionsToUse.length - 1))
-              }}
-              className="nav-next"
+          <div className="flex justify-between items-center">
+            <button 
+              onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+              disabled={currentIdx === 0}
+              className="p-4 rounded-2xl bg-white border border-[#E8EAED] text-[#0F172A] disabled:opacity-20"
             >
-              {currentQ === questionsToUse.length - 1 ? 'Finish' : 'Next'}
+              <FiChevronLeft size={24} />
+            </button>
+            
+            <div className="flex gap-2">
+              {practiceQuestions.length <= 10 ? (
+                practiceQuestions.map((_, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentIdx ? 'w-6 bg-[#5B4CF5]' : 'bg-[#E8EAED]'}`} />
+                ))
+              ) : (
+                <span className="text-xs font-bold text-[#64748B]">Page {currentIdx + 1} of {practiceQuestions.length}</span>
+              )}
+            </div>
+
+            <button 
+              onClick={() => {
+                if (currentIdx === practiceQuestions.length - 1) void handleSubmit()
+                else setCurrentIdx(i => Math.min(practiceQuestions.length - 1, i + 1))
+              }}
+              className="p-4 rounded-2xl bg-white border border-[#E8EAED] text-[#0F172A]"
+            >
+              <FiChevronRight size={24} />
             </button>
           </div>
         </div>
       )}
 
-      {stage === 'results' && extractedData && (
-        <div className="pcbt-results">
-          <div className="pcbt-results-card">
-            <div className="pcbt-score-circle" style={{ ['--pct' as string]: score.pct }}>
-              <span className="pcbt-score-num">{score.pct}%</span>
-              <span className="pcbt-score-label">{score.correct}/{score.total}</span>
+      {stage === 'results' && (
+        <div className="pcbt-results max-w-4xl mx-auto px-4 py-12 animate-in zoom-in-95">
+          <div className="bg-white rounded-[3rem] p-12 border border-[#E8EAED] shadow-2xl text-center mb-8 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#5B4CF5] to-[#7C70FF]" />
+            
+            <div className="w-32 h-32 rounded-full bg-[#EEF2FF] flex items-center justify-center mx-auto mb-6 text-4xl border-8 border-white shadow-inner">
+              {score.pct >= 70 ? '🎉' : score.pct >= 50 ? '👍' : '📚'}
+            </div>
+            
+            <h2 className="text-4xl font-black text-[#0F172A] mb-2">{score.pct}% Score</h2>
+            <p className="text-[#64748B] mb-8 font-bold">You got {score.correct} out of {score.total} objective questions correct.</p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
+                <span className="block text-2xl font-black text-[#0F172A]">{score.correct}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Correct</label>
+              </div>
+              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
+                <span className="block text-2xl font-black text-[#0F172A]">{score.total - score.correct}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Wrong</label>
+              </div>
+              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
+                <span className="block text-2xl font-black text-[#0F172A]">{practiceQuestions.length - answeredCount}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Skipped</label>
+              </div>
+              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
+                <span className="block text-2xl font-black text-[#0F172A]">{formatTime(Number(timeLimit) * 60 - timeLeft)}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Time</label>
+              </div>
             </div>
 
-            <h2>{score.pct >= 70 ? 'Great job!' : score.pct >= 50 ? 'Good effort!' : 'Keep studying!'}</h2>
-            <p>{extractedData.subject} · PDF Practice</p>
-            {score.total === 0 && <p>No objective questions to auto-grade in this set.</p>}
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <button 
+                onClick={() => setStage('setup')}
+                className="px-8 py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold hover:shadow-xl transition-all"
+              >
+                Try Another Document
+              </button>
+              <button 
+                onClick={() => {
+                  setAnswers({})
+                  setCurrentIdx(0)
+                  setQuizSubmitted(false)
+                  setStage('practice')
+                  setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
+                }}
+                className="px-8 py-4 bg-[#0F172A] text-white rounded-2xl font-bold hover:shadow-xl transition-all"
+              >
+                Re-practice Same
+              </button>
+            </div>
+          </div>
 
-            <div className="pcbt-review">
-              {questionsToUse.map((q, i) => {
-                const userAnswer = answers[i]
-                const userAnsNorm = String(userAnswer || '').trim().toUpperCase()
-                const correctAnsNorm = String(q.answer || '').trim().toUpperCase()
-                const isCorrect = q.type === 'objective' ? userAnsNorm === correctAnsNorm : false
-                return (
-                  <div key={i} className={`pcbt-review-item ${isCorrect ? 'correct' : 'wrong'}`}>
-                    <div className="pcbt-review-header">
-                      {q.type === 'objective' ? (
-                        <>
-                          {isCorrect ? <FiCheckCircle color="#10B981" /> : <FiXCircle color="#EF4444" />}
-                          <span>
-                            {isCorrect
-                              ? `Q${i + 1}: Correct`
-                              : `Q${i + 1}: Wrong — Answer: ${q.answer}. ${q.options?.[q.answer as OptionKey] || ''}`}
-                          </span>
-                        </>
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-[#0F172A] px-2">Review Questions</h3>
+            {practiceQuestions.map((q, i) => {
+              const userAns = String(answers[i] || '').trim().toUpperCase()
+              const correctAns = String(q.answer || '').trim().toUpperCase()
+              const isCorrect = q.type === 'objective' ? userAns === correctAns : false
+              const isSkipped = !userAns
+              
+              return (
+                <div key={i} className={`bg-white p-8 rounded-[2rem] border-2 transition-all ${isSkipped ? 'border-[#F1F5F9]' : isCorrect ? 'border-green-100 shadow-sm shadow-green-50' : 'border-red-100 shadow-sm shadow-red-50'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="font-black text-[#0F172A]">Question {i + 1}</span>
+                    <div className="flex items-center gap-2">
+                      {isSkipped ? (
+                        <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">Skipped</span>
+                      ) : isCorrect ? (
+                        <span className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiCheckCircle /> Correct</span>
                       ) : (
-                        <>
-                          <FiCheckCircle color="#3B82F6" />
-                          <span>Q{i + 1}: Theory response recorded</span>
-                        </>
+                        <span className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiXCircle /> Incorrect</span>
                       )}
                     </div>
-                    <p className="pcbt-review-question">{q.question}</p>
-                    {q.type === 'objective' && !isCorrect && (
-                      <div className="pcbt-review-options">
-                        {OPTION_KEYS.map((key) => (
-                          <span key={key} className={`pcbt-review-option ${key === q.answer ? 'correct' : key === userAnswer ? 'wrong' : ''}`}>
-                            {key}. {q.options?.[key] || ''}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {q.type === 'theory' && (
-                      <div className="pcbt-review-options">
-                        <span className="pcbt-review-option"><strong>Your answer:</strong> {userAnswer || 'No answer provided'}</span>
-                        <span className="pcbt-review-option"><strong>Model answer:</strong> {q.answer || 'No model answer provided'}</span>
-                      </div>
-                    )}
                   </div>
-                )
-              })}
-            </div>
+                  
+                  <p className="text-[#0F172A] mb-6 leading-relaxed font-medium">{q.question}</p>
+                  
+                  {q.type === 'objective' && q.options && (
+                    <div className="space-y-2">
+                      {OPTION_KEYS.map(key => {
+                        if (!q.options![key]) return null
+                        const isUserChoice = userAns === key
+                        const isCorrectAnswer = correctAns === key
+                        let style = 'bg-[#F8FAFC] text-[#64748B]'
+                        if (isCorrectAnswer) style = 'bg-green-50 text-green-700 border border-green-200'
+                        else if (isUserChoice) style = 'bg-red-50 text-red-700 border border-red-200'
+                        
+                        return (
+                          <div key={key} className={`p-4 rounded-xl text-sm font-medium flex items-center gap-3 ${style}`}>
+                            <span className="font-bold">{key}.</span>
+                            {q.options![key]}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
 
-            <div className="pcbt-results-actions">
-              <button
-                className="pcbt-btn-secondary"
-                onClick={() => {
-                  setStage('upload')
-                  setFile(null)
-                  setWarning('')
-                  setExtractedData(null)
-                  setQuestionsToUse([])
-                  setAnswers({})
-                  setResultSaved(false)
-                  setError('')
-                  setSuccess('')
-                  setExtractedText('')
-                  setManualText('')
-                }}
-              >
-                Upload Another PDF
-              </button>
-              <button
-                className="pcbt-btn-primary"
-                onClick={() => {
-                  setAnswers({})
-                  setCurrentQ(0)
-                  setResultSaved(false)
-                  setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
-                  setStage('test')
-                }}
-              >
-                Retry Same Questions
-              </button>
-              <button
-                className="pcbt-btn-primary"
-                style={{ background: '#4F46E5' }}
-                onClick={() => {
-                  if (extractedData) {
-                    setQuestionsToUse(buildQuestionSet(extractedData.questions))
-                    setAnswers({})
-                    setCurrentQ(0)
-                    setResultSaved(false)
-                    setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
-                    setStage('test')
-                  }
-                }}
-              >
-                Practice New Set
-              </button>
-            </div>
+                  {q.type === 'theory' && (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-[#F8FAFC] rounded-xl border border-[#F1F5F9]">
+                        <label className="block text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Your Answer</label>
+                        <p className="text-sm text-[#0F172A]">{answers[i] || 'No answer provided'}</p>
+                      </div>
+                      <div className="p-4 bg-[#EEF2FF] rounded-xl border border-[#E0E7FF]">
+                        <label className="block text-[10px] font-bold text-[#5B4CF5] uppercase tracking-wider mb-1">Model Answer</label>
+                        <p className="text-sm text-[#5B4CF5]">{q.answer || 'Not available'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {q.explanation && (
+                    <div className="mt-6 pt-6 border-t border-[#F1F5F9]">
+                      <label className="block text-[10px] font-bold text-[#5B4CF5] uppercase tracking-wider mb-2">AI Explanation</label>
+                      <p className="text-xs text-[#64748B] italic leading-relaxed">{q.explanation}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

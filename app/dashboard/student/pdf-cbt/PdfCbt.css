@@ -131,3 +131,22 @@
   .pcbt-results-actions { flex-direction: column; }
   .pcbt-preview-actions { flex-direction: column; }
 }
+/* Source Tabs */
+.qg-source-tabs { display: flex; gap: 8px; background: #F1F5F9; padding: 6px; border-radius: 14px; margin-bottom: 24px; }
+.qg-source-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: none; border-radius: 10px; background: transparent; color: #64748B; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.qg-source-tab.active { background: white; color: #5B4CF5; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+.dark .qg-source-tabs { background: #1F2937; }
+.dark .qg-source-tab.active { background: #111827; color: #60A5FA; }
+
+.pcbt-dropzone.has-file { border-color: #5B4CF5; background: #EEF2FF; }
+.dark .pcbt-dropzone.has-file { border-color: #60A5FA; background: rgba(96, 165, 250, 0.1); }
+
+/* Animation Utils */
+.animate-in { animation-duration: 0.4s; animation-fill-mode: both; }
+.fade-in { animation-name: fadeIn; }
+.zoom-in-95 { animation-name: zoomIn95; }
+.slide-in-from-bottom-4 { animation-name: slideInBottom; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoomIn95 { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideInBottom { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
