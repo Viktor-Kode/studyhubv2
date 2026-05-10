@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { 
   FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, 
-  FiClock, FiLoader, FiCamera, FiRefreshCw, FiAlertTriangle,
-  FiFlag, FiChevronLeft, FiChevronRight, FiPlay
+  FiClock, FiLoader, FiCamera, FiAlertTriangle,
+  FiFlag, FiChevronLeft, FiChevronRight, FiPlay, FiTrash2, FiLink, FiFile
 } from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
@@ -20,6 +19,7 @@ import './PdfCbt.css'
 type InputMode = 'upload' | 'manual'
 type Stage = 'setup' | 'practice' | 'results'
 type OptionKey = 'A' | 'B' | 'C' | 'D'
+type QuestionType = 'objective' | 'theory' | 'mixed'
 
 interface Question {
   type: 'objective' | 'theory'
@@ -27,11 +27,6 @@ interface Question {
   options: Record<OptionKey, string> | null
   answer: string
   explanation?: string
-}
-
-interface ExtractedData {
-  subject: string
-  questions: Question[]
 }
 
 const OPTION_KEYS: OptionKey[] = ['A', 'B', 'C', 'D']
@@ -46,6 +41,14 @@ function getExtractionLabel(file: File): string {
   return 'Reading document...'
 }
 
+function getFileIcon(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  if (ext === 'pdf') return <div className="p-2 bg-red-100 text-red-600 rounded-lg"><FiFileText /></div>
+  if (ext === 'docx' || ext === 'doc') return <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><FiFile /></div>
+  if (ext === 'pptx' || ext === 'ppt') return <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><FiFile /></div>
+  return <div className="p-2 bg-gray-100 text-gray-600 rounded-lg"><FiFile /></div>
+}
+
 const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
 export default function PdfCbtPage() {
@@ -54,6 +57,7 @@ export default function PdfCbtPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
   
   // App State
   const [stage, setStage] = useState<Stage>('setup')
@@ -66,18 +70,16 @@ export default function PdfCbtPage() {
   
   // Camera State
   const [cameraOpen, setCameraOpen] = useState(false)
-  const [capturedImage, setCapturedImage] = useState<File | null>(null)
-  const [imageExtracting, setImageExtracting] = useState(false)
+  const [cameraStreamRef] = useState<{ current: MediaStream | null }>({ current: null })
   const videoRef = useRef<HTMLVideoElement>(null)
-  const cameraStreamRef = useRef<MediaStream | null>(null)
 
   // Config State
   const [numQuestions, setNumQuestions] = useState('all')
   const [timeLimit, setTimeLimit] = useState('0')
   const [shuffle, setShuffle] = useState(true)
+  const [questionType, setQuestionType] = useState<QuestionType>('mixed')
 
   // Practice State
-  const [allQuestions, setAllQuestions] = useState<Question[]>([])
   const [practiceQuestions, setPracticeQuestions] = useState<Question[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Record<number, string>>({})
@@ -193,7 +195,7 @@ export default function PdfCbtPage() {
     setCameraOpen(false)
     if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop())
     
-    setImageExtracting(true)
+    setExtracting(true)
     setExtractionHint('Scanning photo with OCR...')
     try {
       const text = await extractTextFromFile(imageFile)
@@ -206,7 +208,7 @@ export default function PdfCbtPage() {
     } catch (err: any) {
       setError(err?.message || 'OCR failed.')
     } finally {
-      setImageExtracting(false)
+      setExtracting(false)
       setExtractionHint('')
     }
   }
@@ -228,7 +230,7 @@ export default function PdfCbtPage() {
       const resp = await fetch(generateUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, questionType })
       })
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error || 'Failed to extract questions.')
@@ -243,7 +245,6 @@ export default function PdfCbtPage() {
 
       if (questions.length === 0) throw new Error('No questions found in this document.')
 
-      setAllQuestions(questions)
       setSubject(data.subject || 'Extracted Practice')
       
       // Select subset based on config
@@ -297,6 +298,15 @@ export default function PdfCbtPage() {
     }
   }
 
+  const handleQuit = async () => {
+    const ok = await confirmToast('Are you sure you want to quit? Your progress will be lost.', {
+      title: 'Quit Practice',
+      confirmText: 'Quit',
+      variant: 'danger'
+    })
+    if (ok) setStage('setup')
+  }
+
   const toggleFlag = () => {
     setFlagged(prev => {
       const next = new Set(prev)
@@ -310,119 +320,202 @@ export default function PdfCbtPage() {
   const currentQ = practiceQuestions[currentIdx]
 
   return (
-    <div className="pcbt-page">
+    <div className="pcbt-page dark:bg-[#0F172A]">
       {stage === 'setup' && (
-        <div className="max-w-3xl mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto py-8 px-4">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-black text-[#0F172A] mb-2">Document to CBT</h1>
-            <p className="text-[#64748B]">Extract questions from any PDF, Word, or Image and practice immediately.</p>
+            <h1 className="text-3xl font-black text-[#0F172A] dark:text-white mb-2">Document to CBT</h1>
+            <p className="text-[#64748B] dark:text-gray-400">Extract questions from any PDF, Word, or Image and practice immediately.</p>
           </div>
 
-          <div className="qg-source-tabs mb-6">
-            <button className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`} onClick={() => setInputMode('upload')}>
-              <FiUpload /> Upload File
-            </button>
-            <button className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`} onClick={() => setInputMode('manual')}>
-              <FiFileText /> Paste Text
-            </button>
-          </div>
-
-          {inputMode === 'upload' ? (
-            <div className="mb-8">
-              <div 
-                className={`pcbt-dropzone cursor-pointer ${uploadedFile ? 'has-file' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="pcbt-drop-icon">{uploadedFile ? '✅' : '📄'}</div>
-                <h3>{uploadedFile ? uploadedFile.name : 'Click or Drop File'}</h3>
-                <p>{uploadedFile ? `${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB` : 'PDF, Word, PPT, Image'}</p>
-                <input ref={fileInputRef} type="file" hidden onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
-              </div>
-              <div className="mt-4 flex justify-center">
-                <button onClick={handleOpenCamera} className="pcbt-btn-secondary flex items-center gap-2">
-                  <FiCamera /> Scan with Camera
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Input Side */}
+            <div className="space-y-4">
+              <div className="qg-source-tabs">
+                <button className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`} onClick={() => setInputMode('manual')}>
+                  <span>✏️</span> Paste Text
+                </button>
+                <button className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`} onClick={() => setInputMode('upload')}>
+                  <span>📄</span> Upload PDF
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="mb-8">
-              <textarea 
-                className="w-full min-h-[250px] p-5 rounded-2xl border-2 border-[#E8EAED] focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed"
-                placeholder="Paste your questions and answers here..."
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-              />
-            </div>
-          )}
 
-          {cameraOpen && (
-            <div className="pcbt-camera-wrap mb-8">
-              <video ref={videoRef} autoPlay playsInline muted className="pcbt-camera-video" />
-              <div className="flex gap-4 mt-4">
-                <button onClick={() => { setCameraOpen(false); if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop()); }} className="pcbt-btn-secondary flex-1">Cancel</button>
-                <button onClick={handleCapture} className="pcbt-btn-primary flex-1">Capture Text</button>
+              {inputMode === 'upload' ? (
+                <>
+                  <div className="flex items-center justify-end">
+                    <button onClick={handleOpenCamera} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition">
+                      <FiCamera /> Use Camera
+                    </button>
+                  </div>
+                  <div 
+                    className={`relative border-2 border-dashed rounded-xl p-8 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[250px]
+                    ${isDragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'}
+                    ${uploadedFile ? 'border-solid border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/5' : ''}
+                    `}
+                    onClick={() => !uploadedFile && !extracting && fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; if (file) handleFileUpload(file) }}
+                  >
+                    <input ref={fileInputRef} type="file" hidden accept=".pdf,.docx,.doc,.txt,.md,.ppt,.pptx,image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+                    
+                    {!uploadedFile ? (
+                      <>
+                        <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500">
+                          <FiUpload size={24} />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-gray-700 dark:text-gray-200">Select Study Material</p>
+                          <p className="text-xs text-gray-500">PDF, Word, PPT, or Images (Max 25MB)</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            {getFileIcon(uploadedFile.name)}
+                            <div className="overflow-hidden">
+                              <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[120px]">{uploadedFile.name}</p>
+                              <p className="text-[10px] text-gray-500 font-medium">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                          </div>
+                          {!extracting && (
+                            <button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setExtractedText('') }} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-500 rounded-lg transition">
+                              <FiX />
+                            </button>
+                          )}
+                        </div>
+                        {extracting ? (
+                          <div className="flex items-center justify-center gap-2 py-4">
+                            <FiLoader className="animate-spin text-blue-500" />
+                            <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">{extractionHint || 'Processing...'}</span>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700">
+                             <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">File Ready</span>
+                             </div>
+                             <p className="text-[11px] text-gray-600 dark:text-gray-400 italic leading-relaxed">"{uploadedFile.name}" ready for extraction.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="min-h-[250px] flex flex-col">
+                  <textarea 
+                    className="flex-1 w-full p-5 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0F172A] dark:text-white focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed font-medium resize-none"
+                    placeholder="Paste your questions and answers here..."
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 text-right mt-2">{manualText.length} characters</p>
+                </div>
+              )}
+
+              {cameraOpen && (
+                <div className="pcbt-camera-wrap dark:bg-gray-800/50">
+                  <video ref={videoRef} autoPlay playsInline muted className="pcbt-camera-video" />
+                  <div className="flex gap-4 mt-4">
+                    <button onClick={() => { setCameraOpen(false); if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop()); }} className="pcbt-btn-secondary dark:bg-gray-700 dark:text-gray-300 flex-1">Cancel</button>
+                    <button onClick={handleCapture} className="pcbt-btn-primary flex-1">Capture Text</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 bg-gray-100 dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700">
+                <p className="text-[11px] font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <FiFileText /> {inputMode === 'upload' ? 'File Tips' : 'Manual Tips'}
+                </p>
+                <ul className="text-[11px] text-gray-700 dark:text-gray-300 space-y-1 font-medium list-disc pl-4">
+                  {inputMode === 'upload' ? (
+                    <>
+                      <li><strong>PDF/Word:</strong> Best for large question banks</li>
+                      <li><strong>Images:</strong> Ensure photos are clear and brightly lit</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Paste text exactly as it appears in the material</li>
+                      <li>Mixed formats are supported (MCQ + Theory)</li>
+                    </>
+                  )}
+                </ul>
               </div>
             </div>
-          )}
 
-          {(extractedText || manualText) && (
-            <div className="bg-white p-6 rounded-3xl border border-[#E8EAED] shadow-sm animate-in fade-in slide-in-from-bottom-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Practice Count</label>
-                  <select value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] outline-none">
-                    <option value="all">All Questions</option>
-                    <option value="10">10 Questions</option>
-                    <option value="20">20 Questions</option>
-                    <option value="50">50 Questions</option>
-                  </select>
+            {/* Options Side */}
+            <div className="flex flex-col justify-between">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-[#E8EAED] dark:border-gray-700 shadow-sm space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Question Type</label>
+                    <select value={questionType} onChange={(e) => setQuestionType(e.target.value as QuestionType)} className="w-full p-3 rounded-xl border border-[#E8EAED] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm outline-none text-gray-900 dark:text-white">
+                      <option value="objective">Objective Only</option>
+                      <option value="theory">Theory Only</option>
+                      <option value="mixed">Mixed (Recommended)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Quantity</label>
+                    <select value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm outline-none text-gray-900 dark:text-white">
+                      <option value="all">All Questions</option>
+                      <option value="10">10 Questions</option>
+                      <option value="20">20 Questions</option>
+                      <option value="50">50 Questions</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Time Limit</label>
-                  <select value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] outline-none">
+                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Time Limit</label>
+                  <select value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} className="w-full p-3 rounded-xl border border-[#E8EAED] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm outline-none text-gray-900 dark:text-white">
                     <option value="0">Unlimited Time</option>
                     <option value="15">15 Minutes</option>
                     <option value="30">30 Minutes</option>
                     <option value="60">1 Hour</option>
                   </select>
                 </div>
-              </div>
-              
-              <button 
-                onClick={handleStartPractice}
-                disabled={generating || extracting || imageExtracting}
-                className="w-full py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-              >
-                {generating || extracting || imageExtracting ? (
-                  <><FiLoader className="animate-spin" /> {extractionHint || 'Processing...'}</>
-                ) : (
-                  <><FiPlay /> Start Practice</>
-                )}
-              </button>
-            </div>
-          )}
 
-          {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-3 text-sm font-medium"><FiAlertTriangle /> {error}</div>}
-          {success && <div className="mt-6 p-4 bg-green-50 text-green-600 rounded-xl border border-green-100 flex items-center gap-3 text-sm font-medium"><FiCheckCircle /> {success}</div>}
+                <button 
+                  onClick={handleStartPractice}
+                  disabled={generating || extracting || (!extractedText && !manualText)}
+                  className="w-full py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-[#5B4CF5]/20"
+                >
+                  {generating || extracting ? (
+                    <><FiLoader className="animate-spin" /> Processing...</>
+                  ) : (
+                    <><FiPlay /> Start Practice</>
+                  )}
+                </button>
+              </div>
+
+              {error && <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-800 flex items-center gap-3 text-sm font-medium"><FiAlertTriangle /> {error}</div>}
+              {success && <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl border border-green-100 dark:border-green-800 flex items-center gap-3 text-sm font-medium"><FiCheckCircle /> {success}</div>}
+            </div>
+          </div>
         </div>
       )}
 
       {stage === 'practice' && currentQ && (
-        <div className="w-full max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-8 sticky top-0 bg-[#F7F8FA]/80 backdrop-blur-md py-4 z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#E8EAED] shadow-sm font-bold text-[#5B4CF5]">
-                {currentIdx + 1}
-              </div>
+        <div className="w-full max-w-5xl mx-auto px-4 py-6">
+          {/* Practice Header */}
+          <div className="flex items-center justify-between mb-8 sticky top-0 bg-[#F7F8FA]/90 dark:bg-[#0F172A]/90 backdrop-blur-md py-4 z-10 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-4">
+              <button onClick={handleQuit} className="p-2 text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition" title="Quit Practice">
+                <FiTrash2 size={20} />
+              </button>
+              <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
               <div>
-                <h4 className="text-sm font-bold text-[#0F172A]">{subject}</h4>
-                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-widest">Question {currentIdx + 1} of {practiceQuestions.length}</p>
+                <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">{subject}</h4>
+                <p className="text-[10px] text-[#64748B] dark:text-gray-400 uppercase font-black tracking-widest">Question {currentIdx + 1} of {practiceQuestions.length}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               {Number(timeLimit) > 0 && (
-                <div className={`px-4 py-2 rounded-full font-mono font-bold text-sm border shadow-sm ${timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-white border-[#E8EAED] text-[#0F172A]'}`}>
+                <div className={`px-4 py-2 rounded-full font-mono font-bold text-sm border shadow-sm ${timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-white dark:bg-gray-800 border-[#E8EAED] dark:border-gray-700 text-[#0F172A] dark:text-white'}`}>
                   <FiClock className="inline mr-2" /> {formatTime(timeLeft)}
                 </div>
               )}
@@ -434,29 +527,50 @@ export default function PdfCbtPage() {
                   }
                   void handleSubmit()
                 }}
-                className="px-6 py-2 bg-[#0F172A] text-white rounded-full text-sm font-bold shadow-lg hover:opacity-90"
+                className="px-6 py-2 bg-[#0F172A] dark:bg-white text-white dark:text-[#0F172A] rounded-full text-sm font-bold shadow-lg hover:opacity-90"
               >
                 Submit
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-[2rem] p-8 border border-[#E8EAED] shadow-sm mb-6">
+          {/* Number Navigation */}
+          <div className="flex flex-wrap gap-2 mb-8 justify-center">
+            {practiceQuestions.map((_, i) => (
+              <button 
+                key={i}
+                onClick={() => setCurrentIdx(i)}
+                className={`w-10 h-10 rounded-xl font-bold text-xs transition-all border ${
+                  i === currentIdx 
+                    ? 'bg-[#5B4CF5] text-white border-[#5B4CF5] shadow-lg shadow-[#5B4CF5]/30' 
+                    : answers[i] 
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
+                      : flagged.has(i)
+                        ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800'
+                        : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-[#5B4CF5]'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 md:p-12 border border-[#E8EAED] dark:border-gray-700 shadow-xl mb-8">
             <div className="flex justify-between items-start mb-6">
-              <span className="px-3 py-1 bg-[#EEF2FF] text-[#5B4CF5] text-[10px] font-bold uppercase tracking-wider rounded-md">
+              <span className="px-3 py-1 bg-[#EEF2FF] dark:bg-[#5B4CF5]/10 text-[#5B4CF5] dark:text-[#5B4CF5] text-[10px] font-bold uppercase tracking-wider rounded-md">
                 {currentQ.type === 'theory' ? 'Theory' : 'Multiple Choice'}
               </span>
-              <button onClick={toggleFlag} className={`text-xs flex items-center gap-2 font-bold ${flagged.has(currentIdx) ? 'text-orange-500' : 'text-[#94A3B8]'}`}>
+              <button onClick={toggleFlag} className={`text-xs flex items-center gap-2 font-bold ${flagged.has(currentIdx) ? 'text-orange-500' : 'text-[#94A3B8] dark:text-gray-500'}`}>
                 <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag Question'}
               </button>
             </div>
 
-            <div className="text-lg font-medium text-[#0F172A] mb-8 leading-relaxed">
+            <div className="text-xl md:text-2xl font-bold text-[#0F172A] dark:text-white mb-10 leading-snug">
               {currentQ.question}
             </div>
 
             {currentQ.type === 'objective' && currentQ.options ? (
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {OPTION_KEYS.map(key => {
                   if (!currentQ.options![key]) return null
                   const isSelected = answers[currentIdx] === key
@@ -464,19 +578,19 @@ export default function PdfCbtPage() {
                     <button 
                       key={key} 
                       onClick={() => setAnswers(prev => ({ ...prev, [currentIdx]: key }))}
-                      className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${isSelected ? 'border-[#5B4CF5] bg-[#EEF2FF] text-[#5B4CF5]' : 'border-[#F1F5F9] hover:border-[#E2E8F0]'}`}
+                      className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left group ${isSelected ? 'border-[#5B4CF5] bg-[#EEF2FF] dark:bg-[#5B4CF5]/5 text-[#5B4CF5]' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 hover:border-gray-200 dark:hover:border-gray-600'}`}
                     >
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-[#5B4CF5] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${isSelected ? 'bg-[#5B4CF5] text-white' : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700'}`}>
                         {key}
                       </span>
-                      <span className="font-medium">{currentQ.options![key]}</span>
+                      <span className={`font-bold ${isSelected ? 'text-[#0F172A] dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>{currentQ.options![key]}</span>
                     </button>
                   )
                 })}
               </div>
             ) : (
               <textarea 
-                className="w-full min-h-[200px] p-5 rounded-2xl border-2 border-[#F1F5F9] focus:border-[#5B4CF5] outline-none transition-all"
+                className="w-full min-h-[250px] p-6 rounded-2xl border-2 border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 text-[#0F172A] dark:text-white focus:border-[#5B4CF5] outline-none transition-all font-medium leading-relaxed"
                 placeholder="Type your response here..."
                 value={answers[currentIdx] || ''}
                 onChange={(e) => setAnswers(prev => ({ ...prev, [currentIdx]: e.target.value }))}
@@ -484,33 +598,23 @@ export default function PdfCbtPage() {
             )}
           </div>
 
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-6">
             <button 
               onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
               disabled={currentIdx === 0}
-              className="p-4 rounded-2xl bg-white border border-[#E8EAED] text-[#0F172A] disabled:opacity-20"
+              className="flex-1 py-4 px-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#0F172A] dark:text-white font-bold flex items-center justify-center gap-2 disabled:opacity-20 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
             >
-              <FiChevronLeft size={24} />
+              <FiChevronLeft /> Prev
             </button>
             
-            <div className="flex gap-2">
-              {practiceQuestions.length <= 10 ? (
-                practiceQuestions.map((_, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentIdx ? 'w-6 bg-[#5B4CF5]' : 'bg-[#E8EAED]'}`} />
-                ))
-              ) : (
-                <span className="text-xs font-bold text-[#64748B]">Page {currentIdx + 1} of {practiceQuestions.length}</span>
-              )}
-            </div>
-
             <button 
               onClick={() => {
                 if (currentIdx === practiceQuestions.length - 1) void handleSubmit()
                 else setCurrentIdx(i => Math.min(practiceQuestions.length - 1, i + 1))
               }}
-              className="p-4 rounded-2xl bg-white border border-[#E8EAED] text-[#0F172A]"
+              className="flex-1 py-4 px-6 rounded-2xl bg-[#5B4CF5] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#5B4CF5]/20"
             >
-              <FiChevronRight size={24} />
+              {currentIdx === practiceQuestions.length - 1 ? 'Finish' : 'Next'} <FiChevronRight />
             </button>
           </div>
         </div>
@@ -518,59 +622,43 @@ export default function PdfCbtPage() {
 
       {stage === 'results' && (
         <div className="pcbt-results max-w-4xl mx-auto px-4 py-12 animate-in zoom-in-95">
-          <div className="bg-white rounded-[3rem] p-12 border border-[#E8EAED] shadow-2xl text-center mb-8 relative overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-12 border border-[#E8EAED] dark:border-gray-700 shadow-2xl text-center mb-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#5B4CF5] to-[#7C70FF]" />
             
-            <div className="w-32 h-32 rounded-full bg-[#EEF2FF] flex items-center justify-center mx-auto mb-6 text-4xl border-8 border-white shadow-inner">
+            <div className="w-32 h-32 rounded-full bg-[#EEF2FF] dark:bg-[#5B4CF5]/10 flex items-center justify-center mx-auto mb-6 text-4xl border-8 border-white dark:border-gray-700 shadow-inner">
               {score.pct >= 70 ? '🎉' : score.pct >= 50 ? '👍' : '📚'}
             </div>
             
-            <h2 className="text-4xl font-black text-[#0F172A] mb-2">{score.pct}% Score</h2>
-            <p className="text-[#64748B] mb-8 font-bold">You got {score.correct} out of {score.total} objective questions correct.</p>
+            <h2 className="text-4xl font-black text-[#0F172A] dark:text-white mb-2">{score.pct}% Score</h2>
+            <p className="text-[#64748B] dark:text-gray-400 mb-8 font-bold">You got {score.correct} out of {score.total} objective questions correct.</p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
-                <span className="block text-2xl font-black text-[#0F172A]">{score.correct}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Correct</label>
+              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
+                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{score.correct}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Correct</label>
               </div>
-              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
-                <span className="block text-2xl font-black text-[#0F172A]">{score.total - score.correct}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Wrong</label>
+              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
+                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{score.total - score.correct}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Wrong</label>
               </div>
-              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
-                <span className="block text-2xl font-black text-[#0F172A]">{practiceQuestions.length - answeredCount}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Skipped</label>
+              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
+                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{practiceQuestions.length - answeredCount}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Skipped</label>
               </div>
-              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
-                <span className="block text-2xl font-black text-[#0F172A]">{formatTime(Number(timeLimit) * 60 - timeLeft)}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Time</label>
+              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
+                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{formatTime(Number(timeLimit) * 60 - timeLeft)}</span>
+                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Time</label>
               </div>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <button 
-                onClick={() => setStage('setup')}
-                className="px-8 py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold hover:shadow-xl transition-all"
-              >
-                Try Another Document
-              </button>
-              <button 
-                onClick={() => {
-                  setAnswers({})
-                  setCurrentIdx(0)
-                  setQuizSubmitted(false)
-                  setStage('practice')
-                  setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0)
-                }}
-                className="px-8 py-4 bg-[#0F172A] text-white rounded-2xl font-bold hover:shadow-xl transition-all"
-              >
-                Re-practice Same
-              </button>
+              <button onClick={() => setStage('setup')} className="px-8 py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold hover:shadow-xl transition-all">New Document</button>
+              <button onClick={() => { setAnswers({}); setCurrentIdx(0); setQuizSubmitted(false); setStage('practice'); setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0); }} className="px-8 py-4 bg-[#0F172A] dark:bg-white text-white dark:text-[#0F172A] rounded-2xl font-bold hover:shadow-xl transition-all">Retry Same</button>
             </div>
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-xl font-black text-[#0F172A] px-2">Review Questions</h3>
+            <h3 className="text-xl font-black text-[#0F172A] dark:text-white px-2">Review Questions</h3>
             {practiceQuestions.map((q, i) => {
               const userAns = String(answers[i] || '').trim().toUpperCase()
               const correctAns = String(q.answer || '').trim().toUpperCase()
@@ -578,35 +666,35 @@ export default function PdfCbtPage() {
               const isSkipped = !userAns
               
               return (
-                <div key={i} className={`bg-white p-8 rounded-[2rem] border-2 transition-all ${isSkipped ? 'border-[#F1F5F9]' : isCorrect ? 'border-green-100 shadow-sm shadow-green-50' : 'border-red-100 shadow-sm shadow-red-50'}`}>
+                <div key={i} className={`bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border-2 transition-all ${isSkipped ? 'border-gray-100 dark:border-gray-700' : isCorrect ? 'border-green-100 dark:border-green-900/30 shadow-sm shadow-green-50 dark:shadow-green-900/10' : 'border-red-100 dark:border-red-900/30 shadow-sm shadow-red-50 dark:shadow-red-900/10'}`}>
                   <div className="flex justify-between items-start mb-4">
-                    <span className="font-black text-[#0F172A]">Question {i + 1}</span>
+                    <span className="font-black text-[#0F172A] dark:text-white uppercase text-xs tracking-widest">Question {i + 1}</span>
                     <div className="flex items-center gap-2">
                       {isSkipped ? (
-                        <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">Skipped</span>
+                        <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">Skipped</span>
                       ) : isCorrect ? (
-                        <span className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiCheckCircle /> Correct</span>
+                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiCheckCircle /> Correct</span>
                       ) : (
-                        <span className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiXCircle /> Incorrect</span>
+                        <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiXCircle /> Incorrect</span>
                       )}
                     </div>
                   </div>
                   
-                  <p className="text-[#0F172A] mb-6 leading-relaxed font-medium">{q.question}</p>
+                  <p className="text-[#0F172A] dark:text-white mb-6 leading-relaxed font-bold text-lg">{q.question}</p>
                   
                   {q.type === 'objective' && q.options && (
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {OPTION_KEYS.map(key => {
                         if (!q.options![key]) return null
                         const isUserChoice = userAns === key
                         const isCorrectAnswer = correctAns === key
-                        let style = 'bg-[#F8FAFC] text-[#64748B]'
-                        if (isCorrectAnswer) style = 'bg-green-50 text-green-700 border border-green-200'
-                        else if (isUserChoice) style = 'bg-red-50 text-red-700 border border-red-200'
+                        let style = 'bg-gray-50 dark:bg-gray-900/40 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-700'
+                        if (isCorrectAnswer) style = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-100 dark:border-green-800'
+                        else if (isUserChoice) style = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800'
                         
                         return (
-                          <div key={key} className={`p-4 rounded-xl text-sm font-medium flex items-center gap-3 ${style}`}>
-                            <span className="font-bold">{key}.</span>
+                          <div key={key} className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 border ${style}`}>
+                            <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 border border-inherit shrink-0">{key}</span>
                             {q.options![key]}
                           </div>
                         )
@@ -616,21 +704,24 @@ export default function PdfCbtPage() {
 
                   {q.type === 'theory' && (
                     <div className="space-y-4">
-                      <div className="p-4 bg-[#F8FAFC] rounded-xl border border-[#F1F5F9]">
-                        <label className="block text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Your Answer</label>
-                        <p className="text-sm text-[#0F172A]">{answers[i] || 'No answer provided'}</p>
+                      <div className="p-5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <label className="block text-[10px] font-black text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest mb-2">Your Answer</label>
+                        <p className="text-sm text-[#0F172A] dark:text-white font-medium">{answers[i] || 'No answer provided'}</p>
                       </div>
-                      <div className="p-4 bg-[#EEF2FF] rounded-xl border border-[#E0E7FF]">
-                        <label className="block text-[10px] font-bold text-[#5B4CF5] uppercase tracking-wider mb-1">Model Answer</label>
-                        <p className="text-sm text-[#5B4CF5]">{q.answer || 'Not available'}</p>
+                      <div className="p-5 bg-[#EEF2FF] dark:bg-[#5B4CF5]/5 rounded-2xl border border-[#E0E7FF] dark:border-[#5B4CF5]/20">
+                        <label className="block text-[10px] font-black text-[#5B4CF5] uppercase tracking-widest mb-2">Model Answer</label>
+                        <p className="text-sm text-[#5B4CF5] dark:text-blue-400 font-bold">{q.answer || 'Not available'}</p>
                       </div>
                     </div>
                   )}
 
                   {q.explanation && (
-                    <div className="mt-6 pt-6 border-t border-[#F1F5F9]">
-                      <label className="block text-[10px] font-bold text-[#5B4CF5] uppercase tracking-wider mb-2">AI Explanation</label>
-                      <p className="text-xs text-[#64748B] italic leading-relaxed">{q.explanation}</p>
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-2 mb-2 text-[#5B4CF5]">
+                        <Sparkles size={14} />
+                        <label className="text-[10px] font-black uppercase tracking-widest">AI Insight</label>
+                      </div>
+                      <p className="text-sm text-[#64748B] dark:text-gray-400 leading-relaxed font-medium italic">"{q.explanation}"</p>
                     </div>
                   )}
                 </div>
