@@ -14,7 +14,7 @@ import { getFirebaseToken } from '@/lib/store/authStore'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import { useUpgrade } from '@/context/UpgradeContext'
-import { extractTextFromPDFClient } from '@/lib/utils/extraction'
+import { extractTextFromFile } from '@/lib/utils/extraction'
 
 interface QuestionBankProps {
   className?: string
@@ -466,21 +466,16 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setSuccess(null)
 
     try {
-      const { createWorker } = await import('tesseract.js')
-      const worker = await createWorker('eng')
-      const result = await worker.recognize(capturedImage)
-      await worker.terminate()
-
-      const recognizedText = result?.data?.text?.trim() || ''
-      if (recognizedText.length < 50) {
-        setError('Text in captured image is too short/unclear. Try retaking in better lighting.')
-        return
+      const recognizedText = await extractTextFromFile(capturedImage)
+      
+      if (!recognizedText || recognizedText.trim().length < 10) {
+        throw new Error('Could not read this file. Try a different format or paste your text directly.')
       }
 
       setExtractedText(recognizedText)
       setSuccess('Text extracted from camera image successfully!')
     } catch (err: any) {
-      setError(err?.message || 'Failed to read text from image. Please upload a document instead.')
+      setError(err?.message || 'Could not read this file. Try a different format or paste your text directly.')
     } finally {
       setImageExtracting(false)
       setExtractionHint('')
@@ -751,51 +746,18 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setError(null)
 
     try {
-      const isPdf = extension === '.pdf' || mimetype?.includes('pdf')
-      const isTxt = extension === '.txt' || extension === '.md' || mimetype?.includes('text')
+      setExtractionHint(getExtractionLabel(file))
+      const parsedText = await extractTextFromFile(file)
 
-      let parsedText = ''
-
-      if (isPdf) {
-        setExtractionHint('Reading PDF in your browser...')
-        parsedText = await extractTextFromPDFClient(file)
-      } else if (isTxt) {
-        setExtractionHint('Reading text file...')
-        parsedText = await file.text()
-      }
-
-      if (parsedText && parsedText.trim().length >= 50) {
+      if (parsedText && parsedText.trim().length >= 10) {
         setExtractedText(parsedText)
         setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
-        return
-      } else if (isPdf || isTxt) {
-        throw new Error('Could not extract readable text. The document might be scanned or empty.')
-      }
-
-      setExtractionHint('Uploading and analyzing document server-side...')
-      const formData = new FormData()
-      formData.append('pdf', file) // The /ai/extract endpoint expects 'pdf'
-      formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
-
-      const token = await getFirebaseToken()
-      const response = await fetch('/api/backend/ai/extract', {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: formData
-      })
-
-      const data = await response.json().catch(() => ({ success: false, error: 'Server returned an invalid response (likely a timeout). Please try a smaller file.' }))
-      
-      if (data.success && data.text) {
-        setExtractedText(data.text)
-        setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
       } else {
-        setError(data.error || data.message || 'Failed to extract text from document')
-        setUploadedFile(null)
+        throw new Error('Could not read this file. Try a different format or paste your text directly.')
       }
     } catch (err: any) {
       console.error('[Upload] Error:', err)
-      setError(err?.message || 'Connection error or server timeout. Large PDFs take longer to process; please try a shorter document.')
+      setError(err?.message || 'Could not read this file. Try a different format or paste your text directly.')
       setUploadedFile(null)
     } finally {
       setExtracting(false)

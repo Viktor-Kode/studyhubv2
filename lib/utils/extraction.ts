@@ -20,7 +20,7 @@ if (typeof globalThis.DOMRect === 'undefined') {
 
 /**
  * Utility to extract text from various file formats.
- * Handles PDF (Client-side and Server-side fallback), DOCX, TXT, and MD.
+ * All extraction happens client-side.
  */
 
 import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc';
@@ -59,7 +59,7 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
         await pdf.destroy();
 
         const cleanText = fullText.trim();
-        if (cleanText.length < 50) {
+        if (cleanText.length < 10) {
             throw new Error('PDF appears to be empty or scanned. No readable text found.');
         }
 
@@ -72,6 +72,7 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
 
 /**
  * Server-side fallback for PDF extraction via API.
+ * @deprecated Prefer client-side extraction.
  */
 export const extractTextFromPDFViaAPI = async (file: File): Promise<string> => {
     try {
@@ -82,11 +83,6 @@ export const extractTextFromPDFViaAPI = async (file: File): Promise<string> => {
             method: 'POST',
             body: formData,
         });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            throw new Error('Server returned an invalid response. Using client-side extraction instead.');
-        }
 
         const data = await response.json();
 
@@ -110,14 +106,61 @@ export const extractTextFromDOCX = async (file: File): Promise<string> => {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
 
-        if (!result.value || result.value.trim().length < 50) {
+        if (!result.value || result.value.trim().length < 10) {
             throw new Error('DOCX file appears to be empty or contains no readable text');
         }
 
         return result.value;
     } catch (error: any) {
         console.error('DOCX extraction error:', error);
-        throw new Error('Failed to extract text from Word document.');
+        throw new Error('Could not read this file. Try a different format or paste your text directly.');
+    }
+};
+
+/**
+ * PPTX extraction using JSZip.
+ */
+export const extractTextFromPPTX = async (file: File): Promise<string> => {
+    try {
+        const JSZip = (await import('jszip')).default;
+        const arrayBuffer = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const slideFiles = Object.keys(zip.files).filter(f => f.includes('ppt/slides/slide'));
+        
+        let text = '';
+        for (const slideFile of slideFiles) {
+            const content = await zip.files[slideFile].async('text');
+            const matches = content.match(/<a:t>(.*?)<\/a:t>/g) || [];
+            text += matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ') + '\n';
+        }
+
+        if (text.trim().length < 10) {
+            throw new Error('PPTX file appears to be empty or contains no readable text');
+        }
+
+        return text;
+    } catch (error: any) {
+        console.error('PPTX extraction error:', error);
+        throw new Error('Could not read this file. Try a different format or paste your text directly.');
+    }
+};
+
+/**
+ * Image OCR using Tesseract.js.
+ */
+export const extractTextFromImageOCR = async (file: File): Promise<string> => {
+    try {
+        const Tesseract = (await import('tesseract.js')).default;
+        const { data: { text } } = await Tesseract.recognize(file, 'eng');
+
+        if (text.trim().length < 10) {
+            throw new Error('No readable text found in image.');
+        }
+
+        return text;
+    } catch (error: any) {
+        console.error('OCR extraction error:', error);
+        throw new Error('Could not read this file. Try a different format or paste your text directly.');
     }
 };
 
@@ -127,27 +170,31 @@ export const extractTextFromDOCX = async (file: File): Promise<string> => {
 export const extractTextFromFile = async (file: File): Promise<string> => {
     const extension = file.name.split('.').pop()?.toLowerCase();
 
-    switch (extension) {
-        case 'pdf':
-            try {
-                // Try client-side first as it's faster and reduces server load
+    try {
+        switch (extension) {
+            case 'pdf':
                 return await extractTextFromPDFClient(file);
-            } catch (err) {
-                console.warn('Client-side extraction failed, falling back to API:', err);
-                return await extractTextFromPDFViaAPI(file);
-            }
-        case 'docx':
-            return await extractTextFromDOCX(file);
-        case 'txt':
-        case 'md':
-            try {
+            case 'docx':
+            case 'doc':
+                return await extractTextFromDOCX(file);
+            case 'pptx':
+            case 'ppt':
+                return await extractTextFromPPTX(file);
+            case 'txt':
+            case 'md':
                 const text = await file.text();
-                if (text.trim().length < 50) throw new Error('File content is too short');
+                if (text.trim().length < 10) throw new Error('File content is too short');
                 return text;
-            } catch (err) {
-                throw new Error('Unable to read text file');
-            }
-        default:
-            throw new Error(`Unsupported format (.${extension}). Please use PDF, DOCX, TXT, or MD.`);
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'webp':
+                return await extractTextFromImageOCR(file);
+            default:
+                throw new Error(`Unsupported format (.${extension}).`);
+        }
+    } catch (err: any) {
+        console.error(`Extraction failed for ${extension}:`, err);
+        throw new Error(err.message.includes('Could not read') ? err.message : 'Could not read this file. Try a different format or paste your text directly.');
     }
 };
