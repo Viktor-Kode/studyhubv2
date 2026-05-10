@@ -59,6 +59,9 @@ export const extractTextFromPDFClient = async (file: File): Promise<string> => {
         await pdf.destroy();
 
         const cleanText = fullText.trim();
+        if (cleanText.length < 10) {
+            throw new Error('CLIENT_EMPTY_TEXT');
+        }
         return cleanText;
     } catch (error: any) {
         console.error('Client-side PDF extraction error:', error);
@@ -157,7 +160,12 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
     try {
         switch (extension) {
             case 'pdf':
-                return await extractTextFromPDFClient(file);
+                try {
+                    return await extractTextFromPDFClient(file);
+                } catch (clientErr) {
+                    console.warn('Client-side PDF extraction failed, falling back to API...', clientErr);
+                    return await extractTextFromPDFViaAPI(file);
+                }
             case 'docx':
             case 'doc':
                 return await extractTextFromDOCX(file);
@@ -166,8 +174,7 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
                 return await extractTextFromPPTX(file);
             case 'txt':
             case 'md':
-                const text = await file.text();
-                return text;
+                return await file.text();
             case 'jpg':
             case 'jpeg':
             case 'png':
@@ -178,6 +185,10 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
         }
     } catch (err: any) {
         console.error(`Extraction failed for ${extension}:`, err);
-        throw new Error(err.message.includes('Could not read') ? err.message : 'Could not read this file. Try a different format or paste your text directly.');
+        const msg = err.message || '';
+        if (msg.includes('EMPTY_TEXT') || msg.includes('No readable text')) {
+            throw new Error('This document appears to be empty or contains only images/scans. Please try a text-based PDF or paste your text directly.');
+        }
+        throw new Error(msg.includes('Could not read') ? msg : 'Could not read this file. Try a different format or paste your text directly.');
     }
 };

@@ -15,8 +15,19 @@ import { extractTextFromFile } from '@/lib/utils/extraction'
 
 import './PdfCbt.css'
 
+// Premium Design System for Dark Mode
+const DARK_THEME = {
+  bg: '#0F172A',
+  card: '#1E293B',
+  border: '#334155',
+  accent: '#5B4CF5',
+  text: '#F8FAFB',
+  muted: '#94A3B8'
+}
+
+
 // Types
-type InputMode = 'upload' | 'manual'
+type InputMode = 'upload' | 'manual' | 'link'
 type Stage = 'setup' | 'practice' | 'results'
 type OptionKey = 'A' | 'B' | 'C' | 'D'
 type QuestionType = 'objective' | 'theory' | 'mixed'
@@ -58,6 +69,9 @@ export default function PdfCbtPage() {
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [fetchingLink, setFetchingLink] = useState(false)
+  
   
   // App State
   const [stage, setStage] = useState<Stage>('setup')
@@ -144,18 +158,48 @@ export default function PdfCbtPage() {
     try {
       setExtractionHint(getExtractionLabel(file))
       const text = await extractTextFromFile(file)
-      if (text && text.trim().length > 0) {
-        setExtractedText(text)
-        setSuccess('Document ready! Click "Start Practice" to begin.')
-      } else {
-        throw new Error('Could not read this file. Try a text-based PDF or paste your text directly.')
-      }
+      setExtractedText(text)
+      setSuccess('Document ready! Click "Start Practice" to begin.')
     } catch (err: any) {
       setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
       setUploadedFile(null)
     } finally {
       setExtracting(false)
       setExtractionHint('')
+    }
+  }
+
+  const handleFetchUrl = async () => {
+    const url = linkUrl.trim()
+    if (!url) return
+
+    setFetchingLink(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const token = await getFirebaseToken()
+      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const fetchUrl = publicApiUrl ? `${publicApiUrl.replace(/\/+$/, '')}/ai/fetch-url` : '/api/backend/ai/fetch-url'
+
+      const resp = await fetch(fetchUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ url })
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Failed to fetch link content.')
+
+      if (data.text) {
+        setExtractedText(data.text)
+        setSuccess('Link content fetched! Click "Start Practice" to begin.')
+      } else {
+        throw new Error('No readable content found at this link.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch link content.')
+    } finally {
+      setFetchingLink(false)
     }
   }
 
@@ -216,7 +260,7 @@ export default function PdfCbtPage() {
   const handleStartPractice = async () => {
     const text = inputMode === 'manual' ? manualText : extractedText
     if (!text || text.trim().length === 0) {
-      setError('Please provide some content first.')
+      setError('Please provide some content or a link first.')
       return
     }
 
@@ -320,12 +364,29 @@ export default function PdfCbtPage() {
   const currentQ = practiceQuestions[currentIdx]
 
   return (
-    <div className="pcbt-page dark:bg-[#0F172A]">
+    <div className="pcbt-page bg-[#0F172A] min-h-screen text-white dark">
+      <style jsx global>{`
+        body { background-color: #0F172A; }
+        .pcbt-page { color: ${DARK_THEME.text}; }
+        .pcbt-page textarea, .pcbt-page input {
+          background-color: ${DARK_THEME.bg} !important;
+          color: white !important;
+          border-color: ${DARK_THEME.border} !important;
+        }
+        .pcbt-page textarea:focus, .pcbt-page input:focus {
+          border-color: ${DARK_THEME.accent} !important;
+        }
+        .pcbt-page .bg-white { background-color: ${DARK_THEME.card} !important; }
+        .pcbt-page .text-[#0F172A] { color: ${DARK_THEME.text} !important; }
+        .pcbt-page .border-gray-100, .pcbt-page .border-gray-200 { border-color: ${DARK_THEME.border} !important; }
+        .pcbt-page .bg-gray-50 { background-color: ${DARK_THEME.bg} !important; }
+        .pcbt-page .text-gray-600, .pcbt-page .text-gray-500 { color: ${DARK_THEME.muted} !important; }
+      `}</style>
       {stage === 'setup' && (
-        <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-black text-[#0F172A] dark:text-white mb-2">Document to CBT</h1>
-            <p className="text-[#64748B] dark:text-gray-400">Extract questions from any PDF, Word, or Image and practice immediately.</p>
+            <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Document to CBT</h1>
+            <p className="text-gray-400 text-lg">Extract questions from any PDF, Word, or Link and practice immediately.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -333,12 +394,37 @@ export default function PdfCbtPage() {
             <div className="space-y-4">
               <div className="qg-source-tabs">
                 <button className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`} onClick={() => setInputMode('manual')}>
-                  <span>✏️</span> Paste Text
+                  <span>✏️</span> Paste
                 </button>
                 <button className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`} onClick={() => setInputMode('upload')}>
-                  <span>📄</span> Upload PDF
+                  <span>📄</span> Files
+                </button>
+                <button className={`qg-source-tab ${inputMode === 'link' ? 'active' : ''}`} onClick={() => setInputMode('link')}>
+                  <span>🔗</span> Link
                 </button>
               </div>
+
+              {inputMode === 'link' && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                  <div className="relative">
+                    <input 
+                      type="text"
+                      className="w-full p-4 pl-12 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-white focus:border-[#5B4CF5] outline-none transition-all text-sm font-medium"
+                      placeholder="Paste a website or Google Doc link..."
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                    />
+                    <FiLink className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  </div>
+                  <button 
+                    onClick={handleFetchUrl}
+                    disabled={fetchingLink}
+                    className="w-full py-3 bg-[#5B4CF5] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {fetchingLink ? <FiLoader className="animate-spin" /> : 'Fetch Content'}
+                  </button>
+                </div>
+              )}
 
               {inputMode === 'upload' ? (
                 <>
@@ -406,7 +492,7 @@ export default function PdfCbtPage() {
               ) : (
                 <div className="min-h-[250px] flex flex-col">
                   <textarea 
-                    className="flex-1 w-full p-5 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0F172A] dark:text-white focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed font-medium resize-none"
+                    className="flex-1 w-full p-5 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-white focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed font-medium resize-none"
                     placeholder="Paste your questions and answers here..."
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
@@ -503,8 +589,8 @@ export default function PdfCbtPage() {
           {/* Practice Header */}
           <div className="flex items-center justify-between mb-8 sticky top-0 bg-[#F7F8FA]/90 dark:bg-[#0F172A]/90 backdrop-blur-md py-4 z-10 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-4">
-              <button onClick={handleQuit} className="p-2 text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition" title="Quit Practice">
-                <FiTrash2 size={20} />
+              <button onClick={handleQuit} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition bg-white/10 rounded-xl" title="Quit Practice">
+                <FiXCircle size={18} /> Quit
               </button>
               <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
               <div>
@@ -534,20 +620,20 @@ export default function PdfCbtPage() {
             </div>
           </div>
 
-          {/* Number Navigation */}
-          <div className="flex flex-wrap gap-2 mb-8 justify-center">
+          {/* Pagination Navigation */}
+          <div className="flex flex-wrap gap-2 mb-6 justify-center bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-sm sticky top-24 z-20">
             {practiceQuestions.map((_, i) => (
               <button 
                 key={i}
                 onClick={() => setCurrentIdx(i)}
-                className={`w-10 h-10 rounded-xl font-bold text-xs transition-all border ${
+                className={`w-8 h-8 rounded-lg font-black text-[10px] transition-all border-2 ${
                   i === currentIdx 
-                    ? 'bg-[#5B4CF5] text-white border-[#5B4CF5] shadow-lg shadow-[#5B4CF5]/30' 
+                    ? 'bg-[#5B4CF5] text-white border-[#5B4CF5] scale-110 shadow-lg shadow-[#5B4CF5]/40' 
                     : answers[i] 
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                       : flagged.has(i)
-                        ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800'
-                        : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-[#5B4CF5]'
+                        ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                        : 'bg-white/5 text-gray-400 border-white/10 hover:border-[#5B4CF5]/50'
                 }`}
               >
                 {i + 1}
@@ -555,22 +641,26 @@ export default function PdfCbtPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 md:p-12 border border-[#E8EAED] dark:border-gray-700 shadow-xl mb-8">
-            <div className="flex justify-between items-start mb-6">
-              <span className="px-3 py-1 bg-[#EEF2FF] dark:bg-[#5B4CF5]/10 text-[#5B4CF5] dark:text-[#5B4CF5] text-[10px] font-bold uppercase tracking-wider rounded-md">
-                {currentQ.type === 'theory' ? 'Theory' : 'Multiple Choice'}
-              </span>
-              <button onClick={toggleFlag} className={`text-xs flex items-center gap-2 font-bold ${flagged.has(currentIdx) ? 'text-orange-500' : 'text-[#94A3B8] dark:text-gray-500'}`}>
-                <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag Question'}
+          <div className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 border border-white/10 shadow-2xl mb-8 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-[#5B4CF5]" />
+            <div className="flex justify-between items-start mb-8">
+              <div className="flex flex-col gap-1">
+                <span className="px-3 py-1 bg-[#5B4CF5]/20 text-[#7C70FF] text-[10px] font-black uppercase tracking-wider rounded-full w-fit">
+                  {currentQ.type === 'theory' ? 'Theory / Essay' : 'Multiple Choice'}
+                </span>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Question {currentIdx + 1} of {practiceQuestions.length}</p>
+              </div>
+              <button onClick={toggleFlag} className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 font-bold transition-all ${flagged.has(currentIdx) ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
+                <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag'}
               </button>
             </div>
 
-            <div className="text-xl md:text-2xl font-bold text-[#0F172A] dark:text-white mb-10 leading-snug">
+            <div className="text-2xl md:text-3xl font-black text-white mb-12 leading-tight">
               {currentQ.question}
             </div>
 
             {currentQ.type === 'objective' && currentQ.options ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {OPTION_KEYS.map(key => {
                   if (!currentQ.options![key]) return null
                   const isSelected = answers[currentIdx] === key
@@ -578,16 +668,17 @@ export default function PdfCbtPage() {
                     <button 
                       key={key} 
                       onClick={() => setAnswers(prev => ({ ...prev, [currentIdx]: key }))}
-                      className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left group ${isSelected ? 'border-[#5B4CF5] bg-[#EEF2FF] dark:bg-[#5B4CF5]/5 text-[#5B4CF5]' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 hover:border-gray-200 dark:hover:border-gray-600'}`}
+                      className={`flex items-center gap-6 p-6 rounded-3xl border-2 transition-all text-left group relative overflow-hidden ${isSelected ? 'border-[#5B4CF5] bg-[#5B4CF5]/10 text-white shadow-xl shadow-[#5B4CF5]/10' : 'border-white/5 bg-white/5 hover:border-white/20'}`}
                     >
-                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${isSelected ? 'bg-[#5B4CF5] text-white' : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700'}`}>
+                      <span className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-all ${isSelected ? 'bg-[#5B4CF5] text-white rotate-12' : 'bg-white/10 text-gray-500 group-hover:text-gray-300'}`}>
                         {key}
                       </span>
-                      <span className={`font-bold ${isSelected ? 'text-[#0F172A] dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>{currentQ.options![key]}</span>
+                      <span className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{currentQ.options![key]}</span>
                     </button>
                   )
                 })}
               </div>
+
             ) : (
               <textarea 
                 className="w-full min-h-[250px] p-6 rounded-2xl border-2 border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 text-[#0F172A] dark:text-white focus:border-[#5B4CF5] outline-none transition-all font-medium leading-relaxed"
@@ -602,9 +693,9 @@ export default function PdfCbtPage() {
             <button 
               onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
               disabled={currentIdx === 0}
-              className="flex-1 py-4 px-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#0F172A] dark:text-white font-bold flex items-center justify-center gap-2 disabled:opacity-20 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              className="flex-1 py-4 px-6 rounded-2xl bg-white/5 border border-white/10 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-20 hover:bg-white/10 transition-all shadow-lg"
             >
-              <FiChevronLeft /> Prev
+              Prev
             </button>
             
             <button 
@@ -614,7 +705,7 @@ export default function PdfCbtPage() {
               }}
               className="flex-1 py-4 px-6 rounded-2xl bg-[#5B4CF5] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#5B4CF5]/20"
             >
-              {currentIdx === practiceQuestions.length - 1 ? 'Finish' : 'Next'} <FiChevronRight />
+              {currentIdx === practiceQuestions.length - 1 ? 'Finish' : 'Next'}
             </button>
           </div>
         </div>
