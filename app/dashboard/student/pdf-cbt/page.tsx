@@ -1,20 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle } from 'react-icons/fi'
+import { FiCheckCircle, FiClock, FiFlag, FiLoader, FiXCircle, FiUpload, FiFileText, FiCamera } from 'react-icons/fi'
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
-import { jsPDF } from 'jspdf'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
-import { extractTextFromPDFClient } from '@/lib/utils/extraction'
+import { extractTextFromFile } from '@/lib/utils/extraction'
 
 import './PdfCbt.css'
 
 type Stage = 'upload' | 'preview' | 'test' | 'results'
 type OptionKey = 'A' | 'B' | 'C' | 'D'
 type QuestionType = 'objective' | 'theory'
+type InputMode = 'upload' | 'manual'
 
 interface PdfQuestion {
   type: QuestionType
@@ -30,7 +30,7 @@ interface ExtractedData {
 }
 
 const STATUS_MESSAGES = [
-  'Reading your PDF...',
+  'Reading your document...',
   'Identifying questions...',
   'Stripping answers...',
   'Organising questions...',
@@ -41,13 +41,30 @@ const OPTION_KEYS: OptionKey[] = ['A', 'B', 'C', 'D']
 
 const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
+function getExtractionLabel(file: File): string {
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+    return 'Scanning image with OCR...'
+  }
+  if (ext === '.pdf') return 'Extracting PDF pages...'
+  if (ext === '.docx') return 'Reading Word document...'
+  if (ext === '.ppt' || ext === '.pptx') return 'Extracting presentation text...'
+  if (ext === '.txt' || ext === '.md') return 'Reading text file...'
+  return 'Reading document...'
+}
+
 export default function PdfCbtPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
 
   const [stage, setStage] = useState<Stage>('upload')
+  const [inputMode, setInputMode] = useState<InputMode>('upload')
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [extractedText, setExtractedText] = useState('')
+  const [manualText, setManualText] = useState('')
+  
   const [numQuestions, setNumQuestions] = useState('10')
   const [customQuestionCount, setCustomQuestionCount] = useState('40')
   const [timeLimit, setTimeLimit] = useState('0')
@@ -55,9 +72,12 @@ export default function PdfCbtPage() {
   const [extracting, setExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [warning, setWarning] = useState('')
+  
   const [cameraOpen, setCameraOpen] = useState(false)
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [capturedImage, setCapturedImage] = useState<File | null>(null)
+  const [imageExtracting, setImageExtracting] = useState(false)
 
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
   const [questionsToUse, setQuestionsToUse] = useState<PdfQuestion[]>([])
@@ -120,49 +140,64 @@ export default function PdfCbtPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0]
     if (!selected) return
-    validateAndSetFile(selected)
+    handleFileUpload(selected)
   }
 
-  const validateAndSetFile = (candidate: File) => {
+  const handleFileUpload = async (candidate: File) => {
     setError('')
-    const name = candidate.name.toLowerCase()
-    const type = candidate.type.toLowerCase()
+    setSuccess('')
+    setWarning('')
     
-    const isPdf = name.endsWith('.pdf') || type === 'application/pdf'
-    const isDoc = name.endsWith('.docx') || name.endsWith('.doc') || type.includes('word')
-    const isPpt = name.endsWith('.pptx') || name.endsWith('.ppt') || type.includes('presentation')
-    const isText = name.endsWith('.txt') || name.endsWith('.md') || type.startsWith('text/')
-    const isImage = type.startsWith('image/')
-
-    if (!isPdf && !isDoc && !isPpt && !isText && !isImage && type !== 'application/octet-stream') {
-      setError('Please upload a valid document (PDF, Word, or Text).')
-      return
-    }
-
+    // Validate size (25MB)
     if (candidate.size > 25 * 1024 * 1024) {
-      setError('File exceeds 25MB limit.')
+      setError('File too large (Max 25MB).')
       return
     }
-    if (candidate.size > 15 * 1024 * 1024) {
-      setWarning('This is a large PDF. Processing may take longer than usual. For best results, use PDFs with fewer images or under 30 pages.')
-    } else {
-      setWarning('')
-    }
+
     setFile(candidate)
+    setExtracting(true)
+    setExtractStatus(getExtractionLabel(candidate))
+
+    try {
+      const parsedText = await extractTextFromFile(candidate)
+      
+      if (parsedText && parsedText.trim().length > 0) {
+        setExtractedText(parsedText)
+        setSuccess('Document ready! Configure your practice session below.')
+      } else {
+        throw new Error('Could not read this file. Try a text-based PDF or paste your text directly.')
+      }
+    } catch (err: any) {
+      console.error('[Upload] Error:', err)
+      setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
+      setFile(null)
+    } finally {
+      setExtracting(false)
+      setExtractStatus('')
+    }
   }
 
   const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((t) => t.stop())
-      setCameraStream(null)
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop())
+      cameraStreamRef.current = null
     }
   }
 
   const openCamera = async () => {
     setError('')
+    setSuccess('')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Camera access is not supported in this browser or requires HTTPS.')
+      return
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      setCameraStream(stream)
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      })
+      cameraStreamRef.current = stream
       setCameraOpen(true)
       requestAnimationFrame(() => {
         if (cameraVideoRef.current) {
@@ -171,34 +206,57 @@ export default function PdfCbtPage() {
         }
       })
     } catch (err: any) {
-      setError(err?.message || 'Could not access camera. Please allow permission.')
+      setError(err?.message || 'Unable to access camera.')
     }
   }
 
-  const captureToPdf = async () => {
+  const handleCapture = async () => {
+    if (!cameraVideoRef.current) return
     const video = cameraVideoRef.current
-    if (!video) return
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
 
-    const doc = new jsPDF({
-      orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-      unit: 'pt',
-      format: 'a4'
-    })
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
-    doc.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, pageHeight)
-    const blob = doc.output('blob')
-    const fileFromCamera = new File([blob], `camera-capture-${Date.now()}.pdf`, { type: 'application/pdf' })
-    validateAndSetFile(fileFromCamera)
-    setCameraOpen(false)
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
+    )
+    if (!blob) {
+      setError('Could not capture image.')
+      return
+    }
+
+    const imageFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    setCapturedImage(imageFile)
+    setFile(imageFile)
     stopCamera()
+    setCameraOpen(false)
+    
+    // Auto-extract from captured image
+    await extractFromCapturedImage(imageFile)
+  }
+
+  const extractFromCapturedImage = async (imgFile: File) => {
+    setImageExtracting(true)
+    setExtractStatus('Scanning photo with OCR...')
+    setError('')
+    
+    try {
+      const recognizedText = await extractTextFromFile(imgFile)
+      if (recognizedText && recognizedText.trim().length > 0) {
+        setExtractedText(recognizedText)
+        setSuccess('Text extracted from photo! Configure your practice session below.')
+      } else {
+        throw new Error('Could not read this file. Try a text-based PDF or paste your text directly.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
+    } finally {
+      setImageExtracting(false)
+      setExtractStatus('')
+    }
   }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -206,7 +264,7 @@ export default function PdfCbtPage() {
     setDragging(false)
     const dropped = e.dataTransfer.files?.[0]
     if (!dropped) return
-    validateAndSetFile(dropped)
+    handleFileUpload(dropped)
   }
 
   const buildQuestionSet = (questions: PdfQuestion[]) => {
@@ -218,15 +276,17 @@ export default function PdfCbtPage() {
   }
 
   const handleExtract = async () => {
-    if (!file) return
+    const content = inputMode === 'manual' ? manualText : extractedText
+    if (!content || content.trim().length === 0) {
+      setError('Please provide some content first.')
+      return
+    }
+
     setError('')
     setExtracting(true)
-    try {
-      const extension = '.' + file.name.split('.').pop()?.toLowerCase()
-      const mimetype = file.type?.toLowerCase() || ''
-      const isPdf = extension === '.pdf' || mimetype.includes('pdf')
-      const isTxt = extension === '.txt' || extension === '.md' || mimetype.includes('text')
+    setExtractStatus('Preparing your practice session...')
 
+    try {
       const token = await getFirebaseToken()
 
       // Determine the backend generate URL
@@ -249,51 +309,14 @@ export default function PdfCbtPage() {
         numQuestions === 'custom' ? Number(customQuestionCount || 0) : Number(numQuestions || 0)
       const requestedCount = numQuestions === 'all' ? 60 : Math.max(1, Math.min(selectedCount || 1, 100))
 
-      let extractedText = ''
-
-      if (isPdf) {
-        setExtractStatus('Reading your PDF in the browser...')
-        extractedText = await extractTextFromPDFClient(file)
-      } else if (isTxt) {
-        setExtractStatus('Reading text file...')
-        extractedText = await file.text()
-      }
-
-      if (extractedText && extractedText.trim().length >= 50) {
-        // success for PDF or TXT
-      } else if (isPdf || isTxt) {
-        throw new Error('Could not extract readable text from this file. It might be scanned or empty.')
-      } else {
-        setExtractStatus('Uploading and analyzing document server-side...')
-        const formData = new FormData()
-        formData.append('pdf', file)
-        formData.append('title', file.name.replace(/\.[^/.]+$/i, ''))
-        
-        const extractUrl = baseApi 
-          ? `${baseApi.replace(/\/+$/, '')}/ai/extract`
-          : '/api/backend/ai/extract'
-          
-        const extractResp = await fetch(extractUrl, {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          body: formData,
-        })
-        const extractData = await extractResp.json().catch(() => ({ error: 'Invalid server response' }))
-        if (!extractData.success || !extractData.text) {
-           throw new Error(extractData.error || extractData.message || 'Failed to extract text from document')
-        }
-        extractedText = extractData.text
-      }
-
-      // ── Step 2: Send text to AI /generate (no file, no timeout risk) ──────
-      setExtractStatus('Generating questions with AI...')
+      setExtractStatus('AI is extracting questions from your document...')
       const generateResponse = await fetch(generateUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ text: extractedText, requestedCount }),
+        body: JSON.stringify({ text: content, requestedCount }),
       })
 
       const data = await generateResponse
@@ -324,7 +347,7 @@ export default function PdfCbtPage() {
       })
 
       if (!cleanQuestions.length) {
-        throw new Error('No usable questions were generated from this content.')
+        throw new Error('No usable questions were found in this content.')
       }
 
       const prepared: ExtractedData = {
@@ -340,6 +363,7 @@ export default function PdfCbtPage() {
       setError(err?.message || 'Failed to extract questions.')
     } finally {
       setExtracting(false)
+      setExtractStatus('')
     }
   }
 
@@ -421,55 +445,78 @@ export default function PdfCbtPage() {
         <>
           <div className="pcbt-header">
             <h1>Document to CBT</h1>
-            <p>Upload any past question PDF, Word, or Text file and practice all extracted question types.</p>
+            <p>Upload your past question documents and practice them in a CBT environment.</p>
           </div>
 
-          <div
-            className={`pcbt-dropzone ${dragging ? 'dragging' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragging(true)
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-          >
-            <div className="pcbt-drop-icon">📄</div>
-            <h3>Drop your file here</h3>
-            <p>or click to browse</p>
-            <span className="pcbt-drop-limit">PDF, Word, Text · Max 25MB</span>
-            <input 
-              ref={fileInputRef} 
-              type="file" 
-              accept=".pdf,.docx,.doc,.txt,.md,.pptx,.ppt,image/*" 
-              hidden 
-              onChange={handleFileSelect} 
-            />
-          </div>
-          <div className="pcbt-camera-row">
-            <button type="button" className="pcbt-btn-secondary" onClick={openCamera}>
-              Use Camera
+          <div className="qg-source-tabs">
+            <button className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`} onClick={() => setInputMode('upload')}>
+              <FiUpload size={14} /> Upload File
+            </button>
+            <button className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`} onClick={() => setInputMode('manual')}>
+              <FiFileText size={14} /> Paste Text
             </button>
           </div>
-          {warning && <div className="pcbt-warning">⚠️ {warning}</div>}
+
+          {inputMode === 'upload' ? (
+            <>
+              <div
+                className={`pcbt-dropzone ${dragging ? 'dragging' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragging(true)
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+              >
+                <div className="pcbt-drop-icon">📄</div>
+                <h3>Drop your file here</h3>
+                <p>or click to browse</p>
+                <span className="pcbt-drop-limit">PDF, Word, PPT, Text, Images · Max 25MB</span>
+                <input 
+                  ref={fileInputRef} 
+                  type="file" 
+                  accept=".pdf,.docx,.doc,.txt,.md,.pptx,.ppt,image/*" 
+                  hidden 
+                  onChange={handleFileSelect} 
+                />
+              </div>
+              <div className="pcbt-camera-row">
+                <button type="button" className="pcbt-btn-secondary" onClick={openCamera}>
+                  <FiCamera className="inline mr-2" /> Use Camera
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="pcbt-manual-input">
+              <textarea
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                placeholder="Paste your questions and answers here..."
+                className="w-full min-h-[250px] p-4 rounded-2xl border-2 border-[#E8EAED] focus:border-[#5B4CF5] outline-none transition-all text-sm"
+              />
+            </div>
+          )}
 
           {cameraOpen && (
             <div className="pcbt-camera-wrap">
               <video ref={cameraVideoRef} autoPlay playsInline muted className="pcbt-camera-video" />
               <div className="pcbt-results-actions">
                 <button className="pcbt-btn-secondary" onClick={() => { setCameraOpen(false); stopCamera() }}>Cancel</button>
-                <button className="pcbt-btn-primary" onClick={captureToPdf}>Capture</button>
+                <button className="pcbt-btn-primary" onClick={handleCapture}>Capture</button>
               </div>
             </div>
           )}
 
-          {file && (
+          {(file || manualText) && (
             <div className="pcbt-settings">
-              <div className="pcbt-file-info">
-                <span>📄 {file.name}</span>
-                <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                <button onClick={() => setFile(null)}>✕ Remove</button>
-              </div>
+              {inputMode === 'upload' && file && (
+                <div className="pcbt-file-info">
+                  <span>📄 {file.name}</span>
+                  <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                  <button onClick={() => { setFile(null); setExtractedText(''); }}>✕ Remove</button>
+                </div>
+              )}
 
               <div className="pcbt-options">
                 <div className="pcbt-option-group">
@@ -513,17 +560,26 @@ export default function PdfCbtPage() {
                 </div>
               </div>
 
-              <button className="pcbt-extract-btn" onClick={handleExtract} disabled={extracting}>
-                {extracting ? <><FiLoader className="pcbt-spin" /> Extracting questions...</> : <><Sparkles size={16} /> Extract Questions & Start</>}
+              <button 
+                className="pcbt-extract-btn" 
+                onClick={handleExtract} 
+                disabled={extracting || imageExtracting || (inputMode === 'upload' && !extractedText && !file) || (inputMode === 'manual' && !manualText)}
+              >
+                {extracting || imageExtracting ? (
+                  <><FiLoader className="pcbt-spin" /> {extractStatus || 'Processing...'}</>
+                ) : (
+                  <><Sparkles size={16} /> Extract Questions & Start</>
+                )}
               </button>
 
-              {extracting && (
+              {(extracting || imageExtracting) && extractStatus && (
                 <div className="pcbt-extracting-status">
                   <p>{extractStatus}</p>
                 </div>
               )}
 
-              {error && <div className="pcbt-error">{error}</div>}
+              {success && <div className="pcbt-success">✅ {success}</div>}
+              {error && <div className="pcbt-error">❌ {error}</div>}
             </div>
           )}
 
@@ -755,6 +811,9 @@ export default function PdfCbtPage() {
                   setAnswers({})
                   setResultSaved(false)
                   setError('')
+                  setSuccess('')
+                  setExtractedText('')
+                  setManualText('')
                 }}
               >
                 Upload Another PDF
