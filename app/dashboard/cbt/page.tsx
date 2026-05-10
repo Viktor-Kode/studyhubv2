@@ -313,7 +313,7 @@ export default function CBTPage() {
         setIsTimerRunning(true)
         setIsPaused(false)
         setViewMode('test')
-      } else if (remaining <= 0) {
+      } else if (remaining <= 0 && !showResults) {
         clearCbtPersistedState()
         setViewMode('exam-select')
       }
@@ -326,15 +326,16 @@ export default function CBTPage() {
     if (isPaused && questions.length > 0 && !showResults) {
       setViewMode('test')
     }
+  }, [questions.length, isTimerRunning, isPaused, showResults])
 
+  // Timer Tick
+  useEffect(() => {
     if (isTimerRunning && !isPaused && timeRemaining > 0 && !showResults) {
       const interval = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            setIsTimerRunning(false)
-            setIsPaused(false)
-            setShowResults(true)
-            setViewMode('results')
+            clearInterval(interval)
+            handleSubmitTest() // Auto-submit when time is up
             return 0
           }
           return prev - 1
@@ -342,7 +343,7 @@ export default function CBTPage() {
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [isTimerRunning, isPaused, timeRemaining, showResults, questions.length, setIsPaused, setTimeRemaining, setViewMode])
+  }, [isTimerRunning, isPaused, showResults])
 
   const loadYears = async () => {
     if (!selectedExam) return
@@ -1114,7 +1115,7 @@ export default function CBTPage() {
             {/* Header */}
             <div className="cbt-header">
               <div className="cbt-subject">
-                {currentExamConfig?.label} — {selectedSubject} {selectedYear}
+                {currentExamConfig?.label} {selectedSchool ? `(${selectedSchool})` : ''} — {selectedSubject} {selectedYear}
               </div>
               <div className="flex items-center gap-3">
                 {findDiagram(currentQuestion.question) && (
