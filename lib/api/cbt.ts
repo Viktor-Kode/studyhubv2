@@ -611,6 +611,9 @@ export const cbtApi = {
     selectedAnswer: string
     questionText?: string
     isAiGenerated?: boolean
+    subject?: string
+    year?: string
+    examType?: string
   }): Promise<{ correct: boolean; actualAnswer: string; explanation: string }> => {
     const res = await fetchWithAuth('/api/backend/cbt/verify-answer', {
       method: 'POST',

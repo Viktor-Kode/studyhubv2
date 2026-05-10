@@ -103,7 +103,10 @@ export default function StudyModePage() {
       const { correct, actualAnswer, explanation: expText } = await cbtApi.verifyAnswer({
         questionId: currentQuestion.id,
         selectedAnswer: selectedLetter,
-        isAiGenerated: false
+        isAiGenerated: false,
+        subject: selectedSubject,
+        year: selectedYear,
+        examType: selectedExam || undefined
       })
 
       if (correct) setScore((s) => s + 1)
