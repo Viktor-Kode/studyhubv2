@@ -9,6 +9,7 @@ import {
 import { Sparkles, FileQuestion } from 'lucide-react'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { cbtApi } from '@/lib/api/cbt'
+import { apiClient } from '@/lib/api/client'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import { extractTextFromFile } from '@/lib/utils/extraction'
@@ -178,17 +179,8 @@ export default function PdfCbtPage() {
     setSuccess(null)
 
     try {
-      const token = await getFirebaseToken()
-      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
-      const fetchUrl = publicApiUrl ? `${publicApiUrl.replace(/\/+$/, '')}/ai/fetch-url` : '/api/backend/ai/fetch-url'
-
-      const resp = await fetch(fetchUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ url })
-      })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed to fetch link content.')
+      const resp = await apiClient.post('/ai/fetch-url', { url })
+      const data = resp.data
 
       if (data.text) {
         setExtractedText(data.text)
@@ -197,7 +189,7 @@ export default function PdfCbtPage() {
         throw new Error('No readable content found at this link.')
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to fetch link content.')
+      setError(err.response?.data?.message || err?.message || 'Failed to fetch link content.')
     } finally {
       setFetchingLink(false)
     }
@@ -267,17 +259,13 @@ export default function PdfCbtPage() {
     setGenerating(true)
     setError(null)
     try {
-      const token = await getFirebaseToken()
-      const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || ''
-      const generateUrl = publicApiUrl ? `${publicApiUrl.replace(/\/+$/, '')}/pdf-cbt/generate` : '/api/backend/pdf-cbt/generate'
-
-      const resp = await fetch(generateUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ text, questionType })
+      const resp = await apiClient.post('/pdf-cbt/generate', { 
+        text, 
+        questionType,
+        requestedCount: numQuestions === 'all' ? 60 : Number(numQuestions)
       })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed to extract questions.')
+      const data = resp.data
+
 
       const questions: Question[] = (data.questions || []).map((q: any) => ({
         type: String(q.type || '').toLowerCase() === 'theory' ? 'theory' : 'objective',

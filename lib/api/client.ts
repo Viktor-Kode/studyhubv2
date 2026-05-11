@@ -61,6 +61,7 @@ apiClient.interceptors.request.use(
     const url = config.url || ''
     if (
       url.includes('/ai/') ||
+      url.includes('/pdf-cbt/') ||
       url.includes('/teacher') ||
       url.includes('/teacher-tools') ||
       url.includes('/generate-topic-questions') ||
