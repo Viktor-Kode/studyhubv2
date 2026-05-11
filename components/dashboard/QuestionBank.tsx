@@ -163,6 +163,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [submitting, setSubmitting] = useState(false)
   const [quizSubmitted, setQuizSubmitted] = useState(false)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [quizStartTime, setQuizStartTime] = useState<number | null>(null)
 
   const searchParams = useSearchParams()
 
@@ -366,6 +367,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setHasSession(true)
         setShowResumeBanner(true)
         setLastSavedAt(parsed.savedAt)
+        // Resume timer if not finished
+        if (!parsed.quizSubmitted) {
+          setQuizStartTime(Date.now()) 
+        }
       }
     } catch {
       // ignore parse/storage errors
@@ -614,6 +619,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     manualText,
     extractedText,
     activeTab,
+    quizStartTime
   ])
 
   const handleSubmitQuiz = async () => {
@@ -652,14 +658,18 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
       const accuracy = Math.round((finalScore / newQuestions.length) * 100)
 
+      const timeTaken = quizStartTime ? Math.floor((Date.now() - quizStartTime) / 1000) : 0
+
       const resultsData = {
         subject: newQuestions[0].subject || 'AI Generated Quiz',
         examType: 'AI_STUDY',
+        year: new Date().getFullYear().toString(),
         sessionId: newQuestions[0].sessionId || (newQuestions[0] as any).sessionId || (newQuestions[0] as any).quizSessionId, 
         totalQuestions: newQuestions.length,
         correctAnswers: finalScore,
         wrongAnswers: newQuestions.length - finalScore,
         accuracy: accuracy,
+        timeTaken: timeTaken || 30, // Fallback to 30s if timer failed
         answers: processedAnswers
       }
 
@@ -845,6 +855,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       }
 
       setNewQuestions(data.data.map(q => ({ ...q, sessionId: data.sessionId })))
+      setQuizStartTime(Date.now())
     } catch (err: any) {
       const msg = err.message || ''
       if (isUpgradeError(msg)) {
