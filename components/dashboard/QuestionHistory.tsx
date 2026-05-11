@@ -185,7 +185,9 @@ export default function QuestionHistory() {
                                             })
                                             .map((q, idx) => {
                                                 const userResult = session.lastResult?.answers.find(a => String(a.questionId) === String(q._id));
-                                                const isIncorrect = userResult && !userResult.isCorrect;
+                                                // If we have an explicit isCorrect from the result, use it.
+                                                // Otherwise, we might not have a result for this specific question.
+                                                const isIncorrect = userResult ? userResult.isCorrect === false : false;
 
                                                 return (
                                                     <div key={q._id} className={`p-5 rounded-xl border shadow-sm transition-all ${isIncorrect
@@ -199,22 +201,33 @@ export default function QuestionHistory() {
                                                     {q.options && q.options.length > 0 && (
                                                         <div className="space-y-2 ml-7 mb-4">
                                                             {q.options.map((opt, i) => {
-                                                                const isCorrect = Number(q.answer) === i;
-                                                                const isUserPick = userResult?.selectedAnswer === opt;
-                                                                const isWrongPick = isUserPick && !isCorrect;
+                                                                const norm = (s: any) => String(s || '').toLowerCase().trim();
+                                                                const optNorm = norm(opt);
+                                                                
+                                                                // 1. Identify if this specific option is the correct one
+                                                                const isCorrectOption = userResult?.correctAnswer 
+                                                                    ? norm(userResult.correctAnswer) === optNorm
+                                                                    : (Number(q.answer) === i || norm(q.answer) === optNorm);
+
+                                                                // 2. Identify if this is the option the user selected
+                                                                const isUserChoice = userResult?.selectedAnswer 
+                                                                    ? (norm(userResult.selectedAnswer) === optNorm || userResult.selectedAnswer === String(i))
+                                                                    : false;
+
+                                                                const isWrongChoice = isUserChoice && !isCorrectOption;
 
                                                                 return (
-                                                                    <div key={i} className={`text-xs p-2.5 rounded-xl border flex items-center gap-2 transition-all ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-bold' : isWrongPick ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' : 'border-gray-50 dark:border-gray-700 text-gray-500'}`}>
-                                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCorrect ? 'bg-emerald-500 text-white' : isWrongPick ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                                                                    <div key={i} className={`text-xs p-2.5 rounded-xl border flex items-center gap-2 transition-all ${isCorrectOption ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-bold' : isWrongChoice ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' : 'border-gray-50 dark:border-gray-700 text-gray-500'}`}>
+                                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCorrectOption ? 'bg-emerald-500 text-white' : isWrongChoice ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>
                                                                             {String.fromCharCode(65 + i)}
                                                                         </span>
                                                                         {opt}
-                                                                        {isWrongPick && (
+                                                                        {isWrongChoice && (
                                                                             <span className="ml-auto flex items-center gap-1 text-[9px] font-black uppercase text-red-500 tracking-wider">
                                                                                 <FiXCircle /> YOUR ANSWER
                                                                             </span>
                                                                         )}
-                                                                        {isCorrect && userResult && isUserPick && (
+                                                                        {isCorrectOption && userResult && isUserChoice && (
                                                                             <span className="ml-auto flex items-center gap-1 text-[9px] font-black uppercase text-emerald-500 tracking-wider">
                                                                                 <FiCheckCircle /> CORRECT
                                                                             </span>
