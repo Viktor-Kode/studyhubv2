@@ -3,7 +3,8 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { FaArrowRight, FaPlay, FaCheck, FaZap, FaBook, FaBrain, FaGrid, FaChartBar, FaClock } from 'react-icons/fa'
+import { FaArrowRight, FaPlay, FaCheck, FaBook, FaBrain, FaChartBar, FaClock } from 'react-icons/fa'
+import { FiZap, FiGrid } from 'react-icons/fi'
 import Link from 'next/link'
 
 export default function HeroSection() {
@@ -84,7 +85,7 @@ export default function HeroSection() {
                     <div className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider">Core Study Actions</div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-teal-500/10 border border-teal-500/20 p-3 rounded-xl flex items-center gap-3">
-                         <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center text-white text-xs"><FaZap /></div>
+                         <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center text-white text-xs"><FiZap /></div>
                          <div className="text-[9px] font-bold text-teal-400">Past Questions</div>
                       </div>
                       <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl flex items-center gap-3">
@@ -96,7 +97,7 @@ export default function HeroSection() {
                          <div className="text-[9px] font-bold text-purple-400">AI Study Tutor</div>
                       </div>
                       <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-3">
-                         <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white text-xs"><FaGrid /></div>
+                         <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white text-xs"><FiGrid /></div>
                          <div className="text-[9px] font-bold text-amber-400">Question Bank</div>
                       </div>
                     </div>
