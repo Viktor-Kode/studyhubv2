@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink, FiEdit2, FiSave, FiX } from 'react-icons/fi'
+import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink, FiEdit2, FiSave, FiX, FiChevronLeft } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import ReactMarkdown from 'react-markdown'
 import { fetchStudyNotes, deleteStudyNote, updateStudyNote, StudyNote } from '@/lib/api/quizApi'
@@ -106,9 +106,9 @@ export default function NotesHistory() {
     )
 
     return (
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
             {/* List Side */}
-            <div className="lg:col-span-1 space-y-4 max-h-[700px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+            <div className={`lg:col-span-1 space-y-4 max-h-[700px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700 ${selectedNote ? 'hidden lg:block' : 'block'}`}>
                 {notes.map((note) => (
                     <div
                         key={note._id}
@@ -120,7 +120,7 @@ export default function NotesHistory() {
             `}
                     >
                         <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-extrabold text-gray-900 dark:text-white group-hover:text-emerald-600 transition truncate pr-8">{note.title}</h4>
+                            <h4 className="font-extrabold text-gray-900 dark:text-white group-hover:text-emerald-600 transition truncate pr-12">{note.title}</h4>
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleDelete(note._id) }}
                                 className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"
@@ -141,10 +141,16 @@ export default function NotesHistory() {
             </div>
 
             {/* Viewer Side */}
-            <div className="lg:col-span-2">
+            <div className={`lg:col-span-2 ${!selectedNote ? 'hidden lg:block' : 'block'}`}>
                 {selectedNote ? (
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
+                            <button 
+                                onClick={() => setSelectedNote(null)}
+                                className="lg:hidden flex items-center gap-2 text-emerald-600 font-bold mb-2 w-fit hover:bg-emerald-50 dark:hover:bg-emerald-900/20 px-3 py-1.5 rounded-lg transition"
+                            >
+                                <FiChevronLeft /> Back to Notes
+                            </button>
                             <div className="flex-1">
                                 {isEditingTitle ? (
                                     <div className="flex items-center gap-2 mb-2">
@@ -152,7 +158,7 @@ export default function NotesHistory() {
                                             type="text"
                                             value={editingTitle}
                                             onChange={(e) => setEditingTitle(e.target.value)}
-                                            className="text-2xl font-black bg-gray-50 dark:bg-gray-900 border-2 border-emerald-500 rounded-xl px-4 py-1 w-full focus:outline-none text-gray-900 dark:text-white"
+                                            className="text-xl sm:text-2xl font-black bg-gray-50 dark:bg-gray-900 border-2 border-emerald-500 rounded-xl px-4 py-1 w-full focus:outline-none text-gray-900 dark:text-white"
                                             autoFocus
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') handleUpdateTitle()
@@ -177,13 +183,13 @@ export default function NotesHistory() {
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-3 mb-2 group/title">
-                                        <h2 className="text-2xl font-black text-gray-900 dark:text-white">{selectedNote.title}</h2>
+                                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{selectedNote.title}</h2>
                                         <button
                                             onClick={() => {
                                                 setEditingTitle(selectedNote.title)
                                                 setIsEditingTitle(true)
                                             }}
-                                            className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition opacity-0 group-hover/title:opacity-100"
+                                            className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition shrink-0"
                                             title="Edit Name"
                                         >
                                             <FiEdit2 size={16} />
