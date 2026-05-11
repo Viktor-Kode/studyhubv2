@@ -700,81 +700,110 @@ export default function PdfCbtPage() {
       )}
 
       {stage === 'results' && (
-        <div className="pcbt-results max-w-4xl mx-auto px-4 py-12 animate-in zoom-in-95">
-          <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-12 border border-[#E8EAED] dark:border-gray-700 shadow-2xl text-center mb-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#5B4CF5] to-[#7C70FF]" />
-            
-            <div className="w-32 h-32 rounded-full bg-[#EEF2FF] dark:bg-[#5B4CF5]/10 flex items-center justify-center mx-auto mb-6 text-4xl border-8 border-white dark:border-gray-700 shadow-inner">
-              {score.pct >= 70 ? '🎉' : score.pct >= 50 ? '👍' : '📚'}
-            </div>
-            
-            <h2 className="text-4xl font-black text-[#0F172A] dark:text-white mb-2">{score.pct}% Score</h2>
-            <p className="text-[#64748B] dark:text-gray-400 mb-8 font-bold">You got {score.correct} out of {score.total} objective questions correct.</p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
-                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{score.correct}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Correct</label>
-              </div>
-              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
-                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{score.total - score.correct}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Wrong</label>
-              </div>
-              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
-                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{practiceQuestions.length - answeredCount}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Skipped</label>
-              </div>
-              <div className="p-4 bg-[#F8FAFC] dark:bg-gray-900 rounded-2xl border border-[#F1F5F9] dark:border-gray-700">
-                <span className="block text-2xl font-black text-[#0F172A] dark:text-white">{formatTime(Number(timeLimit) * 60 - timeLeft)}</span>
-                <label className="text-[10px] font-bold text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest">Time</label>
+        <div className="w-full max-w-4xl mx-auto px-4 py-12 animate-in zoom-in-95">
+          {/* Result Hero */}
+          <div className="result-hero">
+            <div className="result-score-container">
+              <svg className="result-score-svg" viewBox="0 0 100 100">
+                <circle className="result-score-bg" cx="50" cy="50" r="44" />
+                <circle 
+                  className="result-score-fill" 
+                  cx="50" 
+                  cy="50" 
+                  r="44" 
+                  style={{ 
+                    strokeDasharray: '276.46', 
+                    strokeDashoffset: `${276.46 * (1 - score.pct / 100)}` 
+                  }}
+                />
+              </svg>
+              <div className="result-score-text">
+                <span className="result-score-pct">{score.pct}%</span>
+                <span className="result-score-label">Score</span>
               </div>
             </div>
+            
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">
+              {score.pct >= 90 ? 'Absolute Mastery! 🏆' : 
+               score.pct >= 70 ? 'Incredible Performance! 🔥' : 
+               score.pct >= 50 ? 'Well Done! 👍' : 
+               'Keep Practicing! 📚'}
+            </h2>
+            <p className="text-white/80 font-medium text-lg">
+              You correctly answered {score.correct} out of {score.total} objective questions.
+            </p>
+          </div>
 
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <button onClick={() => setStage('setup')} className="px-8 py-4 bg-[#5B4CF5] text-white rounded-2xl font-bold hover:shadow-xl transition-all">New Document</button>
-              <button onClick={() => { setAnswers({}); setCurrentIdx(0); setQuizSubmitted(false); setStage('practice'); setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0); }} className="px-8 py-4 bg-[#0F172A] dark:bg-white text-white dark:text-[#0F172A] rounded-2xl font-bold hover:shadow-xl transition-all">Retry Same</button>
+          {/* Stats Grid */}
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-value text-emerald-400">{score.pct}%</span>
+              <span className="stat-label">Accuracy</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value text-blue-400">{score.correct}</span>
+              <span className="stat-label">Correct</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value text-red-400">{score.total - score.correct}</span>
+              <span className="stat-label">Wrong</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value text-orange-400">{formatTime(Number(timeLimit) * 60 - timeLeft)}</span>
+              <span className="stat-label">Time Taken</span>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <h3 className="text-xl font-black text-[#0F172A] dark:text-white px-2">Review Questions</h3>
+          {/* Action Buttons */}
+          <div className="action-buttons mb-16">
+            <button onClick={() => setStage('setup')} className="action-btn primary">
+              <FiFileText /> New Document
+            </button>
+            <button onClick={() => { setAnswers({}); setCurrentIdx(0); setQuizSubmitted(false); setStage('practice'); setTimeLeft(Number(timeLimit) > 0 ? Number(timeLimit) * 60 : 0); }} className="action-btn secondary">
+              <FiPlay /> Try Again
+            </button>
+          </div>
+
+          {/* Review Section */}
+          <div className="review-section">
+            <h3 className="review-section-title text-white">Question Review</h3>
             {practiceQuestions.map((q, i) => {
               const userAns = String(answers[i] || '').trim().toUpperCase()
               const correctAns = String(q.answer || '').trim().toUpperCase()
               const isCorrect = q.type === 'objective' ? userAns === correctAns : false
               const isSkipped = !userAns
+              const status = isSkipped ? 'skipped' : (isCorrect ? 'correct' : 'incorrect')
               
               return (
-                <div key={i} className={`bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border-2 transition-all ${isSkipped ? 'border-gray-100 dark:border-gray-700' : isCorrect ? 'border-green-100 dark:border-green-900/30 shadow-sm shadow-green-50 dark:shadow-green-900/10' : 'border-red-100 dark:border-red-900/30 shadow-sm shadow-red-50 dark:shadow-red-900/10'}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="font-black text-[#0F172A] dark:text-white uppercase text-xs tracking-widest">Question {i + 1}</span>
-                    <div className="flex items-center gap-2">
-                      {isSkipped ? (
-                        <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">Skipped</span>
-                      ) : isCorrect ? (
-                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiCheckCircle /> Correct</span>
-                      ) : (
-                        <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><FiXCircle /> Incorrect</span>
-                      )}
+                <div key={i} className={`question-review-card ${status} animate-in slide-in-from-bottom-4`} style={{ animationDelay: `${i * 0.1}s` }}>
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Question {i + 1}</span>
+                    <div className={`status-badge ${status}`}>
+                      {status === 'correct' && <FiCheckCircle />}
+                      {status === 'incorrect' && <FiXCircle />}
+                      {status === 'skipped' && <FiAlertTriangle />}
+                      {status}
                     </div>
                   </div>
                   
-                  <p className="text-[#0F172A] dark:text-white mb-6 leading-relaxed font-bold text-lg">{q.question}</p>
+                  <p className="text-xl md:text-2xl font-bold text-white mb-8 leading-tight">{q.question}</p>
                   
                   {q.type === 'objective' && q.options && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {OPTION_KEYS.map(key => {
                         if (!q.options![key]) return null
                         const isUserChoice = userAns === key
                         const isCorrectAnswer = correctAns === key
-                        let style = 'bg-gray-50 dark:bg-gray-900/40 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-700'
-                        if (isCorrectAnswer) style = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-100 dark:border-green-800'
-                        else if (isUserChoice) style = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800'
                         
                         return (
-                          <div key={key} className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 border ${style}`}>
-                            <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 border border-inherit shrink-0">{key}</span>
-                            {q.options![key]}
+                          <div 
+                            key={key} 
+                            className={`option-review-item ${isCorrectAnswer ? 'is-correct' : ''} ${isUserChoice ? 'is-user-choice' : ''}`}
+                          >
+                            <div className="option-letter-box">{key}</div>
+                            <span className="font-bold">{q.options![key]}</span>
+                            {isCorrectAnswer && <FiCheckCircle className="ml-auto text-emerald-500" />}
+                            {isUserChoice && !isCorrectAnswer && <FiXCircle className="ml-auto text-red-500" />}
                           </div>
                         )
                       })}
@@ -782,25 +811,25 @@ export default function PdfCbtPage() {
                   )}
 
                   {q.type === 'theory' && (
-                    <div className="space-y-4">
-                      <div className="p-5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <label className="block text-[10px] font-black text-[#94A3B8] dark:text-gray-500 uppercase tracking-widest mb-2">Your Answer</label>
-                        <p className="text-sm text-[#0F172A] dark:text-white font-medium">{answers[i] || 'No answer provided'}</p>
+                    <div className="mt-6 space-y-4">
+                      <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Your Answer</label>
+                        <p className="text-white font-medium">{answers[i] || 'No answer provided'}</p>
                       </div>
-                      <div className="p-5 bg-[#EEF2FF] dark:bg-[#5B4CF5]/5 rounded-2xl border border-[#E0E7FF] dark:border-[#5B4CF5]/20">
-                        <label className="block text-[10px] font-black text-[#5B4CF5] uppercase tracking-widest mb-2">Model Answer</label>
-                        <p className="text-sm text-[#5B4CF5] dark:text-blue-400 font-bold">{q.answer || 'Not available'}</p>
+                      <div className="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/20">
+                        <label className="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Model Answer</label>
+                        <p className="text-emerald-400 font-bold">{q.answer || 'Not available'}</p>
                       </div>
                     </div>
                   )}
 
                   {q.explanation && (
-                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-2 text-[#5B4CF5]">
+                    <div className="mt-8 p-6 bg-blue-500/5 rounded-2xl border border-blue-500/20">
+                      <div className="flex items-center gap-2 mb-2 text-blue-400">
                         <Sparkles size={14} />
                         <label className="text-[10px] font-black uppercase tracking-widest">AI Insight</label>
                       </div>
-                      <p className="text-sm text-[#64748B] dark:text-gray-400 leading-relaxed font-medium italic">"{q.explanation}"</p>
+                      <p className="text-blue-100/80 text-sm leading-relaxed italic">"{q.explanation}"</p>
                     </div>
                   )}
                 </div>
