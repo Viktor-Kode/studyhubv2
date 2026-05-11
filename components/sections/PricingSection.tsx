@@ -1,125 +1,122 @@
 'use client'
 
-import { Check, X, Zap } from 'lucide-react'
+import { Check, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS } from '@/lib/config/plans'
 
 export default function PricingSection() {
   return (
-    <section className="pricing-section" id="pricing">
-      <div className="pricing-container">
-        <div className="section-label">Pricing</div>
-        <h2 className="section-title">Simple, Affordable Plans</h2>
-        <p className="section-sub">
-          Built for Nigerian students. No hidden fees. Cancel anytime.
-        </p>
+    <section className="py-24 bg-[#0a0d1a]" id="pricing">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <div className="inline-block px-4 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-bold mb-4 uppercase tracking-widest">
+            Pricing
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Simple, Affordable Plans</h2>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Built for Nigerian students. No hidden fees. Cancel anytime.
+          </p>
+        </div>
 
-        <div className="pricing-cards">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Free Plan */}
-          <div className="pricing-card free">
-            <div className="plan-header">
-              <span className="plan-name">{PLANS.free.name}</span>
-              <div className="plan-price">
-                <span className="price-amount">₦0</span>
-                <span className="price-period">forever</span>
+          <div className="relative group p-8 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all duration-300 flex flex-col">
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-white mb-2">{PLANS.free.name}</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">₦0</span>
+                <span className="text-slate-500 text-sm">forever</span>
               </div>
-              <p className="plan-tagline">Get started with no commitment</p>
+              <p className="text-slate-500 text-sm mt-4">Get started with no commitment</p>
             </div>
 
-            <ul className="feature-list">
+            <ul className="space-y-4 mb-8 flex-1">
               {PLANS.free.features.map((f) => (
-                <li key={f} className="feature-item included">
-                  <Check size={15} className="feature-check" />
-                  {f}
-                </li>
-              ))}
-              {PLANS.free.notIncluded.map((f) => (
-                <li key={f} className="feature-item excluded">
-                  <X size={15} className="feature-x" />
-                  {f}
+                <li key={f} className="flex items-start gap-3 text-sm text-slate-300">
+                  <Check size={18} className="text-purple-500 mt-0.5 shrink-0" />
+                  <span>{f}</span>
                 </li>
               ))}
             </ul>
 
-            <Link href="/auth/signup" className="plan-btn free-btn">
+            <Link href="/auth/signup" className="w-full py-4 rounded-xl border border-slate-700 text-white font-bold text-center hover:bg-white hover:text-black transition-all duration-300">
               Get Started Free
             </Link>
           </div>
 
           {/* Weekly Plan */}
-          <div className="pricing-card weekly">
-            <div className="plan-header">
-              <span className="plan-name">{PLANS.weekly.name}</span>
-              <div className="plan-price">
-                <span className="price-amount">₦600</span>
-                <span className="price-period">/ week</span>
+          <div className="relative group p-8 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 flex flex-col transform md:-translate-y-4">
+            <div className="absolute top-0 right-8 -translate-y-1/2 bg-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Popular
+            </div>
+            
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-white mb-2">{PLANS.weekly.name}</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">₦600</span>
+                <span className="text-slate-500 text-sm">/ week</span>
               </div>
-              <p className="plan-tagline">Perfect for exam season</p>
+              <p className="text-slate-500 text-sm mt-4">Perfect for exam season</p>
             </div>
 
-            <ul className="feature-list">
+            <ul className="space-y-4 mb-8 flex-1">
               {PLANS.weekly.features.map((f) => (
-                <li key={f} className="feature-item included">
-                  <Check size={15} className="feature-check" />
-                  {f}
+                <li key={f} className="flex items-start gap-3 text-sm text-slate-300">
+                  <Check size={18} className="text-purple-500 mt-0.5 shrink-0" />
+                  <span>{f}</span>
                 </li>
               ))}
             </ul>
 
-            <Link href="/auth/signup" className="plan-btn weekly-btn">
+            <Link href="/auth/signup" className="w-full py-4 rounded-xl bg-purple-600 text-white font-bold text-center hover:bg-purple-700 transition-all duration-300 shadow-[0_0_20px_rgba(147,51,234,0.3)]">
               Start Weekly Plan
             </Link>
           </div>
 
-          {/* Monthly Plan — highlighted */}
-          <div className="pricing-card monthly popular">
-            <div className="popular-badge">
-              ⭐ {PLANS.monthly.badge}
-            </div>
-            <div className="plan-header">
-              <span className="plan-name">{PLANS.monthly.name}</span>
-              <div className="plan-price">
-                <span className="price-amount">₦2,300</span>
-                <span className="price-period">/ month</span>
+          {/* Monthly Plan */}
+          <div className="relative group p-8 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all duration-300 flex flex-col">
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-white mb-2">{PLANS.monthly.name}</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">₦2,300</span>
+                <span className="text-slate-500 text-sm">/ month</span>
               </div>
-              <p className="plan-savings">{PLANS.monthly.savings}</p>
+              <p className="text-slate-500 text-sm mt-4">{PLANS.monthly.savings}</p>
             </div>
 
-            <ul className="feature-list">
+            <ul className="space-y-4 mb-8 flex-1">
               {PLANS.monthly.features.map((f) => (
-                <li key={f} className="feature-item included">
-                  <Check size={15} className="feature-check" />
-                  {f}
+                <li key={f} className="flex items-start gap-3 text-sm text-slate-300">
+                  <Check size={18} className="text-purple-500 mt-0.5 shrink-0" />
+                  <span>{f}</span>
                 </li>
               ))}
             </ul>
 
-            <Link href="/auth/signup" className="plan-btn monthly-btn">
+            <Link href="/auth/signup" className="w-full py-4 rounded-xl border border-slate-700 text-white font-bold text-center hover:bg-white hover:text-black transition-all duration-300">
               Start Monthly Plan
             </Link>
           </div>
         </div>
 
         {/* Add-on */}
-        <div className="addon-card">
-          <div className="addon-left">
-            <Zap size={20} className="addon-icon" />
+        <div className="mt-16 max-w-4xl mx-auto p-6 rounded-2xl bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400">
+              <Zap size={24} />
+            </div>
             <div>
-              <span className="addon-title">Need more AI questions?</span>
-              <span className="addon-desc">
-                Top up anytime — 100 extra AI questions for ₦500. Added instantly
-                to your plan.
-              </span>
+              <h4 className="text-white font-bold">Need more AI questions?</h4>
+              <p className="text-slate-400 text-sm">Top up anytime — 100 extra AI questions for ₦500.</p>
             </div>
           </div>
-          <Link href="/auth/signup" className="addon-btn">
+          <Link href="/auth/signup" className="px-8 py-3 bg-white text-black font-bold rounded-xl hover:bg-purple-100 transition-all">
             Get Add-on
           </Link>
         </div>
 
-        {/* Reassurance */}
-        <div className="pricing-footer">
-          <span>✅ Pay with card, bank transfer or USSD</span>
+        <div className="mt-12 flex flex-wrap justify-center gap-8 text-slate-500 text-xs font-medium uppercase tracking-widest">
+          <span>✅ Pay with card, bank or USSD</span>
           <span>✅ Instant activation</span>
           <span>✅ No auto-renewal</span>
         </div>
