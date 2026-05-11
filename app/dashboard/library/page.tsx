@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import AdBanner from '@/components/AdBanner'
 import { confirmToast } from '@/lib/utils/confirm'
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 
 export type LibraryDocument = {
   _id: string
@@ -98,7 +99,7 @@ export default function LibraryPage() {
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto w-full max-w-7xl p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 pb-24 md:pb-6">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Study Library</h1>
@@ -229,6 +230,7 @@ export default function LibraryPage() {
             }}
           />
         )}
+        <MobileBottomNav />
       </div>
     </ProtectedRoute>
   )

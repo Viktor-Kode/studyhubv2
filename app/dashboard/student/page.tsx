@@ -20,6 +20,7 @@ import {
 } from 'react-icons/fi'
 import { BiTimer, BiBrain } from 'react-icons/bi'
 import Link from 'next/link'
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function StudentDashboardPage() {
   const router = useRouter()
@@ -373,12 +374,7 @@ export default function StudentDashboardPage() {
             )}
         </section>
 
-        <nav className="v3-bottom-nav">
-            <Link href="/dashboard/student" className="nav-item active"><FiHome className="text-xl" /><span>Home</span></Link>
-            <Link href="/dashboard/library" className="nav-item"><FiBook className="text-xl" /><span>Library</span></Link>
-
-            <Link href="/dashboard/student/community" className="nav-item"><FiAward className="text-xl" /><span>Leaderboard</span></Link>
-        </nav>
+        <MobileBottomNav />
       </div>
     </ProtectedRoute>
   )

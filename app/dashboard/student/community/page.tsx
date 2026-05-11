@@ -11,6 +11,7 @@ import LeaderboardPanel, { type BoardRow } from '@/components/community/Leaderbo
 import BadgesPanel from '@/components/community/BadgesPanel'
 import SharePanel from '@/components/community/SharePanel'
 import { Trophy, Award, Share2, Medal } from 'lucide-react'
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function CommunityPage() {
   const { user } = useAuthStore()
@@ -163,6 +164,7 @@ export default function CommunityPage() {
             )}
           </motion.div>
         </AnimatePresence>
+        <MobileBottomNav />
       </div>
     </ProtectedRoute>
   )
