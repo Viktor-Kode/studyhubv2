@@ -9,6 +9,8 @@ import { getFirebaseToken } from '@/lib/store/authStore'
 import AdBanner from '@/components/AdBanner'
 import { confirmToast } from '@/lib/utils/confirm'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
+import { useAuthStore } from '@/lib/store/authStore'
+import { useUpgrade } from '@/context/UpgradeContext'
 
 export type LibraryDocument = {
   _id: string
@@ -37,6 +39,18 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [editingDocument, setEditingDocument] = useState<LibraryDocument | null>(null)
+  
+  const { user } = useAuthStore()
+  const { showUpgrade } = useUpgrade()
+  const isPaid = user?.plan?.type && user.plan.type !== 'free'
+
+  const handleUploadClick = () => {
+    if (!isPaid && documents.length >= 2) {
+      showUpgrade('library')
+      return
+    }
+    setShowUpload(true)
+  }
 
   const handleProgressSaved = useCallback((id: string, currentPage: number, percentage: number) => {
     setDocuments((prev) =>
@@ -106,7 +120,7 @@ export default function LibraryPage() {
             <p className="text-sm text-slate-600 dark:text-slate-400">Upload PDFs, Word, PPT, text, and images; read and reuse in Question Generator.</p>
           </div>
           <button
-            onClick={() => setShowUpload(true)}
+            onClick={handleUploadClick}
             type="button"
             className="inline-flex items-center gap-2 rounded-xl bg-[#5B4CF5] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
           >

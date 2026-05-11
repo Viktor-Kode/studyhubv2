@@ -12,6 +12,7 @@ type UpgradeFeature =
   | 'notes'
   | 'postutme'
   | 'quiz'
+  | 'library'
   | 'default'
 
 interface UpgradeContextValue {

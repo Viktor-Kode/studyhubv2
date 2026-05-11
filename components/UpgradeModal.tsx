@@ -12,6 +12,7 @@ const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   notes: { title: "You're one step away", desc: "Your study notes are ready to generate. Upgrade now and it runs instantly." },
   postutme: { title: 'Unlock Post-UTME Practice', desc: 'Post-UTME past questions require a paid plan.' },
   quiz: { title: "You're one step away", desc: "Your quiz is ready to generate. Upgrade now and it runs instantly." },
+  library: { title: 'Library Limit Reached', desc: 'Free users can upload up to 2 documents. Upgrade for unlimited storage.' },
   default: { title: 'Upgrade to Continue', desc: 'This feature is available on paid plans.' }
 }
 
