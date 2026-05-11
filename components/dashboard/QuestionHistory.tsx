@@ -17,6 +17,7 @@ export default function QuestionHistory() {
     const [searchQuery, setSearchQuery] = useState('')
     const [expandedSession, setExpandedSession] = useState<string | null>(null)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [showOnlyIncorrect, setShowOnlyIncorrect] = useState<Record<string, boolean>>({})
 
     useEffect(() => {
         fetchSessions()
@@ -147,30 +148,53 @@ export default function QuestionHistory() {
 
                             {expandedSession === session._id && (
                                 <div className="px-6 pb-6 bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                                    {session.lastResult && (
-                                        <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-emerald-500/30 shadow-sm flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] mb-1">LATEST PERFORMANCE</p>
-                                                <p className="text-xl font-black text-gray-900 dark:text-white">
-                                                    {session.lastResult.correctAnswers} / {session.lastResult.totalQuestions} <span className="text-emerald-500 text-sm ml-1">({session.lastResult.accuracy}%)</span>
-                                                </p>
+                                        {session.lastResult && (
+                                            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-emerald-500/30 shadow-sm flex-1 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] mb-1">LATEST PERFORMANCE</p>
+                                                        <p className="text-xl font-black text-gray-900 dark:text-white">
+                                                            {session.lastResult.correctAnswers} / {session.lastResult.totalQuestions} <span className="text-emerald-500 text-sm ml-1">({session.lastResult.accuracy}%)</span>
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full border border-emerald-100 dark:border-emerald-500/20">
+                                                        <FiCheckCircle className="text-emerald-500" />
+                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">COMPLETED</span>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => setShowOnlyIncorrect(prev => ({ ...prev, [session._id]: !prev[session._id] }))}
+                                                    className={`px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${showOnlyIncorrect[session._id]
+                                                            ? 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20'
+                                                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-500/50'
+                                                        }`}
+                                                >
+                                                    <FiXCircle />
+                                                    {showOnlyIncorrect[session._id] ? 'SHOWING INCORRECT ONLY' : 'FILTER INCORRECT'}
+                                                </button>
                                             </div>
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full border border-emerald-100 dark:border-emerald-500/20">
-                                                <FiCheckCircle className="text-emerald-500" />
-                                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">COMPLETED</span>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
 
                                     <div className="grid gap-4 mt-6">
-                                        {session.questions.map((q, idx) => {
-                                            const userResult = session.lastResult?.answers.find(a => String(a.questionId) === String(q._id));
-                                            
-                                            return (
-                                                <div key={q._id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex gap-2">
-                                                        <span className="text-emerald-500">Q{idx + 1}.</span> {q.content || (q as any).question}
-                                                    </p>
+                                        {session.questions
+                                            .filter(q => {
+                                                if (!showOnlyIncorrect[session._id]) return true;
+                                                const result = session.lastResult?.answers.find(a => String(a.questionId) === String(q._id));
+                                                return result && !result.isCorrect;
+                                            })
+                                            .map((q, idx) => {
+                                                const userResult = session.lastResult?.answers.find(a => String(a.questionId) === String(q._id));
+                                                const isIncorrect = userResult && !userResult.isCorrect;
+
+                                                return (
+                                                    <div key={q._id} className={`p-5 rounded-xl border shadow-sm transition-all ${isIncorrect
+                                                            ? 'bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-900/50 ring-1 ring-red-500/10'
+                                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                                        }`}>
+                                                        <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex gap-2">
+                                                            <span className={isIncorrect ? "text-red-500" : "text-emerald-500"}>Q{idx + 1}.</span> {q.content || (q as any).question}
+                                                        </p>
 
                                                     {q.options && q.options.length > 0 && (
                                                         <div className="space-y-2 ml-7 mb-4">
