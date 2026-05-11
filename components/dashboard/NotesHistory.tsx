@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { FiTrash2, FiClock, FiFileText, FiLoader, FiExternalLink, FiEdit2, FiSave, FiX, FiChevronLeft } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import ReactMarkdown from 'react-markdown'
@@ -16,6 +17,10 @@ export default function NotesHistory() {
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editingTitle, setEditingTitle] = useState('')
     const [isUpdating, setIsUpdating] = useState(false)
+    
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const noteId = searchParams.get('id')
 
     // Helper
     const toLocaleLongDateString = (dateStr: string) => {
@@ -25,6 +30,21 @@ export default function NotesHistory() {
     useEffect(() => {
         loadNotes()
     }, [])
+
+    // Sync selection with URL
+    useEffect(() => {
+        if (noteId && notes.length > 0) {
+            const found = notes.find(n => n._id === noteId)
+            if (found) {
+                setSelectedNote(found)
+                // If we're editing but the note changed, close editor
+                setIsEditingTitle(false)
+            }
+        } else {
+            setSelectedNote(null)
+            setIsEditingTitle(false)
+        }
+    }, [noteId, notes])
 
     const loadNotes = async () => {
         try {
@@ -48,7 +68,9 @@ export default function NotesHistory() {
             const response = await deleteStudyNote(id)
             if (response.success) {
                 setNotes(prev => prev.filter(n => n._id !== id))
-                if (selectedNote?._id === id) setSelectedNote(null)
+                if (noteId === id) {
+                    router.push('/dashboard/notes-history')
+                }
                 toast.success('Note deleted successfully')
             }
         } catch (err: any) {
@@ -112,7 +134,7 @@ export default function NotesHistory() {
                 {notes.map((note) => (
                     <div
                         key={note._id}
-                        onClick={() => setSelectedNote(note)}
+                        onClick={() => router.push(`/dashboard/notes-history?id=${note._id}`)}
                         className={`group p-5 rounded-2xl border-2 transition-all cursor-pointer relative
               ${selectedNote?._id === note._id
                                 ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/5'
@@ -146,7 +168,7 @@ export default function NotesHistory() {
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
                             <button 
-                                onClick={() => setSelectedNote(null)}
+                                onClick={() => router.back()}
                                 className="lg:hidden flex items-center gap-2 text-emerald-600 font-bold mb-2 w-fit hover:bg-emerald-50 dark:hover:bg-emerald-900/20 px-3 py-1.5 rounded-lg transition"
                             >
                                 <FiChevronLeft /> Back to Notes

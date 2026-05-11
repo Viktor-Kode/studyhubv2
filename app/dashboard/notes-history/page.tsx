@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
 import NotesHistory from '@/components/dashboard/NotesHistory'
@@ -22,7 +23,13 @@ export default function NotesHistoryPage() {
                     </div>
                 </div>
 
-                <NotesHistory />
+                <Suspense fallback={
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                }>
+                    <NotesHistory />
+                </Suspense>
             </div>
         </ProtectedRoute>
     )
