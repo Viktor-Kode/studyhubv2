@@ -134,7 +134,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [documentId, setDocumentId] = useState<string | null>(null)
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
-  const [amount, setAmount] = useState(5)
+  const [amount, setAmount] = useState<number | string>(5)
   const [questionType, setQuestionType] = useState('multiple-choice')
 
   const [generating, setGenerating] = useState(false)
@@ -356,7 +356,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setCheckedAnswers(parsed.checkedAnswers || {})
         setScore(parsed.score || 0)
         setQuizSubmitted(!!parsed.quizSubmitted)
-        if (typeof parsed.amount === 'number') setAmount(parsed.amount)
+        if (parsed.amount !== undefined) setAmount(parsed.amount)
         if (parsed.questionType) setQuestionType(parsed.questionType)
         if (parsed.inputMode) setInputMode(parsed.inputMode)
         if (typeof parsed.manualText === 'string') setManualText(parsed.manualText)
@@ -830,7 +830,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       const sourceName = uploadedFile?.name || fetchedTitle || 'Manual Entry'
       const data = await generateQuiz(
           contentToUse,
-          amount,
+          Number(amount) || 5,
           questionType,
           sourceName,
           forceNew,
@@ -1412,17 +1412,27 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       Amount
                     </label>
                     <input
-                      type="number"
-                      min="1"
-                      max="50"
+                      type="text"
+                      inputMode="numeric"
                       value={amount}
-                      onChange={(e) => setAmount(Math.min(50, Math.max(1, Number(e.target.value))))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d+$/.test(val)) {
+                          setAmount(val);
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(String(amount));
+                        if (isNaN(num) || num < 1) setAmount(5);
+                        else if (num > 50) setAmount(50);
+                        else setAmount(num);
+                      }}
                       className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 </div>
 
-                {amount > 20 && (
+                {Number(amount) > 20 && (
                   <div className="flex items-center gap-2 text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg">
                     <FiAlertTriangle className="flex-shrink-0" />
                     <span>Generating {amount} questions may take a moment.</span>
