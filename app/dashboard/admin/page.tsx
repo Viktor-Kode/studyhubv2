@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import {
@@ -53,6 +53,7 @@ interface DashboardStatsV2 {
     paid: number
     free: number
     teachers: number
+    pwa: number
   }
   revenue: {
     total: number
@@ -98,6 +99,7 @@ interface AdminUserRow {
   teacherPlan?: string
   banned?: boolean
   isVerified?: boolean
+  isPWA?: boolean
 }
 
 interface FeedItem {
@@ -443,6 +445,11 @@ function OverviewTab({
           <span className="admin-kpi-label">Active Paid Users</span>
           <span className="admin-kpi-value">{stats.users.paid.toLocaleString()}</span>
           <span className="admin-kpi-sub">{paidPct}% of all users</span>
+        </div>
+        <div className="admin-kpi-card">
+          <span className="admin-kpi-label">PWA Users (Installed)</span>
+          <span className="admin-kpi-value">{stats.users.pwa?.toLocaleString() || 0}</span>
+          <span className="admin-kpi-sub">Mobile/Desktop apps</span>
         </div>
       </div>
 
@@ -809,8 +816,8 @@ function UsersTab({
               <th>Name</th>
               <th>Email</th>
               <th>Plan</th>
-              <th>Exam Type</th>
-              <th>Joined</th>
+              <th className="hidden lg:table-cell">Joined</th>
+              <th>PWA</th>
               <th style={{ width: 100 }}>Actions</th>
             </tr>
           </thead>
@@ -835,13 +842,17 @@ function UsersTab({
                       <span className="ml-2 text-xs font-bold text-emerald-700">VERIFIED</span>
                     )}
                   </td>
-                  <td className="text-slate-500">—</td>
+                  <td className="hidden lg:table-cell">
+                    {format(new Date(u.createdAt), 'MMM d, yyyy')}
+                  </td>
                   <td>
-                    {new Date(u.createdAt).toLocaleDateString('en-NG', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
+                    {u.isPWA ? (
+                      <span className="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1 w-fit">
+                        <Zap size={10} fill="currentColor" /> YES
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-medium text-[10px]">No</span>
+                    )}
                   </td>
                   <td>
                     <div className="admin-menu-wrap" ref={menuOpen === u._id ? menuRef : undefined}>

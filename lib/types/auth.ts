@@ -39,6 +39,7 @@ export interface AppUser {
         hideChatbot?: boolean
     }
     notificationsEnabled?: boolean
+    isPWA?: boolean
     plan?: {
         type: 'free' | 'starter' | 'growth' | 'premium'
         testsAllowed: number

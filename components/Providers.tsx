@@ -8,6 +8,8 @@ import NotifToast from '@/components/notifications/NotifToast'
 import { UpgradeProvider } from '@/context/UpgradeContext'
 import UpgradeHandlerSetup from './UpgradeHandlerSetup'
 import OfflineBanner from '@/components/OfflineBanner'
+import { useAuthStore } from '@/lib/store/authStore'
+import { apiClient } from '@/lib/api/client'
 
 /**
  * Providers
@@ -101,6 +103,28 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.addEventListener('message', onMessage)
         return () => navigator.serviceWorker.removeEventListener('message', onMessage)
     }, [])
+
+    // Track PWA usage
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+    useEffect(() => {
+        if (!isAuthenticated) return
+
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        const isPWA = isStandalone || (window.navigator as any).standalone === true
+
+        if (isPWA) {
+            const lastTracked = localStorage.getItem('pwa_tracked')
+            const today = new Date().toISOString().split('T')[0]
+
+            if (lastTracked !== today) {
+                apiClient.post('/users/pwa-usage')
+                    .then(() => {
+                        localStorage.setItem('pwa_tracked', today)
+                    })
+                    .catch(() => { /* ignore silent failure */ })
+            }
+        }
+    }, [isAuthenticated])
 
     const playAlarm = (type: string) => {
         const audio = new Audio(

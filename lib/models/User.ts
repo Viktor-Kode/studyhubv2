@@ -12,6 +12,7 @@ export interface IUser extends mongoose.Document {
     oauthProvider?: 'google' | null
     oauthId?: string
     firebaseUid?: string
+    isPWA?: boolean
     avatar?: string
     createdAt: Date
     updatedAt: Date
@@ -60,6 +61,10 @@ const UserSchema = new mongoose.Schema<IUser>(
             type: String,
             unique: true,
             sparse: true
+        },
+        isPWA: {
+            type: Boolean,
+            default: false
         },
         avatar: String
     },
