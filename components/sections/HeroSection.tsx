@@ -1,33 +1,37 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { gsap } from 'react-gsap' // Wait, the previous one used gsap directly. I'll stick to gsap.
-import { FaArrowRight, FaPlay } from 'react-icons/fa'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { FaArrowRight, FaPlay, FaCheck, FaZap, FaBook, FaBrain, FaGrid, FaChartBar, FaClock } from 'react-icons/fa'
 import Link from 'next/link'
-import Image from 'next/image'
 
 export default function HeroSection() {
   const heroRef = useRef<HTMLDivElement>(null)
 
-  return (
-    <div ref={heroRef} className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden bg-[#0a0d1a]">
-      {/* Background Glow */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger)
+  }, [])
 
-      <div className="container mx-auto px-4 relative z-10">
+  return (
+    <div ref={heroRef} className="relative min-h-[85vh] lg:min-h-[90vh] flex items-center pt-20 bg-[#0a0d1a]">
+      {/* Background Glow - pointer-events-none to prevent blocking scroll */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="container mx-auto px-4 relative z-10 py-12">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
           {/* Left Content */}
           <div className="flex-1 text-center lg:text-left">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-semibold mb-6 animate-fade-in">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs sm:text-sm font-semibold mb-6">
               <span className="mr-2">✨</span> The #1 Study Tool for Nigerians
             </div>
             
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
               The Tool Behind Every <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-600">First Class</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
               Upload your notes, practice past questions and track your progress — all in one place. Built specifically for Nigerian students.
             </p>
 
@@ -45,93 +49,99 @@ export default function HeroSection() {
                 See How It Works <FaPlay className="text-sm text-purple-400" />
               </Link>
             </div>
-
-            {/* Quick Stats */}
-            <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 border-t border-slate-800 pt-8">
-              <div>
-                <div className="text-2xl font-bold text-white">100%</div>
-                <div className="text-sm text-slate-500">AI Accuracy</div>
-              </div>
-              <div className="w-px h-10 bg-slate-800" />
-              <div>
-                <div className="text-2xl font-bold text-white">24/7</div>
-                <div className="text-sm text-slate-500">Study Support</div>
-              </div>
-              <div className="w-px h-10 bg-slate-800" />
-              <div>
-                <div className="text-2xl font-bold text-white">FREE</div>
-                <div className="text-sm text-slate-500">To Get Started</div>
-              </div>
-            </div>
           </div>
 
-          {/* Right Content - Mockup */}
-          <div className="flex-1 relative w-full max-w-[600px] lg:max-w-none">
+          {/* Right Content - Real Dashboard Mockup */}
+          <div className="flex-1 relative w-full max-w-[600px] lg:max-w-[550px] pointer-events-none">
             <div className="relative group">
               {/* Decorative Elements */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-25"></div>
               
-              <div className="relative bg-[#161b33] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+              <div className="relative bg-[#0B1220] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
                 {/* Mockup Header */}
-                <div className="bg-[#1e2548] px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                <div className="bg-[#111827]/80 backdrop-blur px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
+                       <FaChartBar className="text-[10px] text-slate-400" />
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-300">Dashboard</div>
                   </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="bg-[#0a0d1a] px-3 py-1 rounded text-[10px] text-slate-500 w-48 text-center">studyhelp.site/dashboard</div>
+                  <div className="flex items-center gap-3">
+                     <div className="flex flex-col items-end">
+                        <div className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full text-[8px] font-bold">SCHOLAR</div>
+                        <div className="text-[10px] text-white font-bold">Viktor</div>
+                     </div>
+                     <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/40 overflow-hidden">
+                        <div className="w-full h-full bg-slate-700 animate-pulse" />
+                     </div>
                   </div>
                 </div>
 
                 {/* Mockup Content */}
-                <div className="p-6 aspect-[4/3] flex flex-col gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="h-6 w-32 bg-slate-700/50 rounded animate-pulse" />
-                    <div className="h-8 w-8 bg-purple-600/30 rounded-full" />
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="h-24 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
-                      <div className="h-2 w-10 bg-slate-700 rounded mb-2" />
-                      <div className="h-4 w-16 bg-white/10 rounded" />
-                    </div>
-                    <div className="h-24 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
-                      <div className="h-2 w-10 bg-slate-700 rounded mb-2" />
-                      <div className="h-4 w-16 bg-white/10 rounded" />
-                    </div>
-                    <div className="h-24 bg-purple-600/20 rounded-xl border border-purple-500/30 p-4">
-                      <div className="h-2 w-10 bg-purple-400 rounded mb-2" />
-                      <div className="h-4 w-16 bg-purple-300/50 rounded" />
+                <div className="p-4 bg-[#0B1220] flex flex-col gap-5">
+                  {/* Action Cards */}
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider">Core Study Actions</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-teal-500/10 border border-teal-500/20 p-3 rounded-xl flex items-center gap-3">
+                         <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center text-white text-xs"><FaZap /></div>
+                         <div className="text-[9px] font-bold text-teal-400">Past Questions</div>
+                      </div>
+                      <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl flex items-center gap-3">
+                         <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-xs"><FaBook /></div>
+                         <div className="text-[9px] font-bold text-blue-400">Note Generator</div>
+                      </div>
+                      <div className="bg-purple-500/10 border border-purple-500/20 p-3 rounded-xl flex items-center gap-3">
+                         <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white text-xs"><FaBrain /></div>
+                         <div className="text-[9px] font-bold text-purple-400">AI Study Tutor</div>
+                      </div>
+                      <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-3">
+                         <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white text-xs"><FaGrid /></div>
+                         <div className="text-[9px] font-bold text-amber-400">Question Bank</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex-1 bg-slate-800/30 rounded-xl border border-slate-700/50 p-6">
-                    <div className="flex gap-4 mb-4">
-                      <div className="h-8 w-8 bg-slate-700 rounded" />
-                      <div className="flex-1 flex flex-col gap-2">
-                        <div className="h-3 w-1/2 bg-slate-700 rounded" />
-                        <div className="h-2 w-1/4 bg-slate-700/50 rounded" />
-                      </div>
+                  {/* Progress Section */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#111827] border border-slate-800 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+                       <div className="text-amber-500 text-xl mb-1">🔥</div>
+                       <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Streak</div>
+                       <div className="text-sm font-black text-amber-500">12 Days</div>
                     </div>
-                    <div className="space-y-3">
-                      <div className="h-2 w-full bg-slate-700/30 rounded" />
-                      <div className="h-2 w-full bg-slate-700/30 rounded" />
-                      <div className="h-2 w-3/4 bg-slate-700/30 rounded" />
+                    <div className="bg-[#111827] border border-slate-800 p-4 rounded-xl flex items-center gap-3">
+                       <div className="relative w-10 h-10">
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                             <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.05)" strokeWidth="10" fill="none" />
+                             <circle cx="50" cy="50" r="40" stroke="#9333ea" strokeWidth="10" fill="none" strokeDasharray="251.2" strokeDashoffset="62.8" />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white">75%</div>
+                       </div>
+                       <div>
+                          <div className="text-[8px] font-bold text-slate-500">NEXT RANK</div>
+                          <div className="text-[10px] font-bold text-white">Master</div>
+                       </div>
                     </div>
+                  </div>
+
+                  {/* Reminders */}
+                  <div className="bg-[#111827] border border-slate-800 p-3 rounded-xl flex items-center justify-between">
+                     <div>
+                        <div className="text-[10px] font-bold text-white">Maths Practice</div>
+                        <div className="text-[8px] text-slate-500">2:00 PM • Today</div>
+                     </div>
+                     <div className="w-7 h-7 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500 text-[10px]"><FaClock /></div>
                   </div>
                 </div>
               </div>
 
-              {/* Floating Element */}
-              <div className="absolute -bottom-6 -left-6 bg-purple-600 p-4 rounded-xl shadow-xl hidden md:block animate-bounce-slow">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    🏆
-                  </div>
+              {/* Floating Success Notification */}
+              <div className="absolute -bottom-4 -left-4 bg-purple-600 p-3 rounded-xl shadow-xl hidden md:block animate-bounce-slow">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-lg">🚀</div>
                   <div>
-                    <div className="text-white font-bold text-sm">Top Performer</div>
-                    <div className="text-purple-200 text-xs">Score: 98%</div>
+                    <div className="text-white font-bold text-[10px]">Rank Up!</div>
+                    <div className="text-purple-200 text-[8px]">New Badges Unlocked</div>
                   </div>
                 </div>
               </div>

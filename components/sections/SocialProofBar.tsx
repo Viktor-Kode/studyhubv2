@@ -2,12 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 export default function SocialProofBar() {
   const barRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!barRef.current) return
+    gsap.registerPlugin(ScrollTrigger)
     
     gsap.from(barRef.current, {
       opacity: 0,
