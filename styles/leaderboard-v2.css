@@ -28,7 +28,7 @@
 }
 
 .lb-v2-container {
-  background: var(--lb-bg);
+  background: transparent;
   color: var(--lb-text);
   min-height: 100vh;
   padding: 20px 16px 120px 16px;
