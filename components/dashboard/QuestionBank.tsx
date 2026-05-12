@@ -12,9 +12,9 @@ import { cbtApi } from '@/lib/api/cbt'
 import { apiClient } from '@/lib/api/client'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { toast } from 'react-hot-toast'
-import { confirmToast } from '@/lib/utils/confirm'
 import { useUpgrade } from '@/context/UpgradeContext'
 import { extractTextFromFile } from '@/lib/utils/extraction'
+import { studyPlanApi } from '@/lib/api/studyPlanApi'
 
 interface QuestionBankProps {
   className?: string
@@ -679,6 +679,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       }
 
       await cbtApi.saveResult(resultsData)
+      
+      // Auto-complete study plan task
+      studyPlanApi.autoCompleteTask('cbt').catch(err => console.error('Plan auto-complete error:', err))
+
       setScore(finalScore)
       setQuizSubmitted(true)
       toast.success('Quiz results saved to dashboard!')
@@ -921,6 +925,9 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         )
 
       if (response.success && response.notes) {
+        // Auto-complete study plan task
+        studyPlanApi.autoCompleteTask('note').catch(err => console.error('Plan auto-complete error:', err))
+        
         setSuccess('Study notes generated successfully!')
         setGeneratedNotes(response.notes)
       } else {

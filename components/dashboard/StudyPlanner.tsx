@@ -117,17 +117,6 @@ export default function StudyPlanner() {
     }
   }
 
-  const handleToggleTask = async (taskId: string, currentStatus: boolean) => {
-    try {
-      const res = await studyPlanApi.updateTaskStatus(taskId, !currentStatus)
-      if (res.data.success) {
-        setPlan(res.data.plan)
-      }
-    } catch (err) {
-      console.error('Toggle task error:', err)
-    }
-  }
-
   const handleReset = async () => {
     if (!confirm('Are you sure you want to reset your plan? All progress will be lost.')) return
     try {
@@ -463,19 +452,19 @@ export default function StudyPlanner() {
     <div className="planner-container fade-in">
       {/* Header Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 v3-card flex items-center justify-between overflow-hidden relative">
-          <div className="relative z-10">
+        <div className="lg:col-span-2 v3-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 overflow-hidden relative">
+          <div className="relative z-10 w-full sm:w-auto">
             <h2 className="text-xl font-bold mb-1">Weekly Progress</h2>
             <p className="text-gray-400 text-sm mb-4">{completedToday}/{todayTasks.length} tasks done today — {progressPercent}%</p>
-            <div className="h-2 w-64 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-2 w-full sm:w-64 bg-gray-800 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
-          <div className="relative z-10 text-right">
-             <div className="flex items-center gap-2 bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl border border-orange-500/20">
+          <div className="relative z-10 text-left sm:text-right w-full sm:w-auto">
+             <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl border border-orange-500/20">
                 <FiZap className="text-xl" />
                 <div>
                    <p className="text-[10px] uppercase font-black">Streak</p>
@@ -487,7 +476,7 @@ export default function StudyPlanner() {
           <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="v3-card flex flex-col justify-center items-center text-center">
+        <div className="v3-card flex flex-col justify-center items-center text-center py-6">
            <button 
              onClick={handleReset}
              className="text-gray-500 hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-medium"
@@ -498,48 +487,61 @@ export default function StudyPlanner() {
         </div>
       </div>
 
-      {/* Daily Tasks */}
       <div className="mb-10">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
           <FiStar className="text-yellow-500" /> Today's Focus
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {todayTasks.length > 0 ? todayTasks.map((task: any) => (
-            <div 
-              key={task._id} 
-              className={`task-card ${task.completed ? 'completed' : ''}`}
-              onClick={() => handleToggleTask(task._id, task.completed)}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`task-check ${task.completed ? 'bg-green-500 text-white' : 'border-2 border-gray-700'}`}>
-                  {task.completed && <FiCheckCircle />}
+        <div className="space-y-4">
+          {todayTasks.length > 0 ? todayTasks.map((t: any) => {
+            const taskDate = new Date(t.date).toISOString().split('T')[0]
+            const isToday = taskDate === new Date().toISOString().split('T')[0]
+            
+            return (
+              <div 
+                key={t._id}
+                className={`v3-card p-5 flex items-center gap-5 transition-all group ${
+                  t.completed ? 'opacity-75 bg-green-500/5' : ''
+                }`}
+              >
+                <div className={`task-check flex items-center justify-center rounded-xl transition-all ${
+                  t.completed ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'border-2 border-gray-700 text-gray-500'
+                }`}>
+                  {t.completed ? <FiCheckCircle className="text-xl" /> : <FiClock className="text-lg opacity-50" />}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {task.label && (
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/5 text-gray-400 rounded border border-white/10">
-                        {task.label}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {t.label && (
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">
+                        {t.label}
+                      </span>
+                    )}
+                    {!t.completed && isToday && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-orange-400 animate-pulse">
+                        <FiTarget className="text-[10px]" /> Monitoring...
                       </span>
                     )}
                   </div>
-                  <p className={`font-bold ${task.completed ? 'text-gray-500 line-through' : ''}`}>{task.title}</p>
-                  {task.tip && !task.completed && (
-                    <p className="text-[10px] text-gray-500 mt-1 italic">
-                      💡 {task.tip}
+                  <p className={`text-base font-bold ${t.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
+                    {t.title}
+                  </p>
+                  {t.tip && !t.completed && (
+                    <p className="text-[11px] text-gray-400 mt-1.5 italic flex items-start gap-1.5 leading-relaxed">
+                      <span className="text-blue-400">💡</span> {t.tip}
                     </p>
                   )}
-                  <a 
-                    href={task.link} 
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-blue-400 hover:underline flex items-center gap-1 mt-2"
-                  >
-                    Open Tool <FiArrowRight className="text-[10px]" />
-                  </a>
+                  <div className="flex items-center gap-4 mt-3">
+                    <a 
+                      href={t.link} 
+                      className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      Open Tool <FiArrowRight className="text-[10px]" />
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
-          )) : (
-            <div className="md:col-span-2 v3-card py-10 text-center opacity-60 italic">
+            )
+          }) : (
+            <div className="v3-card py-10 text-center opacity-60 italic">
               No tasks scheduled for today. Take a rest! 😴
             </div>
           )}

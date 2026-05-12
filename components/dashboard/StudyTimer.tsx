@@ -14,6 +14,7 @@ import { toast } from 'react-hot-toast'
 import { BiBrain, BiTimer, BiChair } from 'react-icons/bi'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { useTimerStore } from '@/lib/store/timerStore'
+import { studyPlanApi } from '@/lib/api/studyPlanApi'
 
 type TabMode = 'timer' | 'goals' | 'history'
 
@@ -116,6 +117,11 @@ export default function StudyTimer() {
   }
 
   const handleSessionComplete = (result: any) => {
+    // Auto-complete study plan task
+    if (store.sessionType === 'work') {
+      studyPlanApi.autoCompleteTask('timer').catch(err => console.error('Plan auto-complete error:', err))
+    }
+
     if (result?.goalCompleted) {
       toast.success(`🎉 Goal Completed: ${result.goalTitle}!`, {
         duration: 6000,

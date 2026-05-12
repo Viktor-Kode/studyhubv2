@@ -28,6 +28,7 @@ import { useUpgrade } from '@/context/UpgradeContext'
 import { toast } from 'react-hot-toast'
 import AdBanner from '@/components/AdBanner'
 import { confirmToast } from '@/lib/utils/confirm'
+import { studyPlanApi } from '@/lib/api/studyPlanApi'
 
 interface Question extends CBTQuestion { }
 
@@ -522,6 +523,10 @@ export default function CBTPage() {
       }
 
       const response = await cbtApi.saveResult(resultData)
+      
+      // Auto-complete study plan task
+      studyPlanApi.autoCompleteTask('cbt').catch(err => console.error('Plan auto-complete error:', err))
+
       setSummary(response.data) // Store verified results from backend
       setShowResults(true)
       setViewMode('results')
