@@ -313,6 +313,23 @@
     color: #8B5CF6;
 }
 
+/* Planner Promo Card */
+.planner-promo-card {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.4);
+}
+
+.planner-promo-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 0.5);
+}
+
 @media (min-width: 768px) {
     .dashboard-v3-container {
         padding: 2rem;

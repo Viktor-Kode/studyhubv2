@@ -234,6 +234,19 @@ export default function StudentDashboardPage() {
             </div>
         </section>
 
+        <section className="mb-10 px-2">
+            <Link href="/dashboard/study-planner" className="planner-promo-card">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl">🎯</div>
+                    <div>
+                        <h3 className="text-lg font-bold text-white">Set up your study plan today 🎯</h3>
+                        <p className="text-sm text-white/80">Get a personalized weekly schedule to crush your goals.</p>
+                    </div>
+                </div>
+                <FiArrowRight className="text-xl text-white" />
+            </Link>
+        </section>
+
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Upcoming Reminders</h2>
