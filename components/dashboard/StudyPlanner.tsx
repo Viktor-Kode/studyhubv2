@@ -33,7 +33,7 @@ export default function StudyPlanner() {
   
   // Form State
   const [formData, setFormData] = useState({
-    examName: '',
+    examName: 'University Exam',
     examDate: '',
     subjects: [] as string[],
     weakSubjects: [] as string[],
