@@ -36,10 +36,6 @@ export default function StudyTimer() {
   // UI local state (not in store)
   const [activeTab, setActiveTab] = useState<TabMode>('timer')
   const [loading, setLoading] = useState(true)
-  const [customMinutes, setCustomMinutes] = useState(25)
-  const [showTimePicker, setShowTimePicker] = useState(false)
-  const [customHours, setCustomHours] = useState(0)
-  const [customSecs, setCustomSecs] = useState(0)
   const [localSubject, setLocalSubject] = useState('')
 
   // Goal state
@@ -154,19 +150,6 @@ export default function StudyTimer() {
     })
   }
 
-  const applyCustomDuration = () => {
-    const totalSeconds = (customHours * 3600) + (customMinutes * 60) + customSecs
-    if (totalSeconds < 60) return
-    useTimerStore.setState({ timeLeft: totalSeconds, totalDuration: totalSeconds, isActive: false })
-    setShowTimePicker(false)
-  }
-  const openTimePicker = () => {
-    const base = store.totalDuration || store.timeLeft || 1500
-    setCustomHours(Math.floor(base / 3600))
-    setCustomMinutes(Math.floor((base % 3600) / 60))
-    setCustomSecs(base % 60)
-    setShowTimePicker(true)
-  }
 
 
   // ============ GOAL ACTIONS ============
@@ -365,30 +348,56 @@ export default function StudyTimer() {
             </div>
 
             <div className="flex justify-center mb-6">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!store.isActive && !store.isPaused) openTimePicker()
-                }}
+              <div
                 className="relative"
-                title={!store.isActive && !store.isPaused ? 'Set custom time' : undefined}
               >
                 <svg width="260" height="260" className="-rotate-90">
                   <circle cx="130" cy="130" r="110" fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-200 dark:text-gray-700" />
                   <circle cx="130" cy="130" r="110" fill="none" stroke={store.sessionType === 'work' ? '#3B82F6' : '#10B981'} strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-1000" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-5xl font-bold text-gray-900 dark:text-white tabular-nums">{formatTime(store.timeLeft)}</div>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {store.isActive && !store.isPaused ? <><FiPlay className="text-xs" /> Running</> : store.isPaused ? <><FiPause className="text-xs" /> Paused</> : <><FiRotateCcw className="text-xs" /> Ready</>}
-                  </div>
+                  {!store.isActive && !store.isPaused ? (
+                    <div className="flex flex-col items-center translate-y-2">
+                       <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min={1}
+                            max={480}
+                            value={Math.floor(store.timeLeft / 60)}
+                            onChange={(e) => {
+                              const val = Math.max(1, Number(e.target.value))
+                              useTimerStore.setState({ 
+                                timeLeft: val * 60, 
+                                totalDuration: val * 60,
+                                isActive: false,
+                                isPaused: false
+                              })
+                            }}
+                            className="w-24 text-6xl font-black text-center bg-transparent border-b-4 border-blue-500/20 focus:border-blue-500 outline-none tabular-nums text-gray-900 dark:text-white transition-all"
+                          />
+                          <span className="text-xl font-bold text-gray-400 mt-6 uppercase tracking-tighter">min</span>
+                       </div>
+                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-3">Tap to edit</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-6xl font-black text-gray-900 dark:text-white tabular-nums tracking-tight">{formatTime(store.timeLeft)}</div>
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mt-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
+                        {store.isActive && !store.isPaused ? (
+                          <span className="flex items-center gap-1.5 text-blue-500"><FiPlay className="text-xs animate-pulse" /> Focus Active</span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-yellow-500"><FiPause className="text-xs" /> Paused</span>
+                        )}
+                      </div>
+                    </>
+                  )}
                   {store.pomodoroCount > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                      <FiZap className="text-orange-500" /> {store.pomodoroCount} pomodoros
+                    <div className="flex items-center gap-1 text-xs font-bold text-gray-400 mt-4 px-3 py-1 border border-gray-100 dark:border-gray-700 rounded-lg">
+                      <FiZap className="text-orange-500" /> {store.pomodoroCount} Sessions
                     </div>
                   )}
                 </div>
-              </button>
+              </div>
             </div>
 
             {!store.isActive && !store.isPaused && store.sessionType === 'work' && (
@@ -451,22 +460,6 @@ export default function StudyTimer() {
         </div>
       )}
 
-      {showTimePicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Set Custom Timer</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <input type="number" min={0} max={23} value={customHours} onChange={(e) => setCustomHours(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Hours" />
-              <input type="number" min={0} max={59} value={customMinutes} onChange={(e) => setCustomMinutes(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Minutes" />
-              <input type="number" min={0} max={59} value={customSecs} onChange={(e) => setCustomSecs(Number(e.target.value))} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="Seconds" />
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowTimePicker(false)} className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700">Cancel</button>
-              <button onClick={applyCustomDuration} className="px-4 py-2 rounded-lg bg-blue-600 text-white">Apply</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {activeTab === 'goals' && (
         <div className="space-y-4">
