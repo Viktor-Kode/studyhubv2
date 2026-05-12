@@ -514,12 +514,24 @@ export default function StudyPlanner() {
                 <div className={`task-check ${task.completed ? 'bg-green-500 text-white' : 'border-2 border-gray-700'}`}>
                   {task.completed && <FiCheckCircle />}
                 </div>
-                <div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {task.label && (
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/5 text-gray-400 rounded border border-white/10">
+                        {task.label}
+                      </span>
+                    )}
+                  </div>
                   <p className={`font-bold ${task.completed ? 'text-gray-500 line-through' : ''}`}>{task.title}</p>
+                  {task.tip && !task.completed && (
+                    <p className="text-[10px] text-gray-500 mt-1 italic">
+                      💡 {task.tip}
+                    </p>
+                  )}
                   <a 
                     href={task.link} 
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-blue-400 hover:underline flex items-center gap-1 mt-1"
+                    className="text-xs text-blue-400 hover:underline flex items-center gap-1 mt-2"
                   >
                     Open Tool <FiArrowRight className="text-[10px]" />
                   </a>
