@@ -360,18 +360,20 @@ export default function StudyTimer() {
                     <div className="flex flex-col items-center translate-y-2">
                        <div className="flex items-center gap-1">
                           <input
-                            type="number"
-                            min={1}
-                            max={480}
+                            type="text"
+                            inputMode="numeric"
                             value={Math.floor(store.timeLeft / 60)}
                             onChange={(e) => {
-                              const val = Math.max(1, Number(e.target.value))
-                              useTimerStore.setState({ 
-                                timeLeft: val * 60, 
-                                totalDuration: val * 60,
-                                isActive: false,
-                                isPaused: false
-                              })
+                              const raw = e.target.value
+                              if (raw === '' || /^\d+$/.test(raw)) {
+                                const val = raw === '' ? 1 : Math.max(1, Math.min(480, Number(raw)))
+                                useTimerStore.setState({ 
+                                  timeLeft: val * 60, 
+                                  totalDuration: val * 60,
+                                  isActive: false,
+                                  isPaused: false
+                                })
+                              }
                             }}
                             className="w-24 text-6xl font-black text-center bg-transparent border-b-4 border-blue-500/20 focus:border-blue-500 outline-none tabular-nums text-gray-900 dark:text-white transition-all"
                           />
@@ -477,7 +479,18 @@ export default function StudyTimer() {
               <div className="space-y-4">
                 <input type="text" value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="Goal Title *" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="number" value={goalForm.targetMinutes} onChange={e => setGoalForm({ ...goalForm, targetMinutes: Number(e.target.value) })} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                  <input 
+                    type="text" 
+                    inputMode="numeric"
+                    value={goalForm.targetMinutes} 
+                    onChange={e => {
+                      const raw = e.target.value
+                      if (raw === '' || /^\d+$/.test(raw)) {
+                        setGoalForm({ ...goalForm, targetMinutes: raw === '' ? 0 : Number(raw) })
+                      }
+                    }} 
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" 
+                  />
                   <select value={goalForm.period} onChange={e => setGoalForm({ ...goalForm, period: e.target.value as any })} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
