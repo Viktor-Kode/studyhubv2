@@ -3,6 +3,7 @@ import { apiClient } from './client';
 export const studyPlanApi = {
     createPlan: (data: {
         planType: 'exam' | 'general';
+        studyChallenge: string;
         examDetails?: {
             examName: string;
             examDate: string;

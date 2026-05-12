@@ -14,13 +14,22 @@ const SUBJECTS = [
   'Biology', 'Economics', 'Government', 'Literature', 
   'CRS', 'Financial Accounting', 'Commerce', 'Geography'
 ]
+const UNI_COURSES = ['Anatomy', 'Biochemistry', 'Economics', 'Law', 'Engineering Math', 'Statistics', 'Literature', 'Computer Science', 'Business Admin']
 const GOALS = ['Improve grades', 'Stay consistent', 'Prepare for tests']
+const CHALLENGES = [
+  { id: 'procrastination', label: '😴 I keep procrastinating', icon: '😴' },
+  { id: 'distraction', label: '📱 I get distracted easily', icon: '📱' },
+  { id: 'no_plan', label: "📋 I don't know what to study", icon: '📋' },
+  { id: 'no_time', label: "⏰ I don't have enough time", icon: '⏰' },
+  { id: 'exam_anxiety', label: "😰 I have an exam coming up and I'm not ready", icon: '😰' }
+]
 
 export default function StudyPlanner() {
   const [loading, setLoading] = useState(true)
   const [plan, setPlan] = useState<any>(null)
-  const [step, setStep] = useState(0) // 0: Select Mode, 1: Form, 2: Generated Plan
+  const [step, setStep] = useState(-1) // -1: Diagnosis, 0: Select Mode, 1: Form, 2: Generated Plan
   const [planType, setPlanType] = useState<'exam' | 'general' | null>(null)
+  const [studyChallenge, setStudyChallenge] = useState<string>('')
   
   // Form State
   const [formData, setFormData] = useState({
@@ -30,7 +39,8 @@ export default function StudyPlanner() {
     weakSubjects: [] as string[],
     hoursPerDay: 2,
     subject: '',
-    goal: ''
+    goal: '',
+    customSubject: ''
   })
 
   useEffect(() => {
@@ -45,7 +55,7 @@ export default function StudyPlanner() {
         setPlan(res.data.plan)
         setStep(2)
       } else {
-        setStep(0)
+        setStep(-1)
       }
     } catch (err) {
       console.error('Fetch plan error:', err)
@@ -57,22 +67,24 @@ export default function StudyPlanner() {
   const handleCreatePlan = async () => {
     try {
       setLoading(true)
-      const payload = planType === 'exam' ? {
-        planType: 'exam',
-        examDetails: {
-          examName: formData.examName,
-          examDate: formData.examDate,
-          subjects: formData.subjects,
-          weakSubjects: formData.weakSubjects,
-          hoursPerDay: formData.hoursPerDay
-        }
-      } : {
-        planType: 'general',
-        generalDetails: {
-          subject: formData.subject,
-          hoursPerDay: formData.hoursPerDay,
-          goal: formData.goal
-        }
+      const payload = {
+        planType,
+        studyChallenge,
+        ...(planType === 'exam' ? {
+          examDetails: {
+            examName: formData.examName,
+            examDate: formData.examDate,
+            subjects: formData.subjects,
+            weakSubjects: formData.weakSubjects,
+            hoursPerDay: formData.hoursPerDay
+          }
+        } : {
+          generalDetails: {
+            subject: formData.subject,
+            hoursPerDay: formData.hoursPerDay,
+            goal: formData.goal
+          }
+        })
       }
 
       const res = await studyPlanApi.createPlan(payload as any)
@@ -84,6 +96,16 @@ export default function StudyPlanner() {
       console.error('Create plan error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAddCustomSubject = () => {
+    if (formData.customSubject && !formData.subjects.includes(formData.customSubject)) {
+      setFormData({
+        ...formData,
+        subjects: [...formData.subjects, formData.customSubject],
+        customSubject: ''
+      })
     }
   }
 
@@ -104,8 +126,9 @@ export default function StudyPlanner() {
       setLoading(true)
       await studyPlanApi.resetPlan()
       setPlan(null)
-      setStep(0)
+      setStep(-1)
       setPlanType(null)
+      setStudyChallenge('')
     } catch (err) {
       console.error('Reset plan error:', err)
     } finally {
@@ -121,10 +144,43 @@ export default function StudyPlanner() {
     )
   }
 
+  // Step -1: Diagnosis
+  if (step === -1) {
+    return (
+      <div className="planner-container fade-in max-w-2xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold mb-2">Let's Personalize Your Plan</h1>
+          <p className="text-gray-400">What's your biggest study challenge right now?</p>
+        </div>
+        <div className="space-y-4">
+          {CHALLENGES.map(c => (
+            <div 
+              key={c.id}
+              onClick={() => { setStudyChallenge(c.id); setStep(0); }}
+              className="v3-card p-4 flex items-center gap-4 cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                {c.icon}
+              </div>
+              <p className="font-medium text-gray-200 group-hover:text-white transition-colors">{c.label}</p>
+              <FiArrowRight className="ml-auto text-gray-600 group-hover:text-purple-500 transition-colors" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   // Step 0: Mode Selection
   if (step === 0) {
     return (
       <div className="planner-container fade-in">
+        <button 
+          onClick={() => setStep(-1)}
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+        >
+          <FiChevronLeft /> Back
+        </button>
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">Create Your Study Plan</h1>
           <p className="text-gray-400">Choose a mode that fits your current needs</p>
@@ -164,13 +220,15 @@ export default function StudyPlanner() {
 
   // Step 1: Forms
   if (step === 1) {
+    const isUniExam = formData.examName === 'University Exam'
+
     return (
       <div className="planner-container fade-in max-w-2xl mx-auto">
         <button 
           onClick={() => setStep(0)}
           className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
         >
-          <FiChevronLeft /> Back to selection
+          <FiChevronLeft /> Back
         </button>
 
         <div className="v3-card p-8">
@@ -186,7 +244,7 @@ export default function StudyPlanner() {
                   <select 
                     className="input"
                     value={formData.examName}
-                    onChange={(e) => setFormData({...formData, examName: e.target.value})}
+                    onChange={(e) => setFormData({...formData, examName: e.target.value, subjects: []})}
                   >
                     <option value="">Select Exam</option>
                     {EXAMS.map(ex => <option key={ex} value={ex}>{ex}</option>)}
@@ -204,25 +262,82 @@ export default function StudyPlanner() {
                 </div>
 
                 <div className="form-group">
-                  <label className="label">Select your subjects</label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {SUBJECTS.map(sub => (
-                      <label key={sub} className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 cursor-pointer hover:bg-gray-800">
+                  <label className="label">
+                    {isUniExam ? 'What course or subject is your exam on?' : 'Select your subjects'}
+                  </label>
+                  
+                  {isUniExam ? (
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
                         <input 
-                          type="checkbox"
-                          checked={formData.subjects.includes(sub)}
-                          onChange={(e) => {
-                            if (e.target.checked) setFormData({...formData, subjects: [...formData.subjects, sub]})
-                            else setFormData({...formData, subjects: formData.subjects.filter(s => s !== sub)})
-                          }}
+                          type="text"
+                          placeholder="Type course name..."
+                          className="input flex-1"
+                          value={formData.customSubject}
+                          onChange={(e) => setFormData({...formData, customSubject: e.target.value})}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddCustomSubject()}
                         />
-                        <span className="text-sm">{sub}</span>
-                      </label>
-                    ))}
-                  </div>
+                        <button 
+                          onClick={handleAddCustomSubject}
+                          className="px-4 bg-purple-600 rounded-lg text-white"
+                        >
+                          <FiPlus />
+                        </button>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {UNI_COURSES.map(course => (
+                          <button
+                            key={course}
+                            onClick={() => {
+                              if (!formData.subjects.includes(course)) {
+                                setFormData({...formData, subjects: [...formData.subjects, course]})
+                              }
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${
+                              formData.subjects.includes(course)
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                          >
+                            {course}
+                          </button>
+                        ))}
+                      </div>
+
+                      {formData.subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4 p-3 bg-white/5 rounded-xl">
+                          {formData.subjects.map(sub => (
+                            <span key={sub} className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-bold border border-purple-500/30">
+                              {sub}
+                              <button onClick={() => setFormData({...formData, subjects: formData.subjects.filter(s => s !== sub)})}>
+                                <FiPlus className="rotate-45" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {SUBJECTS.map(sub => (
+                        <label key={sub} className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 cursor-pointer hover:bg-gray-800">
+                          <input 
+                            type="checkbox"
+                            checked={formData.subjects.includes(sub)}
+                            onChange={(e) => {
+                              if (e.target.checked) setFormData({...formData, subjects: [...formData.subjects, sub]})
+                              else setFormData({...formData, subjects: formData.subjects.filter(s => s !== sub)})
+                            }}
+                          />
+                          <span className="text-sm">{sub}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {formData.subjects.length > 0 && (
+                {!isUniExam && formData.subjects.length > 0 && (
                   <div className="form-group">
                     <label className="label">Which of these are your weak subjects?</label>
                     <div className="grid grid-cols-2 gap-2 mt-2">
