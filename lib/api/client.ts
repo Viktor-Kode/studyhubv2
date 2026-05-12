@@ -23,21 +23,6 @@ apiClient.interceptors.request.use(
     
     // 2. Attach token if available
     if (token) {
-      // DEBUG LOGGING
-      try {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          const base64Url = parts[1]
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-          const pad = base64.length % 4
-          const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64
-          const payload = JSON.parse(atob(paddedBase64))
-          console.log(`[apiClient] Request: ${config.url} | Token Expiry: ${new Date(payload.exp * 1000).toLocaleString()}`)
-        }
-      } catch (e) {
-        console.warn('[apiClient] Could not parse token payload for logging', e)
-      }
-      
       config.headers.Authorization = `Bearer ${token}`
     } else {
       // If we're on a dashboard route, we expect a token.
@@ -109,17 +94,10 @@ apiClient.interceptors.response.use(
           throw new Error('No user for refresh')
         }
 
-        const oldTokenSnippet = (originalRequest.headers.Authorization as string)?.substring(0, 15) || 'none'
-        
         // Force refresh the token (ignore cache)
         const newToken = await user.getIdToken(true)
         
         if (newToken) {
-          const newTokenSnippet = newToken.substring(0, 15)
-          const isDifferent = oldTokenSnippet !== newTokenSnippet
-          
-          console.log(`[apiClient] Refresh: Old: ${oldTokenSnippet}... | New: ${newTokenSnippet}... | Changed? ${isDifferent}`)
-          
           originalRequest.headers.Authorization = `Bearer ${newToken}`
           apiClient.defaults.headers.common.Authorization = `Bearer ${newToken}`
           
