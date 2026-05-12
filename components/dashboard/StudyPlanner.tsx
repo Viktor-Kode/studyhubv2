@@ -29,7 +29,7 @@ export default function StudyPlanner() {
   const [plan, setPlan] = useState<any>(null)
   const [step, setStep] = useState(-1) // -1: Diagnosis, 0: Select Mode, 1: Form, 2: Generated Plan
   const [planType, setPlanType] = useState<'exam' | 'general' | null>(null)
-  const [studyChallenge, setStudyChallenge] = useState<string>('')
+  const [studyChallenges, setStudyChallenges] = useState<string[]>([])
   
   // Form State
   const [formData, setFormData] = useState({
@@ -69,7 +69,7 @@ export default function StudyPlanner() {
       setLoading(true)
       const payload = {
         planType,
-        studyChallenge,
+        studyChallenges,
         ...(planType === 'exam' ? {
           examDetails: {
             examName: formData.examName,
@@ -109,6 +109,14 @@ export default function StudyPlanner() {
     }
   }
 
+  const handleToggleChallenge = (id: string) => {
+    if (studyChallenges.includes(id)) {
+      setStudyChallenges(studyChallenges.filter(c => c !== id))
+    } else {
+      setStudyChallenges([...studyChallenges, id])
+    }
+  }
+
   const handleToggleTask = async (taskId: string, currentStatus: boolean) => {
     try {
       const res = await studyPlanApi.updateTaskStatus(taskId, !currentStatus)
@@ -128,7 +136,7 @@ export default function StudyPlanner() {
       setPlan(null)
       setStep(-1)
       setPlanType(null)
-      setStudyChallenge('')
+      setStudyChallenges([])
     } catch (err) {
       console.error('Reset plan error:', err)
     } finally {
@@ -150,23 +158,44 @@ export default function StudyPlanner() {
       <div className="planner-container fade-in max-w-2xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">Let's Personalize Your Plan</h1>
-          <p className="text-gray-400">What's your biggest study challenge right now?</p>
+          <p className="text-gray-400">What's your biggest study challenge right now? (Select all that apply)</p>
         </div>
         <div className="space-y-4">
-          {CHALLENGES.map(c => (
-            <div 
-              key={c.id}
-              onClick={() => { setStudyChallenge(c.id); setStep(0); }}
-              className="v3-card p-4 flex items-center gap-4 cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                {c.icon}
+          {CHALLENGES.map(c => {
+            const isSelected = studyChallenges.includes(c.id)
+            return (
+              <div 
+                key={c.id}
+                onClick={() => handleToggleChallenge(c.id)}
+                className={`v3-card p-4 flex items-center gap-4 cursor-pointer transition-all group ${
+                  isSelected ? 'border-purple-500 bg-purple-500/10' : 'hover:border-purple-500/50 hover:bg-purple-500/5'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform ${
+                  isSelected ? 'bg-purple-500 text-white' : 'bg-gray-800'
+                }`}>
+                  {c.icon}
+                </div>
+                <p className={`font-medium transition-colors ${isSelected ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
+                  {c.label}
+                </p>
+                <div className={`ml-auto w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isSelected ? 'bg-purple-500 border-purple-500' : 'border-gray-700'
+                }`}>
+                  {isSelected && <FiCheckCircle className="text-white text-xs" />}
+                </div>
               </div>
-              <p className="font-medium text-gray-200 group-hover:text-white transition-colors">{c.label}</p>
-              <FiArrowRight className="ml-auto text-gray-600 group-hover:text-purple-500 transition-colors" />
-            </div>
-          ))}
+            )
+          })}
         </div>
+
+        <button
+          onClick={() => setStep(0)}
+          disabled={studyChallenges.length === 0}
+          className="w-full mt-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          Continue <FiArrowRight />
+        </button>
       </div>
     )
   }
