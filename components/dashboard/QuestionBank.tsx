@@ -597,7 +597,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         questionType,
         inputMode,
         manualText,
-        extractedText,
+        // extractedText is intentionally omitted — it's only needed before generation
+        // and storing full document text client-side is unnecessary once questions exist.
         activeTab,
         savedAt: new Date().toISOString(),
       }
@@ -679,6 +680,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       }
 
       await cbtApi.saveResult(resultsData)
+      
+      // Clear session from localStorage immediately after successful submission
+      // so questions + answers don't sit client-side longer than necessary.
+      clearSavedSession()
       
       // Auto-complete study plan task
       studyPlanApi.autoCompleteTask('cbt').catch(err => console.error('Plan auto-complete error:', err))
