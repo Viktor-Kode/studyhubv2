@@ -125,6 +125,9 @@ export default function DashboardLayout({
                             <button
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
                                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+                                aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                                aria-expanded={sidebarOpen}
+                                aria-controls="sidebar-nav"
                             >
                                 {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
                             </button>
@@ -163,6 +166,9 @@ export default function DashboardLayout({
                                 <button
                                     onClick={() => setShowUserMenu(!showUserMenu)}
                                     className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                                    aria-label="Open account menu"
+                                    aria-expanded={showUserMenu}
+                                    aria-haspopup="true"
                                 >
                                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                                         <FiUser className="text-white" />
@@ -221,8 +227,10 @@ export default function DashboardLayout({
 
                 {/* Sidebar */}
                 <aside
+                    id="sidebar-nav"
                     className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
+                    aria-label="Main navigation"
                 >
                     <div className="h-full overflow-y-auto overflow-x-hidden py-4 min-w-0">
                         <nav className="space-y-1 px-3 min-w-0">

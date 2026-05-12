@@ -196,7 +196,7 @@ export default function StudentDashboardPage() {
             </div>
             <div className="flex items-center gap-4">
                 <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-1.5 bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: '#8B7CF8' }}>
                         <FiAward className="text-xs" /><span>{stats.rank}</span>
                     </div>
                     <p className="font-bold text-sm">{user?.name || 'Student'}</p>
@@ -206,7 +206,7 @@ export default function StudentDashboardPage() {
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`} alt="Profile" className="w-full h-full object-cover" />
                     </div>
                 </div>
-                <Link href="/dashboard/notifications">
+                <Link href="/dashboard/notifications" aria-label="View notifications">
                     <FiBell className="text-xl text-gray-400 cursor-pointer hover:text-purple-500 transition-colors" />
                 </Link>
             </div>
@@ -250,7 +250,7 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Upcoming Reminders</h2>
-                <Link href="/dashboard/timetable" className="text-purple-400 text-xs font-bold flex items-center gap-1">Manage <FiArrowRight /></Link>
+                <Link href="/dashboard/timetable" className="text-xs font-bold flex items-center gap-1" style={{ color: '#8B7CF8' }}>Manage <FiArrowRight /></Link>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                 {upcomingReminders.length > 0 ? upcomingReminders.map((reminder) => {
@@ -298,7 +298,7 @@ export default function StudentDashboardPage() {
                         <div>
                             <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Next Rank:</p>
                             <h3 className="text-xl font-bold">{stats.nextRank}</h3>
-                            <p className="text-sm text-purple-400 font-bold mt-2">XP: {stats.xp.toLocaleString()}</p>
+                            <p className="text-sm font-bold mt-2" style={{ color: '#8B7CF8' }}>XP: {stats.xp.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
@@ -323,7 +323,7 @@ export default function StudentDashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Link href="/dashboard/study-timer" className="tool-card">
                     <div className="tool-icon bg-cyan-500/20 text-cyan-400"><BiTimer className="text-2xl" /></div>
-                    <div><p className="font-bold text-sm">Timer</p><p className="text-[10px] text-gray-500">{stats.quizSessions} sessions</p></div>
+                    <div><p className="font-bold text-sm">Timer</p><p className="text-[10px] text-gray-300">{stats.quizSessions} sessions</p></div>
                 </Link>
                 <Link href="/dashboard/cgpa" className="tool-card">
                     <div className="tool-icon bg-purple-500/20 text-purple-400"><FiCreditCard className="text-2xl" /></div>
@@ -343,7 +343,7 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Recent Activity</h2>
-                <Link href="/dashboard/analytics" className="text-purple-400 text-xs font-bold flex items-center gap-1">View all <FiArrowRight /></Link>
+                <Link href="/dashboard/analytics" className="text-xs font-bold flex items-center gap-1" style={{ color: '#8B7CF8' }}>View all <FiArrowRight /></Link>
             </div>
             <div className="v3-card divide-y divide-gray-800">
                 {activities.length === 0 ? (
@@ -355,7 +355,7 @@ export default function StudentDashboardPage() {
                     <div key={activity.id} className="py-4 flex items-center gap-4 first:pt-0 last:pb-0">
                         <div className="p-2 rounded-xl bg-gray-800"><activity.icon className="text-xl" /></div>
                         <div className="flex-1"><p className="font-bold text-sm">{activity.title}</p><p className="text-xs text-gray-400">{activity.subtitle}</p></div>
-                        <p className="text-[10px] text-gray-500 font-medium">{activity.date ? new Date(activity.date).toLocaleDateString() : ''}</p>
+                        <p className="text-[10px] text-gray-300 font-medium">{activity.date ? new Date(activity.date).toLocaleDateString() : ''}</p>
                     </div>
                 ))}
             </div>
@@ -404,7 +404,7 @@ function SubscriptionStatusCard() {
                 <h3 className="text-xl font-black">{status?.subscription?.plan === 'free' ? 'Standard' : 'Pro'}</h3>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subscription Status</p>
             </div>
-            <Link href="/dashboard/pricing" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+            <Link href="/dashboard/pricing" aria-label="Go to pricing" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <FiArrowRight className="text-lg" />
             </Link>
         </div>
