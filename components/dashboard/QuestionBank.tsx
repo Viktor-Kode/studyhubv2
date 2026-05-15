@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast'
 import { useUpgrade } from '@/context/UpgradeContext'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
+import { confirmToast } from '@/lib/utils/confirm'
 
 interface QuestionBankProps {
   className?: string
