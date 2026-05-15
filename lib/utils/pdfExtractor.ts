@@ -20,10 +20,11 @@ if (typeof globalThis.DOMRect === 'undefined') {
 
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc';
 
-// Use CDN-hosted worker — requested for Vercel/serverless stability
+// Use local worker for stability and to bypass CSP issues
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH;
 }
 
 interface ExtractionResult {
