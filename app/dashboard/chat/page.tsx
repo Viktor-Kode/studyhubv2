@@ -266,8 +266,13 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (err: any) {
-      const errorText = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.'
+      let errorText = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.'
       
+      if (err?.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const details = err.response.data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+        errorText = `Validation failed (${details})`
+      }
+
       if (isUpgradeError(errorText)) {
         showUpgrade('ai')
         return
