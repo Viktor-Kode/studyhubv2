@@ -979,7 +979,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
 
     try {
-      const context = inputMode === 'upload' ? extractedText : manualText
+      let context = inputMode === 'upload' ? extractedText : manualText
+      if (context && context.length > 48000) {
+        context = context.slice(0, 48000)
+      }
       const historyForModel = chatMessages
         .filter((msg) => msg.content && msg.content.trim())
         .map((msg) => {
