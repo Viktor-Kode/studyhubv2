@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api/client'
 import { toast } from 'react-hot-toast'
 import { confirmToast } from '@/lib/utils/confirm'
 import { extractTextFromFile } from '@/lib/utils/extraction'
+import { getErrorMessage } from '@/lib/utils/errorHandler'
 
 import './PdfCbt.css'
 
@@ -162,7 +163,7 @@ export default function PdfCbtPage() {
       setExtractedText(text)
       setSuccess('Document ready! Click "Start Practice" to begin.')
     } catch (err: any) {
-      setError(err?.message || 'Could not read this file. Try a text-based PDF or paste your text directly.')
+      setError(getErrorMessage(err))
       setUploadedFile(null)
     } finally {
       setExtracting(false)
@@ -189,7 +190,7 @@ export default function PdfCbtPage() {
         throw new Error('No readable content found at this link.')
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err?.message || 'Failed to fetch link content.')
+      setError(getErrorMessage(err))
     } finally {
       setFetchingLink(false)
     }
@@ -242,7 +243,7 @@ export default function PdfCbtPage() {
         throw new Error('No text found in photo.')
       }
     } catch (err: any) {
-      setError(err?.message || 'OCR failed.')
+      setError(getErrorMessage(err))
     } finally {
       setExtracting(false)
       setExtractionHint('')
@@ -293,7 +294,7 @@ export default function PdfCbtPage() {
       setFlagged(new Set())
       setQuizSubmitted(false)
     } catch (err: any) {
-      setError(err?.message || 'Something went wrong.')
+      setError(getErrorMessage(err))
     } finally {
       setGenerating(false)
     }

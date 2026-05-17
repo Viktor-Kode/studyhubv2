@@ -19,8 +19,9 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
 import { HiOutlineArrowLeft, HiOutlineSparkles } from 'react-icons/hi'
-import { FiTrash2, FiSend, FiCopy, FiCheck } from 'react-icons/fi'
+import { FiTrash2, FiSend, FiCopy, FiCheck, FiLoader } from 'react-icons/fi'
 import { useUpgrade } from '@/context/UpgradeContext'
+import { getErrorMessage } from '@/lib/utils/errorHandler'
 
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/github.css'
@@ -237,10 +238,21 @@ export default function ChatPage() {
       contextParts.join(' ') ||
       'General tutoring. Ask the student to set subject, topic, and class above if helpful.'
 
-    const chatHistoryPayload = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }))
+    const chatHistoryPayload = messages
+      .filter((m) => m.content && m.content.trim())
+      .map((m) => {
+        let role: 'user' | 'assistant' | 'system' = 'user'
+        const rawRole = String(m.role).toLowerCase()
+        if (rawRole === 'assistant' || rawRole === 'model') {
+          role = 'assistant'
+        } else if (rawRole === 'system') {
+          role = 'system'
+        }
+        return {
+          role,
+          content: m.content,
+        }
+      })
 
     setMessages((prev) => [...prev, userMessage])
     setInput('')
@@ -266,12 +278,7 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (err: any) {
-      let errorText = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.'
-      
-      if (err?.response?.data?.errors && Array.isArray(err.response.data.errors)) {
-        const details = err.response.data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
-        errorText = `Validation failed (${details})`
-      }
+      const errorText = getErrorMessage(err)
 
       if (isUpgradeError(errorText)) {
         showUpgrade('ai')

@@ -101,7 +101,8 @@ export const extractTextFromPDFViaAPI = async (file: File): Promise<string> => {
  */
 export const extractTextFromDOCX = async (file: File): Promise<string> => {
     try {
-        const mammoth = await import('mammoth');
+        const mammothModule = await import('mammoth');
+        const mammoth = (mammothModule as any).default || mammothModule;
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
 

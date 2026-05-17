@@ -11,6 +11,7 @@ import { confirmToast } from '@/lib/utils/confirm'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useUpgrade } from '@/context/UpgradeContext'
+import { getErrorMessage } from '@/lib/utils/errorHandler'
 
 export type LibraryDocument = {
   _id: string
@@ -469,7 +470,7 @@ function UploadModal({
       onUploaded(finalizeData.document)
     } catch (err: any) {
       console.error('[Library] Direct upload error:', err)
-      setError(err.message || 'Upload failed')
+      setError(getErrorMessage(err))
     } finally {
       setUploading(false)
     }

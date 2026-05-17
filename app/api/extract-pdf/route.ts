@@ -92,7 +92,8 @@ export async function POST(request: NextRequest) {
 
         } else if (fileName.endsWith('.docx')) {
             stage = "extracting_docx_text";
-            const mammoth = await import('mammoth');
+            const mammothModule = await import('mammoth');
+            const mammoth = (mammothModule as any).default || mammothModule;
             const result = await mammoth.extractRawText({ buffer });
             extractedText = result.value;
 

@@ -16,6 +16,7 @@ import { useUpgrade } from '@/context/UpgradeContext'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
 import { confirmToast } from '@/lib/utils/confirm'
+import { getErrorMessage } from '@/lib/utils/errorHandler'
 
 interface QuestionBankProps {
   className?: string
@@ -481,7 +482,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setExtractedText(recognizedText)
       setSuccess('Text extracted from camera image successfully!')
     } catch (err: any) {
-      setError(err?.message || 'Could not read this file. Try a different format or paste your text directly.')
+      setError(getErrorMessage(err))
     } finally {
       setImageExtracting(false)
       setExtractionHint('')
@@ -777,7 +778,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       }
     } catch (err: any) {
       console.error('[Upload] Error:', err)
-      setError(err?.message || 'Could not read this file. Try a different format or paste your text directly.')
+      setError(getErrorMessage(err))
       setUploadedFile(null)
     } finally {
       setExtracting(false)
@@ -867,12 +868,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setNewQuestions(data.data.map(q => ({ ...q, sessionId: data.sessionId })))
       setQuizStartTime(Date.now())
     } catch (err: any) {
-      const msg = err.message || ''
+      const msg = getErrorMessage(err)
       if (isUpgradeError(msg)) {
         showUpgrade('quiz')
         return
       }
-      setError(msg || 'Failed to generate quiz')
+      setError(msg)
     } finally {
       setGenerating(false)
     }
@@ -893,7 +894,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setSuccess('Study note saved successfully!')
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to save note')
+      setError(getErrorMessage(err))
     } finally {
       setSavingNote(false)
     }
@@ -940,12 +941,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         setError('Failed to generate study notes. Please try again.')
       }
     } catch (err: any) {
-      const msg = err.message || ''
+      const msg = getErrorMessage(err)
       if (isUpgradeError(msg)) {
         showUpgrade('notes')
         return
       }
-      setError(msg || 'Failed to generate study notes')
+      setError(msg)
     } finally {
       setGeneratingNotes(false)
     }
@@ -979,7 +980,21 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       const context = inputMode === 'upload' ? extractedText : manualText
-      const historyForModel = chatMessages.map((msg) => ({ role: msg.role, content: msg.content }))
+      const historyForModel = chatMessages
+        .filter((msg) => msg.content && msg.content.trim())
+        .map((msg) => {
+          let role: 'user' | 'assistant' | 'system' = 'user'
+          const rawRole = String(msg.role).toLowerCase()
+          if (rawRole === 'assistant' || rawRole === 'model') {
+            role = 'assistant'
+          } else if (rawRole === 'system') {
+            role = 'system'
+          }
+          return {
+            role,
+            content: msg.content,
+          }
+        })
       
       const response = await chatWithTutor(
         userMsg, 
@@ -1001,12 +1016,12 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         documentId || undefined
       )
     } catch (err: any) {
-      const msg = err.message || ''
+      const msg = getErrorMessage(err)
       if (isUpgradeError(msg)) {
         showUpgrade('ai')
         return
       }
-      setError(msg || 'Tutor failed to respond. Please try again.')
+      setError(msg)
     } finally {
       setIsChatting(false)
     }
