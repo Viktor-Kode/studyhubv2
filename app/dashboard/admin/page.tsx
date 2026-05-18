@@ -655,7 +655,7 @@ function UsersTab({
   const [sort, setSort] = useState('newest')
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
-  const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null)
   const [freeTarget, setFreeTarget] = useState<AdminUserRow | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<AdminUserRow | null>(null)
   type FreeGiftPlanKey = 'daily' | 'weekly' | 'monthly'
@@ -749,10 +749,21 @@ function UsersTab({
     }
   }
 
-  const confirmBan = async () => {
-    if (!banTarget) return
-    await quickAction('ban_user', banTarget._id)
-    setBanTarget(null)
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    try {
+      const res = await apiClient.delete(`/admin/users/${deleteTarget._id}`)
+      if (res.data?.success) {
+        toast.success('User deleted successfully')
+        onRefreshUsers()
+        load()
+      } else {
+        toast.error(res.data?.error || 'Failed to delete user')
+      }
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to delete user')
+    }
+    setDeleteTarget(null)
   }
 
   const confirmFree = async () => {
@@ -915,10 +926,10 @@ function UsersTab({
                             className="danger"
                             onClick={() => {
                               setMenuOpen(null)
-                              setBanTarget(u)
+                              setDeleteTarget(u)
                             }}
                           >
-                            Ban User
+                            Delete User
                           </button>
                           <button
                             type="button"
@@ -962,24 +973,23 @@ function UsersTab({
         </button>
       </div>
 
-      {banTarget && (
+      {deleteTarget && (
         <div
           className="admin-modal-v2-overlay"
-          onClick={() => setBanTarget(null)}
+          onClick={() => setDeleteTarget(null)}
           role="presentation"
         >
           <div className="admin-modal-v2" onClick={(e) => e.stopPropagation()} role="dialog">
-            <h3>Ban user?</h3>
+            <h3>Delete user?</h3>
             <p>
-              {banTarget.name || banTarget.email} will be marked as banned. You can unban from the API
-              or database if needed.
+              {deleteTarget.name || deleteTarget.email} will be permanently deleted from the database along with all progress, stats, and leaderboard entries.
             </p>
             <div className="admin-modal-actions-v2">
-              <button type="button" className="cancel" onClick={() => setBanTarget(null)}>
+              <button type="button" className="cancel" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </button>
-              <button type="button" className="danger" onClick={confirmBan}>
-                Ban
+              <button type="button" className="danger" onClick={confirmDelete}>
+                Delete
               </button>
             </div>
           </div>
