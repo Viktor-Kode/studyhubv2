@@ -28,8 +28,9 @@ export default function SharePanel({ progress, progLoading, user, myRank }: Prop
 
   const referral = useMemo(() => {
     if (typeof window === 'undefined' || !user?.uid) return ''
-    return `${window.location.origin}/auth/login?ref=${encodeURIComponent(user.uid)}`
-  }, [user?.uid])
+    const code = user.referralCode || user.uid
+    return `${window.location.origin}/auth/signup?ref=${encodeURIComponent(code)}`
+  }, [user?.uid, user?.referralCode])
 
   const shareText = useMemo(
     () =>

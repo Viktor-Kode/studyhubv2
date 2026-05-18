@@ -53,4 +53,5 @@ export interface AppUser {
     onboarding?: UserOnboarding
     progress?: UserProgressFlags
     aiCredits?: number
+    referralCode?: string
 }
