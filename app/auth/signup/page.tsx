@@ -4,14 +4,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
-import { signInWithGoogle, signUpWithEmail, buildAppUser } from '@/lib/firebase-auth'
-import type { AppRole } from '@/lib/types/auth'
+import { signInWithGoogle, signUpWithEmail, buildAppUser, saveUserRole } from '@/lib/firebase-auth'
 import {
     FiMail, FiLock, FiUser, FiEye, FiEyeOff,
     FiAlertCircle, FiCheckCircle, FiLoader
 } from 'react-icons/fi'
-import { FaGoogle, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa'
-import RoleSelectionModal from '@/components/RoleSelectionModal'
+import { FaGoogle, FaUserGraduate } from 'react-icons/fa'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -35,7 +33,6 @@ export default function SignupPage() {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'student' as AppRole,
     })
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -43,8 +40,6 @@ export default function SignupPage() {
     const [success, setSuccess] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [googleLoading, setGoogleLoading] = useState(false)
-    const [showRoleModal, setShowRoleModal] = useState(false)
-    const [pendingFirebaseUser, setPendingFirebaseUser] = useState<any>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -80,7 +75,7 @@ export default function SignupPage() {
                 formData.email,
                 formData.password,
                 formData.name,
-                formData.role
+                'student'
             )
             setUser(user)
 
@@ -124,8 +119,28 @@ export default function SignupPage() {
 
             const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid))
             if (!profileSnap.exists()) {
-                setPendingFirebaseUser(firebaseUser)
-                setShowRoleModal(true)
+                // Auto-register as student in Firestore
+                await saveUserRole(firebaseUser.uid, 'student', firebaseUser.displayName || 'User', firebaseUser.email || '')
+                const appUser = buildAppUser(firebaseUser, 'student')
+                setUser(appUser)
+
+                // Process referral for Google sign up
+                if (typeof window !== 'undefined') {
+                    const refCode = localStorage.getItem('refCode')
+                    if (refCode) {
+                        try {
+                            const { apiClient } = await import('@/lib/api/client')
+                            await apiClient.post('/referral/apply', { refCode })
+                            localStorage.removeItem('refCode')
+                            console.log('[Referral] Applied referral code for new Google user successfully')
+                        } catch (refErr) {
+                            console.error('[Referral] Failed to apply referral code for new Google user:', refErr)
+                        }
+                    }
+                }
+
+                await refreshUser()
+                router.push('/dashboard/student')
                 return
             }
 
@@ -153,9 +168,6 @@ export default function SignupPage() {
                 } else {
                     router.push('/dashboard/student')
                 }
-            } else {
-                setPendingFirebaseUser(firebaseUser)
-                setShowRoleModal(true)
             }
         } catch (err: any) {
             if (err?.code !== 'auth/popup-closed-by-user') {
@@ -166,39 +178,8 @@ export default function SignupPage() {
         }
     }
 
-    const handleRoleCompleted = async (role: AppRole) => {
-        if (!pendingFirebaseUser) return
-        const appUser = buildAppUser(pendingFirebaseUser, role)
-        setUser(appUser)
-        setShowRoleModal(false)
-
-        // Process referral for Google sign up if they just selected their role
-        if (typeof window !== 'undefined') {
-            const refCode = localStorage.getItem('refCode')
-            if (refCode) {
-                try {
-                    const { apiClient } = await import('@/lib/api/client')
-                    await apiClient.post('/referral/apply', { refCode })
-                    localStorage.removeItem('refCode')
-                    console.log('[Referral] Applied referral code after role completion successfully')
-                } catch (refErr) {
-                    console.error('[Referral] Failed to apply referral code after role completion:', refErr)
-                }
-            }
-        }
-
-        await refreshUser()
-        router.push('/dashboard/student')
-    }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-            {showRoleModal && pendingFirebaseUser && (
-                <RoleSelectionModal
-                    user={pendingFirebaseUser}
-                    onCompleted={handleRoleCompleted}
-                />
-            )}
             <div className="max-w-md w-full">
 
                 {/* Header */}
@@ -262,42 +243,6 @@ export default function SignupPage() {
                     {/* Signup Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
 
-                        {/* Role Selection */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                I am a…
-                            </label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    id="role-student-btn"
-                                    onClick={() => setFormData({ ...formData, role: 'student' })}
-                                    className={`p-4 border-2 rounded-xl transition ${formData.role === 'student'
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
-                                        }`}
-                                >
-                                    <div className="text-center">
-                                        <FaUserGraduate className={`text-2xl mx-auto mb-1 ${formData.role === 'student' ? 'text-blue-600' : 'text-gray-400'}`} />
-                                        <p className="font-medium text-gray-900 dark:text-white">Student</p>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    id="role-teacher-btn"
-                                    onClick={() => setFormData({ ...formData, role: 'teacher' })}
-                                    className={`p-4 border-2 rounded-xl transition ${formData.role === 'teacher'
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
-                                        }`}
-                                >
-                                    <div className="text-center">
-                                        <FaChalkboardTeacher className={`text-2xl mx-auto mb-1 ${formData.role === 'teacher' ? 'text-blue-600' : 'text-gray-400'}`} />
-                                        <p className="font-medium text-gray-900 dark:text-white">Teacher</p>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
 
                         {/* Name */}
                         <div>
