@@ -590,7 +590,7 @@ function ReferralSection() {
                     <Award size={200} />
                 </div>
                 <h4 className="text-2xl font-black mb-2">Invite Friends, Earn Credits!</h4>
-                <p className="text-blue-100 text-sm max-w-md">
+                <p className="text-white text-sm max-w-md opacity-90">
                     Share your unique referral link with your classmates. You'll get +20 AI credits for every friend who signs up using your link!
                 </p>
             </div>
