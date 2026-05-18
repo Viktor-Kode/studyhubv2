@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -18,6 +18,17 @@ import { doc, getDoc } from 'firebase/firestore'
 export default function SignupPage() {
     const router = useRouter()
     const { setUser, refreshUser } = useAuthStore()
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            const ref = params.get('ref')
+            if (ref) {
+                localStorage.setItem('refCode', ref)
+                console.log('[Referral] Stored refCode in localStorage on signup page:', ref)
+            }
+        }
+    }, [])
 
     const [formData, setFormData] = useState({
         name: '',

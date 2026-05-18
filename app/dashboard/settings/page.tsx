@@ -547,7 +547,7 @@ function ReferralSection() {
         fetchStats()
     }, [])
 
-    const referralLink = `https://www.studyhelp.site/auth/login?ref=${stats.referralCode || 'YOUR_CODE'}`
+    const referralLink = `https://www.studyhelp.site/auth/signup?ref=${stats.referralCode || 'YOUR_CODE'}`
 
     const handleCopy = () => {
         navigator.clipboard.writeText(referralLink)
