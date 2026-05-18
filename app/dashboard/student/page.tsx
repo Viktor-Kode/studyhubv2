@@ -440,10 +440,27 @@ function SubscriptionStatusCard() {
             </div>
 
             <div className="space-y-2 pt-1 border-t border-gray-800/30">
-                <div className="flex justify-between items-center text-[11px]">
-                    <span className="flex items-center gap-1.5 text-gray-300">🎁 AI Referral Credits</span>
-                    <span className="font-bold text-yellow-400">{user?.aiCredits ?? 5} Credits</span>
-                </div>
+                {(() => {
+                    const totalReferralCredits = user?.aiCredits ?? 5;
+                    const aiUsed = status?.usage?.ai?.used ?? 0;
+                    const aiLimit = status?.usage?.ai?.limit ?? 5;
+                    const usedReferralCredits = Math.min(totalReferralCredits, Math.max(0, aiUsed - aiLimit));
+                    
+                    return (
+                        <>
+                            <div className="flex justify-between items-center text-[11px]">
+                                <span className="flex items-center gap-1.5 text-gray-300">🎁 AI Referral Credits</span>
+                                <span className="font-bold text-yellow-400">{usedReferralCredits}/{totalReferralCredits} Used</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-yellow-500 transition-all duration-500" 
+                                    style={{ width: `${Math.min(100, (usedReferralCredits / totalReferralCredits) * 100)}%` }}
+                                />
+                            </div>
+                        </>
+                    );
+                })()}
             </div>
         </div>
 
