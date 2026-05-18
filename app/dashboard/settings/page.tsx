@@ -23,6 +23,16 @@ type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' |
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('profile')
   const { user, refreshUser } = useAuthStore()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get('tab') as TabType
+      if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals'].includes(tab)) {
+        setActiveTab(tab)
+      }
+    }
+  }, [])
   
   const handleSaved = () => {
     refreshUser()

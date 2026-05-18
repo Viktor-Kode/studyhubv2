@@ -261,6 +261,14 @@ export default function DashboardLayout({
                         <div className="mt-auto px-4 py-6 border-t border-gray-100 dark:border-gray-700 min-w-0">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">Support</h4>
                             <div className="space-y-2">
+                                <Link
+                                    href="/dashboard/settings?tab=referrals"
+                                    onClick={() => setSidebarOpen(false)}
+                                    className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition"
+                                >
+                                    <FiUsers className="text-lg text-purple-600 dark:text-purple-400" />
+                                    <span>Refer & Earn</span>
+                                </Link>
                                 <a
                                     href="tel:+2349163345794"
                                     className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition"
