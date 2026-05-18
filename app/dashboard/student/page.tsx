@@ -394,6 +394,7 @@ export default function StudentDashboardPage() {
 }
 
 function SubscriptionStatusCard() {
+    const { user } = useAuthStore()
     const [status, setStatus] = useState<any | null>(null)
     useEffect(() => { paymentApi.getStatus().then(d => d?.success && setStatus(d)) }, [])
     
@@ -435,6 +436,13 @@ function SubscriptionStatusCard() {
                         className="h-full bg-purple-500 transition-all duration-500" 
                         style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 3)) * 100)}%` }}
                     />
+                </div>
+            </div>
+
+            <div className="space-y-2 pt-1 border-t border-gray-800/30">
+                <div className="flex justify-between items-center text-[11px]">
+                    <span className="flex items-center gap-1.5 text-gray-300">🎁 AI Referral Credits</span>
+                    <span className="font-bold text-yellow-400">{user?.aiCredits ?? 5} Credits</span>
                 </div>
             </div>
         </div>
