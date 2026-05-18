@@ -12,7 +12,8 @@ import {
   FiClock, FiAward, FiLoader, FiAlertTriangle,
   FiRefreshCw, FiHome, FiTarget, FiBookOpen,
   FiChevronRight, FiGrid, FiInfo, FiLock,
-  FiTrendingUp, FiCheck, FiX, FiFilter
+  FiTrendingUp, FiCheck, FiX, FiFilter,
+  FiThumbsUp, FiThumbsDown
 } from 'react-icons/fi'
 import Link from 'next/link'
 import {
@@ -245,6 +246,7 @@ export default function CBTPage() {
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set())
   const [showCalculator, setShowCalculator] = useState(false)
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
+  const [votedExplanations, setVotedExplanations] = useState<Record<string, 'up' | 'down'>>({})
   const [isExplaining, setIsExplaining] = useState<string | null>(null)
   const [summary, setSummary] = useState<any>(null)
   const { user } = useAuthStore()
@@ -551,6 +553,20 @@ export default function CBTPage() {
       console.error('Failed to get AI explanation:', err)
     } finally {
       setIsExplaining(null)
+    }
+  }
+
+  const handleVoteExplanation = async (q: Question, vote: 'up' | 'down') => {
+    const qId = q.id
+    if (votedExplanations[qId]) return
+
+    try {
+      await cbtApi.voteExplanation(q.question, q.options[q.correctAnswer], q.options || [], vote);
+      setVotedExplanations(prev => ({ ...prev, [qId]: vote }));
+      toast.success(vote === 'up' ? 'Thanks for the upvote!' : 'Feedback recorded. Thank you!');
+    } catch (err) {
+      console.error('Failed to vote explanation:', err);
+      toast.error('Failed to record feedback.');
     }
   }
 
@@ -1554,8 +1570,37 @@ export default function CBTPage() {
                       </div>
 
                       {(verifiedAns?.explanation || aiExplanations[q.id || q.questionId]) ? (
-                        <div className="answer-explanation">
-                          <span dangerouslySetInnerHTML={{ __html: renderQuestion(verifiedAns?.explanation || aiExplanations[q.id || q.questionId] || '') }} />
+                        <div className="space-y-2">
+                          <div className="answer-explanation">
+                            <span dangerouslySetInnerHTML={{ __html: renderQuestion(verifiedAns?.explanation || aiExplanations[q.id || q.questionId] || '') }} />
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800/40 rounded-xl max-w-max border border-gray-100 dark:border-gray-800">
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Was this explanation helpful?</span>
+                            <button
+                              onClick={() => handleVoteExplanation(originalQ, 'up')}
+                              disabled={!!votedExplanations[q.id || q.questionId]}
+                              className={`p-1.5 rounded-lg border transition-all duration-200 ${
+                                votedExplanations[q.id || q.questionId] === 'up'
+                                  ? 'bg-emerald-500 border-emerald-500 text-white scale-95 shadow-sm'
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:text-emerald-500'
+                              }`}
+                              title="Yes, helpful"
+                            >
+                              <FiThumbsUp className="text-[10px]" />
+                            </button>
+                            <button
+                              onClick={() => handleVoteExplanation(originalQ, 'down')}
+                              disabled={!!votedExplanations[q.id || q.questionId]}
+                              className={`p-1.5 rounded-lg border transition-all duration-200 ${
+                                votedExplanations[q.id || q.questionId] === 'down'
+                                  ? 'bg-rose-500 border-rose-500 text-white scale-95 shadow-sm'
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500'
+                              }`}
+                              title="No, unhelpful"
+                            >
+                              <FiThumbsDown className="text-[10px]" />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <button

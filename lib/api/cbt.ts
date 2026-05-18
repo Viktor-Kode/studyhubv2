@@ -625,4 +625,24 @@ export const cbtApi = {
     }
     return data
   },
+
+  voteExplanation: async (
+    question: string,
+    correctAnswer: string,
+    options: string[],
+    vote: 'up' | 'down'
+  ): Promise<{ success: boolean; upvotes: number; downvotes: number }> => {
+    try {
+      const res = await fetchWithAuth('/api/backend/cbt/explain/vote', {
+        method: 'POST',
+        body: JSON.stringify({ question, correctAnswer, options, vote })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to vote explanation');
+      return data;
+    } catch (err: any) {
+      console.error('[CBT API] Failed to vote explanation:', err);
+      throw err;
+    }
+  },
 }

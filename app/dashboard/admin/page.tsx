@@ -20,7 +20,9 @@ import {
   Download,
   Zap,
   Lock,
+  TrendingUp,
 } from 'lucide-react'
+import { FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import Link from 'next/link'
 import {
   AreaChart,
@@ -84,6 +86,16 @@ interface DashboardStatsV2 {
   userGrowth: Array<{ _id: string; count: number }>
   teacherToolTotals: Record<string, number>
   aiUsageTotal: number
+  analytics?: {
+    subjectMastery: any[]
+    killerQuestions: any[]
+    streakDistribution: any[]
+    subBreakdown: any[]
+    flaggedExplanations: any[]
+    contentBreakdown: any[]
+    examTypesBreakdown: any[]
+    featurePopularity: any[]
+  }
 }
 
 interface AdminUserRow {
@@ -1367,6 +1379,7 @@ const SIDEBAR = [
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'paywall', label: 'Paywall Events', icon: Lock },
   { id: 'campaigns', label: 'Campaigns', icon: Mail },
+  { id: 'analytics', label: 'Platform Analytics', icon: TrendingUp },
 ] as const
 
 const EMPTY_STATS: DashboardStatsV2 = {
@@ -1379,6 +1392,324 @@ const EMPTY_STATS: DashboardStatsV2 = {
   userGrowth: [],
   teacherToolTotals: {},
   aiUsageTotal: 0,
+}
+
+function AdminAnalyticsTab({ stats }: { stats: DashboardStatsV2 | null }) {
+  if (!stats || !stats.analytics) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <Activity className="animate-pulse text-4xl mb-4 text-blue-500" />
+        <p className="font-bold">Aggregating advanced platform analytics...</p>
+        <p className="text-xs mt-1">This might take a few seconds as we parse CBT attempts, AI logs, and file schemas.</p>
+      </div>
+    )
+  }
+
+  const {
+    subjectMastery = [],
+    killerQuestions = [],
+    streakDistribution = [],
+    subBreakdown = [],
+    flaggedExplanations = [],
+    contentBreakdown = [],
+    featurePopularity = []
+  } = stats.analytics;
+
+  // Format subject mastery data for Recharts
+  const masteryData = subjectMastery.map((item: any) => ({
+    name: item._id || 'Unknown',
+    Accuracy: Math.round(item.avgScore || 0),
+    Attempts: item.count || 0
+  })).sort((a: any, b: any) => a.Accuracy - b.Accuracy) // lowest first
+
+  // Format streak data
+  const streakData = ['0 day', '1-2 days', '3-6 days', '7+ days'].map(range => {
+    const found = streakDistribution.find((item: any) => item._id === range)
+    return {
+      name: range,
+      value: found ? found.count : 0
+    }
+  })
+
+  // Format sub breakdown data
+  const subData = subBreakdown.map((item: any) => ({
+    name: item._id ? item._id.charAt(0).toUpperCase() + item._id.slice(1) : 'Free',
+    value: item.count || 0
+  }))
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-wrap justify-between items-center gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Platform Analytics</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Deep-dive aggregate telemetry for student performance, monetization, and system quality control.</p>
+        </div>
+      </div>
+
+      {/* Row 1: Academic Health Heatmap & Feature Popularity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Subject Mastery */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Global Subject Mastery</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Average CBT score per subject. Lower scores represent higher struggle subjects.</p>
+          </div>
+          <div className="h-[300px] w-full">
+            {masteryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={masteryData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <XAxis type="number" domain={[0, 100]} stroke="#9CA3AF" fontSize={10} />
+                  <YAxis dataKey="name" type="category" stroke="#9CA3AF" fontSize={10} width={100} />
+                  <Tooltip
+                    contentStyle={{ background: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="Accuracy" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                    {masteryData.map((entry: any, index: number) => {
+                      let fill = '#EF4444' // Struggle (< 45%)
+                      if (entry.Accuracy >= 70) fill = '#10B981'
+                      else if (entry.Accuracy >= 45) fill = '#F59E0B'
+                      return <Cell key={`cell-${index}`} fill={fill} />
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-gray-400">No mastery logs recorded yet.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Feature Popularity */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Feature Engagement Matrix</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Platforms tools ranked by total volume of database records / actions.</p>
+          </div>
+          <div className="h-[300px] w-full">
+            {featurePopularity.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={featurePopularity} margin={{ top: 10, bottom: 20, left: 10, right: 10 }}>
+                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={9} interval={0} angle={-15} textAnchor="end" />
+                  <YAxis stroke="#9CA3AF" fontSize={10} />
+                  <Tooltip
+                    contentStyle={{ background: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="count" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-gray-400">No feature interactions registered.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Streak Distribution & Monetization Churn */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Streak Distribution */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Streak Retention Funnel</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Bucket breakdown of active consecutive study streaks.</p>
+          </div>
+          <div className="h-[220px] flex items-center justify-center my-3 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={streakData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {streakData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ background: '#1F2937', border: 'none', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">
+            {streakData.map((item, idx) => (
+              <div key={item.name} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                <span>{item.name}: {item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Subscription Conversion / Status */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Subscription Split</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Active vs Expired plans. Key indicator of churn.</p>
+          </div>
+          <div className="h-[220px] flex items-center justify-center my-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={subData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={0}
+                  outerRadius={80}
+                  paddingAngle={0}
+                  dataKey="value"
+                >
+                  {subData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={PLAN_PIE_COLORS[entry.name.toLowerCase()] || COLORS[index + 2]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ background: '#1F2937', border: 'none', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">
+            {subData.map((item, idx) => (
+              <div key={item.name} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PLAN_PIE_COLORS[item.name.toLowerCase()] || COLORS[idx + 2] }}></span>
+                <span>{item.name}: {item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Upload Formats */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Uploads Content Split</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Breakdown of uploaded study guides by format and size.</p>
+          </div>
+          <div className="space-y-3 my-4 overflow-y-auto max-h-[220px] pr-1">
+            {contentBreakdown.length > 0 ? (
+              contentBreakdown.map((item: any, idx: number) => (
+                <div key={item._id} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                      {item._id || 'unknown'}
+                    </span>
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{item.count} Files</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-400">{formatBytes(item.size)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 text-xs text-gray-400">No files uploaded.</div>
+            )}
+          </div>
+          <div className="text-[10px] uppercase font-bold text-gray-400 text-center border-t border-gray-100 dark:border-gray-800 pt-2.5">
+            Total files indexed: {contentBreakdown.reduce((sum: number, i: any) => sum + i.count, 0)}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Killer Questions */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">"Killer Questions" Analytics</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Past questions with exceptionally high student fail rates. Helps diagnose wrong answer keys or poor explanations.</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          {killerQuestions.length > 0 ? (
+            <table className="w-full text-left text-xs font-medium text-gray-600 dark:text-gray-300">
+              <thead className="bg-gray-50 dark:bg-gray-800 text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-xl">Question Concept</th>
+                  <th className="px-4 py-3">Subject</th>
+                  <th className="px-4 py-3 text-center">Attempts</th>
+                  <th className="px-4 py-3 text-center">Fails</th>
+                  <th className="px-4 py-3 text-center rounded-r-xl">Fail Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {killerQuestions.map((item: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition duration-150">
+                    <td className="px-4 py-3 font-semibold max-w-sm truncate text-gray-900 dark:text-white" title={item.question}>
+                      {item.question}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400">
+                        {item.subject || 'general'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold">{item.attempts}</td>
+                    <td className="px-4 py-3 text-center font-bold text-red-500">{item.fails}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                        {Math.round(item.failRate)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8 text-xs text-gray-400">No questions failed yet. Keep monitoring!</div>
+          )}
+        </div>
+      </div>
+
+      {/* Row 4: AI Explanations Quality Control */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
+        <div>
+          <h3 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">AI Explanations Quality Flag Board</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Explanations flagged by users with downvotes. Review the exact logic generation for accuracy.</p>
+        </div>
+        <div className="mt-4 space-y-4">
+          {flaggedExplanations.length > 0 ? (
+            flaggedExplanations.map((item: any) => (
+              <div key={item._id} className="p-4 rounded-xl border border-rose-100 dark:border-rose-950/40 bg-rose-50/10 dark:bg-rose-950/5 space-y-3">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
+                      FLAGGED
+                    </span>
+                    {item.subject && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                        {item.subject}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-bold text-gray-500">
+                    <span className="flex items-center gap-1 text-emerald-500"><FiThumbsUp /> {item.upvotes || 0}</span>
+                    <span className="flex items-center gap-1 text-rose-500"><FiThumbsDown /> {item.downvotes || 0}</span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-800 dark:text-gray-200">
+                  <p className="font-black uppercase text-[10px] text-gray-400 tracking-wider mb-1">Question:</p>
+                  <p className="font-semibold italic bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-lg border border-gray-100 dark:border-gray-800">{item.questionText}</p>
+                </div>
+                <div className="text-xs text-gray-800 dark:text-gray-200">
+                  <p className="font-black uppercase text-[10px] text-gray-400 tracking-wider mb-1">AI Explanation:</p>
+                  <p className="p-2.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 leading-relaxed font-medium">{item.explanation}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-xs text-gray-400">100% Quality rating! Zero explanations flagged. Excellent!</div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function AdminDashboardPage() {
@@ -1560,6 +1891,7 @@ export default function AdminDashboardPage() {
           {activeTab === 'activity' && <ActivityTab />}
           {activeTab === 'paywall' && <PaywallEventsTab />}
           {activeTab === 'campaigns' && <AdminCampaignsTab />}
+          {activeTab === 'analytics' && <AdminAnalyticsTab stats={stats} />}
         </main>
 
         {selectedUser && (

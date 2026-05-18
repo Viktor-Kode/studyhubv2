@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2 } from 'react-icons/fi'
+import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2, FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
 import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview } from '@/lib/api/quizApi'
@@ -193,6 +193,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   // Explanation State
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
   const [isExplaining, setIsExplaining] = useState<string | null>(null)
+  const [votedExplanations, setVotedExplanations] = useState<Record<string, 'up' | 'down'>>({})
 
   // Fuzzy Answer Matching Helper
   const getLevenshteinDistance = (a: string, b: string) => {
@@ -1077,6 +1078,25 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
+  const handleVoteExplanation = async (q: Question, vote: 'up' | 'down') => {
+    const qId = q._id
+    if (votedExplanations[qId]) return
+
+    try {
+      const qText = q.content || (q as any).question || '';
+      const correctAnsText = typeof (q.answer !== undefined ? q.answer : (q as any).correctAnswer) === 'number'
+        ? q.options[Number(q.answer !== undefined ? q.answer : (q as any).correctAnswer)]
+        : String(q.answer !== undefined ? q.answer : (q as any).correctAnswer);
+
+      await cbtApi.voteExplanation(qText, correctAnsText, q.options || [], vote);
+      setVotedExplanations(prev => ({ ...prev, [qId]: vote }));
+      toast.success(vote === 'up' ? 'Thanks for the upvote!' : 'Feedback recorded. Thank you!');
+    } catch (err) {
+      console.error('Failed to vote explanation:', err);
+      toast.error('Failed to record feedback.');
+    }
+  }
+
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
     switch (ext) {
@@ -1847,10 +1867,39 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                           <div className="space-y-1.5">
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
                             {(newQuestions[currentQuestionIndex].knowledgeDeepDive && newQuestions[currentQuestionIndex].knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[newQuestions[currentQuestionIndex]._id] ? (
-                              <MarkdownText
-                                content={aiExplanations[newQuestions[currentQuestionIndex]._id] || newQuestions[currentQuestionIndex].knowledgeDeepDive || (newQuestions[currentQuestionIndex] as any).knowledge_deep_dive || (newQuestions[currentQuestionIndex] as any).explanation || (newQuestions[currentQuestionIndex] as any).modelAnswer || (newQuestions[currentQuestionIndex] as any).solution || (newQuestions[currentQuestionIndex] as any).reason || 'No deep-dive available.'}
-                                className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
-                              />
+                              <div className="space-y-3">
+                                <MarkdownText
+                                  content={aiExplanations[newQuestions[currentQuestionIndex]._id] || newQuestions[currentQuestionIndex].knowledgeDeepDive || (newQuestions[currentQuestionIndex] as any).knowledge_deep_dive || (newQuestions[currentQuestionIndex] as any).explanation || (newQuestions[currentQuestionIndex] as any).modelAnswer || (newQuestions[currentQuestionIndex] as any).solution || (newQuestions[currentQuestionIndex] as any).reason || 'No deep-dive available.'}
+                                  className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
+                                />
+                                <div className="flex items-center gap-2 pt-2 border-t border-blue-100 dark:border-blue-800/30">
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Was this helpful?</span>
+                                  <button
+                                    onClick={() => handleVoteExplanation(newQuestions[currentQuestionIndex], 'up')}
+                                    disabled={!!votedExplanations[newQuestions[currentQuestionIndex]._id]}
+                                    className={`p-1.5 rounded-lg border transition-all duration-200 ${
+                                      votedExplanations[newQuestions[currentQuestionIndex]._id] === 'up'
+                                        ? 'bg-emerald-500 border-emerald-500 text-white scale-95 shadow-sm'
+                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:text-emerald-500'
+                                    }`}
+                                    title="Yes, helpful"
+                                  >
+                                    <FiThumbsUp className="text-xs" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleVoteExplanation(newQuestions[currentQuestionIndex], 'down')}
+                                    disabled={!!votedExplanations[newQuestions[currentQuestionIndex]._id]}
+                                    className={`p-1.5 rounded-lg border transition-all duration-200 ${
+                                      votedExplanations[newQuestions[currentQuestionIndex]._id] === 'down'
+                                        ? 'bg-rose-500 border-rose-500 text-white scale-95 shadow-sm'
+                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500'
+                                    }`}
+                                    title="No, unhelpful"
+                                  >
+                                    <FiThumbsDown className="text-xs" />
+                                  </button>
+                                </div>
+                              </div>
                             ) : (
                               <button
                                 onClick={() => handleGetAiExplanation(newQuestions[currentQuestionIndex])}
