@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
-  ChevronRight, Shield, LifeBuoy, Settings, HelpCircle, Palette
+  ChevronRight, Shield, LifeBuoy, Settings, HelpCircle, Palette,
+  Users, Copy, Award, Share2
 } from 'lucide-react'
 import { MdSchool, MdQuiz } from 'react-icons/md'
 import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout } from 'react-icons/fi'
@@ -17,7 +18,7 @@ import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 import { toast } from 'react-hot-toast'
 import './settings-v3.css'
 
-type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help'
+type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('profile')
@@ -64,6 +65,12 @@ export default function SettingsPage() {
                 <Palette className="w-4 h-4" /> Appearance
             </button>
             <button 
+                onClick={() => setActiveTab('referrals')}
+                className={`settings-tab flex items-center gap-2 ${activeTab === 'referrals' ? 'active' : ''}`}
+            >
+                <Users className="w-4 h-4" /> Referrals
+            </button>
+            <button 
                 onClick={() => setActiveTab('help')}
                 className={`settings-tab flex items-center gap-2 ${activeTab === 'help' ? 'active' : ''}`}
             >
@@ -76,6 +83,7 @@ export default function SettingsPage() {
             {activeTab === 'account' && <AccountSection user={user} onSaved={handleSaved} />}
             {activeTab === 'notifications' && <NotificationsSection user={user} onSaved={handleSaved} />}
             {activeTab === 'appearance' && <AppearanceSection onSaved={handleSaved} />}
+            {activeTab === 'referrals' && <ReferralSection />}
             {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
         </main>
       </div>
@@ -508,6 +516,128 @@ function HelpSection({ onSaved }: any) {
                     <p className="text-xs text-gray-500">Our support team is available 24/7</p>
                 </div>
                 <button className="v3-btn-primary px-6 py-2 text-sm">Contact Us</button>
+            </div>
+        </div>
+    )
+}
+
+function ReferralSection() {
+    const [stats, setStats] = useState<any>({
+        referralCode: '',
+        referralCount: 0,
+        aiCredits: 0,
+        creditsEarned: 0
+    })
+    const [loading, setLoading] = useState(true)
+    const [copied, setCopied] = useState(false)
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await apiClient.get('/referral/stats')
+                if (res.data?.status === 'success') {
+                    setStats(res.data.data)
+                }
+            } catch (err) {
+                console.error('Failed to fetch referral stats:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchStats()
+    }, [])
+
+    const referralLink = `https://www.studyhelp.site/auth/login?ref=${stats.referralCode || 'YOUR_CODE'}`
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(referralLink)
+        setCopied(true)
+        toast.success('Referral link copied to clipboard!')
+        setTimeout(() => setCopied(false), 2000)
+    }
+
+    const shareText = `I've been using StudyHelp to practice exam questions and it's actually helping 📚 Sign up free here: ${referralLink}`
+
+    const handleShareWhatsApp = () => {
+        const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
+        window.open(url, '_blank')
+    }
+
+    if (loading) {
+        return (
+            <div className="settings-card flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="settings-card">
+            <h3 className="text-xl font-bold mb-6">Refer & Earn</h3>
+            
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white mb-8 shadow-md relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
+                    <Award size={200} />
+                </div>
+                <h4 className="text-2xl font-black mb-2">Invite Friends, Earn Credits!</h4>
+                <p className="text-blue-100 text-sm max-w-md">
+                    Share your unique referral link with your classmates. You'll get +20 AI credits for every friend who signs up using your link!
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3">
+                        <Users size={24} />
+                    </div>
+                    <span className="text-2xl font-black">{stats.referralCount}</span>
+                    <span className="text-xs text-gray-500 mt-1">Total Referrals</span>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3">
+                        <Award size={24} />
+                    </div>
+                    <span className="text-2xl font-black">+{stats.creditsEarned}</span>
+                    <span className="text-xs text-gray-500 mt-1">Credits Earned</span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-600 dark:text-pink-400 mb-3">
+                        <Settings size={24} />
+                    </div>
+                    <span className="text-2xl font-black">{stats.aiCredits}</span>
+                    <span className="text-xs text-gray-500 mt-1">Total AI Credits</span>
+                </div>
+            </div>
+
+            <div className="settings-group">
+                <label className="settings-label">Your Unique Referral Link</label>
+                <div className="flex flex-col md:flex-row gap-3">
+                    <div className="settings-input-v3 flex-grow bg-gray-50/50 dark:bg-white/5 opacity-90 overflow-x-auto whitespace-nowrap scrollbar-thin select-all font-mono py-3 px-4 rounded-xl flex items-center justify-between border border-gray-200 dark:border-white/10">
+                        {referralLink}
+                    </div>
+                    <button 
+                        onClick={handleCopy}
+                        className="v3-btn-primary flex items-center justify-center gap-2 whitespace-nowrap min-w-[140px]"
+                    >
+                        {copied ? <Check size={18} /> : <Copy size={18} />}
+                        {copied ? 'Copied!' : 'Copy Link'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-8 border-t border-gray-100 dark:border-white/10 pt-6">
+                <h4 className="font-bold text-sm mb-4">Quick Share</h4>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <button 
+                        onClick={handleShareWhatsApp}
+                        className="flex-grow flex items-center justify-center gap-3 py-3 px-6 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold rounded-xl shadow-lg transition active:scale-[0.98]"
+                    >
+                        <Share2 size={18} />
+                        Share on WhatsApp
+                    </button>
+                </div>
             </div>
         </div>
     )

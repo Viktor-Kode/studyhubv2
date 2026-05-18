@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -18,6 +18,17 @@ import { doc, getDoc } from 'firebase/firestore'
 export default function LoginPage() {
     const router = useRouter()
     const { setUser, refreshUser } = useAuthStore()
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            const ref = params.get('ref')
+            if (ref) {
+                localStorage.setItem('refCode', ref)
+                console.log('[Referral] Stored refCode in localStorage:', ref)
+            }
+        }
+    }, [])
 
     const [formData, setFormData] = useState({ email: '', password: '' })
     const [showPassword, setShowPassword] = useState(false)
@@ -76,6 +87,22 @@ export default function LoginPage() {
 
             if (appUser && appUser.role) {
                 setUser(appUser)
+
+                // Process referral for Google sign up if they are new and have a refCode
+                if (typeof window !== 'undefined') {
+                    const refCode = localStorage.getItem('refCode')
+                    if (refCode) {
+                        try {
+                            const { apiClient } = await import('@/lib/api/client')
+                            await apiClient.post('/referral/apply', { refCode })
+                            localStorage.removeItem('refCode')
+                            console.log('[Referral] Applied referral code for Google Sign-In successfully')
+                        } catch (refErr) {
+                            console.error('[Referral] Failed to apply referral code for Google Sign-In:', refErr)
+                        }
+                    }
+                }
+
                 await refreshUser()
                 if (appUser.role === 'admin') {
                     router.push('/dashboard/admin')
@@ -100,6 +127,22 @@ export default function LoginPage() {
         const appUser = buildAppUser(pendingFirebaseUser, role)
         setUser(appUser)
         setShowRoleModal(false)
+
+        // Process referral for Google sign up if they just selected their role
+        if (typeof window !== 'undefined') {
+            const refCode = localStorage.getItem('refCode')
+            if (refCode) {
+                try {
+                    const { apiClient } = await import('@/lib/api/client')
+                    await apiClient.post('/referral/apply', { refCode })
+                    localStorage.removeItem('refCode')
+                    console.log('[Referral] Applied referral code after role completion successfully')
+                } catch (refErr) {
+                    console.error('[Referral] Failed to apply referral code after role completion:', refErr)
+                }
+            }
+        }
+
         await refreshUser()
         if (appUser.role === 'admin') {
             router.push('/dashboard/admin')

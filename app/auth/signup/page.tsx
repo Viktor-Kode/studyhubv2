@@ -72,6 +72,22 @@ export default function SignupPage() {
                 formData.role
             )
             setUser(user)
+
+            // Process referral if stored in localStorage
+            if (typeof window !== 'undefined') {
+                const refCode = localStorage.getItem('refCode')
+                if (refCode) {
+                    try {
+                        const { apiClient } = await import('@/lib/api/client')
+                        await apiClient.post('/referral/apply', { refCode })
+                        localStorage.removeItem('refCode')
+                        console.log('[Referral] Applied referral code successfully and cleared from localStorage')
+                    } catch (refErr) {
+                        console.error('[Referral] Failed to apply referral code:', refErr)
+                    }
+                }
+            }
+
             await refreshUser()
             setSuccess('Account created successfully!')
             setTimeout(() => router.push('/dashboard/student'), 1200)
@@ -104,6 +120,22 @@ export default function SignupPage() {
 
             if (appUser && appUser.role) {
                 setUser(appUser)
+
+                // Process referral for Google sign up if they are new and have a refCode
+                if (typeof window !== 'undefined') {
+                    const refCode = localStorage.getItem('refCode')
+                    if (refCode) {
+                        try {
+                            const { apiClient } = await import('@/lib/api/client')
+                            await apiClient.post('/referral/apply', { refCode })
+                            localStorage.removeItem('refCode')
+                            console.log('[Referral] Applied referral code for Google Sign-In successfully')
+                        } catch (refErr) {
+                            console.error('[Referral] Failed to apply referral code for Google Sign-In:', refErr)
+                        }
+                    }
+                }
+
                 await refreshUser()
                 if (appUser.role === 'admin') {
                     router.push('/dashboard/admin')
@@ -128,6 +160,22 @@ export default function SignupPage() {
         const appUser = buildAppUser(pendingFirebaseUser, role)
         setUser(appUser)
         setShowRoleModal(false)
+
+        // Process referral for Google sign up if they just selected their role
+        if (typeof window !== 'undefined') {
+            const refCode = localStorage.getItem('refCode')
+            if (refCode) {
+                try {
+                    const { apiClient } = await import('@/lib/api/client')
+                    await apiClient.post('/referral/apply', { refCode })
+                    localStorage.removeItem('refCode')
+                    console.log('[Referral] Applied referral code after role completion successfully')
+                } catch (refErr) {
+                    console.error('[Referral] Failed to apply referral code after role completion:', refErr)
+                }
+            }
+        }
+
         await refreshUser()
         router.push('/dashboard/student')
     }
