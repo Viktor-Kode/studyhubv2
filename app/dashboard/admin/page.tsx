@@ -21,6 +21,7 @@ import {
   Zap,
   Lock,
   TrendingUp,
+  Smartphone,
 } from 'lucide-react'
 import { FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import Link from 'next/link'
@@ -1380,11 +1381,201 @@ function PaywallEventsTab() {
   )
 }
 
+// ─── Tab: PWA Users ──────────────────────────────────────────────────────────
+
+function PWAUsersTab({ onViewProfile }: { onViewProfile: (u: AdminUserRow) => void }) {
+  const [users, setUsers] = useState<AdminUserRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [pages, setPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [planFilter, setPlanFilter] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams({ page: String(page), limit: '25', sort })
+    if (search) params.append('search', search)
+    if (planFilter) params.append('plan', planFilter)
+    setLoading(true)
+    apiClient
+      .get(`/admin/pwa-users?${params}`)
+      .then((res) => {
+        if (res.data?.success) {
+          setUsers(res.data.users || [])
+          setTotal(res.data.total || 0)
+          setPages(res.data.pages || 1)
+        }
+      })
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false))
+  }, [page, search, planFilter, sort])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <div>
+      {/* Header strip */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+          <Smartphone size={18} className="text-emerald-600" />
+          <span className="font-black text-emerald-700 text-sm">PWA Installs</span>
+          <span className="ml-1 bg-emerald-600 text-white text-xs font-black rounded-full px-2 py-0.5">
+            {total.toLocaleString()}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 leading-tight max-w-sm">
+          Users who opened the app in standalone / installed mode — <code className="bg-slate-100 px-1 rounded">isPWA: true</code> is set on first launch.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      <div className="admin-users-toolbar-v2">
+        <div className="grow">
+          <div className="admin-search-v2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              placeholder="Search name or email…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            />
+          </div>
+        </div>
+        <select
+          className="admin-select-v2"
+          value={planFilter}
+          onChange={(e) => { setPlanFilter(e.target.value); setPage(1) }}
+        >
+          <option value="">All plans</option>
+          <option value="free">Free</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="teacher">Teachers</option>
+        </select>
+        <select
+          className="admin-select-v2"
+          value={sort}
+          onChange={(e) => { setSort(e.target.value); setPage(1) }}
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="name">Name A–Z</option>
+        </select>
+        <button type="button" className="refresh-btn" onClick={load}>
+          <RefreshCw size={14} /> Refresh
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="admin-card-v2" style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
+        <table className="admin-table-v2">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Plan</th>
+              <th className="hidden lg:table-cell">Last Seen</th>
+              <th className="hidden lg:table-cell">Joined</th>
+              <th style={{ width: 100 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 32 }}>
+                  <div className="flex items-center justify-center gap-2 text-slate-400">
+                    <Smartphone size={18} className="animate-pulse text-emerald-500" />
+                    Loading PWA users…
+                  </div>
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 32 }}>
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <Smartphone size={28} className="opacity-30" />
+                    <p className="text-sm font-semibold">No PWA users found</p>
+                    {(search || planFilter) && (
+                      <p className="text-xs">Try clearing your filters.</p>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              users.map((u) => (
+                <tr key={u._id}>
+                  <td className="font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 shrink-0"
+                        title="PWA Installed"
+                      >
+                        <Smartphone size={11} />
+                      </span>
+                      {u.name || '—'}
+                    </div>
+                  </td>
+                  <td className="text-slate-600">{u.email}</td>
+                  <td>
+                    <span className={`plan-badge-v2 ${planBadgeKey(u)}`}>{planBadgeLabel(u)}</span>
+                    {u.banned && <span className="ml-2 text-xs font-bold text-red-600">BANNED</span>}
+                    {u.isVerified && <span className="ml-2 text-xs font-bold text-emerald-700">✓</span>}
+                  </td>
+                  <td className="hidden lg:table-cell text-xs text-slate-500">
+                    {u.lastSeen
+                      ? formatDistanceToNow(new Date(u.lastSeen), { addSuffix: true })
+                      : '—'}
+                  </td>
+                  <td className="hidden lg:table-cell text-xs text-slate-500">
+                    {format(new Date(u.createdAt), 'MMM d, yyyy')}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="text-xs text-indigo-600 font-bold hover:underline"
+                      onClick={() => onViewProfile(u)}
+                    >
+                      View Profile
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="admin-pagination" style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span>Page {page} of {pages} ({total.toLocaleString()} installs)</span>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((p) => p + 1)}
+          disabled={page >= pages}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 const SIDEBAR = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
+  { id: 'pwa', label: 'PWA Users', icon: Smartphone },
   { id: 'revenue', label: 'Revenue', icon: DollarSign },
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'paywall', label: 'Paywall Events', icon: Lock },
@@ -1393,7 +1584,7 @@ const SIDEBAR = [
 ] as const
 
 const EMPTY_STATS: DashboardStatsV2 = {
-  users: { total: 0, today: 0, week: 0, month: 0, paid: 0, free: 0, teachers: 0 },
+  users: { total: 0, today: 0, week: 0, month: 0, paid: 0, free: 0, teachers: 0, pwa: 0 },
   revenue: { total: 0, week: 0, month: 0, byPlan: [], weekly: [] },
   cbt: { total: 0, week: 0, avgScore: 0 },
   library: { files: 0, storage: 0, byRole: [] },
@@ -1894,6 +2085,9 @@ export default function AdminDashboardPage() {
               onViewProfile={(u) => setSelectedUser(u)}
               onRefreshUsers={fetchDashboard}
             />
+          )}
+          {activeTab === 'pwa' && (
+            <PWAUsersTab onViewProfile={(u) => setSelectedUser(u)} />
           )}
           {activeTab === 'revenue' && (
             <RevenueTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
