@@ -7919,6 +7919,142 @@ html {
   transition: width 0.3s ease;
 }
 
+/* Dark mode overrides for Admin Dashboard v2 */
+.dark .admin-layout-v2 {
+  background: #0b0f19;
+}
+.dark .admin-sidebar-v2 {
+  background: #111827;
+  border-right-color: #1f2937;
+}
+.dark .admin-sidebar-item-v2 {
+  color: #94a3b8;
+}
+.dark .admin-sidebar-item-v2:hover {
+  background: #1f2937;
+  color: #f8fafc;
+}
+.dark .admin-sidebar-item-v2.active {
+  background: #1e1b4b;
+  color: #818cf8;
+  border-left-color: #818cf8;
+}
+.dark .admin-topbar-v2 h1 {
+  color: #f8fafc;
+}
+.dark .admin-topbar-v2 p {
+  color: #94a3b8;
+}
+.dark .admin-kpi-card,
+.dark .admin-chart-card-v2,
+.dark .admin-card-v2,
+.dark .admin-modal-v2 {
+  background: #111827;
+  border-color: #1f2937;
+}
+.dark .admin-kpi-value,
+.dark .admin-chart-title-v2,
+.dark .admin-modal-v2 h3 {
+  color: #f8fafc;
+}
+.dark .admin-kpi-sub,
+.dark .admin-modal-v2 p {
+  color: #94a3b8;
+}
+.dark .admin-card-v2 span.font-bold {
+  color: #e2e8f0;
+}
+.dark .admin-card-v2 li {
+  color: #cbd5e1;
+}
+.dark .admin-card-v2 p.text-slate-500 {
+  color: #94a3b8;
+}
+.dark .admin-card-v2 p.admin-kpi-value {
+  color: #f8fafc;
+}
+.dark .admin-card-v2 p.admin-kpi-sub {
+  color: #94a3b8;
+}
+.dark .admin-card-v2 .storage-bar-track {
+  background: #1f2937;
+}
+.dark .admin-card-v2 .bg-slate-50\/60 {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: #1f2937;
+}
+.dark .admin-card-v2 .border-slate-100 {
+  border-color: #1f2937;
+}
+.dark .admin-card-v2 .text-slate-700 {
+  color: #cbd5e1;
+}
+.dark .admin-card-v2 .text-slate-800 {
+  color: #e2e8f0;
+}
+.dark .admin-table-v2 th {
+  background: #1e293b;
+  border-bottom-color: #334155;
+  color: #cbd5e1;
+}
+.dark .admin-table-v2 td {
+  color: #e2e8f0;
+  border-bottom-color: #1f2937;
+}
+.dark .admin-table-v2 tr:hover td {
+  background: #1e293b;
+}
+.dark .admin-search-v2 {
+  background: #111827;
+  border-color: #1f2937;
+}
+.dark .admin-search-v2 input {
+  color: #f8fafc;
+}
+.dark .admin-select-v2 {
+  background: #111827;
+  border-color: #1f2937;
+  color: #e2e8f0;
+}
+.dark .admin-kebab {
+  background: #1f2937;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+.dark .admin-dropdown-v2 {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.dark .admin-dropdown-v2 button {
+  color: #e2e8f0;
+}
+.dark .admin-dropdown-v2 button:hover {
+  background: #1f2937;
+}
+.dark .activity-item-v2 {
+  background: #111827;
+  border-color: #1f2937;
+}
+.dark .activity-item-v2.failed_payment {
+  background: #7f1d1d33;
+  border-left-color: #ef4444;
+}
+.dark .admin-failed-alert {
+  background: #7f1d1d33;
+  border-color: #7f1d1d;
+  color: #f87171;
+}
+.dark .admin-modal-v2 input {
+  background: #0f172a;
+  border-color: #1f2937;
+  color: #f8fafc;
+}
+.dark .admin-modal-actions-v2 .cancel {
+  background: #1f2937;
+  color: #cbd5e1;
+}
+
 .community-new-posts-banner {
   position: sticky;
   top: 70px;
