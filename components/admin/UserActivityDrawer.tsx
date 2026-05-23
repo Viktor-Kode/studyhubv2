@@ -5,8 +5,9 @@ import { format } from 'date-fns'
 import { X } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
-function nairaFromKobo(kobo: number): string {
-  return `₦${Math.round((kobo || 0) / 100).toLocaleString('en-NG')}`
+// Amounts are stored in naira directly (not kobo) — no divide-by-100 needed
+function formatNaira(naira: number): string {
+  return `₦${Math.round(naira || 0).toLocaleString('en-NG')}`
 }
 
 type ActivityDrawerUser = {
@@ -115,6 +116,7 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
       plan?: string
       reference?: string
       amount?: number
+      status?: string
       createdAt?: string
     }>
   } | null>(null)
@@ -471,7 +473,7 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
                         <span className="activity-meta">{t.reference || '—'}</span>
                       </div>
                       <div className="activity-row-right">
-                        <span className="amount-badge">{nairaFromKobo(t.amount ?? 0)}</span>
+                        <span className="amount-badge">{formatNaira(t.amount ?? 0)}</span>
                         <span className="activity-date">
                           {t.createdAt
                             ? new Date(t.createdAt).toLocaleDateString('en-NG', {
