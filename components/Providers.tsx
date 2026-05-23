@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import AuthSync from './AuthSync'
 import InstallBanner from './InstallBanner'
 import NotifToast from '@/components/notifications/NotifToast'
@@ -125,6 +126,23 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             }
         }
     }, [isAuthenticated])
+
+    // Track page views on route changes
+    const pathname = usePathname()
+    useEffect(() => {
+        if (!isAuthenticated || !pathname) return
+        // Build a human-readable label from the pathname
+        const segments = pathname.split('/').filter(Boolean)
+        const label = segments.length === 0
+            ? 'Home'
+            : segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' › ')
+        apiClient.post('/users/page-view', {
+            title: label,
+            subtitle: '',
+            metadata: { route: pathname }
+        }).catch(() => { /* silent */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname, isAuthenticated])
 
     const playAlarm = (type: string) => {
         const audio = new Audio(

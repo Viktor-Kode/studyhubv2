@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import { X } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { format, formatDistanceToNow } from 'date-fns'
+import { X, Map } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
 // Amounts are stored in naira directly (not kobo) — no divide-by-100 needed
@@ -56,6 +56,7 @@ const DAY_TAB_LABELS: Record<string, string> = {
   cbt: 'CBT',
   sessions: 'Sessions',
   payments: 'Payments',
+  routes: 'Pages / Routes',
 }
 
 function dayKindClass(kind: string): string {
@@ -126,6 +127,12 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
   const [dayData, setDayData] = useState<UserDayActivityResponse | null>(null)
   const [dayLoading, setDayLoading] = useState(false)
   const [dayError, setDayError] = useState('')
+  const [routeData, setRouteData] = useState<{
+    routes: Array<{ route: string; label: string; count: number; lastVisited: string }>
+    views: Array<{ title: string; subtitle: string; metadata: Record<string, unknown>; createdAt: string }>
+    total: number
+  } | null>(null)
+  const [routeLoading, setRouteLoading] = useState(false)
 
   useEffect(() => {
     const fetchUserActivity = async () => {
@@ -142,6 +149,20 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
     }
     fetchUserActivity()
   }, [userId])
+
+  const loadRoutes = useCallback(async () => {
+    setRouteLoading(true)
+    try {
+      const res = await apiClient.get(`/admin/users/${userId}/page-views`)
+      if (res.data?.success) setRouteData(res.data)
+    } catch { /* ignore */ } finally {
+      setRouteLoading(false)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (activeTab === 'routes') loadRoutes()
+  }, [activeTab, loadRoutes])
 
   useEffect(() => {
     if (activeTab !== 'daylog') return
@@ -243,7 +264,7 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
             </div>
 
             <div className="drawer-tabs">
-              {(['overview', 'daylog', 'cbt', 'sessions', 'payments'] as const).map((t) => (
+              {(['overview', 'daylog', 'cbt', 'sessions', 'payments', 'routes'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -486,6 +507,89 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {activeTab === 'routes' && (
+              <div className="drawer-content">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Map size={16} style={{ color: '#6366f1' }} />
+                  <h4 style={{ margin: 0 }}>Pages &amp; Routes</h4>
+                  <button
+                    type="button"
+                    onClick={loadRoutes}
+                    style={{ marginLeft: 'auto', fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                {routeLoading ? (
+                  <p className="empty-state">Loading pages…</p>
+                ) : !routeData || routeData.total === 0 ? (
+                  <p className="empty-state">No page views recorded yet. Views are logged when the user navigates while authenticated.</p>
+                ) : (
+                  <>
+                    {/* Route summary cards */}
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>
+                      {routeData.total} visits across {routeData.routes.length} unique page{routeData.routes.length !== 1 ? 's' : ''}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                      {routeData.routes.map((r) => (
+                        <div
+                          key={r.route}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: '#f8fafc',
+                            borderRadius: 8,
+                            padding: '8px 12px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.label || r.route}
+                            </p>
+                            <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>
+                              {r.route} · last {formatDistanceToNow(new Date(r.lastVisited), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <span
+                            style={{
+                              background: '#6366f1',
+                              color: '#fff',
+                              borderRadius: 20,
+                              padding: '2px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {r.count}×
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Recent raw feed */}
+                    <h4 style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', margin: '0 0 8px' }}>Recent visits</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {routeData.views.slice(0, 40).map((v, i) => (
+                        <div key={i} className="activity-row">
+                          <div className="activity-row-left">
+                            <span className="activity-subject" style={{ fontSize: 12 }}>{v.title}</span>
+                            {v.subtitle && <span className="activity-meta">{v.subtitle}</span>}
+                          </div>
+                          <span className="activity-date">
+                            {format(new Date(v.createdAt), 'MMM d · HH:mm')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             )}
