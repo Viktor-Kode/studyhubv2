@@ -1075,6 +1075,19 @@ function UsersTab({
 
 // ─── Tab: Revenue ────────────────────────────────────────────────────────────
 
+interface AdminTransaction {
+  _id: string
+  userId?: {
+    name?: string
+    email?: string
+  } | null
+  reference: string
+  amount: number
+  plan: string
+  status: string
+  createdAt: string
+}
+
 function RevenueTab({
   stats,
   onGoActivity,
@@ -1084,6 +1097,72 @@ function RevenueTab({
 }) {
   const weekly12 = (stats.revenue.weekly || []).slice(-12)
   const pieData = (stats.revenue.byPlan || []).filter((p) => p.total > 0)
+
+  // Payment History State
+  const [txList, setTxList] = useState<AdminTransaction[]>([])
+  const [txTotal, setTxTotal] = useState(0)
+  const [txPages, setTxPages] = useState(1)
+  const [txPage, setTxPage] = useState(1)
+  const [txSearch, setTxSearch] = useState('')
+  const [txPlan, setTxPlan] = useState('')
+  const [txStatus, setTxStatus] = useState('success') // default to success
+  const [txSort, setTxSort] = useState('newest')
+  const [txLoading, setTxLoading] = useState(false)
+
+  const loadPayments = useCallback(() => {
+    const params = new URLSearchParams({
+      page: String(txPage),
+      limit: '50',
+      sort: txSort,
+      status: txStatus,
+    })
+    if (txSearch.trim()) params.append('search', txSearch.trim())
+    if (txPlan) params.append('plan', txPlan)
+
+    setTxLoading(true)
+    apiClient
+      .get(`/admin/payment-history?${params}`)
+      .then((res) => {
+        if (res.data?.success) {
+          setTxList(res.data.transactions || [])
+          setTxTotal(res.data.total || 0)
+          setTxPages(res.data.pages || 1)
+        }
+      })
+      .catch(() => setTxList([]))
+      .finally(() => setTxLoading(false))
+  }, [txPage, txSearch, txPlan, txStatus, txSort])
+
+  useEffect(() => {
+    loadPayments()
+  }, [loadPayments])
+
+  const formatTxAmount = (amount: number) => {
+    return `₦${Math.round(amount || 0).toLocaleString('en-NG')}`
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'success':
+        return (
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/30">
+            Success
+          </span>
+        )
+      case 'failed':
+        return (
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-tight bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/30">
+            Failed
+          </span>
+        )
+      default:
+        return (
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-tight bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/30">
+            Pending
+          </span>
+        )
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -1148,6 +1227,179 @@ function RevenueTab({
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Payment History Header */}
+      <div className="flex flex-wrap items-center gap-3 mt-6 mb-2">
+        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 dark:bg-indigo-950/40 dark:border-indigo-900/30">
+          <DollarSign size={18} className="text-indigo-600 dark:text-indigo-400" />
+          <span className="font-black text-indigo-700 text-sm dark:text-indigo-400">Payment History</span>
+          <span className="ml-1 bg-indigo-600 text-white text-xs font-black rounded-full px-2 py-0.5 dark:bg-indigo-500">
+            {txTotal.toLocaleString()}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 leading-tight max-w-sm dark:text-slate-400">
+          Filter, search, and view all system transactions and payments by users.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      <div className="admin-users-toolbar-v2">
+        <div className="grow">
+          <div className="admin-search-v2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              placeholder="Search user name or email…"
+              value={txSearch}
+              onChange={(e) => {
+                setTxSearch(e.target.value)
+                setTxPage(1)
+              }}
+            />
+          </div>
+        </div>
+        <select
+          className="admin-select-v2"
+          value={txPlan}
+          onChange={(e) => {
+            setTxPlan(e.target.value)
+            setTxPage(1)
+          }}
+        >
+          <option value="">All plans</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="addon">Addon</option>
+        </select>
+        <select
+          className="admin-select-v2"
+          value={txStatus}
+          onChange={(e) => {
+            setTxStatus(e.target.value)
+            setTxPage(1)
+          }}
+        >
+          <option value="success">Success</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+          <option value="all">All statuses</option>
+        </select>
+        <select
+          className="admin-select-v2"
+          value={txSort}
+          onChange={(e) => {
+            setTxSort(e.target.value)
+            setTxPage(1)
+          }}
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+        <button type="button" className="refresh-btn" onClick={loadPayments} disabled={txLoading}>
+          <RefreshCw size={14} className={txLoading ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="admin-card-v2" style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
+        <table className="admin-table-v2">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Reference</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {txLoading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 32 }}>
+                  <div className="flex items-center justify-center gap-2 text-slate-400">
+                    <RefreshCw size={18} className="animate-spin text-indigo-500" />
+                    Loading payment history…
+                  </div>
+                </td>
+              </tr>
+            ) : txList.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 32 }}>
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <DollarSign size={28} className="opacity-30" />
+                    <p className="text-sm font-semibold">No payments found</p>
+                    {(txSearch || txPlan || txStatus !== 'success') && (
+                      <p className="text-xs">Try clearing your search or changing filters.</p>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              txList.map((t) => (
+                <tr key={t._id}>
+                  <td>
+                    {t.userId ? (
+                      <div>
+                        <span className="font-bold block text-slate-800 dark:text-slate-200">
+                          {t.userId.name || '—'}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block font-mono leading-tight">
+                          {t.userId.email}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 italic">Unknown User</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`plan-badge-v2 ${t.plan || 'free'}`}>
+                      {t.plan || 'Free'}
+                    </span>
+                  </td>
+                  <td className="font-semibold text-slate-800 dark:text-slate-200">
+                    {formatTxAmount(t.amount)}
+                  </td>
+                  <td>{getStatusBadge(t.status)}</td>
+                  <td className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                    {t.reference || '—'}
+                  </td>
+                  <td className="text-xs text-slate-500 dark:text-slate-400">
+                    {t.createdAt
+                      ? format(new Date(t.createdAt), 'MMM d, yyyy h:mm a')
+                      : '—'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {txPages > 1 && (
+        <div className="admin-pagination" style={{ marginTop: 16 }}>
+          <button
+            type="button"
+            className="page-btn"
+            onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+            disabled={txPage === 1 || txLoading}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm text-slate-600 dark:text-slate-300 font-semibold">
+            Page {txPage} of {txPages}
+          </span>
+          <button
+            type="button"
+            className="page-btn"
+            onClick={() => setTxPage((p) => Math.min(txPages, p + 1))}
+            disabled={txPage >= txPages || txLoading}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
