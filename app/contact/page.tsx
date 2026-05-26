@@ -25,7 +25,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-white font-medium">Email Support</h3>
-                  <a href="mailto:studyhelp440@gmail.com" className="text-[#5B4CF5] hover:underline">studyhelp440@gmail.com</a>
+                  <a href="mailto:support@studyhelp.site" className="text-[#5B4CF5] hover:underline">support@studyhelp.site</a>
                   <p className="text-sm text-zinc-500 mt-1">We usually reply within 24 hours.</p>
                 </div>
               </div>
@@ -93,7 +93,7 @@ export default function ContactPage() {
               </div>
               <button 
                 type="button" 
-                onClick={() => toast.success("Message submitted! We will get back to you at studyhelp440@gmail.com.")}
+                onClick={() => toast.success("Message submitted! We will get back to you at support@studyhelp.site.")}
                 className="w-full bg-[#5B4CF5] hover:bg-[#4a3df0] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 Send Message

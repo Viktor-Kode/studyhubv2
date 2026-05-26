@@ -102,8 +102,8 @@ export default function Footer() {
               © {new Date().getFullYear()} StudyHelp. Built with ❤️ for Nigerian Students.
             </p>
             <div className="flex items-center gap-6">
-              <a href="mailto:studyhelp440@gmail.com" className="text-slate-500 hover:text-white transition-colors text-xs flex items-center gap-2">
-                <FaEnvelope /> studyhelp440@gmail.com
+              <a href="mailto:support@studyhelp.site" className="text-slate-500 hover:text-white transition-colors text-xs flex items-center gap-2">
+                <FaEnvelope /> support@studyhelp.site
               </a>
               <a href="tel:+2349163345794" className="text-slate-500 hover:text-white transition-colors text-xs flex items-center gap-2">
                 <FaPhone /> +234 916 334 5794

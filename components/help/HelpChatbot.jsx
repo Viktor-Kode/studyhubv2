@@ -25,9 +25,9 @@ const FIXED_ANSWERS = {
   'how do i reset my password':
     'To reset your password, go to the login page and choose **Forgot Password**. Follow the prompts to verify your account and set a new password.',
   'contact support':
-    'You can reach our support team via:\n\n- **Email:** studyhelp440@gmail.com\n- **Phone:** +234 9163345794\n- **WhatsApp:** [Chat with us](https://wa.me/2349163345794)',
+    'You can reach our support team via:\n\n- **Email:** support@studyhelp.site\n- **Phone:** +234 9163345794\n- **WhatsApp:** [Chat with us](https://wa.me/2349163345794)',
   'talk to support':
-    'You can reach our support team via:\n\n- **Email:** studyhelp440@gmail.com\n- **Phone:** +234 9163345794\n- **WhatsApp:** [Chat with us](https://wa.me/2349163345794)',
+    'You can reach our support team via:\n\n- **Email:** support@studyhelp.site\n- **Phone:** +234 9163345794\n- **WhatsApp:** [Chat with us](https://wa.me/2349163345794)',
 }
 
 function normalizeText(text) {
@@ -88,7 +88,7 @@ const INITIAL_REPLIES = [
 const SYSTEM_PROMPT = `You are the StudyHelp onboarding assistant. Answer ONLY questions about how to navigate or use StudyHelp (dashboards, CBT/Study Mode, Community, Library, pricing, authentication, and features). Keep answers short and practical (max 3 sentences). Use **bold** for feature names.
 
 If the user wants to talk to a human or needs direct support, provide the following details:
-- Email: studyhelp440@gmail.com
+- Email: support@studyhelp.site
 - Phone/WhatsApp: +234 9163345794
 
 If the user asks something unrelated (like learning topics or general knowledge), politely redirect them to the **AI Tutor** instead of answering the topic.`
