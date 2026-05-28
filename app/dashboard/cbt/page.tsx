@@ -6,6 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { cbtApi, ExamType, CBTQuestion, renderQuestion } from '@/lib/api/cbt'
+import { cacheQuestions, getCachedQuestions, addProgressItem } from '@/lib/utils/offlineDb'
 import StudyGuideLoader from '@/components/loading/StudyGuideLoader'
 import {
   FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft,
@@ -266,6 +267,25 @@ export default function CBTPage() {
 
   const searchParams = useSearchParams()
 
+  const [isOffline, setIsOffline] = useState(false)
+  const [cachedQuestionsData, setCachedQuestionsData] = useState<any>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setIsOffline(!navigator.onLine)
+    const update = () => setIsOffline(!navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
+  useEffect(() => {
+    getCachedQuestions().then(data => setCachedQuestionsData(data))
+  }, [isOffline])
+
   // When arriving with ?start=true (e.g. from the dashboard card),
   // always reset to the exam-select screen so the user picks fresh.
   useEffect(() => {
@@ -392,15 +412,35 @@ export default function CBTPage() {
 
     try {
       await new Promise(r => setTimeout(r, 500))
-      setLoadingStage(`Loading ${selectedSubject} ${selectedYear} questions...`)
+      
+      let response;
 
-      const response = await cbtApi.getQuestions(
-        selectedExam,
-        selectedYear,
-        selectedSubject,
-        questionCount,
-        selectedExam === 'POST_UTME' ? selectedSchool : undefined
-      )
+      if (isOffline) {
+        setLoadingStage('Loading offline questions from cache...')
+        const cached = await getCachedQuestions()
+        if (!cached || !cached.questions || cached.questions.length === 0) {
+          throw new Error('No offline questions downloaded yet. Connect to the internet to load questions.')
+        }
+        
+        if (
+          cached.exam !== selectedExam ||
+          cached.year !== selectedYear ||
+          cached.subject !== selectedSubject
+        ) {
+          toast(`Loading cached questions: ${cached.exam} ${cached.subject} (${cached.year}) since you are offline.`, { icon: 'ℹ️' })
+        }
+        
+        response = cached
+      } else {
+        setLoadingStage(`Loading ${selectedSubject} ${selectedYear} questions...`)
+        response = await cbtApi.getQuestions(
+          selectedExam,
+          selectedYear,
+          selectedSubject,
+          questionCount,
+          selectedExam === 'POST_UTME' ? selectedSchool : undefined
+        )
+      }
 
       setLoadingStage('Preparing your test...')
       await new Promise(r => setTimeout(r, 500))
@@ -508,31 +548,72 @@ export default function CBTPage() {
     setLoading(true)
     setLoadingStage('Calculating your results...')
 
-    // Save to DB
+    const resultsPayload = questions.map(q => ({
+      questionId: q.id,
+      selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped'
+    }))
+
+    const resultData = {
+      subject: selectedSubject,
+      examType: selectedExam,
+      year: selectedYear,
+      totalQuestions: questions.length,
+      timeTaken: Math.max(0, (examDurationAtStartSeconds || (currentExamConfig?.duration || 120) * 60) - timeRemaining),
+      answers: resultsPayload
+    }
+
     try {
-      const resultsPayload = questions.map(q => ({
-        questionId: q.id,
-        selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped'
-      }))
+      if (isOffline) {
+        let correctCount = 0
+        let attemptedCount = 0
+        const verifiedAnswers = questions.map(q => {
+          const selectedIdx = selectedAnswers[q.id]
+          const isCorrect = selectedIdx === q.correctAnswer
+          if (isCorrect) correctCount++
+          if (selectedIdx !== undefined) attemptedCount++
+          return {
+            questionId: q.id,
+            question: q.question,
+            options: q.options,
+            selectedAnswer: q.options[selectedIdx] || 'Skipped',
+            correctAnswer: q.options[q.correctAnswer],
+            isCorrect,
+            explanation: q.explanation || ''
+          }
+        })
 
-      const resultData = {
-        subject: selectedSubject,
-        examType: selectedExam,
-        year: selectedYear,
-        totalQuestions: questions.length,
-        timeTaken: Math.max(0, (examDurationAtStartSeconds || (currentExamConfig?.duration || 120) * 60) - timeRemaining),
-        answers: resultsPayload
+        const localSummary = {
+          subject: selectedSubject,
+          examType: selectedExam,
+          year: selectedYear,
+          totalQuestions: questions.length,
+          correctAnswers: correctCount,
+          wrongAnswers: attemptedCount - correctCount,
+          skipped: questions.length - attemptedCount,
+          accuracy: Math.round((correctCount / questions.length) * 100),
+          timeTaken: resultData.timeTaken,
+          answers: verifiedAnswers
+        }
+
+        setSummary(localSummary)
+
+        await addProgressItem('cbt', resultData)
+
+        setShowResults(true)
+        setViewMode('results')
+        clearCbtPersistedState()
+        toast.success('Practice complete! Stashed results to sync once online.')
+      } else {
+        const response = await cbtApi.saveResult(resultData)
+        
+        // Auto-complete study plan task
+        studyPlanApi.autoCompleteTask('cbt').catch(err => console.error('Plan auto-complete error:', err))
+
+        setSummary(response.data) // Store verified results from backend
+        setShowResults(true)
+        setViewMode('results')
+        clearCbtPersistedState()
       }
-
-      const response = await cbtApi.saveResult(resultData)
-      
-      // Auto-complete study plan task
-      studyPlanApi.autoCompleteTask('cbt').catch(err => console.error('Plan auto-complete error:', err))
-
-      setSummary(response.data) // Store verified results from backend
-      setShowResults(true)
-      setViewMode('results')
-      clearCbtPersistedState()
     } catch (err: any) {
       console.error('Failed to save CBT result:', err)
       toast.error('Failed to save results. Please try again.')
@@ -1005,6 +1086,57 @@ export default function CBTPage() {
                         )}
                       </button>
                     </div>
+
+                    {!isOffline && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const isPro = user?.plan?.type && user.plan.type !== 'free'
+                          if (!isPro) {
+                            toast.error("Offline mode is a Pro feature. Upgrade to study without internet.")
+                            showUpgrade('cbt')
+                            return
+                          }
+                          if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
+                            setError('Please complete the exam setup before downloading.')
+                            return
+                          }
+                          
+                          setLoading(true)
+                          setLoadingStage('Downloading questions for offline study...')
+                          try {
+                            const response = await cbtApi.getQuestions(
+                              selectedExam,
+                              selectedYear,
+                              selectedSubject,
+                              questionCount,
+                              selectedExam === 'POST_UTME' ? selectedSchool : undefined
+                            )
+                            if (!response.questions || response.questions.length === 0) {
+                              throw new Error('No questions found to download.')
+                            }
+                            await cacheQuestions({
+                              questions: response.questions,
+                              exam: selectedExam,
+                              year: selectedYear,
+                              subject: selectedSubject,
+                              questionCount
+                            })
+                            toast.success(`Successfully downloaded ${selectedSubject} (${selectedYear}) questions for offline!`)
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to download questions for offline.')
+                          } finally {
+                            setLoading(false)
+                            setLoadingStage('')
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-4 px-6 
+                               bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 
+                               text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-indigo-500/20"
+                      >
+                        <FiCpu className="text-xl" /> Download for Offline
+                      </button>
+                    )}
 
                     <button
                       type="button"

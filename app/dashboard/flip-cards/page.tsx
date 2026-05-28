@@ -7,7 +7,7 @@ import {
   FiRefreshCw, FiStar, FiLayers, FiBarChart2,
   FiSearch, FiFilter, FiX, FiCheck, FiHeart,
   FiShuffle, FiBookOpen, FiLoader, FiGlobe, FiZap, FiDownload,
-  FiActivity, FiHash, FiMonitor, FiEdit3, FiTarget,
+  FiActivity, FiHash, FiMonitor, FiEdit3, FiTarget, FiWifi, FiWifiOff,
   FiBook, FiCheckCircle, FiXCircle // for deck icon mapping and feedback
 } from 'react-icons/fi'
 import { BiBrain, BiTestTube } from 'react-icons/bi'
@@ -31,6 +31,11 @@ import {
   FlashCardDeck
 } from '@/lib/api/flashcardApi'
 import { useUpgrade } from '@/context/UpgradeContext'
+import {
+  cacheFlashcards,
+  getCachedFlashcards,
+  addProgressItem
+} from '@/lib/utils/offlineDb'
 
 function isUpgradeError(msg: string): boolean {
   const m = (msg || '').toLowerCase()
@@ -44,6 +49,27 @@ export default function FlipCardsPage() {
   const { user } = useAuthStore()
   const userId = user?.uid || ''
   const { showUpgrade } = useUpgrade()
+  const isPro = user?.plan?.type && user.plan.type !== 'free'
+
+  // Offline state
+  const [isOffline, setIsOffline] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isOfflineCached, setIsOfflineCached] = useState(false)
+
+  useEffect(() => {
+    const update = () => setIsOffline(!navigator.onLine)
+    setIsOffline(!navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    // Check if we already have cached data
+    getCachedFlashcards().then(data => {
+      if (data?.flashCards?.length || data?.decks?.length) setIsOfflineCached(true)
+    })
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
 
   // Data state
   const [cards, setCards] = useState<FlashCard[]>([])
@@ -139,6 +165,27 @@ export default function FlipCardsPage() {
     setIsLoading(true)
     setError('')
 
+    // ── Offline: load from IndexedDB cache ──────────────────────────────────
+    if (!navigator.onLine) {
+      try {
+        const cached = await getCachedFlashcards()
+        if (cached) {
+          setCards(cached.flashCards || [])
+          setDecks(cached.decks || [])
+          setDueCards(cached.dueCards || [])
+          setStats(cached.stats || null)
+        } else {
+          setError('No offline data found. Connect to the internet and download your flashcards first.')
+        }
+      } catch (err) {
+        setError('Failed to load offline data.')
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
+    // ── Online: fetch from API and update cache ──────────────────────────────
     try {
       const [cardsRes, decksRes, statsRes, dueRes] = await Promise.all([
         getFlashCards(),
@@ -147,10 +194,15 @@ export default function FlipCardsPage() {
         getDueCards()
       ])
 
-      setCards(cardsRes.flashCards || [])
-      setDecks(decksRes.decks || [])
-      setStats(statsRes.stats || null)
-      setDueCards(dueRes.flashCards || [])
+      const flashCards = cardsRes.flashCards || []
+      const decks = decksRes.decks || []
+      const stats = statsRes.stats || null
+      const dueCards = dueRes.flashCards || []
+
+      setCards(flashCards)
+      setDecks(decks)
+      setStats(stats)
+      setDueCards(dueCards)
     } catch (err: any) {
       setError('Failed to load flashcards. Please check your connection.')
       console.error('Load data error:', err)
@@ -158,6 +210,36 @@ export default function FlipCardsPage() {
       setIsLoading(false)
     }
   }, [userId])
+
+  // ── Download for Offline ──────────────────────────────────────────────────
+  const handleDownloadOffline = async () => {
+    if (!isPro) {
+      showUpgrade('flashcard')
+      return
+    }
+    setIsDownloading(true)
+    try {
+      const [cardsRes, decksRes, statsRes, dueRes] = await Promise.all([
+        getFlashCards(),
+        getDecks(),
+        getFlashCardStats(),
+        getDueCards()
+      ])
+      await cacheFlashcards({
+        flashCards: cardsRes.flashCards || [],
+        decks: decksRes.decks || [],
+        stats: statsRes.stats || null,
+        dueCards: dueRes.flashCards || [],
+        cachedAt: Date.now()
+      })
+      setIsOfflineCached(true)
+      showSuccess('Flashcards saved for offline use!')
+    } catch (err: any) {
+      setError('Download failed. Please try again.')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -313,15 +395,43 @@ export default function FlipCardsPage() {
     setIsReviewing(true)
     setReviewFeedback(rating >= 3 ? 'correct' : 'incorrect')
 
-    try {
-      const payload = {
-        cardId: currentCard._id,
-        deckId: typeof currentCard.deckId === 'object' ? currentCard.deckId?._id : currentCard.deckId,
-        subject: currentCard.category,
-        topic: 'General', // Fallback
-        rating
-      }
+    const payload = {
+      cardId: currentCard._id,
+      deckId: typeof currentCard.deckId === 'object' ? currentCard.deckId?._id : currentCard.deckId,
+      subject: currentCard.category,
+      topic: 'General',
+      rating
+    }
 
+    // ── Offline: stash review to sync queue ─────────────────────────────────
+    if (!navigator.onLine) {
+      await addProgressItem('flashcard', payload)
+      if (rating >= 3) setSessionCorrect(prev => prev + 1)
+      else setSessionIncorrect(prev => prev + 1)
+
+      setTimeout(() => {
+        setReviewFeedback(null)
+        setIsFlipped(false)
+        setIsReviewing(false)
+        // Optimistically update local card status
+        setCards(prev => prev.map(c =>
+          c._id === currentCard._id
+            ? { ...c, reviewCount: (c.reviewCount || 0) + 1, status: rating >= 3 ? 'mastered' : 'learning' }
+            : c
+        ))
+        const wasLastCard = currentIndex === filteredCards.length - 1
+        if (wasLastCard) {
+          showSuccess('Session complete! Reviews queued for sync.')
+          setViewMode('mastered')
+        } else {
+          setCurrentIndex(prev => prev + 1)
+        }
+      }, 1000)
+      return
+    }
+
+    // ── Online: submit to API ───────────────────────────────────────────────
+    try {
       const res = await reviewCard(payload)
 
       if (rating >= 3) setSessionCorrect(prev => prev + 1)
@@ -514,9 +624,17 @@ export default function FlipCardsPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-3">
+            {/* Offline status pill */}
+            {isOffline && (
+              <span className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700/50 rounded-xl text-xs font-black uppercase tracking-widest">
+                <FiWifiOff size={12} /> Offline Mode
+              </span>
+            )}
             <button
               onClick={() => setShowAIModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg hover:shadow-purple-500/20"
+              disabled={isOffline}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg hover:shadow-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isOffline ? 'AI generation requires an internet connection' : undefined}
             >
               <FiZap /> AI Generate
             </button>
@@ -525,10 +643,33 @@ export default function FlipCardsPage() {
                 resetForm()
                 setShowAddForm(true)
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/20"
+              disabled={isOffline}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isOffline ? 'Adding cards requires an internet connection' : undefined}
             >
               <FiPlus /> Add Card
             </button>
+            {/* Download for Offline — Pro only */}
+            {!isOffline && (
+              <button
+                onClick={handleDownloadOffline}
+                disabled={isDownloading}
+                title={isPro ? 'Save all flashcards for offline study' : 'Upgrade to Pro to use offline mode'}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold shadow-sm ${
+                  isOfflineCached
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700/50 hover:bg-green-100'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                {isDownloading
+                  ? <FiLoader className="animate-spin" />
+                  : isOfflineCached
+                    ? <FiWifi size={14} />
+                    : <FiDownload size={14} />}
+                {isDownloading ? 'Saving...' : isOfflineCached ? 'Offline Ready' : 'Save Offline'}
+                {!isPro && <span className="ml-1 text-[9px] font-black uppercase tracking-widest bg-amber-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>}
+              </button>
+            )}
             <button
               onClick={async () => {
                 const blob = await exportFlashCards({ format: 'csv' });
@@ -538,7 +679,8 @@ export default function FlipCardsPage() {
                 a.download = 'flashcards.csv';
                 a.click();
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-all font-bold"
+              disabled={isOffline}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-all font-bold disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <FiDownload /> Export
             </button>

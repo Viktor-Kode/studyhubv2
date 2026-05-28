@@ -176,13 +176,32 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Online only features: AI Tutor, Question Generator, PDF uploads, Chat History
+  const isOnlineOnly = 
+    url.pathname.includes('/ai/') || 
+    url.pathname.includes('/chat/') || 
+    url.pathname.includes('/library/upload') ||
+    url.pathname.includes('/pdf-cbt/');
+
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-      })
-    );
+    if (isOnlineOnly) {
+      event.respondWith(
+        fetch(event.request, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        })
+      );
+    } else {
+      // Use network-first caching for CBT, Flashcards, Planner, and progress GET requests
+      event.respondWith(
+        networkFirstSameOrigin(event.request, RUNTIME_CACHE).catch(() => {
+          return new Response(JSON.stringify({ error: 'offline', message: 'You are offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
+      );
+    }
     return;
   }
 

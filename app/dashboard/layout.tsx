@@ -20,6 +20,11 @@ import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
 import BackButton from '@/components/BackButton'
 import WebPushPrompt from '@/components/WebPushPrompt'
+import { getProgressQueue, removeProgressItem } from '@/lib/utils/offlineDb'
+import { cbtApi } from '@/lib/api/cbt'
+import { reviewCard } from '@/lib/api/flashcardApi'
+import { studyPlanApi } from '@/lib/api/studyPlanApi'
+import { toast } from 'react-hot-toast'
 
 interface NavItem {
     href: string
@@ -67,6 +72,67 @@ export default function DashboardLayout({
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const [isOffline, setIsOffline] = useState(false)
+    const [isSyncing, setIsSyncing] = useState(false)
+
+    const syncProgress = async () => {
+        try {
+            const queue = await getProgressQueue()
+            if (queue.length === 0) return
+
+            setIsSyncing(true)
+            toast.loading('Syncing offline progress...', { id: 'offline-sync' })
+
+            for (const item of queue) {
+                try {
+                    if (item.type === 'cbt') {
+                        await cbtApi.saveResult(item.data)
+                    } else if (item.type === 'flashcard') {
+                        await reviewCard(item.data)
+                    } else if (item.type === 'planner') {
+                        await studyPlanApi.updateTaskStatus(item.data.taskId, item.data.completed)
+                    }
+                    if (item.key !== undefined) {
+                        await removeProgressItem(item.key)
+                    }
+                } catch (err) {
+                    console.error('Failed to sync offline item:', item, err)
+                }
+            }
+
+            toast.success('Offline progress synchronized!', { id: 'offline-sync' })
+        } catch (error) {
+            console.error('Offline sync error:', error)
+            toast.error('Failed to sync some offline progress.', { id: 'offline-sync' })
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const updateOnlineStatus = () => {
+            const offline = !navigator.onLine
+            setIsOffline(offline)
+            if (!offline) {
+                syncProgress()
+            }
+        }
+
+        updateOnlineStatus()
+        window.addEventListener('online', updateOnlineStatus)
+        window.addEventListener('offline', updateOnlineStatus)
+
+        if (navigator.onLine) {
+            syncProgress()
+        }
+
+        return () => {
+            window.removeEventListener('online', updateOnlineStatus)
+            window.removeEventListener('offline', updateOnlineStatus)
+        }
+    }, [])
 
     const handleLogout = async () => {
         try {
@@ -327,6 +393,12 @@ export default function DashboardLayout({
 
                 {/* Main Content */}
                 <main className="pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))] lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
+                    {isOffline && (
+                        <div className="mx-3 sm:mx-5 md:mx-6 mt-3 sm:mt-5 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm animate-pulse">
+                            <span className="text-base leading-none">⚡</span>
+                            <span>You're offline — showing cached content</span>
+                        </div>
+                    )}
                     <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-hidden">
                         {(() => {
                             const noGlobalBack = [

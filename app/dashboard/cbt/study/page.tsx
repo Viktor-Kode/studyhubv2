@@ -8,6 +8,7 @@ import { useUpgrade } from '@/context/UpgradeContext'
 import BackButton from '@/components/BackButton'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { CBTQuestion, ExamType, cbtApi, renderQuestion } from '@/lib/api/cbt'
+import { getCachedQuestions } from '@/lib/utils/offlineDb'
 import { progressApi } from '@/lib/api/progressApi'
 import {
   FiCheckCircle,
@@ -57,6 +58,20 @@ export default function StudyModePage() {
   const [finished, setFinished] = useState(false)
   const [answers, setAnswers] = useState<StudyAnswer[]>([])
 
+  const [isOffline, setIsOffline] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setIsOffline(!navigator.onLine)
+    const update = () => setIsOffline(!navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
   useEffect(() => {
     const loadQuestions = async () => {
       if (!selectedExam || !selectedYear || !selectedSubject) {
@@ -66,7 +81,17 @@ export default function StudyModePage() {
       }
 
       try {
-        const res = await cbtApi.getQuestions(selectedExam, selectedYear, selectedSubject, questionCount || 20)
+        let res;
+        if (isOffline) {
+          const cached = await getCachedQuestions()
+          if (!cached || !cached.questions || cached.questions.length === 0) {
+            throw new Error('No offline questions downloaded yet. Connect to the internet to load questions.')
+          }
+          res = cached
+        } else {
+          res = await cbtApi.getQuestions(selectedExam, selectedYear, selectedSubject, questionCount || 20)
+        }
+
         if (!res.questions || res.questions.length === 0) {
           setError('No questions found for this configuration. Try a different year or subject.')
           return
@@ -81,7 +106,7 @@ export default function StudyModePage() {
     }
 
     loadQuestions()
-  }, [selectedExam, selectedYear, selectedSubject, questionCount])
+  }, [selectedExam, selectedYear, selectedSubject, questionCount, isOffline])
 
   const handleSelect = async (optionIndex: number) => {
     try {

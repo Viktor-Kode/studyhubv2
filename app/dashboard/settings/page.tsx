@@ -7,7 +7,7 @@ import {
   Users, Copy, Award, Share2
 } from 'lucide-react'
 import { MdSchool, MdQuiz } from 'react-icons/md'
-import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout } from 'react-icons/fi'
+import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw } from 'react-icons/fi'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
@@ -16,9 +16,10 @@ import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 import { toast } from 'react-hot-toast'
+import { getOfflineStorageUsage, getOfflineItemsSummary, clearAllOfflineData } from '@/lib/utils/offlineDb'
 import './settings-v3.css'
 
-type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals'
+type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals' | 'offline'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('profile')
@@ -28,7 +29,7 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const tab = params.get('tab') as TabType
-      if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals'].includes(tab)) {
+      if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals', 'offline'].includes(tab)) {
         setActiveTab(tab)
       }
     }
@@ -86,6 +87,12 @@ export default function SettingsPage() {
             >
                 <FiHelpCircle /> Help
             </button>
+            <button 
+                onClick={() => setActiveTab('offline')}
+                className={`settings-tab flex items-center gap-2 ${activeTab === 'offline' ? 'active' : ''}`}
+            >
+                <FiWifiOff size={14} /> Offline
+            </button>
         </nav>
 
         <main className="max-w-4xl">
@@ -95,6 +102,7 @@ export default function SettingsPage() {
             {activeTab === 'appearance' && <AppearanceSection onSaved={handleSaved} />}
             {activeTab === 'referrals' && <ReferralSection />}
             {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
+            {activeTab === 'offline' && <OfflineSection />}
         </main>
       </div>
     </ProtectedRoute>
@@ -648,6 +656,241 @@ function ReferralSection() {
                         Share on WhatsApp
                     </button>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+// ─── Offline Section ──────────────────────────────────────────────────────────
+
+function OfflineSection() {
+    const { user } = useAuthStore()
+    const isPro = user?.plan?.type && user.plan.type !== 'free'
+
+    const [storageUsage, setStorageUsage] = useState<{ bytes: number; formatted: string } | null>(null)
+    const [summary, setSummary] = useState<{
+        questionsCount: number
+        flashcardsCount: number
+        plannerTasksCount: number
+        pendingSyncCount: number
+    } | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [isClearing, setIsClearing] = useState(false)
+    const [confirmClear, setConfirmClear] = useState(false)
+    const [isOnline, setIsOnline] = useState(true)
+
+    const loadMetrics = async () => {
+        setIsLoading(true)
+        try {
+            const [usage, items] = await Promise.all([
+                getOfflineStorageUsage(),
+                getOfflineItemsSummary()
+            ])
+            setStorageUsage(usage)
+            setSummary(items)
+        } catch (err) {
+            console.error('Failed to load offline metrics:', err)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        setIsOnline(navigator.onLine)
+        const update = () => setIsOnline(navigator.onLine)
+        window.addEventListener('online', update)
+        window.addEventListener('offline', update)
+        loadMetrics()
+        return () => {
+            window.removeEventListener('online', update)
+            window.removeEventListener('offline', update)
+        }
+    }, [])
+
+    const handleClearAll = async () => {
+        if (!confirmClear) {
+            setConfirmClear(true)
+            return
+        }
+        setIsClearing(true)
+        try {
+            await clearAllOfflineData()
+            setSummary({ questionsCount: 0, flashcardsCount: 0, plannerTasksCount: 0, pendingSyncCount: 0 })
+            setStorageUsage({ bytes: 0, formatted: '0 B' })
+            setConfirmClear(false)
+            toast.success('All offline data cleared.')
+            await loadMetrics()
+        } catch (err) {
+            toast.error('Failed to clear offline data.')
+        } finally {
+            setIsClearing(false)
+        }
+    }
+
+    const storeItems = [
+        {
+            label: 'CBT Questions',
+            count: summary?.questionsCount ?? 0,
+            icon: '📝',
+            color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
+        },
+        {
+            label: 'Flashcards',
+            count: summary?.flashcardsCount ?? 0,
+            icon: '🃏',
+            color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20',
+        },
+        {
+            label: 'Planner Tasks',
+            count: summary?.plannerTasksCount ?? 0,
+            icon: '📅',
+            color: 'text-green-600 bg-green-50 dark:bg-green-900/20',
+        },
+        {
+            label: 'Pending Sync',
+            count: summary?.pendingSyncCount ?? 0,
+            icon: '🔄',
+            color: summary?.pendingSyncCount
+                ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
+                : 'text-gray-500 bg-gray-50 dark:bg-gray-800',
+        },
+    ]
+
+    return (
+        <div className="settings-section space-y-8">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                        <FiWifiOff className="text-amber-500" /> Offline Mode
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                        Manage your locally cached study data. Data is stored in your browser's IndexedDB and syncs automatically when you reconnect.
+                    </p>
+                </div>
+                {/* Status pill */}
+                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
+                    isOnline
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`} />
+                    {isOnline ? 'Online' : 'Offline'}
+                </span>
+            </div>
+
+            {!isPro && (
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">⭐</span>
+                    <div>
+                        <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Pro Feature</p>
+                        <p className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+                            Offline mode is a Pro-exclusive feature. Upgrade to study without internet access.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Storage usage */}
+            <div className="settings-card p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-widest">Storage Usage</h3>
+                    <button
+                        onClick={loadMetrics}
+                        disabled={isLoading}
+                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all text-gray-400 hover:text-blue-500"
+                        title="Refresh metrics"
+                    >
+                        <FiRefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex items-center gap-3 text-gray-400 py-4">
+                        <FiRefreshCw size={16} className="animate-spin" />
+                        <span className="text-sm">Loading storage data...</span>
+                    </div>
+                ) : (
+                    <>
+                        {/* Total */}
+                        <div className="mb-6">
+                            <div className="flex items-end gap-2 mb-2">
+                                <span className="text-3xl font-black text-gray-900 dark:text-white">{storageUsage?.formatted ?? '—'}</span>
+                                <span className="text-sm text-gray-400 mb-1">used by this app</span>
+                            </div>
+                            {/* Simple visual bar */}
+                            <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-700"
+                                    style={{
+                                        width: `${Math.min(((storageUsage?.bytes ?? 0) / (50 * 1024 * 1024)) * 100, 100)}%`
+                                    }}
+                                />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-1">of ~50 MB estimated quota</p>
+                        </div>
+
+                        {/* Per-store grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {storeItems.map(item => (
+                                <div key={item.label} className={`flex flex-col items-center text-center p-3 rounded-xl ${item.color}`}>
+                                    <span className="text-2xl mb-1">{item.icon}</span>
+                                    <span className="text-xl font-black">{item.count}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-75">{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Pending sync note */}
+            {(summary?.pendingSyncCount ?? 0) > 0 && (
+                <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 flex items-start gap-3">
+                    <FiRefreshCw className="text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold text-blue-800 dark:text-blue-300 text-sm">
+                            {summary?.pendingSyncCount} item{summary!.pendingSyncCount !== 1 ? 's' : ''} waiting to sync
+                        </p>
+                        <p className="text-blue-700 dark:text-blue-400 text-xs mt-0.5">
+                            These will automatically sync to the server the next time you go online.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Danger zone */}
+            <div className="settings-card p-6 rounded-2xl bg-white dark:bg-gray-800 border border-red-100 dark:border-red-900/30 shadow-sm">
+                <h3 className="font-bold text-red-600 dark:text-red-400 text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <FiTrash2 size={14} /> Danger Zone
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    This will permanently delete all locally cached questions, flashcards, planner data, and the pending sync queue from this device. Your online data is not affected.
+                </p>
+                <button
+                    onClick={handleClearAll}
+                    disabled={isClearing}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${
+                        confirmClear
+                            ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 animate-pulse'
+                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800'
+                    }`}
+                >
+                    {isClearing
+                        ? <><FiRefreshCw className="animate-spin" /> Clearing...</>
+                        : confirmClear
+                            ? <><FiTrash2 /> Confirm — Clear Everything</>
+                            : <><FiTrash2 /> Clear All Offline Data</>
+                    }
+                </button>
+                {confirmClear && !isClearing && (
+                    <button
+                        onClick={() => setConfirmClear(false)}
+                        className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                )}
             </div>
         </div>
     )
