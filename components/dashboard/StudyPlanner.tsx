@@ -3,9 +3,17 @@
 import { useState, useEffect } from 'react'
 import { 
   FiTarget, FiBook, FiClock, FiCheckCircle, FiCalendar, 
-  FiArrowRight, FiChevronLeft, FiPlus, FiRotateCcw, FiZap, FiStar
+  FiArrowRight, FiChevronLeft, FiPlus, FiRotateCcw, FiZap, FiStar,
+  FiDownload, FiWifi, FiWifiOff, FiLoader
 } from 'react-icons/fi'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
+import {
+  cachePlanner,
+  getCachedPlanner,
+  addProgressItem
+} from '@/lib/utils/offlineDb'
+import { useAuthStore } from '@/lib/store/authStore'
+import { useUpgrade } from '@/context/UpgradeContext'
 import './planner.css'
 
 const EXAMS = ['JAMB', 'WAEC', 'NECO', 'Post-UTME', 'University Exam']
@@ -25,11 +33,20 @@ const CHALLENGES = [
 ]
 
 export default function StudyPlanner() {
+  const { user } = useAuthStore()
+  const { showUpgrade } = useUpgrade()
+  const isPro = user?.plan?.type && user.plan.type !== 'free'
+
   const [loading, setLoading] = useState(true)
   const [plan, setPlan] = useState<any>(null)
   const [step, setStep] = useState(-1) // -1: Diagnosis, 0: Select Mode, 1: Form, 2: Generated Plan
   const [planType, setPlanType] = useState<'exam' | 'general' | null>(null)
   const [studyChallenges, setStudyChallenges] = useState<string[]>([])
+
+  // Offline state
+  const [isOffline, setIsOffline] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isOfflineCached, setIsOfflineCached] = useState(false)
   
   // Form State
   const [formData, setFormData] = useState({
@@ -44,16 +61,53 @@ export default function StudyPlanner() {
   })
 
   useEffect(() => {
+    const update = () => setIsOffline(!navigator.onLine)
+    setIsOffline(!navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    getCachedPlanner().then(data => {
+      if (data?.plan) setIsOfflineCached(true)
+    })
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
+  useEffect(() => {
     fetchPlan()
   }, [])
 
   const fetchPlan = async () => {
+    // ── Offline: load from IndexedDB cache ──────────────────────────────────
+    if (!navigator.onLine) {
+      try {
+        setLoading(true)
+        const cached = await getCachedPlanner()
+        if (cached?.plan) {
+          setPlan(cached.plan)
+          setStep(2)
+        } else {
+          setStep(-1)
+        }
+      } catch (err) {
+        setStep(-1)
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    // ── Online: fetch from API then cache ───────────────────────────────────
     try {
       setLoading(true)
       const res = await studyPlanApi.getActivePlan()
       if (res.data.success && res.data.plan) {
         setPlan(res.data.plan)
         setStep(2)
+        // Keep local cache up to date
+        await cachePlanner({ plan: res.data.plan, cachedAt: Date.now() })
+        setIsOfflineCached(true)
       } else {
         setStep(-1)
       }
@@ -91,11 +145,74 @@ export default function StudyPlanner() {
       if (res.data.success) {
         setPlan(res.data.plan)
         setStep(2)
+        // Cache the newly created plan for offline access
+        await cachePlanner({ plan: res.data.plan, cachedAt: Date.now() })
+        setIsOfflineCached(true)
       }
     } catch (err) {
       console.error('Create plan error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ── Download for Offline ─────────────────────────────────────────────────
+  const handleDownloadOffline = async () => {
+    if (!isPro) {
+      showUpgrade('planner')
+      return
+    }
+    if (!plan) return
+    setIsDownloading(true)
+    try {
+      await cachePlanner({ plan, cachedAt: Date.now() })
+      setIsOfflineCached(true)
+    } catch (err) {
+      console.error('Failed to save planner offline:', err)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // ── Toggle task completion with offline support ──────────────────────────
+  const handleToggleTask = async (taskId: string, currentlyCompleted: boolean) => {
+    const newCompleted = !currentlyCompleted
+    // Optimistically update local state
+    setPlan((prev: any) => ({
+      ...prev,
+      tasks: prev.tasks.map((t: any) =>
+        t._id === taskId ? { ...t, completed: newCompleted } : t
+      )
+    }))
+
+    if (!navigator.onLine) {
+      // Stash for sync
+      await addProgressItem('planner', { taskId, completed: newCompleted })
+      // Also update the local cache so it reflects the change
+      const cached = await getCachedPlanner()
+      if (cached?.plan) {
+        const updatedPlan = {
+          ...cached.plan,
+          tasks: cached.plan.tasks.map((t: any) =>
+            t._id === taskId ? { ...t, completed: newCompleted } : t
+          )
+        }
+        await cachePlanner({ plan: updatedPlan, cachedAt: Date.now() })
+      }
+      return
+    }
+
+    try {
+      await studyPlanApi.updateTaskStatus(taskId, newCompleted)
+    } catch (err) {
+      console.error('Failed to update task:', err)
+      // Revert on error
+      setPlan((prev: any) => ({
+        ...prev,
+        tasks: prev.tasks.map((t: any) =>
+          t._id === taskId ? { ...t, completed: currentlyCompleted } : t
+        )
+      }))
     }
   }
 
@@ -463,7 +580,7 @@ export default function StudyPlanner() {
               />
             </div>
           </div>
-          <div className="relative z-10 text-left sm:text-right w-full sm:w-auto">
+          <div className="relative z-10 text-left sm:text-right w-full sm:w-auto flex flex-col sm:items-end gap-3">
              <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl border border-orange-500/20">
                 <FiZap className="text-xl" />
                 <div>
@@ -471,6 +588,31 @@ export default function StudyPlanner() {
                    <p className="text-lg font-bold leading-none">{plan.streak} Days</p>
                 </div>
              </div>
+             {/* Offline indicator / Download button */}
+             {isOffline ? (
+               <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                 <FiWifiOff size={10} /> Offline Mode
+               </span>
+             ) : (
+               <button
+                 onClick={handleDownloadOffline}
+                 disabled={isDownloading}
+                 title={isPro ? 'Save plan for offline access' : 'Upgrade to Pro to use offline mode'}
+                 className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-all ${
+                   isOfflineCached
+                     ? 'text-green-400 bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                     : 'text-gray-400 bg-gray-800 border-gray-700 hover:bg-gray-700'
+                 }`}
+               >
+                 {isDownloading
+                   ? <FiLoader size={10} className="animate-spin" />
+                   : isOfflineCached
+                     ? <FiWifi size={10} />
+                     : <FiDownload size={10} />}
+                 {isDownloading ? 'Saving...' : isOfflineCached ? 'Offline Ready' : 'Save Offline'}
+                 {!isPro && <span className="ml-1 bg-amber-400 text-white px-1 py-0.5 rounded text-[8px]">PRO</span>}
+               </button>
+             )}
           </div>
           {/* Background decoration */}
           <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
@@ -479,7 +621,8 @@ export default function StudyPlanner() {
         <div className="v3-card flex flex-col justify-center items-center text-center py-6">
            <button 
              onClick={handleReset}
-             className="text-gray-500 hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-medium"
+             disabled={isOffline}
+             className="text-gray-500 hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
            >
              <FiRotateCcw /> Reset Plan
            </button>
@@ -503,11 +646,14 @@ export default function StudyPlanner() {
                   t.completed ? 'opacity-75 bg-green-500/5' : ''
                 }`}
               >
-                <div className={`task-check flex items-center justify-center rounded-xl transition-all ${
-                  t.completed ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'border-2 border-gray-700 text-gray-500'
-                }`}>
+                <button
+                  onClick={() => handleToggleTask(t._id, t.completed)}
+                  className={`task-check flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
+                    t.completed ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'border-2 border-gray-700 text-gray-500 hover:border-green-500 hover:text-green-500'
+                  }`}
+                >
                   {t.completed ? <FiCheckCircle className="text-xl" /> : <FiClock className="text-lg opacity-50" />}
-                </div>
+                </button>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1.5">
                     {t.label && (
