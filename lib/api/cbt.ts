@@ -95,6 +95,60 @@ export const getQuestionInstruction = (category: QuestionCategory, subject: stri
   return map[category] || map.general
 }
 
+// Get instruction based on specific topic field from Past Questions API
+export const getInstructionForTopic = (topic: string | null | undefined, subject?: string): string => {
+  if (!topic) {
+    return 'Choose the correct option.'
+  }
+
+  const cleanTopic = topic.trim().toLowerCase()
+  const cleanSubject = subject?.trim().toLowerCase() || ''
+
+  // English Language topic mapping
+  if (cleanSubject.includes('english')) {
+    if (cleanTopic.includes('synonym') || cleanTopic.includes('nearest in meaning')) {
+      return 'Choose the option nearest in meaning to the underlined word.'
+    }
+    if (cleanTopic.includes('antonym') || cleanTopic.includes('opposite in meaning')) {
+      return 'Choose the option opposite in meaning to the underlined word.'
+    }
+    if (cleanTopic.includes('sentence completion') || cleanTopic.includes('fill in the blank') || cleanTopic === 'completion' || cleanTopic.includes('lexis')) {
+      return 'Choose the option that correctly completes the sentence.'
+    }
+    if (cleanTopic.includes('idiom') || cleanTopic.includes('proverb') || cleanTopic.includes('interpretation') || cleanTopic.includes('figurative')) {
+      return 'Choose the option that correctly interprets the underlined expression.'
+    }
+    if (cleanTopic.includes('oral') || cleanTopic.includes('phonetics') || cleanTopic.includes('stress') || cleanTopic.includes('rhyme') || cleanTopic.includes('vowel') || cleanTopic.includes('consonant')) {
+      return 'Choose the option that has the same sound, stress pattern, or rhyme as indicated.'
+    }
+    if (cleanTopic.includes('comprehension') || cleanTopic.includes('cloze')) {
+      return 'Read the passage carefully and answer the questions that follow.'
+    }
+    if (cleanTopic.includes('grammar') || cleanTopic.includes('concord') || cleanTopic.includes('tense') || cleanTopic.includes('parts of speech')) {
+      return 'From the options, choose the grammatically correct or most appropriate answer.'
+    }
+  }
+
+  // Generic topic mappings
+  if (cleanTopic.includes('synonym') || cleanTopic.includes('nearest in meaning')) {
+    return 'Choose the option nearest in meaning to the underlined word.'
+  }
+  if (cleanTopic.includes('antonym') || cleanTopic.includes('opposite in meaning')) {
+    return 'Choose the option opposite in meaning to the underlined word.'
+  }
+  if (cleanTopic.includes('idiom') || cleanTopic.includes('proverb') || cleanTopic.includes('interpretation')) {
+    return 'Choose the option that correctly interprets the underlined expression.'
+  }
+  if (cleanTopic.includes('comprehension')) {
+    return 'Read the passage carefully and answer the questions that follow.'
+  }
+  if (cleanTopic.includes('fill in') || cleanTopic.includes('sentence completion')) {
+    return 'Choose the option that correctly completes the sentence.'
+  }
+
+  return 'Choose the most correct option.'
+}
+
 export interface CBTQuestion {
   id: string
   question: string
@@ -108,6 +162,8 @@ export interface CBTQuestion {
   instruction?: string
   // Optional diagram or image associated with the question
   image?: string | null
+  topic?: string | null
+  tested_word?: string | null
 }
 
 export interface CBTQuestionsResponse {
@@ -205,8 +261,30 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     .trim()
 
   // Detect category and generate instruction
-  const category = detectQuestionCategory(questionText)
-  const instruction = getQuestionInstruction(category, q.subject || '')
+  let category: QuestionCategory = 'general'
+  let instruction = 'Choose the correct option.'
+
+  if (q.topic) {
+    const cleanTopic = q.topic.trim().toLowerCase()
+    instruction = getInstructionForTopic(q.topic, q.subject || '')
+
+    if (cleanTopic.includes('comprehension') || cleanTopic.includes('cloze')) {
+      category = 'comprehension'
+    } else if (cleanTopic.includes('synonym') || cleanTopic.includes('antonym') || cleanTopic.includes('vocab')) {
+      category = 'vocabulary'
+    } else if (cleanTopic.includes('grammar') || cleanTopic.includes('concord') || cleanTopic.includes('tense')) {
+      category = 'grammar'
+    } else if (cleanTopic.includes('completion') || cleanTopic.includes('fill in')) {
+      category = 'sentence_completion'
+    } else if (cleanTopic.includes('oral') || cleanTopic.includes('stress') || cleanTopic.includes('sound')) {
+      category = 'oral_english'
+    } else if (cleanTopic.includes('idiom') || cleanTopic.includes('proverb') || cleanTopic.includes('interpretation')) {
+      category = 'idiom_proverb'
+    }
+  } else {
+    category = detectQuestionCategory(questionText)
+    instruction = getQuestionInstruction(category, q.subject || '')
+  }
 
   // Preserve possible image fields from ALOC payload
   const image =
@@ -222,7 +300,7 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     null
 
   return {
-    id: String(q.id || `q_${Date.now()}_${Math.random()}`),
+    id: String(q.id || q._id || `q_${Date.now()}_${Math.random()}`),
     question: questionText,
     options,
     correctAnswer,
@@ -232,12 +310,14 @@ const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
     examType: examType,
     category,
     instruction,
-    image
+    image,
+    topic: q.topic || null,
+    tested_word: q.tested_word || null
   }
 }
 
 // ─── Math & HTML Rendering ───────────────────────────────────────────────────
-export const renderQuestion = (text: string): string => {
+export const renderQuestion = (text: string, testedWord?: string | null): string => {
   if (!text) return ''
 
   // 1. Unescape HTML entities first
@@ -247,6 +327,26 @@ export const renderQuestion = (text: string): string => {
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
+
+  // Underline tested word if present
+  if (testedWord && testedWord.trim()) {
+    const trimmedWord = testedWord.trim()
+    try {
+      const escaped = trimmedWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+      const regex = new RegExp(`\\b(${escaped})\\b`, 'gi')
+      if (regex.test(rendered)) {
+        rendered = rendered.replace(regex, '<u>$1</u>')
+      } else {
+        const idx = rendered.toLowerCase().indexOf(trimmedWord.toLowerCase())
+        if (idx !== -1) {
+          const originalPart = rendered.substring(idx, idx + trimmedWord.length)
+          rendered = rendered.substring(0, idx) + `<u>${originalPart}</u>` + rendered.substring(idx + trimmedWord.length)
+        }
+      }
+    } catch (e) {
+      console.error('Error underlining tested word:', e)
+    }
+  }
 
   // 2. Handle <sup> and <sub> by converting to LaTeX
   rendered = rendered

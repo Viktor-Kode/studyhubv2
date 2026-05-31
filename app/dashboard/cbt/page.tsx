@@ -1424,7 +1424,7 @@ export default function CBTPage() {
               {/* ── QUESTION TEXT ───────────────────────────────── */}
               <div
                 className="question-text"
-                dangerouslySetInnerHTML={{ __html: renderQuestion(currentQuestion.question) }}
+                dangerouslySetInnerHTML={{ __html: renderQuestion(currentQuestion.question, currentQuestion.tested_word) }}
               />
 
               {/* Diagram / image */}
@@ -1632,7 +1632,7 @@ export default function CBTPage() {
                       )}
                       <p
                         className="answer-question-text"
-                        dangerouslySetInnerHTML={{ __html: renderQuestion(originalQ.question) }}
+                        dangerouslySetInnerHTML={{ __html: renderQuestion(originalQ.question, originalQ.tested_word) }}
                       />
                       <QuestionImage question={originalQ} />
 
