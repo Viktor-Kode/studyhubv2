@@ -297,11 +297,11 @@ export const renderQuestion = (text: string): string => {
 }
 
 // ─── ALOC year range ─────────────────────────────────────────────────────────
-// ALOC only has data from 2001 to 2020. Years 2021–2025 DO NOT exist.
+// ALOC has data from 2001 to 2023.
 // Requesting a missing year causes ALOC to return an HTML 404 page, which
 // then crashes JSON.parse with "Unexpected token '<', <!DOCTYPE..."
 const ALOC_MIN_YEAR = 2001
-const ALOC_MAX_YEAR = 2020
+const ALOC_MAX_YEAR = 2023
 
 // ─── Defensive fetch helper ───────────────────────────────────────────────────
 // Reads response as raw TEXT first, then parses JSON.
@@ -373,7 +373,7 @@ export const cbtApi = {
       const params = new URLSearchParams({
         subject: subjectSlug,
         type: examSlug,
-        amount: String(Math.min(amount, 40)),
+        amount: String(Math.min(amount, 100)),
         year: year
       })
       if (examType === 'POST_UTME' && school) {
@@ -424,12 +424,10 @@ export const cbtApi = {
 
   /**
    * Get available years (Mocked for now as ALOC doesn't have a clear years endpoint)
-   * Returns range 2000-2024
+   * Returns range 2001–2023
    */
   getAvailableYears: async (examType: ExamType): Promise<AvailableYearsResponse> => {
     const years: string[] = []
-    // ALOC ONLY has questions for 2001–2020.
-    // DO NOT include 2021+ — those years return HTML error pages, causing JSON.parse to crash.
     for (let i = ALOC_MAX_YEAR; i >= ALOC_MIN_YEAR; i--) {
       years.push(i.toString())
     }

@@ -976,19 +976,21 @@ export default function CBTPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Number of Questions
                   </label>
-                  <input
-                    type="number"
-                    min={10}
-                    max={60}
+                  <select
                     value={questionCount}
-                    onChange={e => setQuestionCount(Math.min(60, Math.max(10, Number(e.target.value))))}
+                    onChange={e => setQuestionCount(Number(e.target.value))}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
                                text-gray-900 dark:text-white bg-white dark:bg-gray-700
                                focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Between 10 and 60 questions
-                  </p>
+                  >
+                    <option value={10}>10 Questions</option>
+                    <option value={20}>20 Questions</option>
+                    <option value={30}>30 Questions</option>
+                    <option value={40}>40 Questions</option>
+                    <option value={50}>50 Questions</option>
+                    <option value={60}>60 Questions</option>
+                    <option value={100}>All Questions</option>
+                  </select>
                 </div>
               )}
 
@@ -1087,56 +1089,6 @@ export default function CBTPage() {
                       </button>
                     </div>
 
-                    {!isOffline && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const isPro = user?.plan?.type && user.plan.type !== 'free'
-                          if (!isPro) {
-                            toast.error("Offline mode is a Pro feature. Upgrade to study without internet.")
-                            showUpgrade('cbt')
-                            return
-                          }
-                          if (!selectedExam || !selectedYear || !selectedSubject || (selectedExam === 'POST_UTME' && !selectedSchool)) {
-                            setError('Please complete the exam setup before downloading.')
-                            return
-                          }
-                          
-                          setLoading(true)
-                          setLoadingStage('Downloading questions for offline study...')
-                          try {
-                            const response = await cbtApi.getQuestions(
-                              selectedExam,
-                              selectedYear,
-                              selectedSubject,
-                              questionCount,
-                              selectedExam === 'POST_UTME' ? selectedSchool : undefined
-                            )
-                            if (!response.questions || response.questions.length === 0) {
-                              throw new Error('No questions found to download.')
-                            }
-                            await cacheQuestions({
-                              questions: response.questions,
-                              exam: selectedExam,
-                              year: selectedYear,
-                              subject: selectedSubject,
-                              questionCount
-                            })
-                            toast.success(`Successfully downloaded ${selectedSubject} (${selectedYear}) questions for offline!`)
-                          } catch (err: any) {
-                            toast.error(err.message || 'Failed to download questions for offline.')
-                          } finally {
-                            setLoading(false)
-                            setLoadingStage('')
-                          }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-4 px-6 
-                               bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 
-                               text-white font-black uppercase tracking-widest rounded-xl transition shadow-lg shadow-indigo-500/20"
-                      >
-                        <FiCpu className="text-xl" /> Download for Offline
-                      </button>
-                    )}
 
                     <button
                       type="button"
