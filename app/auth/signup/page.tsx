@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -12,6 +12,29 @@ import {
 import { FaGoogle, FaUserGraduate } from 'react-icons/fa'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
+
+const NIGERIAN_UNIVERSITIES = [
+    'University of Ibadan (UI)',
+    'University of Lagos (UNILAG)',
+    'Obafemi Awolowo University (OAU)',
+    'University of Benin (UNIBEN)',
+    'Ahmadu Bello University (ABU)',
+    'Federal University of Technology, Akure (FUTA)',
+    'Lagos State University (LASU)',
+    'National Open University of Nigeria (NOUN)',
+    'University of Nigeria, Nsukka (UNN)',
+    'University of Ilorin (UNILORIN)',
+    'Federal University of Technology, Minna (FUTMINNA)',
+    'Covenant University',
+    'Babcock University',
+    'Bayero University Kano (BUK)',
+    'Nnamdi Azikiwe University (UNIZIK)',
+    'University of Port Harcourt (UNIPORT)',
+    'Federal University of Agriculture, Abeokuta (FUNAAB)',
+    'Ladoke Akintola University of Technology (LAUTECH)',
+    'Rivers State University (RSU)',
+    'Delta State University (DELSU)'
+]
 
 export default function SignupPage() {
     const router = useRouter()
@@ -33,6 +56,7 @@ export default function SignupPage() {
         email: '',
         password: '',
         confirmPassword: '',
+        institution: '',
     })
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -40,6 +64,33 @@ export default function SignupPage() {
     const [success, setSuccess] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [googleLoading, setGoogleLoading] = useState(false)
+
+    const [suggestions, setSuggestions] = useState<string[]>([])
+    const [showSuggestions, setShowSuggestions] = useState(false)
+    const suggestionsRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (formData.institution.trim() === '') {
+            setSuggestions(NIGERIAN_UNIVERSITIES)
+        } else {
+            const filtered = NIGERIAN_UNIVERSITIES.filter((uni) =>
+                uni.toLowerCase().includes(formData.institution.toLowerCase())
+            )
+            setSuggestions(filtered)
+        }
+    }, [formData.institution])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -75,7 +126,8 @@ export default function SignupPage() {
                 formData.email,
                 formData.password,
                 formData.name,
-                'student'
+                'student',
+                formData.institution
             )
             setUser(user)
 
@@ -264,6 +316,51 @@ export default function SignupPage() {
                                     required
                                 />
                             </div>
+                        </div>
+
+                        {/* School/Institution (Nigerian Uni Autocomplete) */}
+                        <div className="relative" ref={suggestionsRef}>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                What's your school or university? <span className="text-xs text-gray-500 font-normal">(Optional)</span>
+                            </label>
+                            <div className="relative">
+                                <FaUserGraduate className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
+                                <input
+                                    id="signup-institution"
+                                    type="text"
+                                    name="institution"
+                                    value={formData.institution}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, institution: e.target.value })
+                                        setShowSuggestions(true)
+                                        setError('')
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    placeholder="e.g. University of Lagos"
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600
+                             rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    autoComplete="off"
+                                />
+                            </div>
+
+                            {/* Autocomplete Suggestions Dropdown */}
+                            {showSuggestions && suggestions.length > 0 && (
+                                <ul className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg focus:outline-none">
+                                    {suggestions.map((uni, idx) => (
+                                        <li
+                                            key={idx}
+                                            onClick={() => {
+                                                setFormData({ ...formData, institution: uni })
+                                                setShowSuggestions(false)
+                                            }}
+                                            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                                        >
+                                            {uni}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
 
                         {/* Email */}

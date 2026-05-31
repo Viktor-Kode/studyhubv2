@@ -310,19 +310,12 @@ export default function CBTPage() {
     setCustomDurationMinutes(currentExamConfig?.duration || 120)
   }, [viewMode, currentExamConfig?.duration])
 
-  // Load years when exam selected
+  // Load metadata when exam selected
   useEffect(() => {
     if (selectedExam) {
-      loadYears()
+      loadMetadata()
     }
   }, [selectedExam])
-
-  // Load subjects when year selected
-  useEffect(() => {
-    if (selectedExam && selectedYear) {
-      loadSubjects()
-    }
-  }, [selectedExam, selectedYear])
 
   // Timer — resume test if we have persisted questions and valid time
   useEffect(() => {
@@ -368,29 +361,23 @@ export default function CBTPage() {
     }
   }, [isTimerRunning, isPaused, showResults])
 
-  const loadYears = async () => {
+  const loadMetadata = async () => {
     if (!selectedExam) return
     try {
       setLoading(true)
-      const res = await cbtApi.getAvailableYears(selectedExam)
-      setAvailableYears(res.years)
-      setSelectedYear(res.years[0] || '')
-    } catch (err) {
-      console.error('Error loading years:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadSubjects = async () => {
-    if (!selectedExam || !selectedYear) return
-    try {
-      setLoading(true)
-      const res = await cbtApi.getAvailableSubjects(selectedExam, selectedYear)
+      const res = await cbtApi.getMetadata()
       setAvailableSubjects(res.subjects)
-      setSelectedSubject(res.subjects[0] || '')
+      setAvailableYears(res.years)
+      
+      // Auto-select first if not already selected or invalid
+      if (!selectedSubject || !res.subjects.includes(selectedSubject)) {
+        setSelectedSubject(res.subjects[0] || '')
+      }
+      if (!selectedYear || !res.years.includes(selectedYear)) {
+        setSelectedYear(res.years[0] || '')
+      }
     } catch (err) {
-      console.error('Error loading subjects:', err)
+      console.error('Error loading metadata:', err)
     } finally {
       setLoading(false)
     }
@@ -888,10 +875,7 @@ export default function CBTPage() {
                 ) : (
                   <select
                     value={selectedYear}
-                    onChange={e => {
-                      setSelectedYear(e.target.value)
-                      setSelectedSubject('')
-                    }}
+                    onChange={e => setSelectedYear(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
                                text-gray-900 dark:text-white bg-white dark:bg-gray-700 
                                focus:ring-2 focus:ring-blue-500 focus:outline-none"

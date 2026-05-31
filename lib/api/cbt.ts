@@ -523,47 +523,40 @@ export const cbtApi = {
   },
 
   /**
-   * Get available years (Mocked for now as ALOC doesn't have a clear years endpoint)
-   * Returns range 2001–2023
+   * Get available metadata (subjects and years) from the backend proxy
+   */
+  getMetadata: async (): Promise<{ subjects: string[], years: string[], examTypes: string[] }> => {
+    try {
+      const res = await fetchWithAuth('/api/backend/cbt/subjects');
+      return await safeJson(res);
+    } catch (err: any) {
+      console.error('[CBT API] Error fetching metadata:', err.message);
+      // Fallbacks in case backend fails
+      return { 
+        subjects: ['English Language'], 
+        years: ['2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015'],
+        examTypes: ['utme']
+      };
+    }
+  },
+
+  /**
+   * Get available years
    */
   getAvailableYears: async (examType: ExamType): Promise<AvailableYearsResponse> => {
-    const years: string[] = []
-    for (let i = ALOC_MAX_YEAR; i >= ALOC_MIN_YEAR; i--) {
-      years.push(i.toString())
-    }
-    return { years }
+    const meta = await cbtApi.getMetadata();
+    return { years: meta.years };
   },
 
   /**
    * Get available subjects based on Exam Type
-   * Uses local mapping to ensure valid subjects are sent to API
    */
   getAvailableSubjects: async (
     examType: ExamType,
     year?: string
   ): Promise<AvailableSubjectsResponse> => {
-    // Subject list supported by ALOC
-    // Need to ensure these exact strings match what ALOC expects or handle mapping in proxy
-    const subjects = [
-      'English Language',
-      'Mathematics',
-      'Commerce',
-      'Accounting',
-      'Biology',
-      'Physics',
-      'Chemistry',
-      'English Literature',
-      'Government',
-      'CRK',
-      'Geography',
-      'Economics',
-      'IRK',
-      'Civic Education',
-      'Insurance',
-      'Current Affairs',
-      'History'
-    ]
-    return { subjects }
+    const meta = await cbtApi.getMetadata();
+    return { subjects: meta.subjects };
   },
 
   /**

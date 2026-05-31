@@ -67,12 +67,14 @@ export async function saveUserRole(
     uid: string,
     role: AppRole,
     name?: string,
-    email?: string
+    email?: string,
+    institution?: string
 ): Promise<void> {
     await setDoc(doc(db, 'users', uid), {
         role,
         ...(name && { name }),
         ...(email && { email }),
+        ...(institution && { institution }),
         updatedAt: new Date()
     }, { merge: true })
 }
@@ -121,15 +123,16 @@ export async function signUpWithEmail(
     email: string,
     password: string,
     name: string,
-    role: AppRole = 'student'
+    role: AppRole = 'student',
+    institution?: string
 ): Promise<AppUser> {
     const { user } = await createUserWithEmailAndPassword(auth, email, password)
     // Update display name in Firebase Auth
     const { updateProfile } = await import('firebase/auth')
     await updateProfile(user, { displayName: name })
 
-    // Set initial role/name in Firestore
-    await saveUserRole(user.uid, role, name, email)
+    // Set initial role/name/institution in Firestore
+    await saveUserRole(user.uid, role, name, email, institution)
     return buildAppUser(user, role)
 }
 

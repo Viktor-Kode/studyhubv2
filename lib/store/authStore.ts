@@ -63,6 +63,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
           name: u.name ?? prev?.name ?? '',
           role: resolvedRole,
           schoolName: u.schoolName ?? prev?.schoolName,
+          institution: u.institution ?? prev?.institution,
           classLevel: u.classLevel ?? prev?.classLevel,
           courseOfStudy: u.courseOfStudy ?? prev?.courseOfStudy,
           avatar: prev?.avatar,

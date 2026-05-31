@@ -27,6 +27,7 @@ export interface AppUser {
     email: string
     name: string
     schoolName?: string
+    institution?: string
     /** Class / level, e.g. SS2, 100 Level */
     classLevel?: string
     /** Optional: degree / program at university */
