@@ -12,12 +12,11 @@ export async function GET(request: NextRequest) {
 
     try {
         // Test with a simple known-working request
-        const testUrl = 'https://questions.aloc.com.ng/api/v2/q/5?subject=english&type=utme'
+        const testUrl = 'https://ng-pastquestions-api.onrender.com/questions?subject=English%20Language'
 
         const response = await fetch(testUrl, {
             headers: {
                 'Accept': 'application/json',
-                'AccessToken': token !== 'NOT SET' ? token.trim() : '',
             },
             cache: 'no-store'
         })
@@ -37,8 +36,8 @@ export async function GET(request: NextRequest) {
             apiOk: response.ok,
             testUrl,
             responsePreview: JSON.stringify(data).substring(0, 300),
-            hasData: !!(data.data && Array.isArray(data.data)),
-            questionCount: data.data?.length || 0
+            hasData: !!(data.questions && Array.isArray(data.questions)),
+            questionCount: data.questions?.length || 0
         })
     } catch (error: any) {
         return NextResponse.json({

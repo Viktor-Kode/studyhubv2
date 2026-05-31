@@ -12,7 +12,7 @@ import {
   FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft,
   FiClock, FiAward, FiLoader, FiAlertTriangle,
   FiRefreshCw, FiHome, FiTarget, FiBookOpen,
-  FiChevronRight, FiGrid, FiInfo, FiLock,
+  FiChevronRight, FiGrid, FiInfo, FiLock, FiCpu,
   FiTrendingUp, FiCheck, FiX, FiFilter,
   FiThumbsUp, FiThumbsDown
 } from 'react-icons/fi'
