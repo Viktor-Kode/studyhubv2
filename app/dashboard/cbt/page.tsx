@@ -862,6 +862,32 @@ export default function CBTPage() {
                 </div>
               )}
 
+              {/* Exam Type Select */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Exam
+                </label>
+                <select
+                  value={selectedExam || ''}
+                  onChange={e => {
+                    setSelectedExam(e.target.value as ExamType)
+                    // Reset dependent fields when exam changes
+                    setSelectedSubject('')
+                    setSelectedYear('')
+                    setSelectedSchool('')
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg
+                             text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                             focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  {examTypes.map(exam => (
+                    <option key={exam.value} value={exam.value}>
+                      {exam.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Year Select */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
