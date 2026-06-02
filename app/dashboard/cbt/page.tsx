@@ -237,9 +237,15 @@ export default function CBTPage() {
   // Persisted test state (survives refresh)
   const [questions, setQuestions] = usePersistedState<Question[]>('cbt_questions', [])
   const [currentIndex, setCurrentIndex] = usePersistedState<number>('cbt_currentIndex', 0)
-  const [selectedAnswers, setSelectedAnswers] = usePersistedState<Record<string, number>>('cbt_answers', {})
+  const [selectedAnswers, setSelectedAnswers] = usePersistedState<Record<string, string>>('cbt_answers', {})
   const [timeRemaining, setTimeRemaining] = usePersistedState<number>('cbt_timeRemaining', 0)
   const [isPaused, setIsPaused] = usePersistedState<boolean>('cbt_isPaused', false)
+
+  // Advanced Filter states
+  const [filterTopic, setFilterTopic] = useState<string>('')
+  const [filterRangeStart, setFilterRangeStart] = useState<string>('')
+  const [filterRangeEnd, setFilterRangeEnd] = useState<string>('')
+  const [filterTestedWord, setFilterTestedWord] = useState<string>('')
 
   // Data state (not persisted)
   const [availableYears, setAvailableYears] = useState<string[]>([])
@@ -367,7 +373,13 @@ export default function CBTPage() {
       setLoading(true)
       const res = await cbtApi.getMetadata()
       setAvailableSubjects(res.subjects)
-      setAvailableYears(res.years)
+      
+      let years = res.years
+      if (selectedExam === 'WAEC') {
+        const allowedYears = ["2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015"]
+        years = years.filter(y => allowedYears.includes(y))
+      }
+      setAvailableYears(years)
       
       // Auto-select first if not already selected or invalid
       if (!selectedSubject || !res.subjects.includes(selectedSubject)) {
@@ -436,12 +448,50 @@ export default function CBTPage() {
         throw new Error('No questions found. Try a different year or subject.')
       }
 
-      // Shuffle questions for fairness
-      const shuffled = [...response.questions]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, questionCount)
+      let filtered = [...response.questions]
 
-      setQuestions(shuffled)
+      // 1. Topic Filter
+      if (filterTopic) {
+        filtered = filtered.filter(q => q.topic && q.topic.toLowerCase().includes(filterTopic.toLowerCase()))
+      }
+
+      // 2. Tested Word Filter
+      if (filterTestedWord && selectedSubject.toLowerCase().includes('english')) {
+        filtered = filtered.filter(q => q.tested_word && q.tested_word.toLowerCase().includes(filterTestedWord.toLowerCase()))
+      }
+
+      // 3. Question Range Filter
+      const startNum = parseInt(filterRangeStart, 10)
+      const endNum = parseInt(filterRangeEnd, 10)
+      if (!isNaN(startNum) && !isNaN(endNum)) {
+        filtered = filtered.filter(q => {
+          const num = q.no || (q as any).questionNumber || (q as any).no
+          return num >= startNum && num <= endNum
+        })
+      } else if (!isNaN(startNum)) {
+        filtered = filtered.filter(q => {
+          const num = q.no || (q as any).questionNumber || (q as any).no
+          return num >= startNum
+        })
+      } else if (!isNaN(endNum)) {
+        filtered = filtered.filter(q => {
+          const num = q.no || (q as any).questionNumber || (q as any).no
+          return num <= endNum
+        })
+      }
+
+      if (filtered.length === 0) {
+        throw new Error('No questions match your filter criteria. Please adjust your filters and try again.')
+      }
+
+      // Shuffle questions only if range is not selected, then slice to questionCount
+      const finalQuestions = [...filtered]
+      if (!filterRangeStart && !filterRangeEnd) {
+        finalQuestions.sort(() => Math.random() - 0.5)
+      }
+      const sliced = finalQuestions.slice(0, questionCount)
+
+      setQuestions(sliced)
       setCurrentIndex(0)
       setSelectedAnswers({})
       setFlaggedQuestions(new Set())
@@ -535,10 +585,13 @@ export default function CBTPage() {
     setLoading(true)
     setLoadingStage('Calculating your results...')
 
-    const resultsPayload = questions.map(q => ({
-      questionId: q.id,
-      selectedAnswer: q.options[selectedAnswers[q.id]] || 'Skipped'
-    }))
+    const resultsPayload = questions.map(q => {
+      const selectedLetter = selectedAnswers[q.id]
+      return {
+        questionId: q.id,
+        selectedAnswer: selectedLetter ? (q.options[selectedLetter as keyof typeof q.options] || 'Skipped') : 'Skipped'
+      }
+    })
 
     const resultData = {
       subject: selectedSubject,
@@ -554,16 +607,16 @@ export default function CBTPage() {
         let correctCount = 0
         let attemptedCount = 0
         const verifiedAnswers = questions.map(q => {
-          const selectedIdx = selectedAnswers[q.id]
-          const isCorrect = selectedIdx === q.correctAnswer
+          const selectedLetter = selectedAnswers[q.id]
+          const isCorrect = selectedLetter === q.correctAnswer
           if (isCorrect) correctCount++
-          if (selectedIdx !== undefined) attemptedCount++
+          if (selectedLetter !== undefined) attemptedCount++
           return {
             questionId: q.id,
             question: q.question,
-            options: q.options,
-            selectedAnswer: q.options[selectedIdx] || 'Skipped',
-            correctAnswer: q.options[q.correctAnswer],
+            options: Object.values(q.options),
+            selectedAnswer: selectedLetter ? (q.options[selectedLetter as keyof typeof q.options] || 'Skipped') : 'Skipped',
+            correctAnswer: q.correctAnswer ? (q.options[q.correctAnswer as keyof typeof q.options] || '') : '',
             isCorrect,
             explanation: q.explanation || ''
           }
@@ -615,7 +668,8 @@ export default function CBTPage() {
 
     setIsExplaining(q.id)
     try {
-      const explanation = await cbtApi.getExplanation(q.question, q.options[q.correctAnswer], q.options)
+      const correctAnsText = q.correctAnswer ? (q.options[q.correctAnswer as keyof typeof q.options] || '') : ''
+      const explanation = await cbtApi.getExplanation(q.question, correctAnsText, Object.values(q.options))
       setAiExplanations(prev => ({ ...prev, [q.id]: explanation }))
     } catch (err) {
       console.error('Failed to get AI explanation:', err)
@@ -629,7 +683,8 @@ export default function CBTPage() {
     if (votedExplanations[qId]) return
 
     try {
-      await cbtApi.voteExplanation(q.question, q.options[q.correctAnswer], q.options || [], vote);
+      const correctAnsText = q.correctAnswer ? (q.options[q.correctAnswer as keyof typeof q.options] || '') : ''
+      await cbtApi.voteExplanation(q.question, correctAnsText, Object.values(q.options) || [], vote);
       setVotedExplanations(prev => ({ ...prev, [qId]: vote }));
       toast.success(vote === 'up' ? 'Thanks for the upvote!' : 'Feedback recorded. Thank you!');
     } catch (err) {
@@ -982,25 +1037,129 @@ export default function CBTPage() {
 
               {/* Number of questions */}
               {selectedSubject && (
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Number of Questions
-                  </label>
-                  <select
-                    value={questionCount}
-                    onChange={e => setQuestionCount(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
-                               text-gray-900 dark:text-white bg-white dark:bg-gray-700
-                               focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value={10}>10 Questions</option>
-                    <option value={20}>20 Questions</option>
-                    <option value={30}>30 Questions</option>
-                    <option value={40}>40 Questions</option>
-                    <option value={50}>50 Questions</option>
-                    <option value={60}>60 Questions</option>
-                    <option value={100}>All Questions</option>
-                  </select>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Number of Questions
+                    </label>
+                    <select
+                      value={questionCount}
+                      onChange={e => setQuestionCount(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                 text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value={10}>10 Questions</option>
+                      <option value={20}>20 Questions</option>
+                      <option value={30}>30 Questions</option>
+                      <option value={40}>40 Questions</option>
+                      <option value={50}>50 Questions</option>
+                      <option value={60}>60 Questions</option>
+                      <option value={100}>All Questions</option>
+                    </select>
+                  </div>
+
+                  {/* Advanced Filters */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+                    <h4 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                      <FiFilter className="text-blue-500" />
+                      Advanced Filters (Optional)
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Topic Filter */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Filter by Topic
+                        </label>
+                        {selectedSubject.toLowerCase().includes('english') || selectedSubject.toLowerCase().includes('government') ? (
+                          <select
+                            value={filterTopic}
+                            onChange={e => setFilterTopic(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                       focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                          >
+                            <option value="">All Topics</option>
+                            {selectedSubject.toLowerCase().includes('english') ? (
+                              <>
+                                <option value="Antonyms">Antonyms</option>
+                                <option value="Best Complete (Vocabulary)">Best Complete (Vocabulary)</option>
+                                <option value="Interpretations (Idioms)">Interpretations (Idioms)</option>
+                                <option value="Nearest in Meaning (Synonyms)">Nearest in Meaning (Synonyms)</option>
+                                <option value="Grammar & Lexicon">Grammar & Lexicon</option>
+                                <option value="Register (Cloze Passage)">Register (Cloze Passage)</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Sovereignty and Globalization">Sovereignty and Globalization</option>
+                                <option value="Political Parties and Elections">Political Parties and Elections</option>
+                                <option value="Media and Civil Society">Media and Civil Society</option>
+                              </>
+                            )}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="e.g. Equations, Mechanics"
+                            value={filterTopic}
+                            onChange={e => setFilterTopic(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                       focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                          />
+                        )}
+                      </div>
+
+                      {/* Tested Word Filter (English only) */}
+                      {selectedSubject.toLowerCase().includes('english') && (
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                            Filter by Tested Word
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. posh, trivial"
+                            value={filterTestedWord}
+                            onChange={e => setFilterTestedWord(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                       focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                          />
+                        </div>
+                      )}
+
+                      {/* Range Filter */}
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Filter by Question Range (e.g. 1 to 20)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            placeholder="Start"
+                            min={1}
+                            value={filterRangeStart}
+                            onChange={e => setFilterRangeStart(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                       focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm text-center"
+                          />
+                          <span className="text-gray-500 text-sm">to</span>
+                          <input
+                            type="number"
+                            placeholder="End"
+                            min={1}
+                            value={filterRangeEnd}
+                            onChange={e => setFilterRangeEnd(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       text-gray-900 dark:text-white bg-white dark:bg-gray-700
+                                       focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm text-center"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1431,6 +1590,18 @@ export default function CBTPage() {
                 )
               })()}
 
+              {/* ── PROMINENT TESTED WORD DISPLAY ───────────────── */}
+              {selectedSubject && selectedSubject.toLowerCase().includes('english') && currentQuestion.tested_word && (
+                <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-center shadow-inner">
+                  <span className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-500 block mb-1">
+                    Word to Test
+                  </span>
+                  <span className="text-3xl font-black text-indigo-700 dark:text-indigo-300">
+                    {currentQuestion.tested_word}
+                  </span>
+                </div>
+              )}
+
               {/* ── QUESTION TEXT ───────────────────────────────── */}
               <div
                 className="question-text"
@@ -1442,17 +1613,16 @@ export default function CBTPage() {
 
               {/* ── OPTIONS ─────────────────────────────────────── */}
               <div className="options-list">
-                {currentQuestion.options.map((option, index) => {
-                  const isSelected = selectedAnswers[currentQuestion.id] === index
-                  const optionLetters = ['A', 'B', 'C', 'D', 'E']
+                {Object.entries(currentQuestion.options).map(([letter, option]) => {
+                  const isSelected = selectedAnswers[currentQuestion.id] === letter
 
                   return (
                     <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
+                      key={letter}
+                      onClick={() => handleAnswerSelect(letter)}
                       className={`option-btn ${isSelected ? 'selected' : ''}`}
                     >
-                      <span className="option-letter">{optionLetters[index]}.</span>
+                      <span className="option-letter">{letter}.</span>
                       <span
                         dangerouslySetInnerHTML={{ __html: renderQuestion(option) }}
                       />
@@ -1647,16 +1817,16 @@ export default function CBTPage() {
                       <QuestionImage question={originalQ} />
 
                       <div className="answer-options">
-                        {originalQ.options.map((opt: string, optIdx: number) => {
+                        {Object.entries(originalQ.options).map(([letter, opt]) => {
                           const isCorrectOpt = verifiedAns ? String(opt).toLowerCase() === String(verifiedAns.correctAnswer).toLowerCase() : false
                           const isUserSelected = verifiedAns ? String(opt).toLowerCase() === String(verifiedAns.selectedAnswer).toLowerCase() : false
                           
                           return (
                             <div
-                              key={optIdx}
+                              key={letter}
                               className={`answer-option ${isCorrectOpt ? 'correct-opt' : isUserSelected && !isCorrect ? 'user-wrong' : ''}`}
                             >
-                              <span className="answer-opt-key">{optionLetters[optIdx]}.</span>
+                              <span className="answer-opt-key">{letter}.</span>
                               <span dangerouslySetInnerHTML={{ __html: renderQuestion(opt) }} />
                             </div>
                           )

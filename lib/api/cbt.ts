@@ -152,8 +152,8 @@ export const getInstructionForTopic = (topic: string | null | undefined, subject
 export interface CBTQuestion {
   id: string
   question: string
-  options: string[]
-  correctAnswer: number
+  options: { A: string; B: string; C: string; D: string; E?: string }
+  correctAnswer?: string
   explanation?: string
   subject: string
   year: string
@@ -212,47 +212,53 @@ const SUBJECT_SLUG_MAP: Record<string, string> = {
 }
 
 const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
-  // ALOC format: option = { a: "text", b: "text", c: "text", d: "text" }
-  const optionKeys = ['a', 'b', 'c', 'd', 'e']
-  const options: string[] = []
-
-  // Handle both q.option and q.options formats
+  // Map option source to standardized object structure { A, B, C, D, E }
   const optionSource = q.option || q.options || {}
-
-  if (typeof optionSource === 'object' && !Array.isArray(optionSource)) {
-    // Object format: { a: "...", b: "...", c: "...", d: "..." }
-    optionKeys.forEach(key => {
-      const val = optionSource[key]
-      if (val && typeof val === 'string' && val.trim()) {
-        options.push(val.trim())
-      }
-    })
-  } else if (Array.isArray(optionSource)) {
-    // Array format: ["...", "...", "...", "..."]
-    optionSource.forEach((opt: string) => {
-      if (opt && typeof opt === 'string') {
-        options.push(opt.trim())
-      }
-    })
+  const options: { A: string; B: string; C: string; D: string; E?: string } = {
+    A: '',
+    B: '',
+    C: '',
+    D: ''
   }
 
-  // Parse correct answer
-  // ALOC answer can be: "a", "b", "c", "d" (letter) or 0, 1, 2, 3 (index)
-  let correctAnswer = 0
+  if (typeof optionSource === 'object' && !Array.isArray(optionSource)) {
+    options.A = (optionSource.a || optionSource.A || '').trim()
+    options.B = (optionSource.b || optionSource.B || '').trim()
+    options.C = (optionSource.c || optionSource.C || '').trim()
+    options.D = (optionSource.d || optionSource.D || '').trim()
+    if (optionSource.e || optionSource.E) {
+      options.E = (optionSource.e || optionSource.E || '').trim()
+    }
+  } else if (Array.isArray(optionSource)) {
+    options.A = (optionSource[0] || '').trim()
+    options.B = (optionSource[1] || '').trim()
+    options.C = (optionSource[2] || '').trim()
+    options.D = (optionSource[3] || '').trim()
+    if (optionSource[4]) {
+      options.E = (optionSource[4] || '').trim()
+    }
+  }
+
+  // Parse correct answer as letter string A, B, C, D, E
+  let correctAnswer = 'A'
   const rawAnswer = q.answer || q.correct_answer || q.correctAnswer || 'a'
 
   if (typeof rawAnswer === 'string') {
-    const trimmed = rawAnswer.trim().toLowerCase();
-    const letterIndex = optionKeys.indexOf(trimmed);
-    if (letterIndex >= 0) {
-      correctAnswer = letterIndex;
-    } else if (!isNaN(parseInt(trimmed))) {
-      correctAnswer = parseInt(trimmed);
+    const trimmed = rawAnswer.trim().toUpperCase()
+    if (['A', 'B', 'C', 'D', 'E'].includes(trimmed)) {
+      correctAnswer = trimmed
     } else {
-      correctAnswer = 0;
+      const optionKeys = ['a', 'b', 'c', 'd', 'e']
+      const letterIndex = optionKeys.indexOf(trimmed.toLowerCase())
+      if (letterIndex >= 0) {
+        correctAnswer = ['A', 'B', 'C', 'D', 'E'][letterIndex]
+      } else {
+        correctAnswer = 'A'
+      }
     }
   } else if (typeof rawAnswer === 'number') {
-    correctAnswer = rawAnswer;
+    const letters = ['A', 'B', 'C', 'D', 'E']
+    correctAnswer = letters[rawAnswer] || 'A'
   }
 
   // Clean up question text
