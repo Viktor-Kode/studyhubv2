@@ -24,8 +24,8 @@ import Link from 'next/link'
 
 interface StudyAnswer {
   isCorrect: boolean
-  correctIndex: number
-  selectedIndex: number | null
+  correctLetter: string
+  selectedLetter: string | null
   explanation?: string
 }
 
@@ -48,7 +48,7 @@ export default function StudyModePage() {
 
   const [questions, setQuestions] = useState<CBTQuestion[]>([])
   const [current, setCurrent] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [explanation, setExplanation] = useState('')
   const [loadingExp, setLoadingExp] = useState(false)
@@ -108,26 +108,23 @@ export default function StudyModePage() {
     loadQuestions()
   }, [selectedExam, selectedYear, selectedSubject, questionCount, isOffline])
 
-  const handleSelect = async (optionIndex: number) => {
+  const handleSelect = async (optionLetter: string) => {
     try {
       const currentQuestion = questions[current]
       if (!currentQuestion || revealed) return
 
-      const options = Array.isArray(currentQuestion.options) ? currentQuestion.options : []
-      if (!options.length) {
+      if (!currentQuestion.options || Object.keys(currentQuestion.options).length === 0) {
         console.error('[Study Mode] Question has no options', currentQuestion)
         return
       }
 
-      setSelected(optionIndex)
+      setSelected(optionLetter)
       setRevealed(true)
       setLoadingExp(true)
 
-      const selectedLetter = optionLetters[optionIndex]
-      
       const { correct, actualAnswer, explanation: expText } = await cbtApi.verifyAnswer({
         questionId: currentQuestion.id,
-        selectedAnswer: selectedLetter,
+        selectedAnswer: optionLetter,
         isAiGenerated: false,
         subject: selectedSubject,
         year: selectedYear,
@@ -135,14 +132,14 @@ export default function StudyModePage() {
       })
 
       if (correct) setScore((s) => s + 1)
-      const correctIndex = optionLetters.indexOf(String(actualAnswer).toUpperCase())
+      const correctLetter = String(actualAnswer).toUpperCase()
 
       setAnswers((prev) => {
         const next = [...prev]
         next[current] = {
           isCorrect: correct,
-          correctIndex,
-          selectedIndex: optionIndex,
+          correctLetter,
+          selectedLetter: optionLetter,
           explanation: expText
         }
         return next
@@ -179,7 +176,7 @@ export default function StudyModePage() {
   const restoreQuestionState = (idx: number) => {
     const answer = answers[idx]
     if (answer) {
-      setSelected(answer.selectedIndex)
+      setSelected(answer.selectedLetter)
       setRevealed(true)
       setExplanation(answer.explanation || '')
     } else {
@@ -287,7 +284,7 @@ export default function StudyModePage() {
                   {questions.map((question, index) => {
                     const record = answers[index]
                     const isCorrect = record?.isCorrect
-                    const correctLetter = optionLetters[record?.correctIndex ?? 0] || ''
+                    const correctLetter = record?.correctLetter || ''
 
                     return (
                       <div
@@ -358,19 +355,29 @@ export default function StudyModePage() {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
                       Question {current + 1}
                     </p>
+                    {selectedSubject && selectedSubject.toLowerCase().includes('english') && questions[current].tested_word && (
+                      <div className="my-4 p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-center shadow-inner">
+                        <span className="text-[10px] uppercase font-black tracking-[0.2em] text-indigo-500 block mb-1">
+                          Word to Test
+                        </span>
+                        <span className="text-3xl font-black text-indigo-700 dark:text-indigo-300">
+                          {questions[current].tested_word}
+                        </span>
+                      </div>
+                    )}
                     <div
                       className="mt-2 text-sm md:text-[15px] leading-relaxed text-slate-900 dark:text-slate-50"
-                      dangerouslySetInnerHTML={{ __html: renderQuestion(questions[current].question) }}
+                      dangerouslySetInnerHTML={{ __html: renderQuestion(questions[current].question, questions[current].tested_word) }}
                     />
                   </div>
                 </div>
 
                 {/* Options */}
                 <div className="space-y-2.5">
-                  {questions[current].options.map((opt, idx) => {
-                    const isSelected = selected === idx
+                  {Object.entries(questions[current].options).map(([letter, opt]) => {
+                    const isSelected = selected === letter
                     const ans = answers[current]
-                    const isCorrect = idx === ans?.correctIndex
+                    const isCorrect = letter === ans?.correctLetter
 
                     let base =
                       'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left text-sm transition shadow-sm'
@@ -394,14 +401,14 @@ export default function StudyModePage() {
 
                     return (
                       <button
-                        key={idx}
+                        key={letter}
                         type="button"
                         disabled={revealed}
-                        onClick={() => handleSelect(idx)}
+                        onClick={() => handleSelect(letter)}
                         className={`${base} ${stateClasses}`}
                       >
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[11px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-                          {optionLetters[idx]}
+                          {letter}
                         </span>
                         <span
                           className="flex-1 text-[13px] md:text-sm text-slate-800 dark:text-slate-100"
