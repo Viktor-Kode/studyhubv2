@@ -99,7 +99,7 @@ function MarkdownText({ content, className = '' }: { content: string; className?
                 {children}
               </code>
             ) : (
-              <pre style={{ background: '#1a1a2e', color: '#e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: '6px 0', maxWidth: '100%' }}>
+              <pre style={{ background: '#1a1a2e', color: '#e2e8f0', padding: '10px 12px', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre', wordBreak: 'normal', margin: '6px 0', maxWidth: '100%', width: '100%' }}>
                 <code {...props}>{children}</code>
               </pre>
             )
@@ -184,6 +184,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [loadingTutorHistory, setLoadingTutorHistory] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const tutorSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Layout states for mobile optimization
+  const [isContextExpanded, setIsContextExpanded] = useState(false)
+  const [showTutorHistoryDrawer, setShowTutorHistoryDrawer] = useState(false)
+  const chatInputRef = useRef<HTMLInputElement>(null)
 
   // Saved quiz session state
   const [hasSession, setHasSession] = useState(false)
@@ -668,7 +673,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         subject: newQuestions[0].subject || 'AI Generated Quiz',
         examType: 'AI_STUDY',
         year: new Date().getFullYear().toString(),
-        sessionId: newQuestions[0].sessionId || (newQuestions[0] as any).sessionId || (newQuestions[0] as any).quizSessionId, 
+        sessionId: (newQuestions[0] as any).sessionId || (newQuestions[0] as any).quizSessionId, 
         totalQuestions: newQuestions.length,
         correctAnswers: finalScore,
         wrongAnswers: newQuestions.length - finalScore,
@@ -747,7 +752,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     // Validate file type
     const allowedTypes = ['.pdf', '.docx', '.doc', '.txt', '.md', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.webp']
     const extension = '.' + file.name.split('.').pop()?.toLowerCase()
-    const mimetype = file.mimetype?.toLowerCase() || file.type.toLowerCase()
+    const mimetype = (file as any).mimetype?.toLowerCase() || file.type.toLowerCase()
 
     const isValidExtension = allowedTypes.includes(extension)
     const isValidMime = mimetype?.includes('pdf') || mimetype?.includes('word') || mimetype?.includes('presentation') || mimetype?.includes('text') || mimetype?.startsWith('image/')
@@ -774,6 +779,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       if (parsedText && parsedText.trim().length > 0) {
         setExtractedText(parsedText)
         setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
+        setIsContextExpanded(false)
       } else {
         throw new Error('Could not read this file. Try a different format or paste your text directly.')
       }
@@ -809,6 +815,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setExtractedText('')
       setFetchError(null)
       setSuccess('Link content fetched successfully! You can now generate questions or notes.')
+      setIsContextExpanded(false)
     } catch (err: any) {
       const rawMessage =
         err?.response?.data?.error ||
@@ -1215,9 +1222,118 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Input Side */}
-          <div className="space-y-4">
+        {/* If quiz is generated and quiz tab is active, show a compact header banner instead of the full grid */}
+        {activeTab === 'quiz' && newQuestions.length > 0 ? (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/10 dark:to-indigo-950/10 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-5 mb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📝</span>
+              <div className="min-w-0">
+                <h4 className="font-bold text-gray-900 dark:text-white">Active Quiz Set</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  Generated from {inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'your study material'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleGenerate(undefined, true)}
+                disabled={generating}
+                className="flex-grow sm:flex-none px-4 py-2 border border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+              >
+                {generating ? <FiLoader className="animate-spin" /> : 'New Set'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewQuestions([])
+                  setUserAnswers({})
+                  setCheckedAnswers({})
+                  setQuizSubmitted(false)
+                }}
+                className="flex-grow sm:flex-none px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-650 rounded-xl text-xs font-bold transition"
+              >
+                Change Options
+              </button>
+            </div>
+          </div>
+        ) : activeTab === 'notes' && generatedNotes ? (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/10 dark:to-teal-950/10 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-5 mb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📚</span>
+              <div className="min-w-0">
+                <h4 className="font-bold text-gray-900 dark:text-white">Generated Study Notes</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  Summarized from {inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'your study material'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleGenerateNotes}
+                disabled={generatingNotes}
+                className="flex-grow sm:flex-none px-4 py-2 border border-emerald-600/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+              >
+                {generatingNotes ? <FiLoader className="animate-spin" /> : 'Re-generate'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGeneratedNotes('')
+                }}
+                className="flex-grow sm:flex-none px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-650 rounded-xl text-xs font-bold transition"
+              >
+                Change Options
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'tutor' && (
+              <div className="md:hidden mb-4">
+                <button
+                  type="button"
+                  onClick={() => setIsContextExpanded(!isContextExpanded)}
+                  className="w-full text-left flex items-center justify-between p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border border-purple-100 dark:border-purple-900/50 rounded-xl transition hover:opacity-90 shadow-sm animate-in fade-in"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className="text-base mr-2 flex-shrink-0">
+                      {inputMode === 'upload' && uploadedFile ? '📄' : inputMode === 'link' && manualText ? '🔗' : '✏️'}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 leading-none mb-1">
+                        Active Study Material
+                      </p>
+                      <p className="text-[13px] font-bold text-gray-700 dark:text-gray-200 truncate">
+                        {inputMode === 'upload' && uploadedFile 
+                          ? uploadedFile.name 
+                          : inputMode === 'link' && fetchedTitle 
+                            ? fetchedTitle 
+                            : inputMode === 'manual' && manualText 
+                              ? `${manualText.slice(0, 35)}...` 
+                              : 'No file uploaded (general tutoring)'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2">
+                    <span>{isContextExpanded ? 'Hide Tools' : 'Change'}</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-200 ${isContextExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            <div className={`grid ${activeTab === 'tutor' ? 'lg:grid-cols-[1fr_1.3fr] grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'} gap-8`}>
+              {/* Input Side */}
+              <div className={`space-y-4 ${activeTab === 'tutor' && !isContextExpanded ? 'hidden md:block' : 'block'}`}>
 
             {/* Source Tabs: Paste Text / Paste Link / Upload PDF */}
             <div className="qg-source-tabs">
@@ -1539,47 +1655,35 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             ) : activeTab === 'tutor' ? (
               // TUTOR TAB UI
-              <div className="flex flex-col h-[75vh] min-h-[500px] md:h-[600px] w-full border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20">
-                <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 md:p-4">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <p className="text-xs font-bold text-gray-600 dark:text-gray-300">Tutor Conversations</p>
+              <div className="flex flex-col h-[60vh] min-h-[450px] md:h-[600px] w-full border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20 min-w-0">
+                {/* Pinned chat panel header */}
+                <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <BiMessageRoundedDots className="text-lg text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    <span className="font-bold text-xs sm:text-sm text-gray-800 dark:text-gray-100 truncate">
+                      {tutorSessionId ? (tutorSessions.find(s => s.sessionId === tutorSessionId)?.title || 'Active Chat') : 'AI Study Tutor'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void loadTutorHistory(false)
+                        setShowTutorHistoryDrawer(true)
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 transition"
+                      title="View conversations history"
+                    >
+                      <FiClock className="text-purple-600 dark:text-purple-400" />
+                      <span>History</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleStartNewTutorChat()}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
                     >
-                      + New Chat
+                      + New
                     </button>
-                  </div>
-                  <div className="max-h-32 md:max-h-40 overflow-y-auto space-y-2">
-                    {loadingTutorHistory ? (
-                      <p className="text-xs text-gray-400">Loading chats...</p>
-                    ) : tutorSessions.length === 0 ? (
-                      <p className="text-xs text-gray-400">No previous chats yet.</p>
-                    ) : (
-                      tutorSessions.map((session) => (
-                        <button
-                          key={session.sessionId}
-                          type="button"
-                          onClick={() => void handleLoadTutorSession(session.sessionId)}
-                          className={`w-full text-left flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-xs transition
-                            ${session.sessionId === tutorSessionId ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
-                        >
-                          <span className="truncate">{session.title || 'New Chat'}</span>
-                          <span
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              void handleDeleteTutorSession(session.sessionId)
-                            }}
-                            className="p-1.5 rounded hover:bg-red-50 hover:text-red-500"
-                            title="Delete chat"
-                          >
-                            <FiTrash2 size={14} />
-                          </span>
-                        </button>
-                      ))
-                    )}
                   </div>
                 </div>
 
@@ -1669,20 +1773,26 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </div>
                 )}
 
-                <form onSubmit={handleSendMessage} className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                <form onSubmit={handleSendMessage} className="p-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-2 flex-shrink-0">
                   <input
+                    ref={chatInputRef}
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        chatInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 300)
+                    }}
                     placeholder="Ask a question..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-base outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
+                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
                   />
                   <button
                     type="submit"
                     disabled={isChatting || !chatInput.trim()}
-                    className="p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition disabled:bg-gray-100 disabled:text-gray-400 flex items-center justify-center"
+                    className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition disabled:bg-gray-100 disabled:text-gray-400 flex items-center justify-center flex-shrink-0"
                   >
-                    <FiCheckCircle size={20} />
+                    <FiCheckCircle size={18} />
                   </button>
                 </form>
               </div>
@@ -1726,6 +1836,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             )}
           </div>
         </div>
+      </>
+    )}
       </div>
 
       {/* Generated Content View */}
@@ -1997,6 +2109,88 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sliding conversation history drawer for AI Tutor */}
+      {showTutorHistoryDrawer && (
+        <div className="fixed inset-0 z-[100] flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setShowTutorHistoryDrawer(false)}
+          />
+          
+          {/* Drawer Content */}
+          <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <FiClock className="text-purple-600 dark:text-purple-400" /> Saved Conversations
+              </h3>
+              <button
+                onClick={() => setShowTutorHistoryDrawer(false)}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto p-3 space-y-2">
+              {loadingTutorHistory ? (
+                <div className="flex items-center justify-center py-8 text-xs text-gray-400">
+                  <FiLoader className="animate-spin mr-2" /> Loading chats...
+                </div>
+              ) : tutorSessions.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-8">No previous chats yet.</p>
+              ) : (
+                tutorSessions.map((session) => (
+                  <div
+                    key={session.sessionId}
+                    className={`group w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition cursor-pointer border
+                      ${session.sessionId === tutorSessionId
+                        ? 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-200'
+                        : 'bg-gray-50 dark:bg-gray-900/30 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                    onClick={() => {
+                      void handleLoadTutorSession(session.sessionId)
+                      setShowTutorHistoryDrawer(false)
+                    }}
+                  >
+                    <div className="min-w-0 flex-grow">
+                      <p className="font-bold truncate text-[13px]">{session.title || 'New Chat'}</p>
+                      {session.lastMessage && (
+                        <p className="text-[10px] text-gray-400 truncate mt-0.5">{session.lastMessage}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        void handleDeleteTutorSession(session.sessionId)
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-gray-400 dark:text-gray-500 hover:dark:bg-red-950/20 transition-colors"
+                      title="Delete chat"
+                    >
+                      <FiTrash2 size={13} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/10">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleStartNewTutorChat()
+                  setShowTutorHistoryDrawer(false)
+                }}
+                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition shadow-md shadow-purple-500/20"
+              >
+                + Start New Chat
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
