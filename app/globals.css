@@ -5053,6 +5053,8 @@ html {
 .tutor-layout {
   display: flex;
   height: calc(100vh - 60px);
+  /* Dynamic viewport height (dvh) accounts for mobile browser chrome/keyboard */
+  height: calc(100dvh - 60px);
   background: #F9FAFB;
   position: relative;
   overflow: hidden;
@@ -5426,6 +5428,67 @@ html {
     flex: 1;
     text-align: center;
   }
+}
+
+/* ─── Question Bank AI Tutor Mobile Fixes ─────────────────────── */
+/* Prevent the chat scroll container from causing horizontal overflow on Android */
+.chat-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  contain: paint;
+}
+
+/* Prevent any child elements of the chat container from horizontally expanding */
+.chat-scroll-container > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Message bubbles: ensure they never exceed the container */
+.chat-scroll-container .message-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Safe area padding for mobile keyboard — ensure input row always shows */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .tutor-input-area,
+  .chat-input-form {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Ensure the Question Bank card doesn't overflow on any mobile width */
+@media (max-width: 640px) {
+  /* Force the tutor chat pane to stay within viewport */
+  .tutor-chat-pane {
+    height: calc(100dvh - 240px);
+    min-height: 360px;
+    max-height: 65vh;
+  }
+
+  /* Collapsible context area animation */
+  .context-input-collapse {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+  }
+  .context-input-collapse.open {
+    max-height: 800px;
+    transition: max-height 0.5s ease-in;
+  }
+}
+
+/* History drawer slide-in animation */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.22s ease-out;
 }
 
 /* ─── LIBRARY PAGE ───────────────────────────────────────────── */
