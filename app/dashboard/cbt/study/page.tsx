@@ -128,7 +128,10 @@ export default function StudyModePage() {
         isAiGenerated: false,
         subject: selectedSubject,
         year: selectedYear,
-        examType: selectedExam || undefined
+        examType: selectedExam || undefined,
+        // For WAEC static questions these fields are already populated — verify locally
+        localCorrectAnswer: currentQuestion.correctAnswer,
+        localExplanation: currentQuestion.explanation,
       })
 
       if (correct) setScore((s) => s + 1)

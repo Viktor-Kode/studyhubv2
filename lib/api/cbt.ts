@@ -3,6 +3,7 @@ import { getFirebaseToken } from '../store/authStore'
 import { triggerUpgradeModal } from '../upgradeHandler'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import waecExamData from '../data/waecExamData.json'
 
 export type ExamType = 'WAEC' | 'JAMB' | 'POST_UTME' | 'NECO' | 'BECE'
 
@@ -209,6 +210,74 @@ const SUBJECT_SLUG_MAP: Record<string, string> = {
   'Insurance': 'insurance',
   'Current Affairs': 'currentaffairs',
   'History': 'history'
+}
+
+// ─── WAEC Static Data Helpers ─────────────────────────────────────────────────
+const waecSubjects = waecExamData?.exams?.waec?.subjects as Record<string, any> ?? {}
+
+/** Returns the canonical subject names available in static WAEC data */
+const getWaecStaticSubjects = (): string[] => Object.keys(waecSubjects)
+
+/** Returns available years for a given subject in static WAEC data */
+const getWaecStaticYears = (subject: string): string[] => {
+  const subjectData = waecSubjects[subject]
+  if (!subjectData?.years) return []
+  return Object.keys(subjectData.years).sort((a, b) => Number(b) - Number(a))
+}
+
+/** Converts a raw static question entry into a CBTQuestion */
+const parseWaecStaticQuestion = (q: any): CBTQuestion => {
+  const topic = q.topic || null
+  const questionText = (q.question || '').replace(/\s+/g, ' ').trim()
+
+  // Normalise options – already {A,B,C,D} in the static file
+  const optionSource = q.options || {}
+  const options: { A: string; B: string; C: string; D: string; E?: string } = {
+    A: (optionSource.A || optionSource.a || '').trim(),
+    B: (optionSource.B || optionSource.b || '').trim(),
+    C: (optionSource.C || optionSource.c || '').trim(),
+    D: (optionSource.D || optionSource.d || '').trim(),
+  }
+  if (optionSource.E || optionSource.e) {
+    options.E = (optionSource.E || optionSource.e || '').trim()
+  }
+
+  // Correct answer letter
+  const rawAnswer = String(q.answer || 'A').trim().toUpperCase()
+  const correctAnswer = ['A', 'B', 'C', 'D', 'E'].includes(rawAnswer) ? rawAnswer : 'A'
+
+  // Category / instruction
+  let category: QuestionCategory = 'general'
+  let instruction = 'Choose the correct option.'
+  if (topic) {
+    instruction = getInstructionForTopic(topic, q.subject || '')
+    const t = topic.toLowerCase()
+    if (t.includes('comprehension') || t.includes('cloze') || t.includes('register')) category = 'comprehension'
+    else if (t.includes('synonym') || t.includes('antonym') || t.includes('vocab') || t.includes('nearest') || t.includes('best complete')) category = 'vocabulary'
+    else if (t.includes('grammar') || t.includes('lexis') || t.includes('lexicon') || t.includes('concord') || t.includes('tense')) category = 'grammar'
+    else if (t.includes('completion') || t.includes('fill in')) category = 'sentence_completion'
+    else if (t.includes('oral') || t.includes('stress') || t.includes('sound') || t.includes('phonetic')) category = 'oral_english'
+    else if (t.includes('idiom') || t.includes('proverb') || t.includes('interpretation')) category = 'idiom_proverb'
+  } else {
+    category = detectQuestionCategory(questionText)
+    instruction = getQuestionInstruction(category, q.subject || '')
+  }
+
+  return {
+    id: q.id || `waec_${q.subject}_${q.year}_${q.no}`,
+    question: questionText,
+    options,
+    correctAnswer,
+    explanation: q.explanation || '',
+    subject: q.subject || '',
+    year: String(q.year || ''),
+    examType: 'WAEC',
+    category,
+    instruction,
+    image: null,
+    topic,
+    tested_word: q.tested_word || null,
+  }
 }
 
 const parseALOCQuestion = (q: any, examType: ExamType): CBTQuestion => {
@@ -462,8 +531,8 @@ export interface TopicGeneratedQuestion {
 
 export const cbtApi = {
   /**
-   * Get questions from ALOC API via internal proxy
-   * For Post-UTME, pass school (e.g. UNILAG) for school-specific questions
+   * Get questions. For WAEC, serves directly from bundled static JSON (no API call).
+   * For all other exam types, proxies through the backend API.
    */
   getQuestions: async (
     examType: ExamType,
@@ -472,6 +541,33 @@ export const cbtApi = {
     amount: number = 20,
     school?: string
   ): Promise<{ questions: CBTQuestion[], debug?: string }> => {
+
+    // ── WAEC: serve from static bundled data ───────────────────────────────
+    if (examType === 'WAEC') {
+      console.log(`[CBT] WAEC static data: ${subject} ${year}`)
+      const subjectData = waecSubjects[subject]
+      if (!subjectData?.years?.[year]) {
+        throw new Error(`No WAEC data found for "${subject}" (${year}). Try a different year or subject.`)
+      }
+      const rawQuestions: any[] = subjectData.years[year].questions || []
+      let allQuestions = rawQuestions.map(parseWaecStaticQuestion)
+
+      // Filter comprehension for English Language
+      const isEnglish = subject.toLowerCase().includes('english')
+      let questions = isEnglish
+        ? allQuestions.filter(q => q.category !== 'comprehension')
+        : allQuestions
+
+      if (questions.length === 0 && allQuestions.length > 0) {
+        questions = allQuestions // fallback: return everything even if comprehension
+      }
+
+      // Shuffle for variety and limit to requested amount
+      const shuffled = questions.sort(() => Math.random() - 0.5)
+      return { questions: shuffled.slice(0, amount), debug: 'served-from-static' }
+    }
+
+    // ── All other exam types: use backend proxy ────────────────────────────
     const examSlug = EXAM_TYPE_MAP[examType]
     const subjectSlug = SUBJECT_SLUG_MAP[subject] || subject.toLowerCase().replace(/ /g, '-')
 
@@ -503,7 +599,7 @@ export const cbtApi = {
         let allQuestions = data.data
           .filter((q: any) => q.question && (q.option || q.options))
           .map((q: any) => parseALOCQuestion(q, examType))
-          .filter((q: CBTQuestion) => q.options.length >= 2)
+          .filter((q: CBTQuestion) => (q.options as any).length >= 2)
 
         // For English Language: filter out comprehension questions
         const isEnglish = subjectSlug === 'english' || subject.toLowerCase().includes('english')
@@ -512,8 +608,6 @@ export const cbtApi = {
           : allQuestions
 
         if (questions.length === 0 && allQuestions.length > 0) {
-          // If we filtered out EVERYTHING (likely all were comprehension), just return the original set
-          // better than an empty screen.
           return { questions: allQuestions.slice(0, amount) }
         }
 
@@ -547,20 +641,27 @@ export const cbtApi = {
   },
 
   /**
-   * Get available years
+   * Get available years. For WAEC, returns years from static data (no network call).
    */
-  getAvailableYears: async (examType: ExamType): Promise<AvailableYearsResponse> => {
+  getAvailableYears: async (examType: ExamType, subject?: string): Promise<AvailableYearsResponse> => {
+    if (examType === 'WAEC') {
+      const sub = subject || getWaecStaticSubjects()[0] || 'English Language'
+      return { years: getWaecStaticYears(sub) }
+    }
     const meta = await cbtApi.getMetadata();
     return { years: meta.years };
   },
 
   /**
-   * Get available subjects based on Exam Type
+   * Get available subjects. For WAEC, returns subjects from static data (no network call).
    */
   getAvailableSubjects: async (
     examType: ExamType,
     year?: string
   ): Promise<AvailableSubjectsResponse> => {
+    if (examType === 'WAEC') {
+      return { subjects: getWaecStaticSubjects() }
+    }
     const meta = await cbtApi.getMetadata();
     return { subjects: meta.subjects };
   },
@@ -701,7 +802,10 @@ export const cbtApi = {
   },
 
   /**
-   * Server-side answer verification (Security Hardening)
+   * Answer verification.
+   * For WAEC static questions the answer is already embedded in the question object
+   * (correctAnswer + explanation fields). We verify locally to avoid API calls.
+   * For all other exam types we call the backend verify-answer endpoint.
    */
   verifyAnswer: async (params: {
     questionId: string | number
@@ -711,7 +815,27 @@ export const cbtApi = {
     subject?: string
     year?: string
     examType?: string
+    // Pass the already-resolved answer for WAEC static questions
+    localCorrectAnswer?: string
+    localExplanation?: string
   }): Promise<{ correct: boolean; actualAnswer: string; explanation: string }> => {
+
+    // ── WAEC static: verify locally ────────────────────────────────────────
+    const isWaecStatic =
+      params.examType === 'WAEC' ||
+      String(params.questionId).startsWith('waec_')
+
+    if (isWaecStatic && params.localCorrectAnswer) {
+      const actualAnswer = params.localCorrectAnswer.toUpperCase()
+      const correct = params.selectedAnswer.toUpperCase() === actualAnswer
+      return {
+        correct,
+        actualAnswer,
+        explanation: params.localExplanation || ''
+      }
+    }
+
+    // ── Backend verification for all other exam types ──────────────────────
     const res = await fetchWithAuth('/api/backend/cbt/verify-answer', {
       method: 'POST',
       body: JSON.stringify(params),

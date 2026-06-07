@@ -371,22 +371,33 @@ export default function CBTPage() {
     if (!selectedExam) return
     try {
       setLoading(true)
-      const res = await cbtApi.getMetadata()
-      setAvailableSubjects(res.subjects)
-      
-      let years = res.years
+
       if (selectedExam === 'WAEC') {
-        const allowedYears = ["2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015"]
-        years = years.filter(y => allowedYears.includes(y))
-      }
-      setAvailableYears(years)
-      
-      // Auto-select first if not already selected or invalid
-      if (!selectedSubject || !res.subjects.includes(selectedSubject)) {
-        setSelectedSubject(res.subjects[0] || '')
-      }
-      if (!selectedYear || !res.years.includes(selectedYear)) {
-        setSelectedYear(res.years[0] || '')
+        // WAEC: use static bundled data — no network call needed
+        const subjectsRes = await cbtApi.getAvailableSubjects('WAEC')
+        const defaultSubject = subjectsRes.subjects[0] || 'English Language'
+        setAvailableSubjects(subjectsRes.subjects)
+
+        const yearsRes = await cbtApi.getAvailableYears('WAEC', defaultSubject)
+        setAvailableYears(yearsRes.years)
+
+        if (!selectedSubject || !subjectsRes.subjects.includes(selectedSubject)) {
+          setSelectedSubject(defaultSubject)
+        }
+        if (!selectedYear || !yearsRes.years.includes(selectedYear)) {
+          setSelectedYear(yearsRes.years[0] || '')
+        }
+      } else {
+        const res = await cbtApi.getMetadata()
+        setAvailableSubjects(res.subjects)
+        setAvailableYears(res.years)
+
+        if (!selectedSubject || !res.subjects.includes(selectedSubject)) {
+          setSelectedSubject(res.subjects[0] || '')
+        }
+        if (!selectedYear || !res.years.includes(selectedYear)) {
+          setSelectedYear(res.years[0] || '')
+        }
       }
     } catch (err) {
       console.error('Error loading metadata:', err)
