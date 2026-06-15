@@ -54,7 +54,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com https://api.dicebear.com https://res.cloudinary.com https://*.google.com https://*.googlesyndication.com",
               "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.cloud.google.com https://api.cloudinary.com https://vitals.vercel-insights.com wss://*.firebaseio.com https://cdn.jsdelivr.net https://unpkg.com https://tessdata.projectnaptha.com",
-              "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co",
+              "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://mozilla.github.io",
               "font-src 'self' https://fonts.gstatic.com",
               "worker-src 'self' blob: https://cdn.jsdelivr.net https://unpkg.com",
               "object-src 'none'",
