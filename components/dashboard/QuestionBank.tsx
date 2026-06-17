@@ -2188,10 +2188,27 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     // Determine user answer display text
                     let userAnswerText = 'Skipped'
                     if (userAnswer !== undefined && userAnswer !== '') {
-                      if (q.options && q.options.length > 0 && typeof userAnswer === 'string' && userAnswer.length === 1 && /^[a-e]$/i.test(userAnswer)) {
-                        const idxOpt = userAnswer.toLowerCase().charCodeAt(0) - 97
-                        if (idxOpt < q.options.length) {
-                          userAnswerText = `Option ${userAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                      const normalizedUserAnswer = String(userAnswer).trim()
+                      const isUserNumericDigit = /^[0-4]$/.test(normalizedUserAnswer)
+                      const isUserLetterOption = /^[a-e]$/i.test(normalizedUserAnswer)
+
+                      if (q.options && q.options.length > 0) {
+                        if (isUserNumericDigit) {
+                          const idxOpt = parseInt(normalizedUserAnswer)
+                          if (idxOpt < q.options.length) {
+                            userAnswerText = `Option ${String.fromCharCode(65 + idxOpt)}: ${q.options[idxOpt]}`
+                          } else {
+                            userAnswerText = normalizedUserAnswer
+                          }
+                        } else if (isUserLetterOption) {
+                          const idxOpt = normalizedUserAnswer.toLowerCase().charCodeAt(0) - 97
+                          if (idxOpt < q.options.length) {
+                            userAnswerText = `Option ${normalizedUserAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                          } else {
+                            userAnswerText = normalizedUserAnswer
+                          }
+                        } else {
+                          userAnswerText = String(userAnswer)
                         }
                       } else {
                         userAnswerText = String(userAnswer)
@@ -2200,21 +2217,34 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
                     // Determine correct answer display text
                     let correctAnswerText = ''
-                    if (q.options && q.options.length > 0) {
-                      if (typeof correctAnswer === 'number') {
-                        if (correctAnswer < q.options.length) {
-                          correctAnswerText = `Option ${String.fromCharCode(65 + correctAnswer)}: ${q.options[correctAnswer]}`
-                        }
-                      } else if (typeof correctAnswer === 'string' && correctAnswer.length === 1 && /^[a-e]$/i.test(correctAnswer)) {
-                        const idxOpt = correctAnswer.toLowerCase().charCodeAt(0) - 97
-                        if (idxOpt < q.options.length) {
-                          correctAnswerText = `Option ${correctAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                    if (correctAnswer !== undefined && correctAnswer !== '') {
+                      const normalizedCorrectAnswer = String(correctAnswer).trim()
+                      const isCorrectNumericDigit = /^[0-4]$/.test(normalizedCorrectAnswer)
+                      const isCorrectLetterOption = /^[a-e]$/i.test(normalizedCorrectAnswer)
+
+                      if (q.options && q.options.length > 0) {
+                        if (isCorrectNumericDigit) {
+                          const idxOpt = parseInt(normalizedCorrectAnswer)
+                          if (idxOpt < q.options.length) {
+                            correctAnswerText = `Option ${String.fromCharCode(65 + idxOpt)}: ${q.options[idxOpt]}`
+                          } else {
+                            correctAnswerText = normalizedCorrectAnswer
+                          }
+                        } else if (isCorrectLetterOption) {
+                          const idxOpt = normalizedCorrectAnswer.toLowerCase().charCodeAt(0) - 97
+                          if (idxOpt < q.options.length) {
+                            correctAnswerText = `Option ${normalizedCorrectAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                          } else {
+                            correctAnswerText = normalizedCorrectAnswer
+                          }
+                        } else {
+                          correctAnswerText = String(correctAnswer)
                         }
                       } else {
                         correctAnswerText = String(correctAnswer)
                       }
                     } else {
-                      correctAnswerText = String(correctAnswer)
+                      correctAnswerText = 'N/A'
                     }
 
                     const deepDiveText = q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation ||
