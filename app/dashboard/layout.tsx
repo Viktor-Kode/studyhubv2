@@ -45,7 +45,6 @@ const navItems: NavItem[] = [
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student', 'teacher'] },
     { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student', 'teacher'] },
     { href: '/dashboard/cbt', label: 'Past Question', icon: MdQuiz, roles: ['student', 'teacher'] },
-    { href: '/dashboard/student/pdf-cbt', label: 'PDF to CBT', icon: FiFile, roles: ['student', 'teacher'] },
 
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student', 'teacher'] },
 

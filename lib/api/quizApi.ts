@@ -89,13 +89,14 @@ export const generateQuiz = async (
     fileName?: string,
     forceNew: boolean = false,
     onChunk?: (chunk: string) => void,
-    documentId?: string
+    documentId?: string,
+    subject?: string
 ): Promise<QuizResponse> => {
     const stream = !!onChunk;
     const response = await fetch(`${API_BASE_URL}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-        body: JSON.stringify({ text, amount, questionType, fileName, forceNew, stream, documentId })
+        body: JSON.stringify({ text, amount, questionType, fileName, forceNew, stream, documentId, subject })
     })
     
     if (!response.ok) {

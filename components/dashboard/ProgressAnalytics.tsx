@@ -37,6 +37,9 @@ export default function ProgressAnalytics() {
                         data.totalSessions = summaryData.studyTimer.totalSessions;
                     }
 
+                    // Pull total study time from summary
+                    data.totalStudyTime = summaryData?.studyTimer?.totalTime || '0m';
+
                     setStats(data)
                 }
             } catch (error) {
@@ -101,7 +104,7 @@ export default function ProgressAnalytics() {
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-12">
             {/* 1. Header Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <StatCard
                     title="Questions Answered"
                     value={stats?.questionCount || 0}
@@ -125,6 +128,12 @@ export default function ProgressAnalytics() {
                     value={stats?.totalSessions || 0}
                     icon={<FiClock />}
                     color="bg-purple-500"
+                />
+                <StatCard
+                    title="Total Study Time"
+                    value={stats?.totalStudyTime || '0m'}
+                    icon={<FiClock />}
+                    color="bg-pink-500"
                 />
             </div>
 
