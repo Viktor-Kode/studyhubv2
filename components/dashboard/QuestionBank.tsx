@@ -199,6 +199,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
   const [isExplaining, setIsExplaining] = useState<string | null>(null)
   const [votedExplanations, setVotedExplanations] = useState<Record<string, 'up' | 'down'>>({})
+  const [reviewMode, setReviewMode] = useState(false)
 
   // Fuzzy Answer Matching Helper
   const getLevenshteinDistance = (a: string, b: string) => {
@@ -731,6 +732,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setCheckedAnswers({})
     setScore(0)
     setQuizSubmitted(false)
+    setReviewMode(false)
     setCurrentQuestionIndex(0)
     setActiveTab('quiz')
     setHasSession(false)
@@ -1101,6 +1103,65 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     } catch (err) {
       console.error('Failed to vote explanation:', err);
       toast.error('Failed to record feedback.');
+    }
+  }
+
+  const handleReviewTopic = async (q: Question) => {
+    setActiveTab('tutor')
+    const qText = q.content || (q as any).question || '';
+    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
+    const correctAnsText = typeof correctAnswer === 'number' && q.options
+      ? q.options[Number(correctAnswer)]
+      : String(correctAnswer);
+
+    const message = `Explain the concept/topic behind this question in detail:\n"${qText}"\nThe correct answer is: "${correctAnsText}"`
+
+    setTutorSessionId(null)
+    const outgoingMsg: TutorChatMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    }
+    setChatMessages([outgoingMsg])
+    setIsChatting(true)
+    setError(null)
+    
+    setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
+
+    try {
+      let context = inputMode === 'upload' ? extractedText : manualText
+      if (context && context.length > 48000) {
+        context = context.slice(0, 48000)
+      }
+      
+      await chatWithTutor(
+        message, 
+        context, 
+        [], 
+        (chunk) => {
+          setChatMessages(prev => {
+            const newMessages = [...prev]
+            const lastIdx = newMessages.length - 1
+            if (lastIdx >= 0) {
+              newMessages[lastIdx] = { 
+                ...newMessages[lastIdx], 
+                content: newMessages[lastIdx].content + chunk 
+              }
+            }
+            return newMessages
+          })
+        },
+        documentId || undefined
+      )
+    } catch (err: any) {
+      const msg = getErrorMessage(err)
+      if (isUpgradeError(msg)) {
+        showUpgrade('ai')
+        return
+      }
+      setError(msg)
+    } finally {
+      setIsChatting(false)
     }
   }
 
@@ -2087,15 +2148,152 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             </div>
           )}
 
-          {quizSubmitted && (
+          {quizSubmitted && reviewMode ? (
+            <div className="mt-8 mb-12 p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl space-y-6 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-gray-750">
+                <div className="text-left">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">Review Mistakes</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Review the questions you got wrong and strengthen your understanding.</p>
+                </div>
+                <button
+                  onClick={() => setReviewMode(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition self-start sm:self-auto"
+                >
+                  ← Back to Score
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {(() => {
+                  const wrongQuestions = newQuestions.filter(q => {
+                    const userAnswer = userAnswers[q._id]
+                    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
+                    return !compareAnswers(userAnswer, correctAnswer, q.options)
+                  })
+
+                  if (wrongQuestions.length === 0) {
+                    return (
+                      <div className="text-center p-8 bg-gray-50 dark:bg-gray-900/20 rounded-2xl border border-gray-100 dark:border-gray-750">
+                        <span className="text-4xl">🎉</span>
+                        <h4 className="font-bold text-gray-900 dark:text-white mt-2">No Mistakes!</h4>
+                        <p className="text-xs text-gray-500 mt-1 font-medium">Excellent job! You got 100% correct in this session.</p>
+                      </div>
+                    )
+                  }
+
+                  return wrongQuestions.map((q, idx) => {
+                    const userAnswer = userAnswers[q._id]
+                    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
+
+                    // Determine user answer display text
+                    let userAnswerText = 'Skipped'
+                    if (userAnswer !== undefined && userAnswer !== '') {
+                      if (q.options && q.options.length > 0 && typeof userAnswer === 'string' && userAnswer.length === 1 && /^[a-e]$/i.test(userAnswer)) {
+                        const idxOpt = userAnswer.toLowerCase().charCodeAt(0) - 97
+                        if (idxOpt < q.options.length) {
+                          userAnswerText = `Option ${userAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                        }
+                      } else {
+                        userAnswerText = String(userAnswer)
+                      }
+                    }
+
+                    // Determine correct answer display text
+                    let correctAnswerText = ''
+                    if (q.options && q.options.length > 0) {
+                      if (typeof correctAnswer === 'number') {
+                        if (correctAnswer < q.options.length) {
+                          correctAnswerText = `Option ${String.fromCharCode(65 + correctAnswer)}: ${q.options[correctAnswer]}`
+                        }
+                      } else if (typeof correctAnswer === 'string' && correctAnswer.length === 1 && /^[a-e]$/i.test(correctAnswer)) {
+                        const idxOpt = correctAnswer.toLowerCase().charCodeAt(0) - 97
+                        if (idxOpt < q.options.length) {
+                          correctAnswerText = `Option ${correctAnswer.toUpperCase()}: ${q.options[idxOpt]}`
+                        }
+                      } else {
+                        correctAnswerText = String(correctAnswer)
+                      }
+                    } else {
+                      correctAnswerText = String(correctAnswer)
+                    }
+
+                    const deepDiveText = q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation ||
+                      (q as any).modelAnswer || (q as any).solution || (q as any).explanationText ||
+                      (q as any).reason || (q as any).discussion || '';
+
+                    return (
+                      <div key={q._id} className="bg-gray-50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-750 rounded-2xl p-5 space-y-4 text-left">
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center font-black text-xs">
+                            {idx + 1}
+                          </span>
+                          <div className="flex-grow min-w-0">
+                            <MarkdownText content={q.content || (q as any).question || ''} className="text-gray-900 dark:text-white font-bold leading-snug" />
+                          </div>
+                        </div>
+
+                        {/* Answers Side-by-side */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div className="p-3 bg-red-50/50 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/20 rounded-xl">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-500 block mb-1">Your Answer</span>
+                            <p className="text-xs font-semibold text-red-700 dark:text-red-300 break-words">{userAnswerText}</p>
+                          </div>
+                          <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 rounded-xl">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 block mb-1">Correct Answer</span>
+                            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 break-words">{correctAnswerText}</p>
+                          </div>
+                        </div>
+
+                        {/* Explanation if available */}
+                        {deepDiveText && deepDiveText !== 'No deep-dive available.' && (
+                          <div className="p-4 bg-blue-50/20 dark:bg-blue-950/5 rounded-xl border border-blue-100/50 dark:border-blue-900/20">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 block mb-1">Concept Explanation</span>
+                            <MarkdownText content={deepDiveText} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium" />
+                          </div>
+                        )}
+
+                        {/* Action option */}
+                        <div className="flex justify-end pt-1">
+                          <button
+                            onClick={() => handleReviewTopic(q)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-purple-500/10"
+                          >
+                            <BiMessageRoundedDots className="text-sm" />
+                            Review Topic with Tutor
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={() => setReviewMode(false)}
+                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-gray-200 rounded-xl font-bold text-sm transition"
+                  >
+                    ← Return to Results Summary
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : quizSubmitted && (
             <div className="mt-8 mb-12 p-8 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 rounded-3xl text-center space-y-4 animate-in zoom-in-95 duration-500">
               <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg shadow-emerald-500/30">
                 <FiCheckCircle />
               </div>
               <h3 className="text-2xl font-black text-gray-900 dark:text-white">Results Synced!</h3>
               <p className="text-gray-600 dark:text-gray-400">Your score of {score}/{newQuestions.length} ({Math.round((score / newQuestions.length) * 100)}%) has been recorded in your performance analytics.</p>
-              <div className="flex justify-center gap-4 pt-4">
+              <div className="flex flex-wrap justify-center gap-4 pt-4">
                 <Link href="/dashboard/student" className="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold text-sm">Return to Dashboard</Link>
+                {score < newQuestions.length && (
+                  <button
+                    onClick={() => setReviewMode(true)}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-1.5"
+                  >
+                    <FiXCircle /> Review Mistakes
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setNewQuestions([])
@@ -2103,6 +2301,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     setScore(0)
                     setUserAnswers({})
                     setCheckedAnswers({})
+                    setReviewMode(false)
                   }}
                   className="px-6 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm shadow-sm"
                 >New Session</button>
