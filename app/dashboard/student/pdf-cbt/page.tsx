@@ -161,6 +161,7 @@ export default function PdfCbtPage() {
       setExtractionHint(getExtractionLabel(file))
       const text = await extractTextFromFile(file)
       setExtractedText(text)
+      setSubject(file.name.replace(/\.[^/.]+$/, "").trim())
       setSuccess('Document ready! Click "Start Practice" to begin.')
     } catch (err: any) {
       setError(getErrorMessage(err))
@@ -185,6 +186,7 @@ export default function PdfCbtPage() {
 
       if (data.text) {
         setExtractedText(data.text)
+        setSubject(data.title || 'Web Link Practice')
         setSuccess('Link content fetched! Click "Start Practice" to begin.')
       } else {
         throw new Error('No readable content found at this link.')
@@ -260,10 +262,13 @@ export default function PdfCbtPage() {
     setGenerating(true)
     setError(null)
     try {
+      const fileName = inputMode === 'upload' && uploadedFile ? uploadedFile.name : (inputMode === 'link' ? linkUrl : 'Manual Entry');
       const resp = await apiClient.post('/pdf-cbt/generate', { 
         text, 
         questionType,
-        requestedCount: numQuestions === 'all' ? 60 : Number(numQuestions)
+        requestedCount: numQuestions === 'all' ? 60 : Number(numQuestions),
+        fileName,
+        subject: subject !== 'General Study' ? subject : undefined
       })
       const data = resp.data
 
