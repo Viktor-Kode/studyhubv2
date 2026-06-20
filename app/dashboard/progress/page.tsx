@@ -158,18 +158,28 @@ export default function ProgressPage() {
                             <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Performance by Subject</h3>
                                 {subjectPerformanceData.length > 0 ? (
-                                    <div className="h-64">
+                                    <div style={{ height: Math.max(200, subjectPerformanceData.length * 48) }}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={subjectPerformanceData} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#374151" opacity={0.3} />
                                                 <XAxis type="number" domain={[0, 100]} hide />
-                                                <YAxis type="category" dataKey="subject" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} width={80} />
+                                                <YAxis
+                                                    type="category"
+                                                    dataKey="subject"
+                                                    stroke="#9ca3af"
+                                                    fontSize={11}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    width={130}
+                                                    tickFormatter={(v: string) => v.length > 18 ? v.substring(0, 16) + '…' : v}
+                                                />
                                                 <Tooltip
                                                     cursor={{ fill: 'transparent' }}
                                                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '0.5rem' }}
                                                     formatter={(value: number) => [`${value}%`, 'Score']}
+                                                    labelFormatter={(label: string) => label}
                                                 />
-                                                <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={24}>
+                                                <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={22}>
                                                     {subjectPerformanceData.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill="#3b82f6" />
                                                     ))}
