@@ -39,8 +39,8 @@ export const PLANS = {
   },
   weekly: {
     name: 'Weekly',
-    price: 1000,
-    label: '₦1,000 / week',
+    price: 700,
+    label: '₦700 / week',
     durationDays: 7,
     aiLimit: 999999,
     flashcardLimit: 999999,
@@ -58,13 +58,13 @@ export const PLANS = {
   },
   monthly: {
     name: 'Monthly',
-    price: 3500,
-    label: '₦3,500 / month',
+    price: 1500,
+    label: '₦1,500 / month',
     durationDays: 30,
     aiLimit: 999999,
     flashcardLimit: 999999,
     badge: 'Best Value',
-    savings: 'Save ₦500 vs weekly',
+    savings: 'Save ₦1,300 vs weekly',
     features: [
       'Unlimited CBT tests & study sessions',
       'Unlimited AI questions & tutoring',
