@@ -37,9 +37,9 @@ interface QuizSession {
 }
 
 const DIFFICULTY_CONFIG = {
-  easy:   { label: '😊 Easy',   color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/20', pill: 'bg-emerald-500 text-white' },
-  medium: { label: '🔥 Medium', color: 'text-amber-500',   bg: 'bg-amber-500/10 border-amber-500/20',   pill: 'bg-amber-500 text-white' },
-  hard:   { label: '💀 Hard',   color: 'text-red-500',     bg: 'bg-red-500/10 border-red-500/20',       pill: 'bg-red-500 text-white' },
+  easy:   { label: 'Easy',   color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/20', pill: 'bg-emerald-500 text-white' },
+  medium: { label: 'Medium', color: 'text-amber-500',   bg: 'bg-amber-500/10 border-amber-500/20',   pill: 'bg-amber-500 text-white' },
+  hard:   { label: 'Hard',   color: 'text-red-500',     bg: 'bg-red-500/10 border-red-500/20',       pill: 'bg-red-500 text-white' },
 }
 
 function formatTime(seconds: number) {
@@ -66,6 +66,29 @@ function compareAnswers(userAnsw: any, correctAnsw: any, options: string[] = [])
   return false
 }
 
+function getAnswerDisplayText(ans: any, options: string[] = []): string {
+  if (ans === undefined || ans === null || ans === '') return 'Skipped'
+  const normalize = (s: any) => String(s).trim()
+  const val = normalize(ans)
+  const isNumeric = /^[0-4]$/.test(val)
+  const isLetter = /^[a-e]$/i.test(val)
+
+  if (options && options.length > 0) {
+    if (isNumeric) {
+      const idx = parseInt(val)
+      if (idx < options.length) {
+        return `Option ${String.fromCharCode(65 + idx)}: ${options[idx]}`
+      }
+    } else if (isLetter) {
+      const idx = val.toLowerCase().charCodeAt(0) - 97
+      if (idx < options.length) {
+        return `Option ${val.toUpperCase()}: ${options[idx]}`
+      }
+    }
+  }
+  return val
+}
+
 export default function QuizPage() {
   const router = useRouter()
   const [session, setSession] = useState<QuizSession | null>(null)
@@ -79,6 +102,10 @@ export default function QuizPage() {
   const [timeExpired, setTimeExpired] = useState(false)
   const startTimeRef = useRef<number>(Date.now())
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
+  const [isExplaining, setIsExplaining] = useState<Record<string, boolean>>({})
+  const [showExplanations, setShowExplanations] = useState<Record<string, boolean>>({})
 
   // Load session from sessionStorage
   useEffect(() => {
@@ -154,13 +181,61 @@ export default function QuizPage() {
       setSubmitted(true)
       if (!auto) toast.success('Quiz results saved!')
       // Clear session after submission
-      try { sessionStorage.removeItem(QUIZ_SESSION_KEY) } catch {}
+      try {
+        sessionStorage.removeItem(QUIZ_SESSION_KEY)
+        localStorage.removeItem('qgen_session_v1')
+      } catch {}
     } catch {
       toast.error('Failed to save results. Please try again.')
     } finally {
       setSubmitting(false)
     }
   }, [session, userAnswers, submitting])
+
+  const handleGetAiExplanation = async (q: Question) => {
+    if (aiExplanations[q._id] || isExplaining[q._id]) {
+      setShowExplanations(prev => ({ ...prev, [q._id]: !prev[q._id] }))
+      return
+    }
+
+    setIsExplaining(prev => ({ ...prev, [q._id]: true }))
+    setShowExplanations(prev => ({ ...prev, [q._id]: true }))
+    try {
+      const qText = q.content || (q as any).question || ''
+      const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
+      const correctAnsText = typeof correctAnswer === 'number' && q.options
+        ? q.options[Number(correctAnswer)]
+        : String(correctAnswer)
+
+      setAiExplanations(prev => ({ ...prev, [q._id]: '' }))
+      const explanation = await cbtApi.getExplanation(qText, correctAnsText, q.options || [], (chunk) => {
+        setAiExplanations(prev => ({ ...prev, [q._id]: (prev[q._id] || '') + chunk }))
+      })
+      setAiExplanations(prev => ({ ...prev, [q._id]: explanation }))
+    } catch (err) {
+      console.error('Failed to get AI explanation:', err)
+      toast.error('Failed to generate explanation.')
+    } finally {
+      setIsExplaining(prev => ({ ...prev, [q._id]: false }))
+    }
+  }
+
+  const handleToggleExplain = (q: Question) => {
+    const hasLocalExplanation = q.knowledgeDeepDive || (q as any).explanation || (q as any).knowledge_deep_dive || (q as any).modelAnswer || (q as any).solution || (q as any).explanationText || (q as any).reason || (q as any).solution || (q as any).discussion
+    if (hasLocalExplanation && hasLocalExplanation !== 'No deep-dive available.' && hasLocalExplanation !== 'No explanation available.') {
+      setShowExplanations(prev => ({ ...prev, [q._id]: !prev[q._id] }))
+    } else {
+      void handleGetAiExplanation(q)
+    }
+  }
+
+  const handleNewSession = () => {
+    try {
+      sessionStorage.removeItem(QUIZ_SESSION_KEY)
+      localStorage.removeItem('qgen_session_v1')
+    } catch {}
+    router.push('/dashboard/question-bank')
+  }
 
   if (loading) {
     return (
@@ -182,16 +257,17 @@ export default function QuizPage() {
   // --- Results Screen ---
   if (submitted) {
     const pct = Math.round((score / total) * 100)
-    const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '🎉' : pct >= 40 ? '📚' : '💪'
     return (
       <ProtectedRoute allowedRoles={['student']}>
         <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl animate-in fade-in duration-300">
             {/* Score Card */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden">
               {/* Header */}
               <div className={`p-8 text-center ${pct >= 80 ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : pct >= 60 ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : pct >= 40 ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-red-500 to-pink-600'}`}>
-                <div className="text-6xl mb-3">{emoji}</div>
+                <div className="flex justify-center mb-3">
+                  <FiAward className="text-6xl text-white animate-bounce" />
+                </div>
                 <h1 className="text-3xl font-black text-white mb-1">Quiz Complete!</h1>
                 <p className="text-white/80 text-sm">{session.sourceName}</p>
               </div>
@@ -242,50 +318,97 @@ export default function QuizPage() {
 
                 {timeExpired && (
                   <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-center">
-                    <p className="text-amber-600 text-sm font-bold">⏰ Time expired — quiz was auto-submitted</p>
+                    <p className="text-amber-600 text-sm font-bold">Time expired — quiz was auto-submitted</p>
                   </div>
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/dashboard/question-bank"
-                    className="flex-1 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-center text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                  <button
+                    onClick={handleNewSession}
+                    className="flex-1 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-center text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition animate-pulse"
                   >
-                    ← New Quiz
-                  </Link>
+                    New Session
+                  </button>
                   <Link
                     href="/dashboard/question-history"
                     className="flex-1 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-center text-sm hover:opacity-90 transition shadow-lg shadow-blue-500/20"
                   >
-                    View History →
+                    View History
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* Per-question Review */}
-            <div className="mt-6 space-y-3">
+            {/* Answer Review */}
+            <div className="mt-8 space-y-6">
               <h2 className="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">Answer Review</h2>
               {questions.map((q, i) => {
                 const userAnswer = userAnswers[q._id]
                 const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
                 const isCorrect = compareAnswers(userAnswer, correctAnswer, q.options)
+
+                const userAnswerText = getAnswerDisplayText(userAnswer, q.options)
+                const correctAnswerText = getAnswerDisplayText(correctAnswer, q.options)
+
                 return (
-                  <div key={q._id} className={`bg-white dark:bg-gray-800 rounded-2xl p-5 border-2 ${isCorrect ? 'border-emerald-200 dark:border-emerald-800' : 'border-red-200 dark:border-red-800'}`}>
-                    <div className="flex items-start gap-3 mb-3">
-                      <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${isCorrect ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                        {isCorrect ? <FiCheck size={12} /> : <FiX size={12} />}
+                  <div key={q._id} className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-750 rounded-2xl p-5 space-y-4 text-left shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <span className={`flex-shrink-0 w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center ${
+                        isCorrect
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                      }`}>
+                        {i + 1}
                       </span>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-relaxed">
-                        {i + 1}. {q.content || (q as any).question}
-                      </p>
+                      <div className="flex-grow min-w-0">
+                        <div className="text-gray-900 dark:text-white font-bold leading-snug">
+                          <ReactMarkdown>{q.content || (q as any).question || ''}</ReactMarkdown>
+                        </div>
+                      </div>
                     </div>
-                    {!isCorrect && (
-                      <div className="ml-9 space-y-1 text-xs">
-                        <p className="text-red-500 font-medium">Your answer: {userAnswer ?? 'Not answered'}</p>
-                        <p className="text-emerald-600 font-bold">
-                          Correct: {typeof correctAnswer === 'number' ? q.options[correctAnswer] : String(correctAnswer)}
-                        </p>
+
+                    {/* Answers Side-by-side */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className={`p-3 border rounded-xl ${
+                        isCorrect
+                          ? 'bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-100/50 dark:border-emerald-900/20'
+                          : 'bg-red-50/30 dark:bg-red-950/10 border-red-100/50 dark:border-red-900/20'
+                      }`}>
+                        <span className={`text-[10px] font-black uppercase tracking-wider block mb-1 ${isCorrect ? 'text-emerald-500' : 'text-red-500'}`}>Your Answer</span>
+                        <p className={`text-xs font-semibold break-words ${isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>{userAnswerText}</p>
+                      </div>
+                      <div className="p-3 bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 rounded-xl">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 block mb-1">Correct Answer</span>
+                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 break-words">{correctAnswerText}</p>
+                      </div>
+                    </div>
+
+                    {/* Explain Button */}
+                    <div className="flex justify-end pt-1">
+                      <button
+                        onClick={() => handleToggleExplain(q)}
+                        className="px-4 py-2 border border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-500/10"
+                      >
+                        <BiBrain className="text-sm" />
+                        {showExplanations[q._id] ? 'Hide Explanation' : 'Explain'}
+                      </button>
+                    </div>
+
+                    {/* Explanation if toggled */}
+                    {showExplanations[q._id] && (
+                      <div className="p-4 bg-blue-50/20 dark:bg-blue-950/5 rounded-xl border border-blue-100/50 dark:border-blue-900/20 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 block mb-1">Concept Explanation</span>
+                        {isExplaining[q._id] && !aiExplanations[q._id] ? (
+                          <div className="flex items-center gap-2 py-2 text-xs text-blue-500">
+                            <FiLoader className="animate-spin" /> Generating explanation...
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-750 dark:text-gray-300 leading-relaxed font-medium">
+                            <ReactMarkdown>
+                              {aiExplanations[q._id] || q.knowledgeDeepDive || (q as any).explanation || 'No explanation available.'}
+                            </ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -307,13 +430,26 @@ export default function QuizPage() {
         {/* Top Bar */}
         <div className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/60 shadow-sm">
           <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-            {/* Back */}
-            <Link
-              href="/dashboard/question-bank"
-              className="flex items-center gap-1.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition flex-shrink-0"
-            >
-              <FiArrowLeft /> Back
-            </Link>
+            {/* Back & Discard */}
+            <div className="flex items-center gap-4">
+              <Link
+                href="/dashboard/question-bank"
+                className="flex items-center gap-1.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition flex-shrink-0"
+              >
+                <FiArrowLeft /> Exit
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Discard this quiz and start a new session? Your progress will be lost.")) {
+                    handleNewSession()
+                  }
+                }}
+                className="text-xs font-bold text-red-500 hover:text-red-750 transition flex items-center gap-1"
+              >
+                <FiX /> Discard
+              </button>
+            </div>
 
             {/* Center: progress info */}
             <div className="flex items-center gap-2 min-w-0">
@@ -420,7 +556,7 @@ export default function QuizPage() {
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/40 scale-110'
                         : isAnswered
                         ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-650'
                     }`}
                   >
                     {i + 1}
@@ -456,9 +592,9 @@ export default function QuizPage() {
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm transition shadow-lg shadow-emerald-200 dark:shadow-emerald-900/40 disabled:opacity-60"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm transition shadow-lg shadow-emerald-200 dark:shadow-emerald-900/40 disabled:opacity-60"
               >
-                {submitting ? <FiLoader className="animate-spin" /> : <FiFlag />}
+                {submitting ? <FiLoader className="animate-spin" /> : <FiCheck />}
                 {submitting ? 'Submitting...' : 'Submit Quiz'}
               </button>
             )}

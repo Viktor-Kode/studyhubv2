@@ -1236,7 +1236,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         {showResumeBanner && hasSession && newQuestions.length > 0 && (
           <div className="resume-banner">
             <div className="resume-banner-left">
-              <div className="resume-icon">⚡</div>
+              <div className="resume-icon"><FiAlertTriangle /></div>
               <div>
                 <span className="resume-title">You have a saved quiz session</span>
                 <span className="resume-sub">
@@ -1250,11 +1250,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 type="button"
                 className="resume-continue-btn"
                 onClick={() => {
-                  setShowResumeBanner(false)
-                  setActiveTab('quiz')
+                  router.push('/dashboard/question-bank/quiz')
                 }}
               >
-                Continue →
+                Continue
               </button>
               <button
                 type="button"
@@ -1298,45 +1297,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           </button>
         </div>
 
-        {/* If quiz is generated and quiz tab is active, show a compact header banner instead of the full grid */}
-        {activeTab === 'quiz' && newQuestions.length > 0 ? (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/10 dark:to-indigo-950/10 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-5 mb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📝</span>
-              <div className="min-w-0">
-                <h4 className="font-bold text-gray-900 dark:text-white">Active Quiz Set</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  Generated from {inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'your study material'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => handleGenerate(undefined, true)}
-                disabled={generating}
-                className="flex-grow sm:flex-none px-4 py-2 border border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
-              >
-                {generating ? <FiLoader className="animate-spin" /> : 'New Set'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewQuestions([])
-                  setUserAnswers({})
-                  setCheckedAnswers({})
-                  setQuizSubmitted(false)
-                }}
-                className="flex-grow sm:flex-none px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-650 rounded-xl text-xs font-bold transition"
-              >
-                Change Options
-              </button>
-            </div>
-          </div>
-        ) : activeTab === 'notes' && generatedNotes ? (
+        {activeTab === 'notes' && generatedNotes ? (
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/10 dark:to-teal-950/10 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-5 mb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📚</span>
+              <FiFileText className="text-2xl text-emerald-500" />
               <div className="min-w-0">
                 <h4 className="font-bold text-gray-900 dark:text-white">Generated Study Notes</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -1375,7 +1339,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <span className="text-base mr-2 flex-shrink-0">
-                      {inputMode === 'upload' && uploadedFile ? '📄' : inputMode === 'link' && manualText ? '🔗' : '✏️'}
+                      {inputMode === 'upload' && uploadedFile ? <FiFileText /> : inputMode === 'link' && manualText ? <FiLink /> : <FiEdit3 />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 leading-none mb-1">
@@ -1418,7 +1382,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 onClick={() => setInputMode('manual')}
                 className={`qg-source-tab ${inputMode === 'manual' ? 'active' : ''}`}
               >
-                <span>✏️</span>
+                <FiEdit3 />
                 <span>Paste Text</span>
               </button>
               <button
@@ -1426,7 +1390,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 onClick={() => setInputMode('link')}
                 className={`qg-source-tab ${inputMode === 'link' ? 'active' : ''}`}
               >
-                <span>🔗</span>
+                <FiLink />
                 <span>Paste Link</span>
               </button>
               <button
@@ -1434,7 +1398,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 onClick={() => setInputMode('upload')}
                 className={`qg-source-tab ${inputMode === 'upload' ? 'active' : ''}`}
               >
-                <span>📄</span>
+                <FiFileText />
                 <span>Upload PDF</span>
               </button>
             </div>
@@ -1570,7 +1534,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
                 {fetchedTitle && manualText && (
                   <div className="qg-url-preview">
-                    <div className="qg-url-preview-icon">🌐</div>
+                    <div className="qg-url-preview-icon"><FiLink /></div>
                     <div className="min-w-0 flex-1">
                       <p className="qg-url-preview-title" title={fetchedTitle}>
                         {fetchedTitle}
@@ -1585,9 +1549,9 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         setFetchedTitle(null)
                         setManualText('')
                       }}
-                      className="text-gray-400 hover:text-gray-600 text-sm"
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-gray-650 transition"
                     >
-                      ✕
+                      <FiX size={14} />
                     </button>
                   </div>
                 )}
@@ -1694,26 +1658,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
                       Difficulty
                     </label>
-                    <div className="flex gap-2">
-                      {(['easy', 'medium', 'hard'] as const).map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setDifficulty(d)}
-                          className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all border-2 ${
-                            difficulty === d
-                              ? d === 'easy'
-                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30'
-                                : d === 'medium'
-                                ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-amber-900/30'
-                                : 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 bg-transparent'
-                          }`}
-                        >
-                          {d === 'easy' ? '😊' : d === 'medium' ? '🔥' : '💀'} {d}
-                        </button>
-                      ))}
-                    </div>
+                    <select
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
                   </div>
 
                   {/* Timer */}
@@ -1771,8 +1724,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   {generating
                     ? <><FiLoader className="animate-spin" /> Generating...</>
                     : <>
-                        <span>🚀</span> Create Quiz
-                        {timerMinutes > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">⏱ {timerMinutes}m</span>}
+                        Create Quiz
+                        {timerMinutes > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full"><FiClock className="inline mr-1" /> {timerMinutes}m</span>}
                       </>}
                 </button>
 
@@ -2012,403 +1965,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300"
             />
           </div>
-        </div>
-      )}
-
-      {/* Generated Questions View (Only show if Quiz tab active) */}
-      {activeTab === 'quiz' && newQuestions.length > 0 && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between bg-blue-600 p-4 rounded-2xl shadow-xl text-white">
-            <h4 className="font-bold flex items-center gap-2 italic">CORE KNOWLEDGE DRILL</h4>
-            <div className="bg-white/20 px-4 py-1.5 rounded-xl font-black">{score} / {newQuestions.length}</div>
-          </div>
-
-          <div className="grid gap-6">
-            {newQuestions.length > 0 && (
-              <div key={newQuestions[currentQuestionIndex]._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-md">{currentQuestionIndex + 1}</span>
-                  <div className="flex-1 space-y-4">
-                    <MarkdownText
-                      content={newQuestions[currentQuestionIndex].content || (newQuestions[currentQuestionIndex] as any).question || ''}
-                      className="text-gray-800 dark:text-gray-100 font-bold leading-snug"
-                    />
-
-                    {/* Only show image if it belongs to a subject that typically has diagrams */}
-                    {(newQuestions[currentQuestionIndex] as any).image && ['biology', 'physics', 'chemistry', 'geography', 'math'].some(s => newQuestions[currentQuestionIndex].subject?.toLowerCase().includes(s)) && (
-                      <div className="my-2 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-sm">
-                        <img
-                          src={(newQuestions[currentQuestionIndex] as any).image}
-                          alt={`Diagram for question ${currentQuestionIndex + 1}`}
-                          className="w-full h-auto object-contain max-h-64 bg-white"
-                          onError={(e) => {
-                            // Hide broken images silently
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="grid gap-2">
-                      {newQuestions[currentQuestionIndex].options && newQuestions[currentQuestionIndex].options.length > 0 ? (
-                        newQuestions[currentQuestionIndex].options.map((opt, oIdx) => (
-                          <label key={oIdx} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer
-                            ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-50 dark:border-gray-700 hover:border-blue-200 hover:bg-gray-50/50 dark:hover:bg-gray-700'}
-                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20' : ''}
-                            ${checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : ''}
-                          `}>
-                            <input type="radio"
-                              name={`q-${newQuestions[currentQuestionIndex]._id}`}
-                              className="hidden"
-                              disabled={checkedAnswers[newQuestions[currentQuestionIndex]._id]}
-                              onChange={() => setUserAnswers(prev => ({ ...prev, [newQuestions[currentQuestionIndex]._id]: String.fromCharCode(65 + oIdx).toLowerCase() }))}
-                            />
-                            <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px] font-black
-                               ${userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() ? 'bg-blue-500 border-blue-500 text-white scale-110' : 'border-gray-300 dark:border-gray-600 text-gray-400'}
-                             `}>{String.fromCharCode(65 + oIdx)}</span>
-                            <MarkdownText
-                              content={opt}
-                              className="text-gray-600 dark:text-gray-300 font-medium"
-                            />
-                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) && <FiCheckCircle className="ml-auto text-emerald-500 animate-bounce" />}
-                            {checkedAnswers[newQuestions[currentQuestionIndex]._id] && userAnswers[newQuestions[currentQuestionIndex]._id] === String.fromCharCode(65 + oIdx).toLowerCase() && !compareAnswers(String.fromCharCode(65 + oIdx).toLowerCase(), newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) && <FiXCircle className="ml-auto text-red-400" />}
-                          </label>
-                        ))
-                      ) : (
-                        <div className="space-y-2">
-                          <input type="text" placeholder="Your answer..." disabled={checkedAnswers[newQuestions[currentQuestionIndex]._id]}
-                            className={`w-full px-5 py-3.5 rounded-xl border-2 outline-none transition-all font-medium
-                              ${checkedAnswers[newQuestions[currentQuestionIndex]._id] ? 'bg-gray-50 dark:bg-gray-700 text-gray-500' : 'bg-gray-50/50 dark:bg-gray-900/20 border-gray-100 dark:border-gray-600 focus:border-blue-500/50 focus:bg-white'}
-                            `}
-                            value={userAnswers[newQuestions[currentQuestionIndex]._id] || ''} onChange={(e) => setUserAnswers(prev => ({ ...prev, [newQuestions[currentQuestionIndex]._id]: e.target.value }))}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                      {!checkedAnswers[newQuestions[currentQuestionIndex]._id] ? (
-                        <button
-                          onClick={() => checkAnswer(newQuestions[currentQuestionIndex]._id, newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)}
-                          disabled={userAnswers[newQuestions[currentQuestionIndex]._id] === undefined || userAnswers[newQuestions[currentQuestionIndex]._id] === ''}
-                          className="flex-1 px-8 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all hover:bg-blue-600 active:scale-95 shadow-md"
-                        >Verify Concept</button>
-                      ) : (
-                        <div className="flex-1 p-5 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-2xl animate-in slide-in-from-top-2 duration-300 shadow-inner">
-                          <div className="flex items-center gap-2 mb-3 text-sm font-black uppercase tracking-tighter">
-                            {compareAnswers(userAnswers[newQuestions[currentQuestionIndex]._id], newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer, newQuestions[currentQuestionIndex].options) ? (
-                              <span className="text-emerald-500 flex items-center gap-1.5"><FiCheckCircle /> Drill Complete</span>
-                            ) : (
-                              <span className="text-red-500 flex items-center gap-1.5"><FiXCircle /> Misconception Identified:
-                                <span className="text-blue-600 dark:text-blue-200 ml-1">
-                                  {typeof (newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer) === 'number'
-                                    ? newQuestions[currentQuestionIndex].options?.[newQuestions[currentQuestionIndex].answer !== undefined ? Number(newQuestions[currentQuestionIndex].answer) : Number((newQuestions[currentQuestionIndex] as any).correctAnswer)]
-                                    : (newQuestions[currentQuestionIndex].answer !== undefined ? newQuestions[currentQuestionIndex].answer : (newQuestions[currentQuestionIndex] as any).correctAnswer)}
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest pl-1">📚 KNOWLEDGE DEEP-DIVE</p>
-                            {(newQuestions[currentQuestionIndex].knowledgeDeepDive && newQuestions[currentQuestionIndex].knowledgeDeepDive !== 'No deep-dive available.') || aiExplanations[newQuestions[currentQuestionIndex]._id] ? (
-                              <div className="space-y-3">
-                                <MarkdownText
-                                  content={aiExplanations[newQuestions[currentQuestionIndex]._id] || newQuestions[currentQuestionIndex].knowledgeDeepDive || (newQuestions[currentQuestionIndex] as any).knowledge_deep_dive || (newQuestions[currentQuestionIndex] as any).explanation || (newQuestions[currentQuestionIndex] as any).modelAnswer || (newQuestions[currentQuestionIndex] as any).solution || (newQuestions[currentQuestionIndex] as any).reason || 'No deep-dive available.'}
-                                  className="text-blue-900 dark:text-blue-200 leading-relaxed font-medium italic"
-                                />
-                                <div className="flex items-center gap-2 pt-2 border-t border-blue-100 dark:border-blue-800/30">
-                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Was this helpful?</span>
-                                  <button
-                                    onClick={() => handleVoteExplanation(newQuestions[currentQuestionIndex], 'up')}
-                                    disabled={!!votedExplanations[newQuestions[currentQuestionIndex]._id]}
-                                    className={`p-1.5 rounded-lg border transition-all duration-200 ${
-                                      votedExplanations[newQuestions[currentQuestionIndex]._id] === 'up'
-                                        ? 'bg-emerald-500 border-emerald-500 text-white scale-95 shadow-sm'
-                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:text-emerald-500'
-                                    }`}
-                                    title="Yes, helpful"
-                                  >
-                                    <FiThumbsUp className="text-xs" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleVoteExplanation(newQuestions[currentQuestionIndex], 'down')}
-                                    disabled={!!votedExplanations[newQuestions[currentQuestionIndex]._id]}
-                                    className={`p-1.5 rounded-lg border transition-all duration-200 ${
-                                      votedExplanations[newQuestions[currentQuestionIndex]._id] === 'down'
-                                        ? 'bg-rose-500 border-rose-500 text-white scale-95 shadow-sm'
-                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500'
-                                    }`}
-                                    title="No, unhelpful"
-                                  >
-                                    <FiThumbsDown className="text-xs" />
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleGetAiExplanation(newQuestions[currentQuestionIndex])}
-                                disabled={isExplaining === newQuestions[currentQuestionIndex]._id}
-                                className="mt-2 flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition py-2 px-3 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-100 dark:border-blue-800"
-                              >
-                                {isExplaining === newQuestions[currentQuestionIndex]._id ? (
-                                  <><FiLoader className="animate-spin" /> Generating Explanation...</>
-                                ) : (
-                                  <><HiOutlineLightBulb className="text-sm" /> Generate AI Deep-Dive Explanation</>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Navigation Buttons */}
-                    <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-                      <button
-                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentQuestionIndex === 0}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-20"
-                      >
-                        ← Prev
-                      </button>
-                      {currentQuestionIndex < newQuestions.length - 1 ? (
-                        <button
-                          onClick={() => setCurrentQuestionIndex(prev => Math.min(newQuestions.length - 1, prev + 1))}
-                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-black hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-                        >
-                          Next →
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleSubmitQuiz}
-                          disabled={submitting}
-                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20 uppercase tracking-widest"
-                        >
-                          {submitting ? <FiLoader className="animate-spin" /> : 'Calculate Score'}
-                        </button>
-                      )}
-                      <div className="col-span-2 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest mt-1">
-                        Question {currentQuestionIndex + 1} of {newQuestions.length}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {!quizSubmitted && newQuestions.length > 0 && (
-            <div className="mt-8 flex justify-center pb-12">
-              <button
-                onClick={handleSubmitQuiz}
-                disabled={submitting}
-                className="px-6 sm:px-12 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3 w-full sm:w-auto"
-              >
-                {submitting ? (
-                  <>
-                    <FiLoader className="animate-spin" />
-                    Recording Progress...
-                  </>
-                ) : (
-                  <>
-                    <FiSave />
-                    Finish & Sync to Dashboard
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {quizSubmitted && reviewMode ? (
-            <div className="mt-8 mb-12 p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl space-y-6 animate-in fade-in duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-gray-750">
-                <div className="text-left">
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white">Review Mistakes</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Review the questions you got wrong and strengthen your understanding.</p>
-                </div>
-                <button
-                  onClick={() => setReviewMode(false)}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition self-start sm:self-auto"
-                >
-                  ← Back to Score
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {(() => {
-                  const wrongQuestions = newQuestions.filter(q => {
-                    const userAnswer = userAnswers[q._id]
-                    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
-                    return !compareAnswers(userAnswer, correctAnswer, q.options)
-                  })
-
-                  if (wrongQuestions.length === 0) {
-                    return (
-                      <div className="text-center p-8 bg-gray-50 dark:bg-gray-900/20 rounded-2xl border border-gray-100 dark:border-gray-750">
-                        <span className="text-4xl">🎉</span>
-                        <h4 className="font-bold text-gray-900 dark:text-white mt-2">No Mistakes!</h4>
-                        <p className="text-xs text-gray-500 mt-1 font-medium">Excellent job! You got 100% correct in this session.</p>
-                      </div>
-                    )
-                  }
-
-                  return wrongQuestions.map((q, idx) => {
-                    const userAnswer = userAnswers[q._id]
-                    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
-
-                    // Determine user answer display text
-                    let userAnswerText = 'Skipped'
-                    if (userAnswer !== undefined && userAnswer !== '') {
-                      const normalizedUserAnswer = String(userAnswer).trim()
-                      const isUserNumericDigit = /^[0-4]$/.test(normalizedUserAnswer)
-                      const isUserLetterOption = /^[a-e]$/i.test(normalizedUserAnswer)
-
-                      if (q.options && q.options.length > 0) {
-                        if (isUserNumericDigit) {
-                          const idxOpt = parseInt(normalizedUserAnswer)
-                          if (idxOpt < q.options.length) {
-                            userAnswerText = `Option ${String.fromCharCode(65 + idxOpt)}: ${q.options[idxOpt]}`
-                          } else {
-                            userAnswerText = normalizedUserAnswer
-                          }
-                        } else if (isUserLetterOption) {
-                          const idxOpt = normalizedUserAnswer.toLowerCase().charCodeAt(0) - 97
-                          if (idxOpt < q.options.length) {
-                            userAnswerText = `Option ${normalizedUserAnswer.toUpperCase()}: ${q.options[idxOpt]}`
-                          } else {
-                            userAnswerText = normalizedUserAnswer
-                          }
-                        } else {
-                          userAnswerText = String(userAnswer)
-                        }
-                      } else {
-                        userAnswerText = String(userAnswer)
-                      }
-                    }
-
-                    // Determine correct answer display text
-                    let correctAnswerText = ''
-                    if (correctAnswer !== undefined && correctAnswer !== '') {
-                      const normalizedCorrectAnswer = String(correctAnswer).trim()
-                      const isCorrectNumericDigit = /^[0-4]$/.test(normalizedCorrectAnswer)
-                      const isCorrectLetterOption = /^[a-e]$/i.test(normalizedCorrectAnswer)
-
-                      if (q.options && q.options.length > 0) {
-                        if (isCorrectNumericDigit) {
-                          const idxOpt = parseInt(normalizedCorrectAnswer)
-                          if (idxOpt < q.options.length) {
-                            correctAnswerText = `Option ${String.fromCharCode(65 + idxOpt)}: ${q.options[idxOpt]}`
-                          } else {
-                            correctAnswerText = normalizedCorrectAnswer
-                          }
-                        } else if (isCorrectLetterOption) {
-                          const idxOpt = normalizedCorrectAnswer.toLowerCase().charCodeAt(0) - 97
-                          if (idxOpt < q.options.length) {
-                            correctAnswerText = `Option ${normalizedCorrectAnswer.toUpperCase()}: ${q.options[idxOpt]}`
-                          } else {
-                            correctAnswerText = normalizedCorrectAnswer
-                          }
-                        } else {
-                          correctAnswerText = String(correctAnswer)
-                        }
-                      } else {
-                        correctAnswerText = String(correctAnswer)
-                      }
-                    } else {
-                      correctAnswerText = 'N/A'
-                    }
-
-                    const deepDiveText = q.knowledgeDeepDive || (q as any).knowledge_deep_dive || (q as any).explanation ||
-                      (q as any).modelAnswer || (q as any).solution || (q as any).explanationText ||
-                      (q as any).reason || (q as any).discussion || '';
-
-                    return (
-                      <div key={q._id} className="bg-gray-50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-750 rounded-2xl p-5 space-y-4 text-left">
-                        <div className="flex items-start gap-3">
-                          <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center font-black text-xs">
-                            {idx + 1}
-                          </span>
-                          <div className="flex-grow min-w-0">
-                            <MarkdownText content={q.content || (q as any).question || ''} className="text-gray-900 dark:text-white font-bold leading-snug" />
-                          </div>
-                        </div>
-
-                        {/* Answers Side-by-side */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                          <div className="p-3 bg-red-50/50 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/20 rounded-xl">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-red-500 block mb-1">Your Answer</span>
-                            <p className="text-xs font-semibold text-red-700 dark:text-red-300 break-words">{userAnswerText}</p>
-                          </div>
-                          <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 rounded-xl">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 block mb-1">Correct Answer</span>
-                            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 break-words">{correctAnswerText}</p>
-                          </div>
-                        </div>
-
-                        {/* Explanation if available */}
-                        {deepDiveText && deepDiveText !== 'No deep-dive available.' && (
-                          <div className="p-4 bg-blue-50/20 dark:bg-blue-950/5 rounded-xl border border-blue-100/50 dark:border-blue-900/20">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 block mb-1">Concept Explanation</span>
-                            <MarkdownText content={deepDiveText} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium" />
-                          </div>
-                        )}
-
-                        {/* Action option */}
-                        <div className="flex justify-end pt-1">
-                          <button
-                            onClick={() => handleReviewTopic(q)}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-purple-500/10"
-                          >
-                            <BiMessageRoundedDots className="text-sm" />
-                            Review Topic with Tutor
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-                })()}
-
-                <div className="flex justify-center pt-4">
-                  <button
-                    onClick={() => setReviewMode(false)}
-                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-800 dark:text-gray-200 rounded-xl font-bold text-sm transition"
-                  >
-                    ← Return to Results Summary
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : quizSubmitted && (
-            <div className="mt-8 mb-12 p-8 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 rounded-3xl text-center space-y-4 animate-in zoom-in-95 duration-500">
-              <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg shadow-emerald-500/30">
-                <FiCheckCircle />
-              </div>
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white">Results Synced!</h3>
-              <p className="text-gray-600 dark:text-gray-400">Your score of {score}/{newQuestions.length} ({Math.round((score / newQuestions.length) * 100)}%) has been recorded in your performance analytics.</p>
-              <div className="flex flex-wrap justify-center gap-4 pt-4">
-                <Link href="/dashboard/student" className="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold text-sm">Return to Dashboard</Link>
-                {score < newQuestions.length && (
-                  <button
-                    onClick={() => setReviewMode(true)}
-                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-1.5"
-                  >
-                    <FiXCircle /> Review Mistakes
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setNewQuestions([])
-                    setQuizSubmitted(false)
-                    setScore(0)
-                    setUserAnswers({})
-                    setCheckedAnswers({})
-                    setReviewMode(false)
-                  }}
-                  className="px-6 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm shadow-sm"
-                >New Session</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
