@@ -53,7 +53,7 @@ export default function PricingSection() {
             <div className="mb-8">
               <h3 className="text-xl font-bold text-white mb-2">{PLANS.weekly.name}</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">₦600</span>
+                <span className="text-4xl font-extrabold text-white">₦{PLANS.weekly.price.toLocaleString()}</span>
                 <span className="text-slate-500 text-sm">/ week</span>
               </div>
               <p className="text-slate-500 text-sm mt-4">Perfect for exam season</p>
@@ -78,7 +78,7 @@ export default function PricingSection() {
             <div className="mb-8">
               <h3 className="text-xl font-bold text-white mb-2">{PLANS.monthly.name}</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">₦2,300</span>
+                <span className="text-4xl font-extrabold text-white">₦{PLANS.monthly.price.toLocaleString()}</span>
                 <span className="text-slate-500 text-sm">/ month</span>
               </div>
               <p className="text-slate-500 text-sm mt-4">{PLANS.monthly.savings}</p>
@@ -97,22 +97,6 @@ export default function PricingSection() {
               Start Monthly Plan
             </Link>
           </div>
-        </div>
-
-        {/* Add-on */}
-        <div className="mt-16 max-w-4xl mx-auto p-6 rounded-2xl bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400">
-              <Zap size={24} />
-            </div>
-            <div>
-              <h4 className="text-white font-bold">Need more AI questions?</h4>
-              <p className="text-slate-400 text-sm">Top up anytime — 100 extra AI questions for ₦500.</p>
-            </div>
-          </div>
-          <Link href="/auth/signup" className="px-8 py-3 bg-white text-black font-bold rounded-xl hover:bg-purple-100 transition-all">
-            Get Add-on
-          </Link>
         </div>
 
         <div className="mt-12 flex flex-wrap justify-center gap-8 text-slate-500 text-xs font-medium uppercase tracking-widest">

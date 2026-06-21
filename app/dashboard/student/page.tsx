@@ -323,7 +323,7 @@ export default function StudentDashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Link href="/dashboard/study-timer" className="tool-card">
                     <div className="tool-icon bg-cyan-500/20 text-cyan-400"><BiTimer className="text-2xl" /></div>
-                    <div><p className="font-bold text-sm">Timer</p><p className="text-[10px] text-gray-300">{stats.quizSessions} sessions</p></div>
+                    <div><p className="font-bold text-sm">Timer</p><p className="text-[10px] text-slate-500 dark:text-gray-300">{stats.quizSessions} sessions</p></div>
                 </Link>
                 <Link href="/dashboard/cgpa" className="tool-card">
                     <div className="tool-icon bg-purple-500/20 text-purple-400"><FiCreditCard className="text-2xl" /></div>
@@ -345,7 +345,7 @@ export default function StudentDashboardPage() {
                 <h2 className="text-lg font-bold">Recent Activity</h2>
                 <Link href="/dashboard/analytics" className="text-xs font-bold flex items-center gap-1" style={{ color: '#8B7CF8' }}>View all <FiArrowRight /></Link>
             </div>
-            <div className="v3-card divide-y divide-gray-800">
+            <div className="v3-card divide-y divide-slate-200 dark:divide-gray-800">
                 {activities.length === 0 ? (
                     <div className="py-8 flex flex-col items-center justify-center text-center opacity-60">
                         <FiClock className="text-3xl text-gray-500 mb-2" />
@@ -353,9 +353,9 @@ export default function StudentDashboardPage() {
                     </div>
                 ) : activities.slice(0, 5).map((activity) => (
                     <div key={activity.id} className="py-4 flex items-center gap-4 first:pt-0 last:pb-0">
-                        <div className="p-2 rounded-xl bg-gray-800"><activity.icon className="text-xl" /></div>
-                        <div className="flex-1"><p className="font-bold text-sm">{activity.title}</p><p className="text-xs text-gray-400">{activity.subtitle}</p></div>
-                        <p className="text-[10px] text-gray-300 font-medium">{activity.date ? new Date(activity.date).toLocaleDateString() : ''}</p>
+                        <div className="p-2 rounded-xl bg-slate-100 dark:bg-gray-800"><activity.icon className="text-xl text-slate-600 dark:text-gray-300" /></div>
+                        <div className="flex-1"><p className="font-bold text-sm">{activity.title}</p><p className="text-xs text-slate-500 dark:text-gray-400">{activity.subtitle}</p></div>
+                        <p className="text-[10px] text-slate-400 dark:text-gray-300 font-medium">{activity.date ? new Date(activity.date).toLocaleDateString() : ''}</p>
                     </div>
                 ))}
             </div>
@@ -374,13 +374,13 @@ export default function StudentDashboardPage() {
                     {strengthsWeaknesses.weaknesses.slice(0, 3).map((item, i) => (
                         <div key={i} className="sw-card sw-red">
                             <p className="font-bold text-sm">{item.subject}</p>
-                            <p className="text-[10px] text-gray-300 mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Focus)</p>
+                            <p className="text-[10px] mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Focus)</p>
                         </div>
                     ))}
                     {strengthsWeaknesses.strengths.slice(0, 3).map((item, i) => (
                         <div key={i} className="sw-card sw-green">
                             <p className="font-bold text-sm">{item.subject}</p>
-                            <p className="text-[10px] text-gray-300 mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Strong)</p>
+                            <p className="text-[10px] mt-1">{Math.round(item.avgAccuracy ?? 0)}% (Strong)</p>
                         </div>
                     ))}
                 </div>
@@ -415,19 +415,6 @@ function SubscriptionStatusCard() {
             
             <div className="space-y-2">
                 <div className="flex justify-between items-center text-[11px]">
-                    <span className="flex items-center gap-1.5 text-gray-300">🤖 AI Messages</span>
-                    <span className="font-bold">{status?.usage?.ai?.used ?? 0}/{status?.usage?.ai?.limit ?? 5}</span>
-                </div>
-                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                        className="h-full bg-blue-500 transition-all duration-500" 
-                        style={{ width: `${Math.min(100, ((status?.usage?.ai?.used ?? 0) / (status?.usage?.ai?.limit ?? 5)) * 100)}%` }}
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <div className="flex justify-between items-center text-[11px]">
                     <span className="flex items-center gap-1.5 text-gray-300">📇 Flashcard Sets</span>
                     <span className="font-bold">{status?.usage?.flashcards?.used ?? 0}/{status?.usage?.flashcards?.limit ?? 3}</span>
                 </div>
@@ -437,30 +424,6 @@ function SubscriptionStatusCard() {
                         style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 3)) * 100)}%` }}
                     />
                 </div>
-            </div>
-
-            <div className="space-y-2 pt-1 border-t border-gray-800/30">
-                {(() => {
-                    const totalReferralCredits = user?.aiCredits ?? 5;
-                    const aiUsed = status?.usage?.ai?.used ?? 0;
-                    const aiLimit = status?.usage?.ai?.limit ?? 5;
-                    const usedReferralCredits = Math.min(totalReferralCredits, Math.max(0, aiUsed - aiLimit));
-                    
-                    return (
-                        <>
-                            <div className="flex justify-between items-center text-[11px]">
-                                <span className="flex items-center gap-1.5 text-gray-300">🎁 AI Referral Credits</span>
-                                <span className="font-bold text-yellow-400">{usedReferralCredits}/{totalReferralCredits} Used</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full bg-yellow-500 transition-all duration-500" 
-                                    style={{ width: `${Math.min(100, (usedReferralCredits / totalReferralCredits) * 100)}%` }}
-                                />
-                            </div>
-                        </>
-                    );
-                })()}
             </div>
         </div>
 

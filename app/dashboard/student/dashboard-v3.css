@@ -107,6 +107,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
+    color: white;
 }
 
 .sparkles-glow {
@@ -183,7 +184,7 @@
 
 .progress-circle-bg {
     fill: none;
-    stroke: rgba(0, 0, 0, 0.05);
+    stroke: rgba(0, 0, 0, 0.12);
     stroke-width: 8;
 }
 
@@ -228,23 +229,44 @@
 /* Tool Cards */
 .tool-card {
     background: white;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 1.25rem;
     padding: 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     transition: all 0.2s ease;
+    color: #0f172a;
+}
+
+.tool-card p {
+    color: #0f172a;
+}
+
+.tool-card .text-gray-300,
+.tool-card [class*="text-gray"] {
+    color: #475569;
 }
 
 .dark .tool-card {
     background: rgba(28, 34, 45, 0.8);
     border-color: rgba(255, 255, 255, 0.05);
+    color: #F8FAFC;
+}
+
+.dark .tool-card p {
+    color: #F8FAFC;
+}
+
+.dark .tool-card .text-gray-300,
+.dark .tool-card [class*="text-gray"] {
+    color: #94a3b8;
 }
 
 .tool-card:hover {
-    background: #f8fafc;
-    border-color: rgba(0, 0, 0, 0.1);
+    background: #f1f5f9;
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .dark .tool-card:hover {
@@ -292,6 +314,20 @@
     color: #991b1b;
 }
 
+/* Light mode: override inline text-gray-300 within sw-cards */
+.sw-red p,
+.sw-green p,
+.sw-yellow p {
+    color: inherit;
+}
+
+.sw-red p[class*="text-gray"],
+.sw-green p[class*="text-gray"],
+.sw-yellow p[class*="text-gray"] {
+    color: currentColor;
+    opacity: 0.7;
+}
+
 .sw-green {
     background: #dcfce7;
     border-left: 4px solid #10B981;
@@ -323,8 +359,9 @@
 .filter-chip {
     padding: 0.5rem 1rem;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #334155;
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
@@ -332,6 +369,17 @@
 }
 
 .filter-chip.active {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+.dark .filter-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+.dark .filter-chip.active {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
 }

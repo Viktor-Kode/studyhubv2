@@ -14,7 +14,6 @@ const DASHBOARD_PLANS = [
     { type: 'free', description: 'Perfect for trying StudyHelp', buttonText: 'Current Plan', highlight: false, color: 'gray' },
     { type: 'weekly', description: 'Boost your exam prep for 7 days', buttonText: 'Get Weekly', highlight: false, color: 'blue' },
     { type: 'monthly', description: 'Best value for serious students', buttonText: 'Get Monthly', highlight: true, color: 'emerald' },
-    { type: 'addon', description: 'Extra AI messages on any plan', buttonText: 'Buy Add-On', highlight: false, color: 'purple' },
 ]
 
 export default function PricingPage() {
@@ -23,7 +22,7 @@ export default function PricingPage() {
     const isTeacherFlow = searchParams?.get('from') === 'teacher'
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
     const [status, setStatus] = useState<any | null>(null)
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
+    const billingCycle = 'monthly'
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
     useEffect(() => {
@@ -36,20 +35,7 @@ export default function PricingPage() {
             }
         }
         loadStatus()
-
-        const storedCycle = typeof window !== 'undefined'
-            ? window.localStorage.getItem('studyhelp_billing_cycle')
-            : null
-        if (storedCycle === 'yearly' || storedCycle === 'monthly') {
-            setBillingCycle(storedCycle)
-        }
     }, [])
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            window.localStorage.setItem('studyhelp_billing_cycle', billingCycle)
-        }
-    }, [billingCycle])
 
     const handleSubscribe = async (planType: string) => {
         if (planType === 'free') return
@@ -75,12 +61,6 @@ export default function PricingPage() {
         }
     }
 
-    const yearlyPlan = PLANS.yearly
-    const monthlyPlan = PLANS.monthly
-    const yearlySavingsPct = Math.round(
-        (1 - yearlyPlan.price / (monthlyPlan.price * 12)) * 100
-    )
-
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 sm:px-6 lg:px-8">
@@ -102,43 +82,12 @@ export default function PricingPage() {
                         {!isTeacherFlow && (status?.subscription?.plan === 'free' || !status?.subscription?.plan) && (
                            <div className="mt-8 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-2xl max-w-2xl mx-auto animate-pulse">
                               <p className="text-sm font-black text-orange-800 dark:text-orange-400">
-                                 You&apos;ve used your 1 free test today. Come back tomorrow or upgrade now to keep practicing.
+                                 You&apos;ve used your free practice sessions. Upgrade now to keep practicing.
                               </p>
                               <p className="text-xs font-bold text-orange-700 dark:text-orange-500 mt-1">
                                  WAEC/JAMB is coming. Don&apos;t limit your practice.
                               </p>
                            </div>
-                        )}
-                        {!isTeacherFlow && (
-                          <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-900">
-                            <button
-                              type="button"
-                              onClick={() => setBillingCycle('monthly')}
-                              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
-                                billingCycle === 'monthly'
-                                  ? 'bg-gray-900 text-white'
-                                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
-                              }`}
-                            >
-                              Monthly
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setBillingCycle('yearly')}
-                              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
-                                billingCycle === 'yearly'
-                                  ? 'bg-gray-900 text-white'
-                                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
-                              }`}
-                            >
-                              Yearly
-                            </button>
-                            {billingCycle === 'yearly' && (
-                              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-2">
-                                Save {yearlySavingsPct}%
-                              </span>
-                            )}
-                          </div>
                         )}
                     </div>
 
@@ -307,21 +256,6 @@ export default function PricingPage() {
                         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 md:p-8">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Current Usage</h3>
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">🤖 AI Messages</span>
-                                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full transition-all"
-                                            style={{
-                                                width: `${(status.usage.ai.used / Math.max(status.usage.ai.limit, 1)) * 100}%`,
-                                                backgroundColor: status.usage.ai.used >= status.usage.ai.limit ? '#D97706' : '#0F172A'
-                                            }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                        {status.usage.ai.used}/{status.usage.ai.limit}
-                                    </span>
-                                </div>
                                 <div className="flex items-center gap-3">
                                     <span className="text-sm font-medium">📇 Flashcard Sets</span>
                                     <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
