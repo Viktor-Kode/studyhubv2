@@ -1,5 +1,16 @@
-
 /* Student Dashboard V3 - Premium Design */
+
+:root {
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #E2E8F0;
+    --color-text-muted: #CBD5E1;
+    --color-text-inverse: #0F172A;
+    --color-bg-primary: #0B1220;
+    --color-bg-secondary: #111827;
+    --color-brand: #ffffff;
+    --color-brand-hover: #9288FF;
+}
+
 
 .dashboard-v3-container {
     background-color: transparent;
@@ -62,7 +73,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
     pointer-events: none;
 }
 
@@ -71,10 +82,21 @@
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
-.action-card.teal { background: linear-gradient(135deg, #134E4A 0%, #0D9488 100%); }
-.action-card.blue { background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); }
-.action-card.purple { background: linear-gradient(135deg, #4C1D95 0%, #8B5CF6 100%); }
-.action-card.gold { background: linear-gradient(135deg, #78350F 0%, #D97706 100%); }
+.action-card.teal {
+    background: linear-gradient(135deg, #134E4A 0%, #0D9488 100%);
+}
+
+.action-card.blue {
+    background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+}
+
+.action-card.purple {
+    background: linear-gradient(135deg, #4C1D95 0%, #8B5CF6 100%);
+}
+
+.action-card.gold {
+    background: linear-gradient(135deg, #78350F 0%, #D97706 100%);
+}
 
 .action-icon-wrap {
     width: 48px;
@@ -94,9 +116,20 @@
 }
 
 @keyframes sparkle-pulse {
-    0% { transform: scale(1); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
-    50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); }
-    100% { transform: scale(1); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    }
 }
 
 .action-title {
@@ -250,16 +283,41 @@
     right: 0;
     width: 40%;
     height: 100%;
-    background: linear-gradient(to left, rgba(255,255,255,0.05), transparent);
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.05), transparent);
 }
 
-.sw-red { background: #fee2e2; border-left: 4px solid #EF4444; color: #991b1b; }
-.sw-green { background: #dcfce7; border-left: 4px solid #10B981; color: #166534; }
-.sw-yellow { background: #fef3c7; border-left: 4px solid #F59E0B; color: #92400e; }
+.sw-red {
+    background: #fee2e2;
+    border-left: 4px solid #EF4444;
+    color: #991b1b;
+}
 
-.dark .sw-red { background: #451A1A; color: #fca5a5; }
-.dark .sw-green { background: #064E3B; color: #d1fae5; }
-.dark .sw-yellow { background: #422006; color: #fde68a; }
+.sw-green {
+    background: #dcfce7;
+    border-left: 4px solid #10B981;
+    color: #166534;
+}
+
+.sw-yellow {
+    background: #fef3c7;
+    border-left: 4px solid #F59E0B;
+    color: #92400e;
+}
+
+.dark .sw-red {
+    background: #451A1A;
+    color: #fca5a5;
+}
+
+.dark .sw-green {
+    background: #064E3B;
+    color: #d1fae5;
+}
+
+.dark .sw-yellow {
+    background: #422006;
+    color: #fde68a;
+}
 
 /* Filter Chips */
 .filter-chip {
@@ -335,7 +393,7 @@
         padding: 2rem;
         padding-bottom: 2rem;
     }
-    
+
     .v3-bottom-nav {
         display: none;
     }
