@@ -219,9 +219,9 @@ export default function StudentDashboardPage() {
                     <div className="action-icon-wrap"><FiZap className="text-2xl" /></div>
                     <div><h3 className="action-title">Past Question</h3><p className="action-subtitle">WAEC/JAMB/NECO</p></div>
                 </Link>
-                <Link href="/dashboard/question-bank?tab=notes" className="action-card blue">
+                <Link href="/dashboard/pdf-summary" className="action-card blue">
                     <div className="action-icon-wrap"><FiBook className="text-2xl" /></div>
-                    <div><h3 className="action-title">Note Generator</h3></div>
+                    <div><h3 className="action-title">PDF Summary</h3></div>
                 </Link>
                 <Link href="/dashboard/question-bank?tab=tutor" className="action-card purple">
                     <div className="action-icon-wrap sparkles-glow"><BiBrain className="text-2xl text-white" /></div>

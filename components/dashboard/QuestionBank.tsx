@@ -1286,50 +1286,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           >
             AI Study Tutor
           </button>
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
-                    ${activeTab === 'notes'
-                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            Study Notes
-          </button>
         </div>
 
-        {activeTab === 'notes' && generatedNotes ? (
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/10 dark:to-teal-950/10 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-5 mb-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <FiFileText className="text-2xl text-emerald-500" />
-              <div className="min-w-0">
-                <h4 className="font-bold text-gray-900 dark:text-white">Generated Study Notes</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  Summarized from {inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'your study material'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={handleGenerateNotes}
-                disabled={generatingNotes}
-                className="flex-grow sm:flex-none px-4 py-2 border border-emerald-600/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
-              >
-                {generatingNotes ? <FiLoader className="animate-spin" /> : 'Re-generate'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setGeneratedNotes('')
-                }}
-                className="flex-grow sm:flex-none px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-650 rounded-xl text-xs font-bold transition"
-              >
-                Change Options
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
+
+        <>
             {activeTab === 'tutor' && (
               <div className="md:hidden mb-4">
                 <button
@@ -1881,92 +1841,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </button>
                 </form>
               </div>
-            ) : (
-              // NOTES TAB UI
-              <div className="space-y-4 h-full flex flex-col">
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex-1">
-                  <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-200 mb-2 flex items-center gap-2">
-                    <FiFileText /> AI Note Generator
-                  </h4>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-4 opacity-80">
-                    Transform your documents into concise, structured study summaries.
-                    Perfect for quick revision and understanding complex topics.
-                  </p>
-
-                  {error && activeTab === 'notes' && (
-                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100">
-                      <p className="text-red-500 text-xs font-medium">{error}</p>
-                    </div>
-                  )}
-
-                  {success && activeTab === 'notes' && (
-                    <div className="mb-4 p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl font-medium">
-                      {success}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleGenerateNotes}
-                    disabled={generatingNotes || (inputMode === 'upload' && (!extractedText || extracting)) || (inputMode === 'manual' && manualText.trim().length < 50)}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-lg shadow-emerald-500/20"
-                  >
-                    {generatingNotes ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <FiLoader className="animate-spin" /> Analyzing Content...
-                      </span>
-                    ) : "Generate Study Notes"}
-                  </button>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
-      </>
-    )}
+        </>
       </div>
 
-      {/* Generated Content View */}
-      {activeTab === 'notes' && generatedNotes && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
-              <div className="flex-1">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Note Title</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter a name for this note..."
-                    value={noteTitle}
-                    onChange={(e) => setNoteTitle(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-base outline-none focus:border-emerald-500 transition-all font-bold"
-                  />
-                  <button
-                    onClick={handleSaveNote}
-                    disabled={savingNote || !noteTitle}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-2 hover:bg-emerald-700 disabled:bg-gray-400 shadow-lg shadow-emerald-500/20"
-                  >
-                    {savingNote ? <FiLoader className="animate-spin" /> : <FiSave />}
-                    Save Note
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-2 self-end">
-                <button
-                  onClick={handleCreateQuizFromNotes}
-                  className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 rounded-lg text-xs font-bold transition flex items-center gap-2 border border-blue-100 dark:border-blue-800"
-                >
-                  <BiBrain className="text-lg" />
-                  Turn into Quiz
-                </button>
-              </div>
-            </div>
-            <MarkdownText
-              content={generatedNotes}
-              className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300"
-            />
-          </div>
-        </div>
-      )}
+      {/* Generated Content View - Notes removed, use /dashboard/pdf-summary */}
 
       {/* Sliding conversation history drawer for AI Tutor */}
       {showTutorHistoryDrawer && (
