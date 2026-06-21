@@ -398,52 +398,39 @@ function SubscriptionStatusCard() {
     const [status, setStatus] = useState<any | null>(null)
     useEffect(() => { paymentApi.getStatus().then(d => d?.success && setStatus(d)) }, [])
     
+    const planName = status?.subscription?.plan === 'free' ? 'Standard Plan' : 'Pro Plan'
+    const daysLeft = status?.subscription?.daysLeft ?? 0
+
     return (
-      <div className="sub-card v3-card">
-        <div className="flex items-center justify-between mb-4">
-            <div>
-                <h3 className="text-xl font-black">{status?.subscription?.plan === 'free' ? 'Standard' : 'Pro'}</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subscription Status</p>
+      <div className="sub-card v3-card flex flex-col justify-between min-h-[220px]">
+        <div>
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subscription Status</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    status?.subscription?.plan === 'free' 
+                    ? 'bg-slate-500/20 text-slate-300' 
+                    : 'bg-emerald-500/25 text-emerald-400'
+                }`}>
+                    Active
+                </span>
             </div>
-            <Link href="/dashboard/pricing" aria-label="Go to pricing" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <FiArrowRight className="text-lg" />
+            <h3 className="text-2xl font-black text-white">{planName}</h3>
+            
+            <div className="mt-4 flex items-center gap-2 text-sm text-gray-300">
+                <FiClock className="text-orange-500" />
+                <span>Plan expires in <span className="text-orange-400 font-bold">{daysLeft} day(s)</span></span>
+            </div>
+        </div>
+
+        <div className="mt-6">
+            <Link 
+                href="/dashboard/pricing" 
+                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+                <FiZap className="text-yellow-300" />
+                <span>{status?.subscription?.plan === 'free' ? 'Upgrade to Pro Plan' : 'Manage Subscription'}</span>
             </Link>
         </div>
-
-        <div className="mt-4 p-3 bg-black/20 rounded-xl space-y-3">
-            <p className="text-xs font-bold text-gray-300">Your Current Usage</p>
-            
-            <div className="space-y-2">
-                <div className="flex justify-between items-center text-[11px]">
-                    <span className="flex items-center gap-1.5 text-gray-300">📇 Flashcard Sets</span>
-                    <span className="font-bold">{status?.usage?.flashcards?.used ?? 0}/{status?.usage?.flashcards?.limit ?? 3}</span>
-                </div>
-                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                        className="h-full bg-purple-500 transition-all duration-500" 
-                        style={{ width: `${Math.min(100, ((status?.usage?.flashcards?.used ?? 0) / (status?.usage?.flashcards?.limit ?? 3)) * 100)}%` }}
-                    />
-                </div>
-            </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 text-[11px] text-gray-400 bg-orange-500/10 p-2 rounded-lg">
-            <FiClock className="text-orange-500" />
-            <span>Plan expires in <span className="text-orange-400 font-bold">{status?.subscription?.daysLeft ?? 0} day(s)</span></span>
-        </div>
-
-        {status?.subscription?.plan === 'free' && (
-            <div className="mt-6">
-                <Link 
-                    href="/dashboard/pricing" 
-                    className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    <FiZap className="animate-pulse text-yellow-300" />
-                    <span>Upgrade to Pro Plan</span>
-                </Link>
-                <p className="text-[10px] text-center text-gray-500 mt-2 font-medium">Unlock unlimited AI messages & more</p>
-            </div>
-        )}
       </div>
     )
 }
