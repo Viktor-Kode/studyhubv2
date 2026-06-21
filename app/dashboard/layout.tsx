@@ -209,18 +209,18 @@ export default function DashboardLayout({
                                 {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
                             </button>
 
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gray-800/50 rounded-full">
-                                    <FiTarget className="text-gray-400" />
+                            <Link href="/dashboard" className="flex items-center gap-2">
+                                <div className="w-8 h-8 overflow-hidden rounded-lg flex items-center justify-center">
+                                    <img 
+                                        src="/apple-touch-icon.png" 
+                                        alt="StudyHelp" 
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
-                                <div className="text-sm">
-                                    <p className="text-gray-400 font-medium">
-                                        {pathname === '/dashboard/student' || pathname === '/dashboard'
-                                            ? 'Dashboard'
-                                            : filteredNavItems.find(item => item.href === pathname)?.label || 'Dashboard'}
-                                    </p>
-                                </div>
-                            </div>
+                                <span className="font-bold text-xl hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    StudyHelp
+                                </span>
+                            </Link>
                         </div>
 
                         {/* Right: Theme Toggle + Notifications + User Menu */}
