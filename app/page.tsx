@@ -44,6 +44,16 @@ export default function Home() {
               name: 'StudyHelp',
               url: 'https://www.studyhelp.site',
               logo: 'https://www.studyhelp.site/logo.png',
+              contactPoint: {
+                '@type': 'ContactPoint',
+                telephone: '+234-916-334-5794',
+                contactType: 'customer support',
+                areaServed: 'NG',
+                availableLanguage: 'English',
+              },
+              sameAs: [
+                'https://twitter.com/StudyHelpAI',
+              ],
             },
             {
               '@context': 'https://schema.org',
@@ -55,6 +65,75 @@ export default function Home() {
                 target: 'https://www.studyhelp.site/?q={search_term_string}',
                 'query-input': 'required name=search_term_string',
               },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'StudyHelp',
+              operatingSystem: 'Web, Android, iOS',
+              applicationCategory: 'EducationApplication',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'NGN',
+              },
+              description:
+                'AI-powered CBT practice platform for Nigerian university students. Turn lecturer notes into practice questions for JAMB, WAEC, NECO, and Post-UTME.',
+              url: 'https://www.studyhelp.site',
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'EducationalOrganization',
+              name: 'StudyHelp',
+              url: 'https://www.studyhelp.site',
+              description:
+                'The #1 AI-powered study platform for Nigerian university students preparing for JAMB, WAEC, NECO, and Post-UTME examinations.',
+              areaServed: {
+                '@type': 'Country',
+                name: 'Nigeria',
+              },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: 'What is StudyHelp?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text:
+                      'StudyHelp is an AI-powered CBT practice platform built for Nigerian university students. It lets you turn your lecturer notes into practice questions for JAMB, WAEC, NECO, and Post-UTME exams.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Is StudyHelp free?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text:
+                      'Yes! StudyHelp has a free plan with 3 practice sessions (10 questions each). You can upgrade to a Weekly plan (₦1,000) or Monthly plan (₦3,500) for unlimited access.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Can StudyHelp generate JAMB past questions?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text:
+                      'Yes. StudyHelp uses AI to generate CBT-style practice questions in the format of JAMB, WAEC, NECO, and Post-UTME exams. You can also upload your own notes and get custom questions instantly.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'How do I prepare for WAEC using StudyHelp?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text:
+                      'Sign up for free on StudyHelp, select WAEC as your exam type, choose your subjects, and start practicing. The AI study tutor explains every answer so you learn while you practice.',
+                  },
+                },
+              ],
             },
           ]),
         }}

@@ -254,28 +254,30 @@ export default function PricingPage() {
                 {status && (
                     <div className="max-w-4xl mx-auto mt-12">
                         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 md:p-8">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Current Usage</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Current Plan</h3>
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">📇 Flashcard Sets</span>
-                                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gray-900 dark:bg-white transition-all"
-                                            style={{
-                                                width: `${(status.usage.flashcards.used / Math.max(status.usage.flashcards.limit, 1)) * 100}%`
-                                            }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                        {status.usage.flashcards.used}/{status.usage.flashcards.limit}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                        {({
+                                            free: 'Free Plan',
+                                            weekly: 'Weekly Plan',
+                                            monthly: 'Monthly Plan',
+                                            yearly: 'Yearly Plan',
+                                            daily: 'Daily Plan',
+                                        } as Record<string,string>)[status.subscription?.plan ?? 'free'] ?? 'Free Plan'}
+                                    </span>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                        status.subscription?.plan !== 'free'
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                    }`}>
+                                        {status.subscription?.plan !== 'free' ? 'Active' : 'Free'}
                                     </span>
                                 </div>
-                            </div>
-                            {status.subscription.daysLeft > 0 && (
-                                <p className="mt-4 text-xs text-gray-600 dark:text-gray-300">
-                                    ⏰ Plan expires in {status.subscription.daysLeft} day(s)
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    ⏰ Plan expires in <span className="font-bold text-orange-500">{status.subscription?.daysLeft ?? 0} day(s)</span>
                                 </p>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}

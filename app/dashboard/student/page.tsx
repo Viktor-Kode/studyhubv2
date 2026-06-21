@@ -399,8 +399,18 @@ function SubscriptionStatusCard() {
     useEffect(() => { paymentApi.getStatus().then(d => d?.success && setStatus(d)) }, [])
     
     const planType = status?.subscription?.plan || user?.plan?.type || 'free'
-    const planName = planType === 'free' ? 'Standard Plan' : 'Pro Plan'
     const daysLeft = status?.subscription?.daysLeft ?? 0
+
+    // Resolve a human-readable plan name
+    const planNames: Record<string, string> = {
+      free: 'Free Plan',
+      weekly: 'Weekly Plan',
+      monthly: 'Monthly Plan',
+      yearly: 'Yearly Plan',
+      daily: 'Daily Plan',
+    }
+    const planName = planNames[planType] ?? 'Free Plan'
+    const isPaid = planType !== 'free'
 
     return (
       <div className="sub-card v3-card flex flex-col justify-between min-h-[220px]">
@@ -408,11 +418,11 @@ function SubscriptionStatusCard() {
             <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subscription Status</span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    planType === 'free' 
-                    ? 'bg-slate-500/20 text-slate-300' 
-                    : 'bg-emerald-500/25 text-emerald-400'
+                    isPaid
+                    ? 'bg-emerald-500/25 text-emerald-400'
+                    : 'bg-slate-500/20 text-slate-300'
                 }`}>
-                    Active
+                    {isPaid ? 'Active' : 'Free'}
                 </span>
             </div>
             <h3 className="text-2xl font-black text-white">{planName}</h3>
@@ -429,7 +439,7 @@ function SubscriptionStatusCard() {
                 className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
                 <FiZap className="text-yellow-300" />
-                <span>{planType === 'free' ? 'Upgrade to Pro Plan' : 'Manage Subscription'}</span>
+                <span>{isPaid ? 'Manage Subscription' : 'Upgrade Plan'}</span>
             </Link>
         </div>
       </div>
