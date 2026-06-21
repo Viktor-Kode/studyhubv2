@@ -189,29 +189,6 @@ export default function StudentDashboardPage() {
           <SetupWizard user={user} onComplete={() => void useAuthStore.getState().refreshUser()} />
         )}
 
-        <header className="flex items-center justify-between mb-8 px-2">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-800/50 rounded-full"><FiTarget className="text-gray-400" /></div>
-                <div className="text-sm"><p className="text-gray-400 font-medium">Dashboard</p></div>
-            </div>
-            <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: '#8B7CF8' }}>
-                        <FiAward className="text-xs" /><span>{stats.rank}</span>
-                    </div>
-                    <p className="font-bold text-sm">{user?.name || 'Student'}</p>
-                </div>
-                <div className="relative">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`} alt="Profile" className="w-full h-full object-cover" />
-                    </div>
-                </div>
-                <Link href="/dashboard/notifications" aria-label="View notifications">
-                    <FiBell className="text-xl text-gray-400 cursor-pointer hover:text-purple-500 transition-colors" />
-                </Link>
-            </div>
-        </header>
-
         <section className="mb-10">
             <h2 className="text-lg font-bold mb-4 px-2">Core Study Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

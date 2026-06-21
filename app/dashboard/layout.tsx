@@ -10,7 +10,8 @@ import { firebaseSignOut } from '@/lib/firebase-auth'
 import { FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX, FiLogOut, FiAward,
     FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
-    FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone
+    FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone,
+    FiTarget, FiBell
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { MdQuiz, MdSchool } from 'react-icons/md'
@@ -25,6 +26,7 @@ import { cbtApi } from '@/lib/api/cbt'
 import { reviewCard } from '@/lib/api/flashcardApi'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
 import { toast } from 'react-hot-toast'
+import { progressApi } from '@/lib/api/progressApi'
 
 interface NavItem {
     href: string
@@ -73,6 +75,16 @@ export default function DashboardLayout({
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [isOffline, setIsOffline] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
+    const [rank, setRank] = useState('Novice')
+
+    useEffect(() => {
+        if (!user?.uid) return
+        progressApi.getMe().then((res) => {
+            const progData = res?.data
+            const resolvedRank = progData?.levelInfo?.name ?? progData?.levelName ?? 'Novice'
+            setRank(resolvedRank)
+        }).catch(() => {})
+    }, [user?.uid])
 
     const syncProgress = async () => {
         try {
@@ -185,7 +197,7 @@ export default function DashboardLayout({
                 <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw] pt-[env(safe-area-inset-top)]">
                     <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
 
-                        {/* Left: Logo + Menu Toggle */}
+                        {/* Left: Logo/Menu Toggle + Current Page Info */}
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -197,22 +209,22 @@ export default function DashboardLayout({
                                 {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
                             </button>
 
-                            <Link href="/dashboard" className="flex items-center gap-2">
-                                <div className="w-8 h-8 overflow-hidden rounded-lg flex items-center justify-center">
-                                    <img 
-                                        src="/apple-touch-icon.png" 
-                                        alt="StudyHelp" 
-                                        className="w-full h-full object-contain"
-                                    />
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gray-800/50 rounded-full">
+                                    <FiTarget className="text-gray-400" />
                                 </div>
-                                <span className="font-bold text-xl hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    StudyHelp
-                                </span>
-                            </Link>
+                                <div className="text-sm">
+                                    <p className="text-gray-400 font-medium">
+                                        {pathname === '/dashboard/student' || pathname === '/dashboard'
+                                            ? 'Dashboard'
+                                            : filteredNavItems.find(item => item.href === pathname)?.label || 'Dashboard'}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Right: User Menu + Theme Toggle */}
-                        <div className="flex items-center gap-3">
+                        {/* Right: Theme Toggle + Notifications + User Menu */}
+                        <div className="flex items-center gap-4">
                             {/* Theme Toggle */}
                             <button
                                 onClick={toggleTheme}
@@ -226,25 +238,37 @@ export default function DashboardLayout({
                                 )}
                             </button>
 
+                            {/* Notifications */}
+                            <Link href="/dashboard/notifications" aria-label="View notifications">
+                                <FiBell className="text-xl text-gray-400 cursor-pointer hover:text-purple-500 transition-colors" />
+                            </Link>
+
                             {/* User Menu */}
                             <div className="relative">
                                 <button
                                     onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                                    className="flex items-center gap-3 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left"
                                     aria-label="Open account menu"
                                     aria-expanded={showUserMenu}
                                     aria-haspopup="true"
                                 >
-                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                        <FiUser className="text-white" />
+                                    <div className="hidden sm:flex flex-col items-end">
+                                        <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: '#8B7CF8' }}>
+                                            <FiAward className="text-xs" />
+                                            <span>{rank}</span>
+                                        </div>
+                                        <p className="font-bold text-sm text-gray-900 dark:text-white">
+                                            {user?.name || 'Student'}
+                                        </p>
                                     </div>
-                                    <div className="hidden sm:block text-left">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                            {user?.name || 'User'}
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                                            {user?.role || 'Student'}
-                                        </p>
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30">
+                                            <img
+                                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
                                     </div>
                                     <FiChevronDown className="text-gray-500 dark:text-gray-400" />
                                 </button>
