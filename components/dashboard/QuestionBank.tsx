@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2, FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
@@ -17,6 +17,8 @@ import { extractTextFromFile } from '@/lib/utils/extraction'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
 import { confirmToast } from '@/lib/utils/confirm'
 import { getErrorMessage } from '@/lib/utils/errorHandler'
+
+export const QUIZ_SESSION_KEY = 'qgen_quiz_session_v2'
 
 interface QuestionBankProps {
   className?: string
@@ -129,6 +131,7 @@ function MarkdownText({ content, className = '' }: { content: string; className?
 
 export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const { showUpgrade } = useUpgrade()
+  const router = useRouter()
 
   // Generation State
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -138,6 +141,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [manualText, setManualText] = useState('')
   const [amount, setAmount] = useState<number | string>(5)
   const [questionType, setQuestionType] = useState('multiple-choice')
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  const [timerMinutes, setTimerMinutes] = useState<number>(0) // 0 = no timer
 
   const [generating, setGenerating] = useState(false)
   const [extracting, setExtracting] = useState(false)
@@ -869,14 +874,24 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           documentId || undefined
         )
 
-      if (data.isDuplicate && !forceNew) {
-        setWarning('Showing existing questions for this content. Click "Generate New Set" for more.')
-      } else {
-        setSuccess(`Successfully generated ${data.data.length} questions!`)
-      }
-
-      setNewQuestions(data.data.map(q => ({ ...q, sessionId: data.sessionId })))
+      const questions = data.data.map(q => ({ ...q, sessionId: data.sessionId }))
+      setNewQuestions(questions)
       setQuizStartTime(Date.now())
+
+      // Save quiz config to sessionStorage and navigate to the dedicated quiz page
+      try {
+        sessionStorage.setItem(QUIZ_SESSION_KEY, JSON.stringify({
+          questions,
+          sessionId: data.sessionId,
+          sourceName,
+          questionType,
+          difficulty,
+          timerMinutes,
+          startedAt: new Date().toISOString(),
+        }))
+      } catch { /* storage full – ignore */ }
+
+      router.push('/dashboard/question-bank/quiz')
     } catch (err: any) {
       const msg = getErrorMessage(err)
       if (isUpgradeError(msg)) {
@@ -1629,6 +1644,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           <div className="flex flex-col justify-between">
             {activeTab === 'quiz' ? (
               <div className="space-y-4">
+                {/* Row 1: Type + Amount */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
@@ -1671,6 +1687,57 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   </div>
                 </div>
 
+                {/* Row 2: Difficulty + Timer */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Difficulty */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                      Difficulty
+                    </label>
+                    <div className="flex gap-2">
+                      {(['easy', 'medium', 'hard'] as const).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setDifficulty(d)}
+                          className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all border-2 ${
+                            difficulty === d
+                              ? d === 'easy'
+                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30'
+                                : d === 'medium'
+                                ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-amber-900/30'
+                                : 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 bg-transparent'
+                          }`}
+                        >
+                          {d === 'easy' ? '😊' : d === 'medium' ? '🔥' : '💀'} {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Timer */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                      <FiClock className="inline" /> Timer
+                    </label>
+                    <select
+                      value={timerMinutes}
+                      onChange={(e) => setTimerMinutes(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                    >
+                      <option value={0}>No timer</option>
+                      <option value={5}>5 minutes</option>
+                      <option value={10}>10 minutes</option>
+                      <option value={15}>15 minutes</option>
+                      <option value={20}>20 minutes</option>
+                      <option value={30}>30 minutes</option>
+                      <option value={45}>45 minutes</option>
+                      <option value={60}>60 minutes</option>
+                    </select>
+                  </div>
+                </div>
+
                 {Number(amount) > 20 && (
                   <div className="flex items-center gap-2 text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg">
                     <FiAlertTriangle className="flex-shrink-0" />
@@ -1699,18 +1766,22 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <button
                   onClick={() => handleGenerate()}
                   disabled={generating || (inputMode === 'upload' && (!extractedText || extracting)) || (inputMode === 'manual' && manualText.trim().length < 50)}
-                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:bg-gray-100 disabled:text-gray-400 shadow-lg shadow-blue-500/20"
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                 >
-                  {generating ? <span className="flex items-center justify-center gap-2"><FiLoader className="animate-spin" /> Generating...</span> : "Create Quiz"}
+                  {generating
+                    ? <><FiLoader className="animate-spin" /> Generating...</>
+                    : <>
+                        <span>🚀</span> Create Quiz
+                        {timerMinutes > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">⏱ {timerMinutes}m</span>}
+                      </>}
                 </button>
 
                 {newQuestions.length > 0 && (
                   <button
-                    onClick={() => handleGenerate(undefined, true)}
-                    disabled={generating}
+                    onClick={() => router.push('/dashboard/question-bank/quiz')}
                     className="w-full py-3 border-2 border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all mt-2"
                   >
-                    Generate New Set
+                    Resume Last Quiz →
                   </button>
                 )}
               </div>
