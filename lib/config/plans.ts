@@ -47,7 +47,6 @@ export const PLANS = {
     features: [
       'Unlimited CBT tests & study sessions',
       'Unlimited AI questions & tutoring',
-      'Unlimited flashcards',
       'All exam types (JAMB, WAEC, Post-UTME)',
       'Smart study timer',
       'Full analytics & progress tracking',
@@ -69,7 +68,6 @@ export const PLANS = {
     features: [
       'Unlimited CBT tests & study sessions',
       'Unlimited AI questions & tutoring',
-      'Unlimited flashcards',
       'All exam types (JAMB, WAEC, Post-UTME)',
       'Smart study timer',
       'Full analytics & progress tracking',
@@ -92,7 +90,6 @@ export const PLANS = {
     features: [
       'Unlimited CBT tests & study sessions',
       'Unlimited AI questions & tutoring',
-      'Unlimited flashcards',
       'All exam types (JAMB, WAEC, Post-UTME)',
       'Smart study timer',
       'Full analytics & progress tracking',
