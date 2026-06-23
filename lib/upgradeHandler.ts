@@ -15,6 +15,8 @@ export function triggerUpgradeModal(codeOrFeature?: string) {
       CBT_LIMIT_REACHED: 'cbt',
       AI_LIMIT_REACHED: 'ai',
       FLASHCARD_LIMIT_REACHED: 'flashcard',
+      NOTE_LIMIT_REACHED: 'notes',
+      QUIZ_LIMIT_REACHED: 'quiz',
       SUBSCRIPTION_EXPIRED: 'default'
     }
     const feature = featureMap[codeOrFeature || ''] || codeOrFeature || 'default'

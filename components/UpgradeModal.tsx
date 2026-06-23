@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 
 const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   cbt: { title: 'Unlock Unlimited Past Questions', desc: 'Free users get 1 test per day. Upgrade for unlimited access.' },
-  ai: { title: "You're one step away", desc: "Your explanation is ready to generate. Upgrade now and it runs instantly." },
+  ai: { title: "You've used your 3 free AI chats", desc: "Upgrade to keep chatting with your AI tutor — unlimited messages included." },
   flashcard: { title: "You're one step away", desc: "Your flashcards are ready to generate. Upgrade now and it runs instantly." },
   analytics: { title: 'Unlock Advanced Analytics', desc: 'Detailed progress tracking is available on paid plans.' },
   mock: { title: 'Unlock Mock Exams', desc: 'Full mock exams are available on paid plans only.' },
-  notes: { title: "You're one step away", desc: "Your study notes are ready to generate. Upgrade now and it runs instantly." },
+  notes: { title: "You've used your 3 free notes", desc: "Upgrade to create unlimited notes and keep every insight organised." },
   postutme: { title: 'Unlock Post-UTME Practice', desc: 'Post-UTME past questions require a paid plan.' },
-  quiz: { title: "You're one step away", desc: "Your quiz is ready to generate. Upgrade now and it runs instantly." },
+  quiz: { title: "You've used your 3 free question sets", desc: "Upgrade to generate unlimited quiz sets from any material." },
   library: { title: 'Library Limit Reached', desc: 'Free users can upload up to 2 documents. Upgrade for unlimited storage.' },
   default: { title: 'Upgrade to Continue', desc: 'This feature is available on paid plans.' }
 }
@@ -50,10 +50,10 @@ export default function UpgradeModal({
   }
 
   const getButtonText = () => {
-      if (feature === 'quiz') return 'Upgrade & Generate My Quiz'
+      if (feature === 'quiz') return 'Upgrade & Unlock Unlimited Quizzes'
       if (feature === 'flashcard') return 'Upgrade & Generate Flashcards'
-      if (feature === 'notes') return 'Upgrade & Generate Notes'
-      if (feature === 'ai') return 'Upgrade & Unlock AI Explanations'
+      if (feature === 'notes') return 'Upgrade & Unlock Unlimited Notes'
+      if (feature === 'ai') return 'Upgrade & Unlock Unlimited AI Chats'
       return 'Upgrade & Continue'
   }
 
