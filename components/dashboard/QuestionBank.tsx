@@ -1225,7 +1225,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 <textarea
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
-                  className="flex-1 w-full p-4 text-base bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none text-gray-900 dark:text-gray-100"
+                  className="flex-1 w-full p-4 text-base bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-400 transition-all font-medium resize-none text-gray-900 dark:text-gray-100"
                   placeholder="Paste your study notes, sections of a book, or lecture transcripts here..."
                 />
                 <p className="text-xs text-gray-400 text-right mt-2">
@@ -1265,13 +1265,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               {/* Row 1: Type + Amount */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
                     Type
                   </label>
                   <select
                     value={questionType}
                     onChange={(e) => setQuestionType(e.target.value)}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                   >
                     <option value="multiple-choice">MCQ</option>
                     <option value="theory">Theory</option>
@@ -1281,7 +1281,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
                     Amount
                   </label>
                   <input
@@ -1300,7 +1300,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       else if (num > 50) setAmount(50);
                       else setAmount(num);
                     }}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -1309,13 +1309,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Difficulty */}
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
                     Difficulty
                   </label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                   >
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
@@ -1325,13 +1325,13 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
                 {/* Timer */}
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-505 dark:text-gray-400 flex items-center gap-1">
                     <FiClock className="inline" /> Timer
                   </label>
                   <select
                     value={timerMinutes}
                     onChange={(e) => setTimerMinutes(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                   >
                     <option value={0}>No timer</option>
                     <option value={5}>5 minutes</option>

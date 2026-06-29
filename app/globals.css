@@ -8387,3 +8387,36 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Accessibility Contrast Overrides for Light Mode --- */
+:root:not(.dark) .text-gray-400 {
+  color: #64748B !important; /* Slate 500 for normal text readability */
+}
+:root:not(.dark) .text-slate-400 {
+  color: #64748B !important;
+}
+:root:not(.dark) .text-zinc-400 {
+  color: #71717A !important;
+}
+:root:not(.dark) .text-neutral-400 {
+  color: #737373 !important;
+}
+:root:not(.dark) .text-gray-300 {
+  color: #4b5563 !important; /* Gray 600 for light gray contrast */
+}
+:root:not(.dark) .text-slate-300 {
+  color: #475569 !important;
+}
+:root:not(.dark) .text-slate-500 {
+  color: #334155 !important; /* Slate 700 equivalent */
+}
+:root:not(.dark) .text-gray-500 {
+  color: #374151 !important; /* Gray 700 equivalent */
+}
+:root:not(.dark) .placeholder-gray-400::placeholder {
+  color: #64748B !important;
+}
+:root:not(.dark) input::placeholder,
+:root:not(.dark) textarea::placeholder {
+  color: #64748B !important;
+}

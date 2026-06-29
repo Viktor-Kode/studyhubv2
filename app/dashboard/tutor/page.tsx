@@ -403,7 +403,7 @@ export default function AiTutorPage() {
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-1 px-1 font-medium">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 px-1 font-medium">
                       {new Date(msg.timestamp || new Date()).toLocaleTimeString('en-NG', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -513,12 +513,12 @@ export default function AiTutorPage() {
               <button
                 onClick={sendMessage}
                 disabled={loading || extracting || !input.trim()}
-                className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:from-violet-750 hover:to-indigo-750 transition disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 dark:disabled:from-gray-800 dark:disabled:to-gray-800 dark:disabled:text-gray-600 flex-shrink-0 shadow-md shadow-violet-500/10"
+                className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:from-violet-700 hover:to-indigo-700 transition disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-500 dark:disabled:from-gray-800 dark:disabled:to-gray-800 dark:disabled:text-gray-600 flex-shrink-0 shadow-md shadow-violet-500/10"
               >
                 <Send size={18} />
               </button>
             </div>
-            <p className="text-[10px] text-gray-400 text-center font-medium">Press Enter to send · Support PDF, DOCX, PPT, Image context</p>
+             <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center font-medium">Press Enter to send · Support PDF, DOCX, PPT, Image context</p>
           </div>
         </footer>
 
@@ -561,10 +561,10 @@ export default function AiTutorPage() {
                 {historyLoading ? (
                   <div className="flex flex-col items-center justify-center py-12 space-y-3">
                     <Loader2 className="animate-spin text-violet-500" />
-                    <span className="text-xs text-gray-400">Loading chats...</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Loading chats...</span>
                   </div>
                 ) : chatSessions.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-gray-400">No recent tutoring sessions.</div>
+                  <div className="text-center py-12 text-xs text-gray-500 dark:text-gray-400">No recent tutoring sessions.</div>
                 ) : (
                   chatSessions.map((s) => (
                     <div
@@ -583,13 +583,13 @@ export default function AiTutorPage() {
                             {s.subject}
                           </span>
                         )}
-                        <p className="text-[10px] text-gray-400 mt-1 truncate leading-none">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 truncate leading-none">
                           {s.messageCount} messages
                         </p>
                       </div>
                       <button
                         onClick={(e) => void deleteSession(s.sessionId, e)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-500 dark:text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
                         title="Delete chat"
                       >
                         <Trash2 size={13} />
