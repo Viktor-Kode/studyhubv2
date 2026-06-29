@@ -274,10 +274,10 @@ export default function AiTutorPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-dvh w-full overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 animate-in fade-in duration-200">
+      <div className="flex flex-col h-dvh w-full overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 animate-in fade-in duration-200" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         
         {/* Top Header */}
-        <header className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 z-10 shadow-sm">
+        <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 shadow-sm">
           <div className="flex items-center gap-3">
             <BackButton label="Dashboard" href="/dashboard/student" />
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-800" />
@@ -443,7 +443,7 @@ export default function AiTutorPage() {
         </div>
 
         {/* Input Bar */}
-        <footer className="flex-shrink-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+        <footer className="flex-shrink-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 pt-3" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
           <div className="max-w-3xl mx-auto space-y-3">
             
             {/* Active file context indicator */}
@@ -495,13 +495,14 @@ export default function AiTutorPage() {
                 )}
               </button>
 
-              {/* Chat Input */}
+              {/* Chat Input — font-size must be >=16px to prevent iOS Safari zoom on focus */}
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-violet-505 dark:focus:border-violet-505 transition-all text-gray-900 dark:text-gray-100 shadow-inner"
+                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 outline-none focus:border-violet-500 dark:focus:border-violet-500 transition-all text-gray-900 dark:text-gray-100 shadow-inner"
+                style={{ fontSize: '16px', lineHeight: '1.5' }}
                 placeholder={extracting ? "Reading file context..." : "Ask your tutor anything..."}
                 disabled={extracting}
               />
