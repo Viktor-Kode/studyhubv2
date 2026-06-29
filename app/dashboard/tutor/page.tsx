@@ -266,10 +266,10 @@ export default function AiTutorPage() {
   }
 
   const STARTER_PROMPTS = [
-    'Explain Nigeria\'s history',
-    'Help me solve a math equation',
-    'What is photosynthesis?',
-    'Who founded StudyHelp?',
+    'Explain this past question to me',
+    'Quiz me on [topic] like a WAEC/JAMB exam',
+    'What topics should I focus on to pass [subject]?',
+    'Help me understand this from my note',
   ]
 
   return (
