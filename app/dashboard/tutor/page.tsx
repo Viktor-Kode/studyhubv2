@@ -277,46 +277,48 @@ export default function AiTutorPage() {
       <div className="flex flex-col h-dvh w-full overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 animate-in fade-in duration-200" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         
         {/* Top Header */}
-        <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <BackButton label="Dashboard" href="/dashboard/student" />
-            <div className="h-6 w-px bg-gray-200 dark:bg-gray-800" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
-                <Bot size={16} className="text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-sm leading-none">AI Study Tutor</h1>
-                <span className="text-[10px] text-gray-400 font-medium">Nigerian Syllabus Expert</span>
-              </div>
+        <header className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 shadow-sm">
+          {/* Back link — icon only on mobile, shows label on sm+ */}
+          <a
+            href="/dashboard/student"
+            className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            <span className="text-xs font-semibold hidden sm:inline">Dashboard</span>
+          </a>
+
+          {/* Centred brand label */}
+          <div className="flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow">
+              <Bot size={13} className="text-white" />
             </div>
+            <span className="font-bold text-sm tracking-tight">AI Tutor</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right actions */}
+          <div className="flex items-center gap-1.5">
             {uploadedFile && (
               <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full text-[10px] font-bold">
                 <Sparkles size={11} className="animate-pulse" />
-                <span className="truncate max-w-[120px]">{uploadedFile.name} active</span>
+                <span className="truncate max-w-[100px]">{uploadedFile.name}</span>
               </div>
             )}
-
             <button
               onClick={() => {
                 setShowHistory(true)
                 void fetchHistory()
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-semibold transition"
             >
               <Clock size={13} />
               <span className="hidden sm:inline">History</span>
             </button>
-            
             <button
               onClick={startNewChat}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-750 hover:to-indigo-750 text-white rounded-xl text-xs font-semibold shadow-md shadow-violet-500/20 transition"
+              title="New Chat"
+              className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-violet-500/20 transition"
             >
-              <Plus size={13} />
-              <span>New Chat</span>
+              <Plus size={15} />
             </button>
           </div>
         </header>
@@ -528,7 +530,7 @@ export default function AiTutorPage() {
               onClick={() => setShowHistory(false)}
             />
 
-            <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-250">
+            <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-900 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-250">
               {/* Drawer Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
                 <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -540,6 +542,17 @@ export default function AiTutorPage() {
                   className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-450 transition"
                 >
                   <X size={18} />
+                </button>
+              </div>
+
+              {/* New Chat button at the top of the drawer */}
+              <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                <button
+                  onClick={startNewChat}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-violet-500/20 transition"
+                >
+                  <Plus size={14} />
+                  New Chat
                 </button>
               </div>
 
@@ -586,15 +599,7 @@ export default function AiTutorPage() {
                 )}
               </div>
 
-              {/* Start new chat footer inside drawer */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-                <button
-                  onClick={startNewChat}
-                  className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:from-violet-700 hover:to-indigo-750 transition"
-                >
-                  + Start New Chat
-                </button>
-              </div>
+
             </div>
           </div>
         )}
