@@ -18,7 +18,6 @@ import {
   FaHistory,
   FaStickyNote,
   FaGraduationCap,
-  FaGraduationCap,
   FaTrophy,
   FaPhone,
   FaWhatsapp

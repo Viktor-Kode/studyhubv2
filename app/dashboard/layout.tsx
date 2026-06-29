@@ -189,6 +189,21 @@ export default function DashboardLayout({
 
     const isDark = theme === 'dark'
 
+    const isTutorPage = pathname === '/dashboard/tutor'
+
+    if (isTutorPage) {
+        return (
+            <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
+                    <ProtectedRoute>
+                        {children}
+                    </ProtectedRoute>
+                    <WebPushPrompt />
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

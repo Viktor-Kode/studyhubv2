@@ -174,26 +174,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
   const searchParams = useSearchParams()
 
-  const [activeTab, setActiveTab] = useState<'quiz' | 'notes' | 'tutor'>('quiz')
   const [generatedNotes, setGeneratedNotes] = useState('')
   const [noteTitle, setNoteTitle] = useState('')
   const [generatingNotes, setGeneratingNotes] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
-
-  // AI Tutor State
-  const [chatMessages, setChatMessages] = useState<TutorChatMessage[]>([])
-  const [chatInput, setChatInput] = useState('')
-  const [isChatting, setIsChatting] = useState(false)
-  const [tutorSessionId, setTutorSessionId] = useState<string | null>(null)
-  const [tutorSessions, setTutorSessions] = useState<TutorChatSessionPreview[]>([])
-  const [loadingTutorHistory, setLoadingTutorHistory] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
-  const tutorSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Layout states for mobile optimization
-  const [isContextExpanded, setIsContextExpanded] = useState(false)
-  const [showTutorHistoryDrawer, setShowTutorHistoryDrawer] = useState(false)
-  const chatInputRef = useRef<HTMLInputElement>(null)
 
   // Saved quiz session state
   const [hasSession, setHasSession] = useState(false)
@@ -302,9 +286,11 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setShowResumeBanner(false)
     }
 
-    if (tabParam === 'notes') setActiveTab('notes')
-    if (tabParam === 'quiz') setActiveTab('quiz')
-    if (tabParam === 'tutor') setActiveTab('tutor')
+    if (tabParam === 'tutor') {
+      router.push('/dashboard/tutor')
+      return
+    }
+
 
     // Prefer sessionStorage from Practice with Quiz (avoids URI length/decode issues)
     if ((sourceParam === 'notes' || sourceParam === 'library') && typeof window !== 'undefined') {
@@ -376,7 +362,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         if (parsed.inputMode) setInputMode(parsed.inputMode)
         if (typeof parsed.manualText === 'string') setManualText(parsed.manualText)
         if (typeof parsed.extractedText === 'string') setExtractedText(parsed.extractedText)
-        if (parsed.activeTab) setActiveTab(parsed.activeTab)
+
 
         setHasSession(true)
         setShowResumeBanner(true)
@@ -501,100 +487,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
 
-  useEffect(() => {
-    if (activeTab === 'tutor') scrollToBottom()
-  }, [chatMessages, activeTab])
-
-  const loadTutorHistory = async (loadLatestSession = false) => {
-    setLoadingTutorHistory(true)
-    try {
-      const data = await getTutorChatHistory()
-      if (data.success) {
-        const sessions = data.sessions || []
-        setTutorSessions(sessions)
-        if (loadLatestSession && sessions.length > 0) {
-          await handleLoadTutorSession(sessions[0].sessionId)
-        }
-      }
-    } catch {
-      // non-blocking for quiz flow
-    } finally {
-      setLoadingTutorHistory(false)
-    }
-  }
-
-  const handleLoadTutorSession = async (sid: string) => {
-    try {
-      const data = await getTutorChatSession(sid)
-      if (!data.success) return
-      setTutorSessionId(data.session.sessionId)
-      setChatMessages(data.session.messages || [])
-      setActiveTab('tutor')
-    } catch {
-      // ignore load failure
-    }
-  }
-
-  const persistTutorChat = async () => {
-    if (!chatMessages.length) return
-    try {
-      const payload = chatMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        timestamp: m.timestamp || new Date().toISOString(),
-      }))
-      const result = await saveTutorChatSession(tutorSessionId, payload, '')
-      if (result?.sessionId && !tutorSessionId) {
-        setTutorSessionId(result.sessionId)
-      }
-      await loadTutorHistory(false)
-    } catch {
-      // ignore save failure in UI
-    }
-  }
-
-  const handleStartNewTutorChat = async () => {
-    if (chatMessages.length > 0) {
-      await persistTutorChat()
-    }
-    setTutorSessionId(null)
-    setChatMessages([])
-    setChatInput('')
-  }
-
-  const handleDeleteTutorSession = async (sid: string) => {
-    try {
-      await deleteTutorChatSession(sid)
-      setTutorSessions((prev) => prev.filter((s) => s.sessionId !== sid))
-      if (sid === tutorSessionId) {
-        setTutorSessionId(null)
-        setChatMessages([])
-      }
-    } catch {
-      // ignore delete failure
-    }
-  }
-
-  useEffect(() => {
-    if (activeTab !== 'tutor') return
-    if (tutorSessions.length > 0 || loadingTutorHistory) return
-    void loadTutorHistory(true)
-  }, [activeTab, tutorSessions.length, loadingTutorHistory])
-
-  useEffect(() => {
-    if (!chatMessages.length) return
-    if (tutorSaveTimerRef.current) clearTimeout(tutorSaveTimerRef.current)
-    tutorSaveTimerRef.current = setTimeout(() => {
-      void persistTutorChat()
-    }, TUTOR_SAVE_DEBOUNCE_MS)
-    return () => {
-      if (tutorSaveTimerRef.current) clearTimeout(tutorSaveTimerRef.current)
-    }
-  }, [chatMessages, tutorSessionId])
 
   // Auto-save quiz session to localStorage whenever key state changes
   useEffect(() => {
@@ -613,7 +506,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
         manualText,
         // extractedText is intentionally omitted — it's only needed before generation
         // and storing full document text client-side is unnecessary once questions exist.
-        activeTab,
         savedAt: new Date().toISOString(),
       }
       localStorage.setItem(QGEN_STORAGE_KEY, JSON.stringify(payload))
@@ -633,7 +525,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     inputMode,
     manualText,
     extractedText,
-    activeTab,
     quizStartTime
   ])
 
@@ -739,7 +630,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     setQuizSubmitted(false)
     setReviewMode(false)
     setCurrentQuestionIndex(0)
-    setActiveTab('quiz')
+
     setHasSession(false)
     setShowResumeBanner(false)
     setLastSavedAt(null)
@@ -786,7 +677,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       if (parsedText && parsedText.trim().length > 0) {
         setExtractedText(parsedText)
         setSuccess('Document ready! You can now click "Create Quiz" or use the other tabs.')
-        setIsContextExpanded(false)
+
       } else {
         throw new Error('Could not read this file. Try a different format or paste your text directly.')
       }
@@ -822,7 +713,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
       setExtractedText('')
       setFetchError(null)
       setSuccess('Link content fetched successfully! You can now generate questions or notes.')
-      setIsContextExpanded(false)
+
     } catch (err: any) {
       const rawMessage =
         err?.response?.data?.error ||
@@ -981,78 +872,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     if (!generatedNotes) return
     setManualText(generatedNotes)
     setInputMode('manual')
-    setActiveTab('quiz')
     // Optionally auto-scroll to generator
-  }
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!chatInput.trim() || isChatting) return
-
-    const userMsg = chatInput.trim()
-    setChatInput('')
-    const outgoingMsg: TutorChatMessage = {
-      role: 'user',
-      content: userMsg,
-      timestamp: new Date().toISOString(),
-    }
-    setChatMessages(prev => [...prev, outgoingMsg])
-    setIsChatting(true)
-    setError(null)
-
-    // Add placeholder message for the assistant
-    setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
-
-    try {
-      let context = inputMode === 'upload' ? extractedText : manualText
-      if (context && context.length > 48000) {
-        context = context.slice(0, 48000)
-      }
-      const historyForModel = chatMessages
-        .filter((msg) => msg.content && msg.content.trim())
-        .map((msg) => {
-          let role: 'user' | 'assistant' | 'system' = 'user'
-          const rawRole = String(msg.role).toLowerCase()
-          if (rawRole === 'assistant' || rawRole === 'model') {
-            role = 'assistant'
-          } else if (rawRole === 'system') {
-            role = 'system'
-          }
-          return {
-            role,
-            content: msg.content,
-          }
-        })
-      
-      const response = await chatWithTutor(
-        userMsg, 
-        context, 
-        historyForModel, 
-        (chunk) => {
-          setChatMessages(prev => {
-            const newMessages = [...prev]
-            const lastIdx = newMessages.length - 1
-            if (lastIdx >= 0) {
-              newMessages[lastIdx] = { 
-                ...newMessages[lastIdx], 
-                content: newMessages[lastIdx].content + chunk 
-              }
-            }
-            return newMessages
-          })
-        },
-        documentId || undefined
-      )
-    } catch (err: any) {
-      const msg = getErrorMessage(err)
-      if (isUpgradeError(msg)) {
-        showUpgrade('ai')
-        return
-      }
-      setError(msg)
-    } finally {
-      setIsChatting(false)
-    }
   }
 
   // compareAnswers is now defined at the top scope with fuzzy matching logic
@@ -1121,64 +941,6 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
     }
   }
 
-  const handleReviewTopic = async (q: Question) => {
-    setActiveTab('tutor')
-    const qText = q.content || (q as any).question || '';
-    const correctAnswer = q.answer !== undefined ? q.answer : (q as any).correctAnswer
-    const correctAnsText = typeof correctAnswer === 'number' && q.options
-      ? q.options[Number(correctAnswer)]
-      : String(correctAnswer);
-
-    const message = `Explain the concept/topic behind this question in detail:\n"${qText}"\nThe correct answer is: "${correctAnsText}"`
-
-    setTutorSessionId(null)
-    const outgoingMsg: TutorChatMessage = {
-      role: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-    }
-    setChatMessages([outgoingMsg])
-    setIsChatting(true)
-    setError(null)
-    
-    setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
-
-    try {
-      let context = inputMode === 'upload' ? extractedText : manualText
-      if (context && context.length > 48000) {
-        context = context.slice(0, 48000)
-      }
-      
-      await chatWithTutor(
-        message, 
-        context, 
-        [], 
-        (chunk) => {
-          setChatMessages(prev => {
-            const newMessages = [...prev]
-            const lastIdx = newMessages.length - 1
-            if (lastIdx >= 0) {
-              newMessages[lastIdx] = { 
-                ...newMessages[lastIdx], 
-                content: newMessages[lastIdx].content + chunk 
-              }
-            }
-            return newMessages
-          })
-        },
-        documentId || undefined
-      )
-    } catch (err: any) {
-      const msg = getErrorMessage(err)
-      if (isUpgradeError(msg)) {
-        showUpgrade('ai')
-        return
-      }
-      setError(msg)
-    } finally {
-      setIsChatting(false)
-    }
-  }
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
@@ -1265,76 +1027,9 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             </div>
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 scrollbar-none no-scrollbar" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-          <button
-            onClick={() => setActiveTab('quiz')}
-            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
-                    ${activeTab === 'quiz'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            Quiz Generator
-          </button>
-          <button
-            onClick={() => setActiveTab('tutor')}
-            className={`pb-2 px-3 text-xs sm:text-sm font-bold transition-all border-b-2 whitespace-nowrap
-                    ${activeTab === 'tutor'
-                ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            AI Study Tutor
-          </button>
-        </div>
-
-
-        <>
-            {activeTab === 'tutor' && (
-              <div className="md:hidden mb-4">
-                <button
-                  type="button"
-                  onClick={() => setIsContextExpanded(!isContextExpanded)}
-                  className="w-full text-left flex items-center justify-between p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border border-purple-100 dark:border-purple-900/50 rounded-xl transition hover:opacity-90 shadow-sm animate-in fade-in"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="text-base mr-2 flex-shrink-0">
-                      {inputMode === 'upload' && uploadedFile ? <FiFileText /> : inputMode === 'link' && manualText ? <FiLink /> : <FiEdit3 />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 leading-none mb-1">
-                        Active Study Material
-                      </p>
-                      <p className="text-[13px] font-bold text-gray-700 dark:text-gray-200 truncate">
-                        {inputMode === 'upload' && uploadedFile 
-                          ? uploadedFile.name 
-                          : inputMode === 'link' && fetchedTitle 
-                            ? fetchedTitle 
-                            : inputMode === 'manual' && manualText 
-                              ? `${manualText.slice(0, 35)}...` 
-                              : 'No file uploaded (general tutoring)'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2">
-                    <span>{isContextExpanded ? 'Hide Tools' : 'Change'}</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform duration-200 ${isContextExpanded ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-            )}
-
-            <div className={`grid ${activeTab === 'tutor' ? 'lg:grid-cols-[1fr_1.3fr] grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'} gap-8`}>
-              {/* Input Side */}
-              <div className={`space-y-4 ${activeTab === 'tutor' && !isContextExpanded ? 'hidden md:block' : 'block'}`}>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Input Side */}
+          <div className="space-y-4">
             {/* Source Tabs: Paste Text / Paste Link / Upload PDF */}
             <div className="qg-source-tabs">
               <button
@@ -1509,7 +1204,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                         setFetchedTitle(null)
                         setManualText('')
                       }}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-gray-650 transition"
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-gray-655 transition"
                     >
                       <FiX size={14} />
                     </button>
@@ -1564,372 +1259,146 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             </div>
           </div>
 
-          {/* Options Side - Conditional Rendering */}
+          {/* Options Side */}
           <div className="flex flex-col justify-between">
-            {activeTab === 'quiz' ? (
-              <div className="space-y-4">
-                {/* Row 1: Type + Amount */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      Type
-                    </label>
-                    <select
-                      value={questionType}
-                      onChange={(e) => setQuestionType(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="multiple-choice">MCQ</option>
-                      <option value="theory">Theory</option>
-                      <option value="fill-in-the-blank">Blanks</option>
-                      <option value="mixed">Mixed</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      Amount
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={amount}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d+$/.test(val)) {
-                          setAmount(val);
-                        }
-                      }}
-                      onBlur={() => {
-                        const num = parseInt(String(amount));
-                        if (isNaN(num) || num < 1) setAmount(5);
-                        else if (num > 50) setAmount(50);
-                        else setAmount(num);
-                      }}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2: Difficulty + Timer */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Difficulty */}
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      Difficulty
-                    </label>
-                    <select
-                      value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </div>
-
-                  {/* Timer */}
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
-                      <FiClock className="inline" /> Timer
-                    </label>
-                    <select
-                      value={timerMinutes}
-                      onChange={(e) => setTimerMinutes(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
-                    >
-                      <option value={0}>No timer</option>
-                      <option value={5}>5 minutes</option>
-                      <option value={10}>10 minutes</option>
-                      <option value={15}>15 minutes</option>
-                      <option value={20}>20 minutes</option>
-                      <option value={30}>30 minutes</option>
-                      <option value={45}>45 minutes</option>
-                      <option value={60}>60 minutes</option>
-                    </select>
-                  </div>
-                </div>
-
-                {Number(amount) > 20 && (
-                  <div className="flex items-center gap-2 text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg">
-                    <FiAlertTriangle className="flex-shrink-0" />
-                    <span>Generating {amount} questions may take a moment.</span>
-                  </div>
-                )}
-
-                {error && activeTab === 'quiz' && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/50">
-                    <p className="text-red-500 text-xs font-medium mb-2">{error}</p>
-                  </div>
-                )}
-
-                {success && activeTab === 'quiz' && <div className="p-3 bg-emerald-50 text-emerald-600 text-xs rounded-xl font-medium">{success}</div>}
-
-                {warning && activeTab === 'quiz' && (
-                  <div className="p-3 bg-amber-50 rounded-xl space-y-2">
-                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold">
-                      <FiAlertTriangle className="flex-shrink-0" />
-                      <span>{warning}</span>
-                    </div>
-                    <button onClick={handleForceRegenerate} className="w-full py-1 bg-amber-600 text-white text-[10px] font-bold rounded-lg uppercase">Regenerate Anyway</button>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => handleGenerate()}
-                  disabled={generating || (inputMode === 'upload' && (!extractedText || extracting)) || (inputMode === 'manual' && manualText.trim().length < 50)}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                >
-                  {generating
-                    ? <><FiLoader className="animate-spin" /> Generating...</>
-                    : <>
-                        Create Quiz
-                        {timerMinutes > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full"><FiClock className="inline mr-1" /> {timerMinutes}m</span>}
-                      </>}
-                </button>
-
-                {newQuestions.length > 0 && (
-                  <button
-                    onClick={() => router.push('/dashboard/question-bank/quiz')}
-                    className="w-full py-3 border-2 border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all mt-2"
+            <div className="space-y-4">
+              {/* Row 1: Type + Amount */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                    Type
+                  </label>
+                  <select
+                    value={questionType}
+                    onChange={(e) => setQuestionType(e.target.value)}
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
                   >
-                    Resume Last Quiz →
-                  </button>
-                )}
-              </div>
-            ) : activeTab === 'tutor' ? (
-              // TUTOR TAB UI
-              <div className="flex flex-col h-[60vh] min-h-[450px] md:h-[600px] w-full border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900/20 min-w-0">
-                {/* Pinned chat panel header */}
-                <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <BiMessageRoundedDots className="text-lg text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                    <span className="font-bold text-xs sm:text-sm text-gray-800 dark:text-gray-100 truncate">
-                      {tutorSessionId ? (tutorSessions.find(s => s.sessionId === tutorSessionId)?.title || 'Active Chat') : 'AI Study Tutor'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void loadTutorHistory(false)
-                        setShowTutorHistoryDrawer(true)
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 transition"
-                      title="View conversations history"
-                    >
-                      <FiClock className="text-purple-600 dark:text-purple-400" />
-                      <span>History</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleStartNewTutorChat()}
-                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
-                    >
-                      + New
-                    </button>
-                  </div>
+                    <option value="multiple-choice">MCQ</option>
+                    <option value="theory">Theory</option>
+                    <option value="fill-in-the-blank">Blanks</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
                 </div>
 
-                <div
-                  className="flex-1 overflow-x-hidden p-4 space-y-4 min-h-0 w-full chat-scroll-container"
-                  style={{
-                    overflowY: 'scroll',
-                    scrollbarGutter: 'stable',
-                    scrollbarWidth: 'thin',
-                    msOverflowStyle: 'none',
-                  }}
-                >
-                  {chatMessages.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-                      <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                        <BiMessageRoundedDots className="text-3xl text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <p className="text-sm font-bold text-gray-700 dark:text-white">Ask your AI Tutor anything!</p>
-                      <p className="text-xs text-gray-500 max-w-[220px]">Start a new chat or open a previous one. Your tutor chats are now saved automatically.</p>
-                      {(!extractedText && inputMode === 'upload') && (
-                        <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg mt-2">
-                          Please upload a file first for context!
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {chatMessages.map((msg, i) => (
-                    <div key={`${msg.role}-${i}`} style={{
-                      display: 'flex',
-                      width: '100%',
-                      minWidth: 0,
-                      overflow: 'hidden',
-                      justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minWidth: 0,
-                        maxWidth: '82%',
-                        overflow: 'hidden',
-                        alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                      }}>
-                        <div
-                          className={`text-xs font-medium leading-relaxed shadow-sm break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'}`}
-                          style={{
-                            padding: '9px 13px',
-                            borderRadius: 16,
-                            borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
-                            borderBottomLeftRadius: msg.role !== 'user' ? 4 : 16,
-                            fontSize: 12,
-                            lineHeight: 1.6,
-                            overflow: 'hidden',
-                            overflowWrap: 'anywhere',
-                            wordBreak: 'break-word',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                          }}
-                        >
-                          {msg.role === 'user' ? (
-                            <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                              {msg.content}
-                            </span>
-                          ) : (
-                            <MarkdownText content={msg.content} />
-                          )}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2, padding: '0 2px' }}>
-                          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isChatting && (
-                    <div className="flex justify-start">
-                      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3 rounded-2xl rounded-tl-none shadow-sm">
-                        <FiLoader className="animate-spin text-purple-500" />
-                      </div>
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-
-                {error && activeTab === 'tutor' && (
-                  <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100">
-                    <p className="text-red-500 text-[10px] font-bold">{error}</p>
-                  </div>
-                )}
-
-                <form onSubmit={handleSendMessage} className="p-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-2 flex-shrink-0">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                    Amount
+                  </label>
                   <input
-                    ref={chatInputRef}
                     type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onFocus={() => {
-                      setTimeout(() => {
-                        chatInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }, 300)
+                    inputMode="numeric"
+                    value={amount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d+$/.test(val)) {
+                        setAmount(val);
+                      }
                     }}
-                    placeholder="Ask a question..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-base outline-none focus:border-purple-400 transition-all text-gray-900 dark:text-gray-100"
+                    onBlur={() => {
+                      const num = parseInt(String(amount));
+                      if (isNaN(num) || num < 1) setAmount(5);
+                      else if (num > 50) setAmount(50);
+                      else setAmount(num);
+                    }}
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
                   />
-                  <button
-                    type="submit"
-                    disabled={isChatting || !chatInput.trim()}
-                    className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition disabled:bg-gray-100 disabled:text-gray-400 flex items-center justify-center flex-shrink-0"
-                  >
-                    <FiCheckCircle size={18} />
-                  </button>
-                </form>
+                </div>
               </div>
-            ) : null}
+
+              {/* Row 2: Difficulty + Timer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Difficulty */}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                    Difficulty
+                  </label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+
+                {/* Timer */}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                    <FiClock className="inline" /> Timer
+                  </label>
+                  <select
+                    value={timerMinutes}
+                    onChange={(e) => setTimerMinutes(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-blue-50/30 dark:bg-gray-900/50 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
+                  >
+                    <option value={0}>No timer</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={20}>20 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </div>
+              </div>
+
+              {Number(amount) > 20 && (
+                <div className="flex items-center gap-2 text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded-lg">
+                  <FiAlertTriangle className="flex-shrink-0" />
+                  <span>Generating {amount} questions may take a moment.</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/50">
+                  <p className="text-red-500 text-xs font-medium mb-2">{error}</p>
+                </div>
+              )}
+
+              {success && <div className="p-3 bg-emerald-50 text-emerald-605 text-xs rounded-xl font-medium">{success}</div>}
+
+              {warning && (
+                <div className="p-3 bg-amber-50 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                    <FiAlertTriangle className="flex-shrink-0" />
+                    <span>{warning}</span>
+                  </div>
+                  <button onClick={handleForceRegenerate} className="w-full py-1 bg-amber-600 text-white text-[10px] font-bold rounded-lg uppercase">Regenerate Anyway</button>
+                </div>
+              )}
+
+              <button
+                onClick={() => handleGenerate()}
+                disabled={generating || (inputMode === 'upload' && (!extractedText || extracting)) || (inputMode === 'manual' && manualText.trim().length < 50)}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              >
+                {generating
+                  ? <><FiLoader className="animate-spin" /> Generating...</>
+                  : <>
+                      Create Quiz
+                      {timerMinutes > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full"><FiClock className="inline mr-1" /> {timerMinutes}m</span>}
+                    </>}
+              </button>
+
+              {newQuestions.length > 0 && (
+                <button
+                  onClick={() => router.push('/dashboard/question-bank/quiz')}
+                  className="w-full py-3 border-2 border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all mt-2"
+                >
+                  Resume Last Quiz →
+                </button>
+              )}
+            </div>
           </div>
         </div>
-        </>
       </div>
 
       {/* Generated Content View - Notes removed, use /dashboard/pdf-summary */}
 
-      {/* Sliding conversation history drawer for AI Tutor */}
-      {showTutorHistoryDrawer && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50 transition-opacity"
-            onClick={() => setShowTutorHistoryDrawer(false)}
-          />
-          
-          {/* Drawer Content */}
-          <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <FiClock className="text-purple-600 dark:text-purple-400" /> Saved Conversations
-              </h3>
-              <button
-                onClick={() => setShowTutorHistoryDrawer(false)}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400"
-              >
-                <FiX size={18} />
-              </button>
-            </div>
-            
-            <div className="flex-grow overflow-y-auto p-3 space-y-2">
-              {loadingTutorHistory ? (
-                <div className="flex items-center justify-center py-8 text-xs text-gray-400">
-                  <FiLoader className="animate-spin mr-2" /> Loading chats...
-                </div>
-              ) : tutorSessions.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-8">No previous chats yet.</p>
-              ) : (
-                tutorSessions.map((session) => (
-                  <div
-                    key={session.sessionId}
-                    className={`group w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition cursor-pointer border
-                      ${session.sessionId === tutorSessionId
-                        ? 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-200'
-                        : 'bg-gray-50 dark:bg-gray-900/30 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
-                    onClick={() => {
-                      void handleLoadTutorSession(session.sessionId)
-                      setShowTutorHistoryDrawer(false)
-                    }}
-                  >
-                    <div className="min-w-0 flex-grow">
-                      <p className="font-bold truncate text-[13px]">{session.title || 'New Chat'}</p>
-                      {session.lastMessage && (
-                        <p className="text-[10px] text-gray-400 truncate mt-0.5">{session.lastMessage}</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        void handleDeleteTutorSession(session.sessionId)
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-gray-400 dark:text-gray-500 hover:dark:bg-red-950/20 transition-colors"
-                      title="Delete chat"
-                    >
-                      <FiTrash2 size={13} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/10">
-              <button
-                type="button"
-                onClick={() => {
-                  void handleStartNewTutorChat()
-                  setShowTutorHistoryDrawer(false)
-                }}
-                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition shadow-md shadow-purple-500/20"
-              >
-                + Start New Chat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }
