@@ -198,21 +198,21 @@ export default function WhatsAppNumberInput({
 
             {/* Example / Help */}
             {!displayValue && currentCountry && (
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                     <div className="flex items-start gap-2">
-                        <FiInfo className="text-blue-500 flex-shrink-0 mt-0.5 text-sm" />
+                        <FiInfo className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5 text-sm" />
                         <div className="text-sm">
-                            <p className="text-blue-800 dark:text-blue-200 font-medium mb-1">
+                            <p className="text-gray-800 dark:text-green-200 font-semibold mb-1">
                                 Example for {currentCountry.country}:
                             </p>
                             <div className="flex items-center gap-2">
-                                <code className="text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                                <code className="text-gray-900 dark:text-green-300 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded font-mono font-bold">
                                     {currentCountry.example}
                                 </code>
                                 <button
                                     type="button"
                                     onClick={() => handleQuickFill(currentCountry.example)}
-                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                    className="text-xs font-semibold text-green-700 dark:text-green-400 underline hover:text-green-900 dark:hover:text-green-200 transition"
                                 >
                                     Use example
                                 </button>

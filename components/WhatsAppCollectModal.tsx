@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import WhatsAppNumberInput from '@/components/WhatsAppNumberInput'
@@ -15,20 +15,24 @@ export default function WhatsAppCollectModal() {
     const [isValid, setIsValid] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        if (!user) {
-            setIsOpen(false)
-            return
-        }
+    // Guard: only open the modal once per mount. Re-running on every user
+    // change caused the modal to flicker or reopen after refreshUser() calls.
+    const hasCheckedRef = useRef(false)
 
-        // Check if both phone and phoneNumber are null or empty
+    useEffect(() => {
+        // Wait until the user object is loaded
+        if (!user) return
+
+        // Only run the check once — subsequent user updates (e.g. refreshUser()
+        // called by dashboard layout) must NOT reopen the modal.
+        if (hasCheckedRef.current) return
+        hasCheckedRef.current = true
+
         const hasNoPhone = !user.phone && !user.phoneNumber
         const isDismissed = sessionStorage.getItem('dismissed_whatsapp_prompt') === 'true'
 
         if (hasNoPhone && !isDismissed) {
             setIsOpen(true)
-        } else {
-            setIsOpen(false)
         }
     }, [user])
 
@@ -52,10 +56,14 @@ export default function WhatsAppCollectModal() {
         try {
             // Update profile phone (which updates both phone and phoneNumber on backend)
             await apiClient.patch('/users/update-me', { phone })
-            
+
+            // Mark as dismissed so it never reopens this session even if phone
+            // hasn't propagated to the store yet
+            sessionStorage.setItem('dismissed_whatsapp_prompt', 'true')
+
             // Refresh local auth state
             await refreshUser()
-            
+
             toast.success('WhatsApp number saved! You\'re all set for reminders 🚀')
             setIsOpen(false)
         } catch (err: any) {
@@ -70,7 +78,7 @@ export default function WhatsAppCollectModal() {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 animate-in fade-in">
-            <div 
+            <div
                 className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl p-6 md:p-8 relative border border-gray-100 dark:border-gray-700/60 overflow-hidden animate-in fade-in zoom-in duration-300"
                 role="dialog"
                 aria-modal="true"
@@ -116,7 +124,7 @@ export default function WhatsAppCollectModal() {
                             type="submit"
                             disabled={loading || !isValid}
                             className={`w-full py-3.5 px-6 font-bold text-white rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2
-                                ${loading 
+                                ${loading
                                     ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
                                     : !isValid
                                         ? 'bg-green-500/60 dark:bg-green-600/60 cursor-not-allowed'
