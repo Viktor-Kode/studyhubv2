@@ -209,13 +209,6 @@ export default function WhatsAppNumberInput({
                                 <code className="text-gray-900 dark:text-green-300 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded font-mono font-bold">
                                     {currentCountry.example}
                                 </code>
-                                <button
-                                    type="button"
-                                    onClick={() => handleQuickFill(currentCountry.example)}
-                                    className="text-xs font-semibold text-green-700 dark:text-green-400 underline hover:text-green-900 dark:hover:text-green-200 transition"
-                                >
-                                    Use example
-                                </button>
                             </div>
                         </div>
                     </div>
