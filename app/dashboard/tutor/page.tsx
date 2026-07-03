@@ -9,6 +9,7 @@ import { Clock, Send, Trash2, X, Plus, Bot, User, FileText, Loader2, Sparkles } 
 import { chatWithTutor } from '@/lib/api/quizApi'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { toast } from 'react-hot-toast'
+import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 
 const SAVE_DEBOUNCE = 3000
 
@@ -248,18 +249,33 @@ export default function AiTutorPage() {
       )
     } catch (err: any) {
       console.error('Tutor chat error:', err)
+
+      // ── Paywall: 403 AI limit / upgrade required ──────────────────────
+      const isPaywall =
+        err?.status === 403 ||
+        err?.showUpgrade === true ||
+        err?.code === 'AI_LIMIT_REACHED' ||
+        err?.code === 'SUBSCRIPTION_EXPIRED'
+
       setMessages((prev) => {
         const copy = [...prev]
         const lastIdx = copy.length - 1
         if (lastIdx >= 0 && copy[lastIdx].role === 'assistant') {
           copy[lastIdx] = {
             ...copy[lastIdx],
-            content: 'Sorry, I encountered an error. Please try again.',
+            content: isPaywall
+              ? "You've used all your free AI credits. Upgrade to keep chatting! 🚀"
+              : 'Sorry, I encountered an error. Please try again.',
           }
         }
         return copy
       })
-      toast.error('Failed to connect to the tutor.')
+
+      if (isPaywall) {
+        triggerUpgradeModal('ai')
+      } else {
+        toast.error('Failed to connect to the tutor.')
+      }
     } finally {
       setLoading(false)
     }

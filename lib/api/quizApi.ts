@@ -328,7 +328,11 @@ export const chatWithTutor = async (
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.message || errorData.error || errorData.detail || 'Tutor is currently unavailable'
-        throw new Error(errorMessage)
+        const err: any = new Error(errorMessage)
+        err.status = response.status
+        err.showUpgrade = errorData.showUpgrade
+        err.code = errorData.code
+        throw err
     }
 
     const isStream = response.headers.get('Content-Type')?.includes('text/event-stream');
