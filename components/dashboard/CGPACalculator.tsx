@@ -79,17 +79,17 @@ export default function CGPACalculator({ className = '' }: CGPACalculatorProps) 
 
     const getClass = (gpa: number) => {
       if (scale === '5.0') {
-        if (gpa >= 4.5) return { label: 'First Class', color: '#0F172A' }
-        if (gpa >= 3.5) return { label: 'Second Class Upper', color: '#0F172A' }
-        if (gpa >= 2.4) return { label: 'Second Class Lower', color: '#0F172A' }
-        if (gpa >= 1.5) return { label: 'Third Class', color: '#0F172A' }
-        return { label: 'Fail', color: '#0F172A' }
+        if (gpa >= 4.5) return { label: 'First Class', color: '#10B981' } // Emerald green
+        if (gpa >= 3.5) return { label: 'Second Class Upper', color: '#3B82F6' } // Blue
+        if (gpa >= 2.4) return { label: 'Second Class Lower', color: '#F59E0B' } // Amber
+        if (gpa >= 1.5) return { label: 'Third Class', color: '#EF4444' } // Red
+        return { label: 'Fail', color: '#DC2626' } // Dark Red
       } else {
-        if (gpa >= 3.7) return { label: 'First Class', color: '#0F172A' }
-        if (gpa >= 3.0) return { label: 'Second Class Upper', color: '#0F172A' }
-        if (gpa >= 2.0) return { label: 'Second Class Lower', color: '#0F172A' }
-        if (gpa >= 1.0) return { label: 'Third Class', color: '#0F172A' }
-        return { label: 'Fail', color: '#0F172A' }
+        if (gpa >= 3.7) return { label: 'First Class', color: '#10B981' }
+        if (gpa >= 3.0) return { label: 'Second Class Upper', color: '#3B82F6' }
+        if (gpa >= 2.0) return { label: 'Second Class Lower', color: '#F59E0B' }
+        if (gpa >= 1.0) return { label: 'Third Class', color: '#EF4444' }
+        return { label: 'Fail', color: '#DC2626' }
       }
     }
 

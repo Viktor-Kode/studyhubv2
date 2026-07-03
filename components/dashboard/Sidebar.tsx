@@ -108,7 +108,7 @@ export default function Sidebar({ isMobileOpen = false, onMobileClose }: Sidebar
 
       {/* Support Section */}
       <div className="mt-auto px-6 py-6 border-t border-gray-100 dark:border-gray-700">
-        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">Support</h4>
+        <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-2">Support</h4>
         <div className="space-y-2">
           <a
             href="tel:+2349163345794"

@@ -358,29 +358,30 @@ export default function PdfCbtPage() {
   const currentQ = practiceQuestions[currentIdx]
 
   return (
-    <div className="pcbt-page bg-[#0F172A] min-h-screen text-white dark">
+    <div className="pcbt-page bg-gray-50 dark:bg-[#0F172A] min-h-screen text-slate-900 dark:text-white">
       <style jsx global>{`
-        body { background-color: #0F172A; }
-        .pcbt-page { color: ${DARK_THEME.text}; }
-        .pcbt-page textarea, .pcbt-page input {
+        .dark body { background-color: #0F172A; }
+        .pcbt-page { color: #0F172A; }
+        .dark .pcbt-page { color: ${DARK_THEME.text}; }
+        .dark .pcbt-page textarea, .dark .pcbt-page input {
           background-color: ${DARK_THEME.bg} !important;
           color: white !important;
           border-color: ${DARK_THEME.border} !important;
         }
-        .pcbt-page textarea:focus, .pcbt-page input:focus {
+        .dark .pcbt-page textarea:focus, .dark .pcbt-page input:focus {
           border-color: ${DARK_THEME.accent} !important;
         }
-        .pcbt-page .bg-white { background-color: ${DARK_THEME.card} !important; }
-        .pcbt-page .text-[#0F172A] { color: ${DARK_THEME.text} !important; }
-        .pcbt-page .border-gray-100, .pcbt-page .border-gray-200 { border-color: ${DARK_THEME.border} !important; }
-        .pcbt-page .bg-gray-50 { background-color: ${DARK_THEME.bg} !important; }
-        .pcbt-page .text-gray-600, .pcbt-page .text-gray-500 { color: ${DARK_THEME.muted} !important; }
+        .dark .pcbt-page .bg-white { background-color: ${DARK_THEME.card} !important; }
+        .dark .pcbt-page .text-[#0F172A] { color: ${DARK_THEME.text} !important; }
+        .dark .pcbt-page .border-gray-100, .dark .pcbt-page .border-gray-200 { border-color: ${DARK_THEME.border} !important; }
+        .dark .pcbt-page .bg-gray-50 { background-color: ${DARK_THEME.bg} !important; }
+        .dark .pcbt-page .text-gray-600, .dark .pcbt-page .text-gray-500 { color: ${DARK_THEME.muted} !important; }
       `}</style>
       {stage === 'setup' && (
         <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Document to CBT</h1>
-            <p className="text-gray-400 text-lg">Extract questions from any PDF, Word, or Link and practice immediately.</p>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Document to CBT</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Extract questions from any PDF, Word, or Link and practice immediately.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -403,7 +404,7 @@ export default function PdfCbtPage() {
                   <div className="relative">
                     <input 
                       type="text"
-                      className="w-full p-4 pl-12 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-white focus:border-[#5B4CF5] outline-none transition-all text-sm font-medium"
+                      className="w-full p-4 pl-12 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:border-[#5B4CF5] outline-none transition-all text-sm font-medium"
                       placeholder="Paste a website or Google Doc link..."
                       value={linkUrl}
                       onChange={(e) => setLinkUrl(e.target.value)}
@@ -486,12 +487,12 @@ export default function PdfCbtPage() {
               ) : (
                 <div className="min-h-[250px] flex flex-col">
                   <textarea 
-                    className="flex-1 w-full p-5 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-white focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed font-medium resize-none"
+                    className="flex-1 w-full p-5 rounded-2xl border-2 border-[#E8EAED] dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:border-[#5B4CF5] outline-none transition-all text-sm leading-relaxed font-medium resize-none"
                     placeholder="Paste your questions and answers here..."
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
                   />
-                  <p className="text-xs text-gray-400 text-right mt-2">{manualText.length} characters</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-2">{manualText.length} characters</p>
                 </div>
               )}
 
@@ -644,12 +645,12 @@ export default function PdfCbtPage() {
                 </span>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Question {currentIdx + 1} of {practiceQuestions.length}</p>
               </div>
-              <button onClick={toggleFlag} className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 font-bold transition-all ${flagged.has(currentIdx) ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
-                <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag'}
+              <button onClick={toggleFlag} className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 font-bold transition-all ${flagged.has(currentIdx) ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-700 dark:hover:text-white'}`}>
+                <FiFlag /> {flagged.has(currentIdx) ? 'Flagged' : 'Flag Question'}
               </button>
             </div>
 
-            <div className="text-2xl md:text-3xl font-black text-white mb-12 leading-tight">
+            <div className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-12 leading-tight">
               {currentQ.question}
             </div>
 
@@ -662,12 +663,12 @@ export default function PdfCbtPage() {
                     <button 
                       key={key} 
                       onClick={() => setAnswers(prev => ({ ...prev, [currentIdx]: key }))}
-                      className={`flex items-center gap-6 p-6 rounded-3xl border-2 transition-all text-left group relative overflow-hidden ${isSelected ? 'border-[#5B4CF5] bg-[#5B4CF5]/10 text-white shadow-xl shadow-[#5B4CF5]/10' : 'border-white/5 bg-white/5 hover:border-white/20'}`}
+                      className={`flex items-center gap-6 p-6 rounded-3xl border-2 transition-all text-left group relative overflow-hidden ${isSelected ? 'border-[#5B4CF5] bg-[#5B4CF5]/10 text-[#5B4CF5] dark:text-white shadow-xl shadow-[#5B4CF5]/10' : 'border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 hover:border-gray-300 dark:hover:border-white/20 text-slate-700 dark:text-gray-300'}`}
                     >
-                      <span className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-all ${isSelected ? 'bg-[#5B4CF5] text-white rotate-12' : 'bg-white/10 text-gray-500 group-hover:text-gray-300'}`}>
+                      <span className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-all ${isSelected ? 'bg-[#5B4CF5] text-white rotate-12' : 'bg-gray-100 dark:bg-white/10 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`}>
                         {key}
                       </span>
-                      <span className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{currentQ.options![key]}</span>
+                      <span className={`font-bold text-lg ${isSelected ? 'text-[#5B4CF5] dark:text-white' : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'}`}>{currentQ.options![key]}</span>
                     </button>
                   )
                 })}
@@ -683,11 +684,12 @@ export default function PdfCbtPage() {
             )}
           </div>
 
-          <div className="flex justify-between items-center gap-6">
+          {/* Navigation Controls */}
+          <div className="flex gap-4 mt-8">
             <button 
-              onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-              disabled={currentIdx === 0}
-              className="flex-1 py-4 px-6 rounded-2xl bg-white/5 border border-white/10 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-20 hover:bg-white/10 transition-all shadow-lg"
+              disabled={currentIdx === 0} 
+              onClick={() => setCurrentIdx(prev => prev - 1)} 
+              className="flex-1 py-4 px-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center gap-2 disabled:opacity-20 hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-lg"
             >
               Prev
             </button>
@@ -772,7 +774,7 @@ export default function PdfCbtPage() {
 
           {/* Review Section */}
           <div className="review-section">
-            <h3 className="review-section-title text-white">Question Review</h3>
+            <h3 className="review-section-title text-slate-900 dark:text-white">Question Review</h3>
             {practiceQuestions.map((q, i) => {
               const userAns = String(answers[i] || '').trim().toUpperCase()
               const correctAns = String(q.answer || '').trim().toUpperCase()
@@ -792,7 +794,7 @@ export default function PdfCbtPage() {
                     </div>
                   </div>
                   
-                  <p className="text-xl md:text-2xl font-bold text-white mb-8 leading-tight">{q.question}</p>
+                  <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-8 leading-tight">{q.question}</p>
                   
                   {q.type === 'objective' && q.options && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -818,9 +820,9 @@ export default function PdfCbtPage() {
 
                   {q.type === 'theory' && (
                     <div className="mt-6 space-y-4">
-                      <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                      <div className="p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">
                         <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Your Answer</label>
-                        <p className="text-white font-medium">{answers[i] || 'No answer provided'}</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{answers[i] || 'No answer provided'}</p>
                       </div>
                       <div className="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/20">
                         <label className="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Model Answer</label>
@@ -830,12 +832,12 @@ export default function PdfCbtPage() {
                   )}
 
                   {q.explanation && (
-                    <div className="mt-8 p-6 bg-blue-500/5 rounded-2xl border border-blue-500/20">
+                    <div className="mt-8 p-6 bg-blue-500/5 dark:bg-blue-500/10 rounded-2xl border border-blue-500/20">
                       <div className="flex items-center gap-2 mb-2 text-blue-400">
                         <Sparkles size={14} />
                         <label className="text-[10px] font-black uppercase tracking-widest">AI Insight</label>
                       </div>
-                      <p className="text-blue-100/80 text-sm leading-relaxed italic">"{q.explanation}"</p>
+                      <p className="text-blue-900/80 dark:text-blue-100/80 text-sm leading-relaxed italic">"{q.explanation}"</p>
                     </div>
                   )}
                 </div>

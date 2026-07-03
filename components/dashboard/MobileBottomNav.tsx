@@ -26,9 +26,8 @@ export default function MobileBottomNav() {
             href={item.href}
             aria-current={isActive ? 'page' : undefined}
             className={`flex flex-col items-center gap-1 transition-all duration-300 ${
-              isActive ? 'scale-110' : 'text-gray-500 dark:text-gray-400 hover:text-purple-500'
+              isActive ? 'text-indigo-600 dark:text-indigo-400 scale-110' : 'text-gray-500 dark:text-gray-400 hover:text-purple-500'
             }`}
-            style={isActive ? { color: '#8B7CF8' } : undefined}
           >
             <Icon className="text-xl" />
             <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>

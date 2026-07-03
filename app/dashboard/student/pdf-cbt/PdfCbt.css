@@ -191,12 +191,17 @@
 }
 
 .question-review-card {
-  background: #1E293B;
-  border: 1px solid #334155;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 32px;
   padding: 32px;
   margin-bottom: 24px;
   transition: all 0.3s ease;
+}
+
+.dark .question-review-card {
+  background: #1E293B;
+  border-color: #334155;
 }
 
 .question-review-card.correct {
@@ -234,9 +239,15 @@
   padding: 16px 20px;
   border-radius: 16px;
   border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f8fafc;
+  border-color: #e2e8f0;
   margin-bottom: 10px;
   transition: all 0.2s ease;
+}
+
+.dark .option-review-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: transparent;
 }
 
 .option-review-item.is-correct {
@@ -260,6 +271,10 @@
   justify-content: center;
   font-weight: 900;
   font-size: 14px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dark .option-letter-box {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -294,6 +309,12 @@
 }
 
 .action-btn.secondary {
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  color: #475569;
+}
+
+.dark .action-btn.secondary {
   background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(255, 255, 255, 0.15);
   color: white;

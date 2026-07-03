@@ -269,7 +269,7 @@ export default function DashboardLayout({
                                     aria-haspopup="true"
                                 >
                                     <div className="hidden sm:flex flex-col items-end">
-                                        <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: '#8B7CF8' }}>
+                                        <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full text-indigo-600 dark:text-indigo-400">
                                             <FiAward className="text-xs" />
                                             <span>{rank}</span>
                                         </div>

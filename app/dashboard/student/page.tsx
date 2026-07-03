@@ -227,7 +227,7 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Upcoming Reminders</h2>
-                <Link href="/dashboard/timetable" className="text-xs font-bold flex items-center gap-1" style={{ color: '#8B7CF8' }}>Manage <FiArrowRight /></Link>
+                <Link href="/dashboard/timetable" className="text-xs font-bold flex items-center gap-1 text-indigo-600 dark:text-indigo-400">Manage <FiArrowRight /></Link>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                 {upcomingReminders.length > 0 ? upcomingReminders.map((reminder) => {
@@ -239,7 +239,7 @@ export default function StudentDashboardPage() {
                         <div key={reminder.id} className="v3-card min-w-[280px] flex items-center justify-between">
                             <div>
                                 <p className="font-bold text-sm">{reminder.title}</p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {reminder.time} • {localDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </p>
                             </div>
@@ -248,7 +248,7 @@ export default function StudentDashboardPage() {
                             </div>
                         </div>
                     );
-                }) : <div className="v3-card w-full flex items-center justify-center py-6 border-dashed opacity-60"><p className="text-sm text-gray-400 italic">No reminders for now</p></div>}
+                }) : <div className="v3-card w-full flex items-center justify-center py-6 border-dashed opacity-60"><p className="text-sm text-gray-500 dark:text-gray-400 italic">No reminders for now</p></div>}
             </div>
         </section>
 
@@ -260,7 +260,7 @@ export default function StudentDashboardPage() {
                         <span className="pinned-badge">Pinned</span>
                         <div className="mt-6 flex flex-col items-center justify-center py-4">
                             <FiStar className="text-3xl text-yellow-500 mb-2 fill-yellow-500" />
-                            <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Streak:</p>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Streak:</p>
                             <p className="text-2xl font-black text-yellow-500">{stats.studyStreak} Days</p>
                         </div>
                     </div>
@@ -273,14 +273,14 @@ export default function StudentDashboardPage() {
                             <div className="progress-circle-text">{stats.progressToNext}%</div>
                         </div>
                         <div>
-                            <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Next Rank:</p>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Next Rank:</p>
                             <h3 className="text-xl font-bold">{stats.nextRank}</h3>
-                            <p className="text-sm font-bold mt-2" style={{ color: '#8B7CF8' }}>XP: {stats.xp.toLocaleString()}</p>
+                            <p className="text-sm font-bold mt-2 text-indigo-600 dark:text-indigo-400">XP: {stats.xp.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
                 <div className="mt-4 px-2">
-                    <Link href="/dashboard/student/community" className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-800 hover:border-purple-500/50 hover:bg-purple-500/5 rounded-xl transition-all group">
+                    <Link href="/dashboard/student/community" className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 dark:border-gray-800 hover:border-purple-500/50 hover:bg-purple-500/5 dark:hover:bg-purple-500/10 rounded-xl transition-all group">
                         <FiAward className="text-gray-500 group-hover:text-purple-500" />
                         <span className="text-xs font-bold text-gray-400 group-hover:text-purple-400">View Leaderboard</span>
                     </Link>
@@ -299,19 +299,19 @@ export default function StudentDashboardPage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Link href="/dashboard/study-timer" className="tool-card">
-                    <div className="tool-icon bg-cyan-500/20 text-cyan-400"><BiTimer className="text-2xl" /></div>
+                    <div className="tool-icon bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"><BiTimer className="text-2xl" /></div>
                     <div><p className="font-bold text-sm">Timer</p><p className="text-[10px] text-slate-500 dark:text-gray-300">{stats.quizSessions} sessions</p></div>
                 </Link>
                 <Link href="/dashboard/cgpa" className="tool-card">
-                    <div className="tool-icon bg-purple-500/20 text-purple-400"><FiCreditCard className="text-2xl" /></div>
+                    <div className="tool-icon bg-purple-500/20 text-purple-600 dark:text-purple-400"><FiCreditCard className="text-2xl" /></div>
                     <div><p className="font-bold text-sm">CGPA</p></div>
                 </Link>
                 <Link href="/dashboard/timetable" className="tool-card">
-                    <div className="tool-icon bg-blue-500/20 text-blue-400"><FiCalendar className="text-2xl" /></div>
+                    <div className="tool-icon bg-blue-500/20 text-blue-600 dark:text-blue-400"><FiCalendar className="text-2xl" /></div>
                     <div><p className="font-bold text-sm">Schedule</p></div>
                 </Link>
                 <Link href="/dashboard/analytics" className="tool-card">
-                    <div className="tool-icon bg-orange-500/20 text-orange-400"><FiBarChart2 className="text-2xl" /></div>
+                    <div className="tool-icon bg-orange-500/20 text-orange-600 dark:text-orange-400"><FiBarChart2 className="text-2xl" /></div>
                     <div><p className="font-bold text-sm">Progress</p></div>
                 </Link>
             </div>
@@ -320,13 +320,13 @@ export default function StudentDashboardPage() {
         <section className="mb-10">
             <div className="flex items-center justify-between mb-4 px-2">
                 <h2 className="text-lg font-bold">Recent Activity</h2>
-                <Link href="/dashboard/analytics" className="text-xs font-bold flex items-center gap-1" style={{ color: '#8B7CF8' }}>View all <FiArrowRight /></Link>
+                <Link href="/dashboard/analytics" className="text-xs font-bold flex items-center gap-1 text-indigo-600 dark:text-indigo-400">View all <FiArrowRight /></Link>
             </div>
             <div className="v3-card divide-y divide-slate-200 dark:divide-gray-800">
                 {activities.length === 0 ? (
                     <div className="py-8 flex flex-col items-center justify-center text-center opacity-60">
                         <FiClock className="text-3xl text-gray-500 mb-2" />
-                        <p className="text-sm text-gray-400">No activity yet — start studying to see your history here!</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No activity yet — start studying to see your history here!</p>
                     </div>
                 ) : activities.slice(0, 5).map((activity) => (
                     <div key={activity.id} className="py-4 flex items-center gap-4 first:pt-0 last:pb-0">
@@ -343,7 +343,7 @@ export default function StudentDashboardPage() {
             {(strengthsWeaknesses.strengths.length === 0 && strengthsWeaknesses.weaknesses.length === 0) ? (
                 <div className="v3-card flex flex-col items-center justify-center py-8 text-center opacity-60">
                     <FiTarget className="text-3xl text-gray-500 mb-2" />
-                    <p className="text-sm text-gray-400">Complete some Past Questions to see your subject strengths and areas to improve.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Complete some Past Questions to see your subject strengths and areas to improve.</p>
                     <Link href="/dashboard/cbt" className="mt-3 text-xs text-purple-400 font-bold">Try Past Questions →</Link>
                 </div>
             ) : (
