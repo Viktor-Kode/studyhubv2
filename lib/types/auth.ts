@@ -55,4 +55,6 @@ export interface AppUser {
     progress?: UserProgressFlags
     aiCredits?: number
     referralCode?: string
+    phone?: string | null
+    phoneNumber?: string | null
 }

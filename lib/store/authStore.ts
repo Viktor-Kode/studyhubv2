@@ -75,6 +75,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
           progress: u.progress ?? prev?.progress,
           aiCredits: u.aiCredits ?? prev?.aiCredits,
           referralCode: u.referralCode ?? prev?.referralCode,
+          phone: u.phone ?? prev?.phone ?? null,
+          phoneNumber: u.phoneNumber ?? prev?.phoneNumber ?? null,
         }
         set({ user: merged, isAuthenticated: true })
         const { useHelpWidgetsStore } = await import('@/lib/store/helpWidgetsStore')

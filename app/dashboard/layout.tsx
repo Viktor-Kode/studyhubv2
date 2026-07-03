@@ -21,6 +21,7 @@ import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
 import BackButton from '@/components/BackButton'
 import WebPushPrompt from '@/components/WebPushPrompt'
+import WhatsAppCollectModal from '@/components/WhatsAppCollectModal'
 import { getProgressQueue, removeProgressItem } from '@/lib/utils/offlineDb'
 import { cbtApi } from '@/lib/api/cbt'
 import { reviewCard } from '@/lib/api/flashcardApi'
@@ -471,6 +472,7 @@ export default function DashboardLayout({
                             {children}
                         </ProtectedRoute>
                         <WebPushPrompt />
+                        <WhatsAppCollectModal />
                     </div>
                 </main>
             </div>
