@@ -543,8 +543,8 @@ function ReferralSection() {
     const [stats, setStats] = useState<any>({
         referralCode: '',
         referralCount: 0,
-        aiCredits: 0,
-        creditsEarned: 0
+        referralDaysEarned: 0,
+        rewardedReferrals: 0
     })
     const [loading, setLoading] = useState(true)
     const [copied, setCopied] = useState(false)
@@ -597,13 +597,13 @@ function ReferralSection() {
                 <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
                     <Award size={200} />
                 </div>
-                <h4 className="text-2xl font-black mb-2">Invite Friends, Earn Credits!</h4>
+                <h4 className="text-2xl font-black mb-2">Invite Friends, Get 1 Free Day!</h4>
                 <p className="text-white text-sm max-w-md opacity-90">
-                    Share your unique referral link with your classmates. You'll get +20 AI credits for every friend who signs up using your link!
+                    Share your unique referral link with your classmates. For every friend who signs up using your link, you'll get <strong>1 day of free unlimited AI credits</strong> — no payment needed!
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
                     <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3">
                         <Users size={24} />
@@ -616,16 +616,8 @@ function ReferralSection() {
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3">
                         <Award size={24} />
                     </div>
-                    <span className="text-2xl font-black">+{stats.creditsEarned}</span>
-                    <span className="text-xs text-gray-500 mt-1">Credits Earned</span>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
-                    <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-600 dark:text-pink-400 mb-3">
-                        <Settings size={24} />
-                    </div>
-                    <span className="text-2xl font-black">{stats.aiCredits}</span>
-                    <span className="text-xs text-gray-500 mt-1">Total AI Credits</span>
+                    <span className="text-2xl font-black">{stats.referralDaysEarned ?? 0}</span>
+                    <span className="text-xs text-gray-500 mt-1">Free Days Earned</span>
                 </div>
             </div>
 

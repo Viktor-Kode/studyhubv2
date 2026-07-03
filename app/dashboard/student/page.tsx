@@ -373,7 +373,13 @@ export default function StudentDashboardPage() {
 function SubscriptionStatusCard() {
     const { user } = useAuthStore()
     const [status, setStatus] = useState<any | null>(null)
-    useEffect(() => { paymentApi.getStatus().then(d => d?.success && setStatus(d)) }, [])
+    const [referralStats, setReferralStats] = useState<any | null>(null)
+    useEffect(() => {
+        paymentApi.getStatus().then(d => d?.success && setStatus(d))
+        apiClient.get('/referral/stats')
+            .then(r => r.data?.status === 'success' && setReferralStats(r.data.data))
+            .catch(() => {})
+    }, [])
     
     const planType = status?.subscription?.plan || user?.plan?.type || 'free'
     const daysLeft = status?.subscription?.daysLeft ?? 0
@@ -388,6 +394,7 @@ function SubscriptionStatusCard() {
     }
     const planName = planNames[planType] ?? 'Free Plan'
     const isPaid = planType !== 'free'
+    const isDailyReferralBonus = planType === 'daily' && isPaid
 
     return (
       <div className="sub-card v3-card flex flex-col justify-between min-h-[220px]">
@@ -403,6 +410,14 @@ function SubscriptionStatusCard() {
                 </span>
             </div>
             <h3 className="text-2xl font-black text-white">{planName}</h3>
+
+            {/* Referral bonus badge for daily plan */}
+            {isDailyReferralBonus && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-[10px] font-black uppercase tracking-wider">
+                    <FiAward className="text-yellow-400" size={10} />
+                    🎁 Referral Bonus
+                </div>
+            )}
             
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-300">
                 <FiClock className="text-orange-500" />
@@ -410,7 +425,7 @@ function SubscriptionStatusCard() {
             </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-col gap-2">
             <Link 
                 href="/dashboard/pricing" 
                 className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -418,6 +433,16 @@ function SubscriptionStatusCard() {
                 <FiZap className="text-yellow-300" />
                 <span>{isPaid ? 'Manage Subscription' : 'Upgrade Plan'}</span>
             </Link>
+            {/* Share CTA for free-plan users */}
+            {!isPaid && (
+                <Link
+                    href="/dashboard/settings?tab=referrals"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    <FiUsers size={13} className="text-green-400" />
+                    <span>Share & Get <span className="text-green-400">1 Free Day</span></span>
+                </Link>
+            )}
         </div>
       </div>
     )
