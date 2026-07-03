@@ -9,7 +9,7 @@ import { FiX, FiLoader } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
 
 export default function WhatsAppCollectModal() {
-    const { user, refreshUser } = useAuthStore()
+    const { user, refreshUser, isBackendSynced } = useAuthStore()
     const [isOpen, setIsOpen] = useState(false)
     const [phone, setPhone] = useState('')
     const [isValid, setIsValid] = useState(false)
@@ -20,8 +20,8 @@ export default function WhatsAppCollectModal() {
     const hasCheckedRef = useRef(false)
 
     useEffect(() => {
-        // Wait until the user object is loaded
-        if (!user) return
+        // Wait until the user object is loaded and synced with MongoDB backend
+        if (!user || !isBackendSynced) return
 
         // Only run the check once — subsequent user updates (e.g. refreshUser()
         // called by dashboard layout) must NOT reopen the modal.
@@ -29,15 +29,15 @@ export default function WhatsAppCollectModal() {
         hasCheckedRef.current = true
 
         const hasNoPhone = !user.phone && !user.phoneNumber
-        const isDismissed = sessionStorage.getItem('dismissed_whatsapp_prompt') === 'true'
+        const isDismissed = localStorage.getItem('dismissed_whatsapp_prompt') === 'true'
 
         if (hasNoPhone && !isDismissed) {
             setIsOpen(true)
         }
-    }, [user])
+    }, [user, isBackendSynced])
 
     const handleSkip = () => {
-        sessionStorage.setItem('dismissed_whatsapp_prompt', 'true')
+        localStorage.setItem('dismissed_whatsapp_prompt', 'true')
         setIsOpen(false)
         toast('We\'ll remind you later! You can also update this anytime in Settings.', {
             icon: '📲',
@@ -59,7 +59,7 @@ export default function WhatsAppCollectModal() {
 
             // Mark as dismissed so it never reopens this session even if phone
             // hasn't propagated to the store yet
-            sessionStorage.setItem('dismissed_whatsapp_prompt', 'true')
+            localStorage.setItem('dismissed_whatsapp_prompt', 'true')
 
             // Refresh local auth state
             await refreshUser()

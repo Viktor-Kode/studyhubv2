@@ -6,6 +6,7 @@ interface AuthState {
   user: AppUser | null
   isAuthenticated: boolean
   isLoading: boolean
+  isBackendSynced: boolean
 
   setUser: (user: AppUser | null) => void
   logout: () => void
@@ -20,6 +21,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true, // starts true until onAuthStateChanged fires
+  isBackendSynced: false,
 
   setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
 
@@ -33,7 +35,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (tour != null) localStorage.setItem(LS_TOUR_HIDDEN, tour)
       if (chat != null) localStorage.setItem(LS_CHAT_HIDDEN, chat)
     }
-    set({ user: null, isAuthenticated: false, isLoading: false })
+    set({ user: null, isAuthenticated: false, isLoading: false, isBackendSynced: false })
   },
 
   refreshUser: async () => {
@@ -78,7 +80,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
           phone: u.phone ?? prev?.phone ?? null,
           phoneNumber: u.phoneNumber ?? prev?.phoneNumber ?? null,
         }
-        set({ user: merged, isAuthenticated: true })
+        set({ user: merged, isAuthenticated: true, isBackendSynced: true })
         const { useHelpWidgetsStore } = await import('@/lib/store/helpWidgetsStore')
         useHelpWidgetsStore.getState().applyServerPreferences(merged.preferences)
       }
