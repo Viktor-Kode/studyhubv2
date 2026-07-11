@@ -149,8 +149,8 @@ export default function PdfCbtPage() {
     setSuccess(null)
     setWarning(null)
 
-    if (file.size > 25 * 1024 * 1024) {
-      setError('File too large (Max 25MB).')
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File too large (Max 50MB).')
       return
     }
 

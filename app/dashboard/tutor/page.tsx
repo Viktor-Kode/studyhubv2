@@ -183,8 +183,8 @@ export default function AiTutorPage() {
       return
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('File size exceeds the 15MB limit.')
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('File size exceeds the 50MB limit.')
       return
     }
 

@@ -124,7 +124,7 @@ export default function PDFSummaryPage() {
 
   // ── File Upload & Extraction ────────────────────────────────────────────────
   const handleFile = useCallback(async (file: File) => {
-    const MAX_MB = 15
+    const MAX_MB = 50
     if (file.size > MAX_MB * 1024 * 1024) {
       setError(`File too large. Maximum is ${MAX_MB}MB.`)
       return
@@ -346,7 +346,7 @@ export default function PDFSummaryPage() {
                             Drop your document here
                           </p>
                           <p className="text-xs text-gray-400 mt-1">
-                            or click to browse &mdash; PDF, Word, PPT, Images (max 15 MB)
+                            or click to browse &mdash; PDF, Word, PPT, Images (max 50 MB)
                           </p>
                         </div>
                       </>

@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
             throw new Error("The uploaded file is empty.");
         }
 
-        // 10MB Size Guard
-        if (buffer.length > 10 * 1024 * 1024) {
+        // 50MB Size Guard
+        if (buffer.length > 50 * 1024 * 1024) {
             return NextResponse.json(
-                { error: "File too large for server-side processing (Max 10MB)" }, 
+                { error: "File too large for server-side processing (Max 50MB)" }, 
                 { status: 413 }
             );
         }
@@ -142,3 +142,4 @@ export async function POST(request: NextRequest) {
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+export const maxBodySize = '50mb';
