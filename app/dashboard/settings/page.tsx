@@ -9,6 +9,8 @@ import {
 import { MdSchool, MdQuiz } from 'react-icons/md'
 import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw } from 'react-icons/fi'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
@@ -43,11 +45,15 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="settings-v3-container">
-        <header className="mb-8">
-            <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <div className="mb-4">
+          <BackButton label="Back" href="/dashboard/student" />
+        </div>
+
+        <header className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1">
                 Settings
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">Manage your account and app preferences</p>
+            <p className="text-sm font-medium text-slate-400">Manage your account and app preferences</p>
         </header>
 
         <nav className="settings-tabs no-scrollbar">
@@ -104,6 +110,7 @@ export default function SettingsPage() {
             {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
             {activeTab === 'offline' && <OfflineSection />}
         </main>
+        <MobileBottomNav />
       </div>
     </ProtectedRoute>
   )
