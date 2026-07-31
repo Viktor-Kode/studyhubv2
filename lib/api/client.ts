@@ -140,9 +140,14 @@ apiClient.interceptors.response.use(
 
     if (process.env.NODE_ENV === 'development') {
       console.error('API Error:', {
+        // HTTP-level details (undefined when no response was received)
         status: error.response?.status,
         data: error.response?.data,
+        // Network/axios-level details (always present)
         message: error.message,
+        code: error.code,          // e.g. 'ECONNABORTED' for timeout, 'ERR_NETWORK' for CORS/offline
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
       })
     }
 

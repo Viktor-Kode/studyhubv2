@@ -191,26 +191,32 @@ export default function DashboardLayout({
     const isDark = theme === 'dark'
 
     const isTutorPage = pathname === '/dashboard/tutor'
+    const isDarkFullPage =
+        pathname === '/dashboard/student' ||
+        pathname === '/dashboard/study' ||
+        pathname === '/dashboard/community' ||
+        pathname === '/dashboard/leaderboard' ||
+        pathname === '/dashboard/profile' ||
+        (pathname ? pathname.startsWith('/dashboard/student/') : false)
 
     if (isTutorPage) {
         return (
-            <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
-                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
-                    <ProtectedRoute>
-                        {children}
-                    </ProtectedRoute>
-                    <WebPushPrompt />
-                </div>
+            <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+                <ProtectedRoute>
+                    {children}
+                </ProtectedRoute>
+                <WebPushPrompt />
             </div>
         )
     }
 
     return (
-        <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className={`min-h-screen ${isDark || isDarkFullPage ? 'dark' : ''}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
+            <div className={`min-h-screen ${isDarkFullPage ? '' : 'bg-gray-50 dark:bg-gray-900'}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
 
                 {/* Top Navbar */}
-                <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw] pt-[env(safe-area-inset-top)]">
+                {!isDarkFullPage && (
+                    <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw] pt-[env(safe-area-inset-top)]">
                     <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
 
                         {/* Left: Logo/Menu Toggle + Current Page Info */}
@@ -329,11 +335,12 @@ export default function DashboardLayout({
                         </div>
                     </div>
                 </nav>
+                )}
 
                 {/* Sidebar */}
                 <aside
                     id="sidebar-nav"
-                    className={`fixed top-14 sm:top-16 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed ${isDarkFullPage ? 'top-0' : 'top-14 sm:top-16'} left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                     aria-label="Main navigation"
                 >
@@ -431,7 +438,7 @@ export default function DashboardLayout({
                 )}
 
                 {/* Main Content */}
-                <main className="pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))] lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
+                <main className={`${isDarkFullPage ? 'pt-0' : 'pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))]'} lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden`}>
                     {isOffline && (
                         <div className="mx-3 sm:mx-5 md:mx-6 mt-3 sm:mt-5 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm animate-pulse">
                             <span className="text-base leading-none">⚡</span>

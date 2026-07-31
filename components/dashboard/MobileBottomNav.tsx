@@ -2,35 +2,162 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FiHome, FiBook, FiAward, FiFileText } from 'react-icons/fi'
+import { FiHome, FiBook, FiAward, FiMessageSquare, FiUser } from 'react-icons/fi'
 
-export default function MobileBottomNav() {
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ElementType
+  isCenter?: boolean
+  hasDot?: boolean
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard/study', label: 'Study', icon: FiBook },
+  { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: FiAward },
+  { href: '/dashboard/student', label: 'Home', icon: FiHome, isCenter: true },
+  { href: '/dashboard/community', label: 'Community', icon: FiMessageSquare, hasDot: true },
+  { href: '/dashboard/profile', label: 'Profile', icon: FiUser },
+]
+
+export default function BottomNav() {
   const pathname = usePathname()
 
-  const navItems = [
-    { href: '/dashboard/student', label: 'Home', icon: FiHome },
-    { href: '/dashboard/library', label: 'Library', icon: FiBook },
-    { href: '/dashboard/notes-history', label: 'My Notes', icon: FiFileText },
-    { href: '/dashboard/student/community', label: 'Leaderboard', icon: FiAward },
-  ]
+  const isActive = (href: string) => {
+    if (href === '/dashboard/student') return pathname === href
+    return pathname === href || pathname.startsWith(href + '/')
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-      {navItems.map((item) => {
+    <nav
+      aria-label="Main navigation"
+      className="sd-bottom-nav"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'var(--surface)',
+        borderTop: '1px solid var(--border-subtle)',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'flex-end',
+        paddingTop: 10,
+        paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
+        zIndex: 100,
+      }}
+    >
+      {NAV_ITEMS.map(item => {
+        const active = isActive(item.href)
         const Icon = item.icon
-        const isActive = pathname === item.href || (item.href !== '/dashboard/student' && pathname.startsWith(item.href))
-        
+
+        if (item.isCenter) {
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={true}
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 4,
+                textDecoration: 'none',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 16,
+                  background: 'var(--purple-deep)',
+                  boxShadow: '0 0 16px rgba(91,33,246,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 22,
+                  color: '#ffffff',
+                  marginTop: -10,
+                  transition: 'transform 0.15s ease',
+                }}
+              >
+                <Icon size={22} />
+              </div>
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: active ? 'var(--purple)' : 'var(--text-muted)',
+                }}
+              >
+                {item.label}
+              </span>
+            </Link>
+          )
+        }
+
         return (
           <Link
             key={item.href}
             href={item.href}
-            aria-current={isActive ? 'page' : undefined}
-            className={`flex flex-col items-center gap-1 transition-all duration-300 ${
-              isActive ? 'text-indigo-600 dark:text-indigo-400 scale-110' : 'text-gray-500 dark:text-gray-400 hover:text-purple-500'
-            }`}
+            prefetch={true}
+            aria-label={item.label}
+            aria-current={active ? 'page' : undefined}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
           >
-            <Icon className="text-xl" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                background: active ? 'var(--purple-bg)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: active ? 'var(--purple)' : 'var(--text-muted)',
+                position: 'relative',
+                transition: 'background 0.18s ease',
+              }}
+            >
+              <Icon size={20} />
+              {item.hasDot && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: 'var(--red)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: active ? 'var(--purple)' : 'var(--text-muted)',
+              }}
+            >
+              {item.label}
+            </span>
           </Link>
         )
       })}
