@@ -453,6 +453,11 @@ export default function DashboardLayout({
                                 '/dashboard/admin',
                             ]
                             const hasOwnBack = [
+                                '/dashboard/settings',
+                                '/dashboard/cbt',
+                                '/dashboard/notes',
+                                '/dashboard/chat',
+                                '/dashboard/analytics',
                                 '/dashboard/student/study-groups',
                                 '/dashboard/student/pomodoro',
                                 '/dashboard/student/notes',

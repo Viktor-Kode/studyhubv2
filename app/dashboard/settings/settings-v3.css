@@ -2,7 +2,7 @@
 /* Settings V3 - Premium Design matching Dashboard V3 */
 
 .settings-v3-container {
-    background-color: var(--bg, #070F1E);
+    background-color: transparent;
     min-height: 100vh;
     padding: 1rem 1rem 7rem;
     color: #F8FAFC;
