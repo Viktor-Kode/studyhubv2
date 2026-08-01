@@ -86,8 +86,27 @@ export default function StudyReminders() {
 
       if (editingId) {
         await reminderService.update(userId, editingId, body)
+        toast.success('Reminder updated')
       } else {
         await reminderService.add(userId, body)
+        toast.success('Reminder set & push notification scheduled! 🔔')
+
+        // Ask for push notification permission if default
+        if ('Notification' in window && Notification.permission !== 'granted') {
+          reminderService.requestNotificationPermission()
+        }
+
+        // Show local push notification confirmation if granted
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification(`🔔 Reminder Set: ${formData.title}`, {
+              body: `Scheduled for ${formData.date} at ${formData.time}. We'll notify you!`,
+              icon: '/favicon.ico'
+            })
+          } catch (err) {
+            // Fallback for mobile browser limits
+          }
+        }
       }
 
       // Refresh list
@@ -96,6 +115,7 @@ export default function StudyReminders() {
       resetForm()
     } catch (error) {
       console.error('Failed to save reminder:', error)
+      toast.error('Failed to save reminder')
     }
   }
 

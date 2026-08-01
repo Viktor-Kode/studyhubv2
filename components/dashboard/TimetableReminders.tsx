@@ -20,6 +20,8 @@ const getLocalDate = (date: Date = new Date()) => format(date, 'yyyy-MM-dd')
 type TabMode = 'calendar' | 'list' | 'settings'
 type FilterType = 'all' | 'study' | 'exam' | 'deadline' | 'assignment' | 'class'
 
+import { enablePushNotifications } from '@/lib/services/pushNotifications'
+
 export default function TimetableReminders() {
     const [reminders, setReminders] = useState<Reminder[]>([])
     const [filteredReminders, setFilteredReminders] = useState<Reminder[]>([])
@@ -55,6 +57,7 @@ export default function TimetableReminders() {
         if (user?.uid) {
             loadReminders()
             reminderService.requestNotificationPermission()
+            enablePushNotifications().catch(() => {})
             reminderService.init()
         }
     }, [user?.uid])
@@ -117,7 +120,26 @@ export default function TimetableReminders() {
                 toast.success('Reminder updated')
             } else {
                 await reminderService.add(user.uid, formData)
-                toast.success('Reminder added')
+                toast.success('Reminder set & notification scheduled! 🔔')
+
+                // Request push permission if default
+                if ('Notification' in window && Notification.permission !== 'granted') {
+                    reminderService.requestNotificationPermission().then(granted => {
+                        if (granted) enablePushNotifications()
+                    })
+                }
+
+                // Show local push notification confirmation if permitted
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification(`🔔 Reminder Set: ${formData.title}`, {
+                            body: `Scheduled for ${formData.date} at ${formData.time}. We'll remind you!`,
+                            icon: '/favicon.ico'
+                        })
+                    } catch (err) {
+                        // Fallback for mobile browsers
+                    }
+                }
             }
 
             loadReminders()

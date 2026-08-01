@@ -168,7 +168,7 @@ export default function NotesHistory() {
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
                             <button 
-                                onClick={() => router.back()}
+                                onClick={() => setSelectedNote(null)}
                                 className="lg:hidden flex items-center gap-2 text-emerald-600 font-bold mb-2 w-fit hover:bg-emerald-50 dark:hover:bg-emerald-900/20 px-3 py-1.5 rounded-lg transition"
                             >
                                 <FiChevronLeft /> Back to Notes
