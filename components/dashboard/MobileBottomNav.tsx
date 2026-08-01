@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: FiAward },
   { href: '/dashboard/student', label: 'Home', icon: FiHome, isCenter: true },
   { href: '/dashboard/timetable', label: 'Timetable', icon: FiCalendar },
-  { href: '/dashboard/student/notes', label: 'My Notes', icon: FiFileText },
+  { href: '/dashboard/notes-history', label: 'My Notes', icon: FiFileText },
 ]
 
 export default function BottomNav() {

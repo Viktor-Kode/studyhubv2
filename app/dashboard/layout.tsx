@@ -197,6 +197,7 @@ export default function DashboardLayout({
         pathname === '/dashboard/leaderboard' ||
         pathname === '/dashboard/timetable' ||
         pathname === '/dashboard/settings' ||
+        pathname === '/dashboard/notes-history' ||
         (pathname ? pathname.startsWith('/dashboard/student/') : false)
     const isDarkFullPage =
         pathname === '/dashboard/student' ||
