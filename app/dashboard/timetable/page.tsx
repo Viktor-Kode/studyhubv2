@@ -2,28 +2,28 @@
 'use client'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
+import BackButton from '@/components/BackButton'
 import TimetableReminders from '@/components/dashboard/TimetableReminders'
-import { FiCalendar } from 'react-icons/fi'
+import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function TimetablePage() {
   return (
     <ProtectedRoute>
-      <div>
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-              <FiCalendar className="text-purple-600 dark:text-purple-400 text-xl" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Timetable & Reminders
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage your study schedule with smart reminders via WhatsApp, email, and browser notifications
+      <div className="px-4 md:px-6 pb-24">
+        <div className="mb-4">
+          <BackButton label="Back" href="/dashboard/student" />
+        </div>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1">
+            Timetable & Reminders
+          </h1>
+          <p className="text-sm font-medium text-slate-400">
+            Manage your study schedule & task reminders
           </p>
         </div>
 
         <TimetableReminders />
+        <BottomNav />
       </div>
     </ProtectedRoute>
   )

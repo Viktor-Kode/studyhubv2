@@ -4,11 +4,16 @@ import { Suspense } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import NotesHistory from '@/components/dashboard/NotesHistory'
 import { FiFileText } from 'react-icons/fi'
+import BackButton from '@/components/BackButton'
+import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function NotesHistoryPage() {
     return (
         <ProtectedRoute>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+                <div className="mb-4">
+                    <BackButton label="Back" href="/dashboard/student" />
+                </div>
                 <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
@@ -30,6 +35,7 @@ export default function NotesHistoryPage() {
                 }>
                     <NotesHistory />
                 </Suspense>
+                <BottomNav />
             </div>
         </ProtectedRoute>
     )

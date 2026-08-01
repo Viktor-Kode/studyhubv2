@@ -20,8 +20,31 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/notes-history', label: 'My Notes', icon: FiFileText },
 ]
 
+import { useState, useEffect } from 'react'
+
 export default function BottomNav() {
   const pathname = usePathname()
+  const [visible, setVisible] = useState(true)
+  const [prevScrollPos, setPrevScrollPos] = useState(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY
+      // Show when scrolling up, hide when scrolling down
+      const isScrollingDown = currentScrollPos > prevScrollPos
+      if (isScrollingDown && currentScrollPos > 80) {
+        setVisible(false)
+      } else {
+        setVisible(true)
+      }
+      setPrevScrollPos(currentScrollPos)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [prevScrollPos])
 
   const isActive = (href: string) => {
     if (href === '/dashboard/student') return pathname === href
@@ -45,6 +68,8 @@ export default function BottomNav() {
         paddingTop: 10,
         paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
         zIndex: 100,
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.3s ease-in-out',
       }}
     >
       {NAV_ITEMS.map(item => {
