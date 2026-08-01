@@ -4,11 +4,15 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import ProgressAnalytics from '@/components/dashboard/ProgressAnalytics'
 import { FiBarChart2 } from 'react-icons/fi'
+import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function AnalyticsPage() {
   return (
     <ProtectedRoute>
-      <div>
+      <div className="pb-24 px-4 md:px-6">
+        <div className="mb-4">
+          <BackButton label="Back" href="/dashboard/student" />
+        </div>
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
@@ -23,6 +27,7 @@ export default function AnalyticsPage() {
           </p>
         </div>
         <ProgressAnalytics />
+        <BottomNav />
       </div>
     </ProtectedRoute>
   )

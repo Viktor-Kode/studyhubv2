@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FiHome, FiBook, FiAward, FiCalendar, FiUser, FiFileText } from 'react-icons/fi'
+import { FiHome, FiBook, FiAward, FiCalendar, FiUser, FiFileText, FiBarChart2 } from 'react-icons/fi'
 
 interface NavItem {
   href: string
@@ -13,7 +13,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard/study', label: 'Study', icon: FiBook },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: FiBarChart2 },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: FiAward },
   { href: '/dashboard/student', label: 'Home', icon: FiHome, isCenter: true },
   { href: '/dashboard/timetable', label: 'Timetable', icon: FiCalendar },

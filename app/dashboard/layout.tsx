@@ -196,6 +196,9 @@ export default function DashboardLayout({
         pathname === '/dashboard/community' ||
         pathname === '/dashboard/leaderboard' ||
         pathname === '/dashboard/profile' ||
+        pathname === '/dashboard/analytics' ||
+        pathname === '/dashboard/timetable' ||
+        pathname === '/dashboard/notes-history' ||
         (pathname ? pathname.startsWith('/dashboard/student/') : false)
 
     if (isTutorPage) {
