@@ -79,7 +79,7 @@ export default function WhatsAppCollectModal() {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 animate-in fade-in">
             <div
-                className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl p-6 md:p-8 relative border border-gray-100 dark:border-gray-700/60 overflow-hidden animate-in fade-in zoom-in duration-300"
+                className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl p-6 md:p-8 relative border border-gray-100 dark:border-gray-700/60 max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto animate-in fade-in zoom-in duration-300"
                 role="dialog"
                 aria-modal="true"
             >
