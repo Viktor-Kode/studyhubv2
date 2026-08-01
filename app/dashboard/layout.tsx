@@ -190,7 +190,14 @@ export default function DashboardLayout({
 
     const isDark = theme === 'dark'
 
-    const isTutorPage = pathname === '/dashboard/tutor'
+    const isPlainPage =
+        pathname === '/dashboard/tutor' ||
+        pathname === '/dashboard/student' ||
+        pathname === '/dashboard/study' ||
+        pathname === '/dashboard/leaderboard' ||
+        pathname === '/dashboard/timetable' ||
+        pathname === '/dashboard/settings' ||
+        (pathname ? pathname.startsWith('/dashboard/student/') : false)
     const isDarkFullPage =
         pathname === '/dashboard/student' ||
         pathname === '/dashboard/study' ||
@@ -199,7 +206,7 @@ export default function DashboardLayout({
         pathname === '/dashboard/profile' ||
         (pathname ? pathname.startsWith('/dashboard/student/') : false)
 
-    if (isTutorPage) {
+    if (isPlainPage) {
         return (
             <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
                 <ProtectedRoute>
