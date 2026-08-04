@@ -196,6 +196,19 @@ export default function StudyReminders() {
   const startPad = startOfMonth(calMonth).getDay() // 0=Sun
   const reminderDates = reminders.filter(r => !r.completed).map(r => r.date)
 
+  // ── Hide bottom nav when modal is open ──────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (showModal) {
+      window.dispatchEvent(new Event('modal-open'))
+    } else {
+      window.dispatchEvent(new Event('modal-close'))
+    }
+    return () => {
+      window.dispatchEvent(new Event('modal-close'))
+    }
+  }, [showModal])
+
   // ── Filter / Sort ──────────────────────────────────────────────────────────
   const displayed = reminders
     .filter(r => filterType === 'all' || r.type === filterType)
@@ -374,8 +387,13 @@ export default function StudyReminders() {
 
       {/* ── Add / Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm" style={{ touchAction: 'none' }}>
-          <div className="bg-white dark:bg-gray-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-modal="true"
+          className="modal modal-overlay fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 backdrop-blur-sm"
+        >
+          <div className="bg-white dark:bg-gray-900 w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden box-border">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
@@ -393,7 +411,7 @@ export default function StudyReminders() {
             </div>
 
             {/* Form */}
-            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="px-6 py-5 space-y-4 max-h-[75vh] overflow-y-auto box-border">
 
               {/* Title */}
               <div>
@@ -405,7 +423,7 @@ export default function StudyReminders() {
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Physics Midterm, Submit Assignment…"
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full max-w-full min-w-0 box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
               </div>
 
@@ -418,7 +436,7 @@ export default function StudyReminders() {
                   type="date"
                   value={form.date}
                   onChange={e => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full max-w-full min-w-0 box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base appearance-none"
                 />
               </div>
 
@@ -431,7 +449,7 @@ export default function StudyReminders() {
                   type="time"
                   value={form.time}
                   onChange={e => setForm({ ...form, time: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full max-w-full min-w-0 box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base appearance-none"
                 />
               </div>
 
