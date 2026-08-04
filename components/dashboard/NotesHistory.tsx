@@ -165,7 +165,7 @@ export default function NotesHistory() {
             {/* Viewer Side */}
             <div className={`lg:col-span-2 ${!selectedNote ? 'hidden lg:block' : 'block'}`}>
                 {selectedNote ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-8 h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
+                    <div className="bg-transparent p-0 sm:p-4 h-full animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
                             <button 
                                 onClick={() => { setSelectedNote(null); router.push('/dashboard/notes-history') }}
