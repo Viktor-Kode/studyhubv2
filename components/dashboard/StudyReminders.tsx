@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import {
-  FiPlus, FiTrash2, FiClock, FiCalendar, FiX, FiCheck, FiAlertCircle, FiStar, FiFilter,
-  FiSearch, FiCheckCircle, FiSettings, FiEdit2, FiInfo, FiBell, FiArrowRight
+  FiPlus, FiTrash2, FiClock, FiCalendar, FiX,
+  FiCheckCircle, FiEdit2, FiSearch, FiBell
 } from 'react-icons/fi'
 import { MdWhatsapp } from 'react-icons/md'
 import { toast } from 'react-hot-toast'
@@ -11,380 +11,476 @@ import { format, parseISO, compareAsc } from 'date-fns'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { reminderService, Reminder } from '@/lib/services/reminderService'
+import { useReminderScheduler } from '@/hooks/useReminderScheduler'
 
+// ─── Type config ─────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  study:      { label: 'Study Session', emoji: '📚', color: 'blue' },
+  exam:       { label: 'Exam',          emoji: '📝', color: 'red' },
+  deadline:   { label: 'Deadline',      emoji: '⏳', color: 'orange' },
+  assignment: { label: 'Assignment',    emoji: '📋', color: 'yellow' },
+  class:      { label: 'Class',         emoji: '🏫', color: 'purple' },
+  other:      { label: 'Other',         emoji: '📌', color: 'gray' },
+} as const
+
+const NOTIFY_OPTIONS = [
+  { value: 5,  label: '5 min before' },
+  { value: 10, label: '10 min before' },
+  { value: 15, label: '15 min before' },
+  { value: 30, label: '30 min before' },
+  { value: 60, label: '1 hour before' },
+  { value: 120, label: '2 hours before' },
+  { value: 1440, label: '1 day before' },
+]
+
+const PRIORITY_MAP: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+type ReminderType = keyof typeof TYPE_CONFIG
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function getTypeStyle(type: string) {
+  const c = TYPE_CONFIG[type as ReminderType]?.color ?? 'gray'
+  const map: Record<string, string> = {
+    blue:   'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300',
+    red:    'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300',
+    orange: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300',
+    yellow: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300',
+    purple: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300',
+    gray:   'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300',
+  }
+  return map[c] ?? map.gray
+}
+
+function getLeftBorderColor(type: string) {
+  const map: Record<string, string> = {
+    exam: 'border-l-red-500', deadline: 'border-l-orange-500',
+    study: 'border-l-blue-500', assignment: 'border-l-yellow-500',
+    class: 'border-l-purple-500', other: 'border-l-gray-400',
+  }
+  return map[type] ?? 'border-l-gray-400'
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function StudyReminders() {
   const { user } = useAuthStore()
   const userId = user?.uid || 'guest'
 
-  // State
   const [reminders, setReminders] = useState<Reminder[]>([])
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  // Filter & Search State
-  const [filterType, setFilterType] = useState<string>('all')
+  const [filterType, setFilterType] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'date' | 'priority'>('date')
-
-  // WhatsApp Config State
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [isWhatsAppConfirmed, setIsWhatsAppConfirmed] = useState(false)
-
-  // Form State
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<Reminder>>({
-    title: '',
-    date: '',
-    time: '',
-    type: 'study',
-    priority: 'medium',
-    description: '',
-    sendWhatsApp: false
-  })
+  const [saving, setSaving] = useState(false)
 
-  // Load data on mount
+  const defaultForm = {
+    title: '', date: '', time: '',
+    type: 'study' as ReminderType,
+    notifyBefore: 15,
+    description: '',
+    sendWhatsApp: false,
+  }
+  const [form, setForm] = useState(defaultForm)
+
+  // ── Scheduler ──────────────────────────────────────────────────────────────
+  const { scheduleReminder, rescheduleAll } = useReminderScheduler(userId)
+
+  // ── Load ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     const loadData = async () => {
       try {
-        const dbReminders = await reminderService.getAll(userId)
-        setReminders(dbReminders)
-      } catch (error) {
-        console.error('Failed to load reminders:', error)
-      } finally {
-        setLoading(false)
-      }
+        const all = await reminderService.getAll(userId)
+        setReminders(all)
+      } catch { /* ignore */ }
+      finally { setLoading(false) }
     }
-
-    const loadUserProfile = async () => {
+    const loadProfile = async () => {
       try {
-        const response = await apiClient.get('/settings')
-        if (response.data.profile?.phone) {
-          setWhatsappNumber(response.data.profile.phone)
+        const res = await apiClient.get('/settings')
+        if (res.data.profile?.phone) {
+          setWhatsappNumber(res.data.profile.phone)
           setIsWhatsAppConfirmed(true)
         }
-      } catch (error) {
-        console.error('Failed to load user profile for WhatsApp:', error)
-      }
+      } catch { /* ignore */ }
     }
-
     loadData()
-    loadUserProfile()
+    loadProfile()
   }, [userId])
 
-  // CRUD Operations
-  const handleSaveReminder = async () => {
-    if (!formData.title || !formData.date || !formData.time) {
-      toast.error('Please fill in all required fields')
+  // ── CRUD ───────────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.date || !form.time) {
+      toast.error('Please fill in title, date and time')
       return
     }
-
+    setSaving(true)
     try {
       const body = {
-        ...formData,
-        whatsappNumber: formData.sendWhatsApp ? whatsappNumber : undefined
+        ...form,
+        whatsappNumber: form.sendWhatsApp ? whatsappNumber : undefined,
       } as Omit<Reminder, 'id' | 'completed'>
 
       if (editingId) {
         await reminderService.update(userId, editingId, body)
         toast.success('Reminder updated')
       } else {
-        await reminderService.add(userId, body)
-        toast.success('Reminder set & push notification scheduled! 🔔')
+        const newId = await reminderService.add(userId, body)
+        // Schedule local notifications for the new reminder
+        const newReminder: Reminder = { ...body, id: newId, _id: newId, completed: false }
+        scheduleReminder(newReminder)
 
-        // Ask for push notification permission if default
-        if ('Notification' in window && Notification.permission !== 'granted') {
-          reminderService.requestNotificationPermission()
-        }
-
-        // Show local push notification confirmation if granted
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          try {
-            new Notification(`🔔 Reminder Set: ${formData.title}`, {
-              body: `Scheduled for ${formData.date} at ${formData.time}. We'll notify you!`,
-              icon: '/favicon.ico'
-            })
-          } catch (err) {
-            // Fallback for mobile browser limits
+        // Confirmation notification (immediate)
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'default') await Notification.requestPermission()
+          if (Notification.permission === 'granted') {
+            try {
+              const reg = await navigator.serviceWorker.ready
+              await reg.showNotification(`🔔 Reminder Set: ${form.title}`, {
+                body: `Scheduled for ${form.date} at ${form.time}. You'll be notified ${form.notifyBefore} min before and at the time.`,
+                icon: '/android-chrome-192x192.png',
+              })
+            } catch { /* ignore */ }
           }
         }
+
+        toast.success('Reminder set! Notifications scheduled 🔔')
       }
 
-      // Refresh list
-      const updatedList = await reminderService.getAll(userId)
-      setReminders(updatedList)
+      const updated = await reminderService.getAll(userId)
+      setReminders(updated)
       resetForm()
-    } catch (error) {
-      console.error('Failed to save reminder:', error)
+    } catch {
       toast.error('Failed to save reminder')
+    } finally {
+      setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this reminder?')) {
-      try {
-        await reminderService.delete(userId, id)
-        setReminders(prev => prev.filter(r => r._id !== id && r.id !== id))
-      } catch (error) {
-        console.error('Failed to delete reminder:', error)
-      }
-    }
+    if (!confirm('Delete this reminder?')) return
+    try {
+      await reminderService.delete(userId, id)
+      setReminders(prev => prev.filter(r => r._id !== id && r.id !== id))
+    } catch { toast.error('Failed to delete') }
   }
 
   const toggleComplete = async (reminder: Reminder) => {
+    const id = (reminder._id || reminder.id) as string
     try {
-      const id = (reminder._id || reminder.id) as string
-      await reminderService.update(userId, id, {
-        completed: !reminder.completed
-      })
-      const updatedList = await reminderService.getAll(userId)
-      setReminders(updatedList)
-    } catch (error) {
-      console.error('Failed to toggle completion:', error)
-    }
+      await reminderService.update(userId, id, { completed: !reminder.completed })
+      const updated = await reminderService.getAll(userId)
+      setReminders(updated)
+    } catch { /* ignore */ }
   }
 
   const startEdit = (reminder: Reminder) => {
-    setFormData(reminder)
+    setForm({
+      title: reminder.title,
+      date: reminder.date,
+      time: reminder.time,
+      type: reminder.type as ReminderType,
+      notifyBefore: reminder.notifyBefore ?? 15,
+      description: reminder.description ?? '',
+      sendWhatsApp: reminder.sendWhatsApp ?? false,
+    })
     setEditingId((reminder._id || reminder.id) as string)
-    setShowAddModal(true)
+    setShowModal(true)
   }
 
   const resetForm = () => {
-    setFormData({
-      title: '', date: '', time: '', type: 'study',
-      priority: 'medium', description: '', sendWhatsApp: false
-    })
+    setForm(defaultForm)
     setEditingId(null)
-    setShowAddModal(false)
+    setShowModal(false)
   }
 
-  // Helper Functions
-  const getFilteredReminders = () => {
-    let filtered = [...reminders]
-
-    if (filterType !== 'all') {
-      filtered = filtered.filter(r => r.type === filterType)
-    }
-
-    if (searchQuery) {
+  // ── Filter / Sort ──────────────────────────────────────────────────────────
+  const displayed = reminders
+    .filter(r => filterType === 'all' || r.type === filterType)
+    .filter(r => {
+      if (!searchQuery) return true
       const q = searchQuery.toLowerCase()
-      filtered = filtered.filter(r =>
-        r.title.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q)
-      )
-    }
-
-    return filtered.sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1
-
-      if (sortBy === 'date') {
-        const dateA = parseISO(`${a.date}T${a.time}`)
-        const dateB = parseISO(`${b.date}T${b.time}`)
-        return compareAsc(dateA, dateB)
-      } else {
-        const priorityMap: Record<string, number> = { high: 0, medium: 1, low: 2 }
-        const prioA = a.priority || 'medium'
-        const prioB = b.priority || 'medium'
-        return priorityMap[prioA] - priorityMap[prioB]
-      }
+      return r.title.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)
     })
-  }
-
-  const getTypeStyle = (type: string) => {
-    switch (type) {
-      case 'exam': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800'
-      case 'deadline': return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800'
-      case 'study': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
-      default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
-    }
-  }
-
-  const getPriorityBadge = (priority?: string) => {
-    switch (priority) {
-      case 'high': return <span className="text-xs font-bold text-red-500 uppercase tracking-wider">High Priority</span>
-      case 'medium': return <span className="text-xs font-bold text-yellow-500 uppercase tracking-wider">Medium Priority</span>
-      case 'low': return <span className="text-xs font-bold text-green-500 uppercase tracking-wider">Low Priority</span>
-      default: return <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Normal</span>
-    }
-  }
+    .sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      if (sortBy === 'date') return compareAsc(parseISO(`${a.date}T${a.time}`), parseISO(`${b.date}T${b.time}`))
+      return PRIORITY_MAP[a.priority ?? 'medium'] - PRIORITY_MAP[b.priority ?? 'medium']
+    })
 
   if (loading) return (
     <div className="animate-pulse space-y-4">
-      <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full" />
+      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl w-full" />
     </div>
   )
 
-  const displayedReminders = getFilteredReminders()
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-3">
+    <div className="space-y-5">
+
+      {/* ── Toolbar ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold shadow-sm shrink-0"
           >
             <FiPlus /> New Reminder
           </button>
-          <div className="relative">
-            <FiSearch className="absolute left-3 top-3 text-gray-400" />
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search reminders…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-64"
+              className="pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full"
             />
           </div>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0">
+        <div className="flex gap-2 shrink-0">
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none text-sm"
           >
-            <option value="all">All Types</option>
-            <option value="study">Study Sessions</option>
-            <option value="exam">Exams</option>
-            <option value="deadline">Deadlines</option>
-            <option value="other">Other</option>
+            <option value="all">All types</option>
+            {Object.entries(TYPE_CONFIG).map(([k, v]) => (
+              <option key={k} value={k}>{v.emoji} {v.label}</option>
+            ))}
           </select>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as any)}
-            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none text-sm"
           >
-            <option value="date">Sort by Date</option>
-            <option value="priority">Sort by Priority</option>
+            <option value="date">By date</option>
+            <option value="priority">By priority</option>
           </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* ── Stats ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Study Sessions', count: reminders.filter(r => !r.completed && r.type === 'study').length, color: 'blue' },
-          { label: 'Upcoming Exams', count: reminders.filter(r => !r.completed && r.type === 'exam').length, color: 'red' },
-          { label: 'Deadlines', count: reminders.filter(r => !r.completed && r.type === 'deadline').length, color: 'orange' },
-          { label: 'Completed', count: reminders.filter(r => r.completed).length, color: 'green' }
-        ].map(stat => (
-          <div key={stat.label} className={`bg-${stat.color}-50 dark:bg-${stat.color}-900/20 p-4 rounded-xl border border-${stat.color}-100 dark:border-${stat.color}-800`}>
-            <div className={`text-2xl font-bold text-${stat.color}-700 dark:text-${stat.color}-300`}>{stat.count}</div>
-            <div className={`text-sm text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.label}</div>
+          { label: 'Study', count: reminders.filter(r => !r.completed && r.type === 'study').length,    cls: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
+          { label: 'Exams', count: reminders.filter(r => !r.completed && r.type === 'exam').length,     cls: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+          { label: 'Deadlines', count: reminders.filter(r => !r.completed && r.type === 'deadline').length, cls: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
+          { label: 'Done', count: reminders.filter(r => r.completed).length,                           cls: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+        ].map(s => (
+          <div key={s.label} className={`${s.cls} rounded-xl p-4`}>
+            <div className="text-2xl font-black">{s.count}</div>
+            <div className="text-xs font-semibold uppercase tracking-widest mt-0.5 opacity-70">{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="space-y-4">
-        {displayedReminders.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed">
+      {/* ── List ────────────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        {displayed.length === 0 ? (
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
             <FiCalendar className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No reminders found</h3>
+            <p className="font-semibold text-gray-500 dark:text-gray-400">No reminders found</p>
           </div>
-        ) : (
-          displayedReminders.map(reminder => (
-            <div
-              key={reminder._id || reminder.id}
-              className={`group relative bg-white dark:bg-gray-800 p-5 rounded-xl border transition-all duration-200 shadow-sm hover:shadow-md ${reminder.completed ? 'opacity-60' : 'border-l-4 ' + (reminder.type === 'exam' ? 'border-l-red-500' : reminder.type === 'deadline' ? 'border-l-orange-500' : 'border-l-blue-500')}`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide ${getTypeStyle(reminder.type)}`}>
-                      {reminder.type}
+        ) : displayed.map(r => (
+          <div
+            key={r._id || r.id}
+            className={`group bg-white dark:bg-gray-800 p-4 rounded-2xl border transition-all shadow-sm hover:shadow-md ${
+              r.completed ? 'opacity-60 border-gray-200 dark:border-gray-700' : `border-l-4 border-gray-200 dark:border-gray-700 ${getLeftBorderColor(r.type)}`
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wide border ${getTypeStyle(r.type)}`}>
+                    {TYPE_CONFIG[r.type as ReminderType]?.emoji} {r.type}
+                  </span>
+                  {r.completed && (
+                    <span className="px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold flex items-center gap-1">
+                      <FiCheckCircle size={10} /> Done
                     </span>
-                    {getPriorityBadge(reminder.priority)}
-                    {reminder.completed && (
-                      <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-                        <FiCheckCircle /> Completed
-                      </span>
-                    )}
-                  </div>
-                  <h3 className={`text-lg font-bold text-gray-900 dark:text-white mb-1 ${reminder.completed ? 'line-through' : ''}`}>
-                    {reminder.title}
-                  </h3>
-                  {reminder.description && <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">{reminder.description}</p>}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <div className="flex items-center gap-1.5"><FiCalendar /> {format(parseISO(reminder.date), 'EEEE, d MMMM yyyy')}</div>
-                    <div className="flex items-center gap-1.5"><FiClock /> {reminder.time}</div>
-                    {reminder.sendWhatsApp && isWhatsAppConfirmed && (
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 px-2 py-0.5 rounded-full text-xs font-medium">
-                        <MdWhatsapp /> WhatsApp Enabled
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <div className="flex flex-col gap-2 transition-opacity">
-                  <button onClick={() => toggleComplete(reminder)} className="p-2 rounded-lg bg-green-100 text-green-600 hover:bg-green-200">
-                    {reminder.completed ? <FiX /> : <FiCheckCircle />}
-                  </button>
-                  <button onClick={() => startEdit(reminder)} className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"><FiEdit2 /></button>
-                  <button onClick={() => handleDelete((reminder._id || reminder.id) as string)} className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"><FiTrash2 /></button>
+                <h3 className={`font-bold text-gray-900 dark:text-white truncate ${r.completed ? 'line-through' : ''}`}>
+                  {r.title}
+                </h3>
+                {r.description && <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 line-clamp-1">{r.description}</p>}
+                <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mt-2">
+                  <span className="flex items-center gap-1"><FiCalendar size={11} /> {format(parseISO(r.date), 'EEE, d MMM yyyy')}</span>
+                  <span className="flex items-center gap-1"><FiClock size={11} /> {r.time}</span>
+                  {r.notifyBefore && (
+                    <span className="flex items-center gap-1"><FiBell size={11} /> {r.notifyBefore} min before</span>
+                  )}
+                  {r.sendWhatsApp && isWhatsAppConfirmed && (
+                    <span className="flex items-center gap-1 text-green-500"><MdWhatsapp size={12} /> WhatsApp</span>
+                  )}
                 </div>
               </div>
+              <div className="flex gap-1.5 shrink-0">
+                <button onClick={() => toggleComplete(r)} title={r.completed ? 'Mark incomplete' : 'Mark done'} className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 transition">
+                  <FiCheckCircle size={15} />
+                </button>
+                <button onClick={() => startEdit(r)} title="Edit" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 transition">
+                  <FiEdit2 size={15} />
+                </button>
+                <button onClick={() => handleDelete((r._id || r.id) as string)} title="Delete" className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 transition">
+                  <FiTrash2 size={15} />
+                </button>
+              </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-xl font-bold">{editingId ? 'Edit Reminder' : 'New Reminder'}</h3>
-              <button onClick={resetForm}><FiX /></button>
+      {/* ── Add / Edit Modal ─────────────────────────────────────────────── */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {editingId ? 'Edit Reminder' : 'New Reminder'}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  You'll be notified before and at the scheduled time
+                </p>
+              </div>
+              <button onClick={resetForm} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500">
+                <FiX size={18} />
+              </button>
             </div>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+
+            {/* Form */}
+            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+
+              {/* Title */}
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700" placeholder="e.g., Physics Midterm" />
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  What's the reminder for? <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                  placeholder="e.g. Physics Midterm, Submit Assignment…"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Date + Time */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Date</label>
-                  <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Time</label>
-                  <input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Type</label>
-                  <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value as any })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700">
-                    <option value="study">Study Session</option>
-                    <option value="exam">Exam</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Priority</label>
-                  <select value={formData.priority} onChange={e => setFormData({ ...formData, priority: e.target.value as any })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 h-24" />
-              </div>
-              {isWhatsAppConfirmed && whatsappNumber && (
-                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <input type="checkbox" id="whatsapp" checked={formData.sendWhatsApp} onChange={e => setFormData({ ...formData, sendWhatsApp: e.target.checked })} />
-                  <label htmlFor="whatsapp" className="flex items-center gap-2 text-sm cursor-pointer">
-                    <MdWhatsapp className="text-green-500" /> Send WhatsApp to {whatsappNumber}
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Date <span className="text-red-500">*</span>
                   </label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={e => setForm({ ...form, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={form.time}
+                    onChange={e => setForm({ ...form, time: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Type (pill selector) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(TYPE_CONFIG).map(([k, v]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: k as ReminderType })}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition ${
+                        form.type === k
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {v.emoji} {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notify before */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  <FiBell className="inline mr-1.5 text-blue-500" size={14} />
+                  Notify me
+                </label>
+                <select
+                  value={form.notifyBefore}
+                  onChange={e => setForm({ ...form, notifyBefore: Number(e.target.value) })}
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {NOTIFY_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Note (optional, collapsed by default via placeholder) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Note <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Any extra details…"
+                  rows={2}
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* WhatsApp toggle */}
+              {isWhatsAppConfirmed && whatsappNumber && (
+                <label className="flex items-center gap-3 p-3.5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.sendWhatsApp}
+                    onChange={e => setForm({ ...form, sendWhatsApp: e.target.checked })}
+                    className="w-4 h-4 accent-green-600"
+                  />
+                  <MdWhatsapp className="text-green-500" size={18} />
+                  <span className="text-sm font-medium text-green-800 dark:text-green-300">
+                    Also send to {whatsappNumber}
+                  </span>
+                </label>
               )}
             </div>
-            <div className="p-6 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-700/50">
-              <button onClick={resetForm} className="px-4 py-2 text-gray-600 dark:text-gray-300">Cancel</button>
-              <button onClick={handleSaveReminder} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold">
-                {editingId ? 'Update' : 'Create'}
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+              <button
+                onClick={resetForm}
+                className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : editingId ? 'Update' : 'Set Reminder'}
               </button>
             </div>
           </div>

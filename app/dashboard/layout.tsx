@@ -17,6 +17,7 @@ import { BiCard } from 'react-icons/bi'
 import { useTimerStore } from '@/lib/store/timerStore'
 import { usePWA } from '@/hooks/usePWA'
 import { useSaveLastPage } from '@/hooks/useSaveLastPage'
+import { useReminderScheduler } from '@/hooks/useReminderScheduler'
 import BackButton from '@/components/BackButton'
 import WebPushPrompt from '@/components/WebPushPrompt'
 import WhatsAppCollectModal from '@/components/WhatsAppCollectModal'
@@ -68,6 +69,9 @@ export default function DashboardLayout({
     useSaveLastPage()
     const { theme } = useThemeStore()
     const { isInstallable, isInstalled, installApp } = usePWA()
+
+    // Schedule reminder notifications globally across the dashboard
+    useReminderScheduler(user?.uid)
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [isOffline, setIsOffline] = useState(false)
