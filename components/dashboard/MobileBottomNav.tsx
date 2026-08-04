@@ -20,12 +20,71 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/notes-history', label: 'My Notes', icon: FiFileText },
 ]
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
+// Selectors that indicate a modal/overlay/popup is open
+const MODAL_SELECTORS = [
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[data-radix-dialog-content]',
+  '[data-radix-alert-dialog-content]',
+  '[data-radix-dropdown-menu-content]',
+  '[data-radix-popover-content]',
+  '[data-radix-sheet-content]',
+  '.modal',
+  '.modal-overlay',
+  '.modal-backdrop',
+  '.dialog',
+  '.overlay',
+  '.drawer',
+  '.sheet',
+  '[data-modal]',
+  '[data-overlay]',
+  '[data-dialog]',
+].join(', ')
+
+function isModalOpen(): boolean {
+  try {
+    return document.querySelector(MODAL_SELECTORS) !== null
+  } catch {
+    return false
+  }
+}
 
 export default function BottomNav() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
   const [prevScrollPos, setPrevScrollPos] = useState(0)
+  const scrollVisibleRef = useRef(true)
+
+  // Hide nav when any modal/popup/overlay is present in the DOM
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const checkModal = () => {
+      setModalOpen(isModalOpen())
+    }
+
+    // Observe DOM mutations to detect modals being added/removed
+    const observer = new MutationObserver(checkModal)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['role', 'data-modal', 'data-overlay', 'data-dialog'] })
+
+    // Also support custom events for manual control
+    const onOpen = () => setModalOpen(true)
+    const onClose = () => setModalOpen(false)
+    window.addEventListener('modal-open', onOpen)
+    window.addEventListener('modal-close', onClose)
+
+    // Initial check
+    checkModal()
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('modal-open', onOpen)
+      window.removeEventListener('modal-close', onClose)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -35,8 +94,10 @@ export default function BottomNav() {
       // Show when scrolling up, hide when scrolling down
       const isScrollingDown = currentScrollPos > prevScrollPos
       if (isScrollingDown && currentScrollPos > 80) {
+        scrollVisibleRef.current = false
         setVisible(false)
       } else {
+        scrollVisibleRef.current = true
         setVisible(true)
       }
       setPrevScrollPos(currentScrollPos)
@@ -68,7 +129,7 @@ export default function BottomNav() {
         paddingTop: 10,
         paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
         zIndex: 100,
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transform: (visible && !modalOpen) ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.3s ease-in-out',
       }}
     >
