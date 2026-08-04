@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 import {
   FiPlus, FiTrash2, FiClock, FiCalendar, FiX,
-  FiCheckCircle, FiEdit2, FiSearch, FiBell
+  FiCheckCircle, FiEdit2, FiSearch, FiBell, FiMail, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi'
-import { MdWhatsapp } from 'react-icons/md'
 import { toast } from 'react-hot-toast'
-import { format, parseISO, compareAsc } from 'date-fns'
+import { format, parseISO, compareAsc, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths } from 'date-fns'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import { reminderService, Reminder } from '@/lib/services/reminderService'
@@ -71,17 +70,17 @@ export default function StudyReminders() {
   const [filterType, setFilterType] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'date' | 'priority'>('date')
-  const [whatsappNumber, setWhatsappNumber] = useState('')
-  const [isWhatsAppConfirmed, setIsWhatsAppConfirmed] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [calMonth, setCalMonth] = useState(new Date())
 
   const defaultForm = {
     title: '', date: '', time: '',
     type: 'study' as ReminderType,
     notifyBefore: 15,
     description: '',
-    sendWhatsApp: false,
+    emailEnabled: false,
   }
   const [form, setForm] = useState(defaultForm)
 
@@ -100,10 +99,7 @@ export default function StudyReminders() {
     const loadProfile = async () => {
       try {
         const res = await apiClient.get('/settings')
-        if (res.data.profile?.phone) {
-          setWhatsappNumber(res.data.profile.phone)
-          setIsWhatsAppConfirmed(true)
-        }
+        if (res.data.profile?.email) setUserEmail(res.data.profile.email)
       } catch { /* ignore */ }
     }
     loadData()
@@ -120,7 +116,6 @@ export default function StudyReminders() {
     try {
       const body = {
         ...form,
-        whatsappNumber: form.sendWhatsApp ? whatsappNumber : undefined,
       } as Omit<Reminder, 'id' | 'completed'>
 
       if (editingId) {
@@ -195,6 +190,11 @@ export default function StudyReminders() {
     setEditingId(null)
     setShowModal(false)
   }
+
+  // ── Mini Calendar Helpers ──────────────────────────────────────────────────
+  const calDays = eachDayOfInterval({ start: startOfMonth(calMonth), end: endOfMonth(calMonth) })
+  const startPad = startOfMonth(calMonth).getDay() // 0=Sun
+  const reminderDates = reminders.filter(r => !r.completed).map(r => r.date)
 
   // ── Filter / Sort ──────────────────────────────────────────────────────────
   const displayed = reminders
@@ -313,8 +313,8 @@ export default function StudyReminders() {
                   {r.notifyBefore && (
                     <span className="flex items-center gap-1"><FiBell size={11} /> {r.notifyBefore} min before</span>
                   )}
-                  {r.sendWhatsApp && isWhatsAppConfirmed && (
-                    <span className="flex items-center gap-1 text-green-500"><MdWhatsapp size={12} /> WhatsApp</span>
+                  {r.emailEnabled && (
+                    <span className="flex items-center gap-1 text-blue-500"><FiMail size={11} /> Email</span>
                   )}
                 </div>
               </div>
@@ -334,9 +334,47 @@ export default function StudyReminders() {
         ))}
       </div>
 
+      {/* ── Mini Calendar ────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => setCalMonth(m => subMonths(m, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"><FiChevronLeft size={16} /></button>
+          <span className="font-bold text-gray-800 dark:text-white text-sm">{format(calMonth, 'MMMM yyyy')}</span>
+          <button onClick={() => setCalMonth(m => addMonths(m, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"><FiChevronRight size={16} /></button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+            <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase py-1">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
+          {calDays.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd')
+            const hasReminder = reminderDates.includes(dateStr)
+            const isCurrentMonth = isSameMonth(day, calMonth)
+            return (
+              <div
+                key={dateStr}
+                className={`relative flex items-center justify-center w-full aspect-square rounded-lg text-xs font-semibold transition cursor-default
+                  ${isToday(day) ? 'bg-blue-600 text-white' : ''}
+                  ${!isToday(day) && hasReminder ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : ''}
+                  ${!isToday(day) && !hasReminder && isCurrentMonth ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
+                  ${!isCurrentMonth ? 'text-gray-300 dark:text-gray-600' : ''}
+                `}
+              >
+                {format(day, 'd')}
+                {hasReminder && !isToday(day) && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-500" />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       {/* ── Add / Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm" style={{ touchAction: 'none' }}>
           <div className="bg-white dark:bg-gray-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
 
             {/* Header */}
@@ -368,34 +406,33 @@ export default function StudyReminders() {
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Physics Midterm, Submit Assignment…"
                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  autoFocus
                 />
               </div>
 
-              {/* Date + Time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={e => setForm({ ...form, date: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={form.time}
-                    onChange={e => setForm({ ...form, time: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm({ ...form, date: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Time */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={e => setForm({ ...form, time: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
 
               {/* Type (pill selector) */}
@@ -450,21 +487,19 @@ export default function StudyReminders() {
                 />
               </div>
 
-              {/* WhatsApp toggle */}
-              {isWhatsAppConfirmed && whatsappNumber && (
-                <label className="flex items-center gap-3 p-3.5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.sendWhatsApp}
-                    onChange={e => setForm({ ...form, sendWhatsApp: e.target.checked })}
-                    className="w-4 h-4 accent-green-600"
-                  />
-                  <MdWhatsapp className="text-green-500" size={18} />
-                  <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                    Also send to {whatsappNumber}
-                  </span>
-                </label>
-              )}
+              {/* Email toggle */}
+              <label className="flex items-center gap-3 p-3.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.emailEnabled}
+                  onChange={e => setForm({ ...form, emailEnabled: e.target.checked })}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <FiMail className="text-blue-500" size={18} />
+                <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  Send email reminder{userEmail ? ` to ${userEmail}` : ''}
+                </span>
+              </label>
             </div>
 
             {/* Footer */}

@@ -7,6 +7,8 @@ import { reminderService, Reminder } from '@/lib/services/reminderService'
 import { useAuthStore } from '@/lib/store/authStore'
 import { format, parseISO, isToday, isTomorrow, differenceInMinutes } from 'date-fns'
 
+import { usePathname } from 'next/navigation'
+
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
     exam:       { bg: 'from-red-500/10 to-rose-500/10',     text: 'text-red-700 dark:text-red-300',     border: 'border-red-400/40',    dot: 'bg-red-500' },
     deadline:   { bg: 'from-orange-500/10 to-amber-500/10', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-400/40', dot: 'bg-orange-500' },
@@ -37,11 +39,15 @@ function getWhenLabel(date: string, time: string): string {
 const DISMISS_KEY = 'reminder_banner_dismissed_at'
 
 export default function ReminderBanner() {
+    const pathname = usePathname()
     const { user } = useAuthStore()
     const [reminders, setReminders] = useState<Reminder[]>([])
     const [index, setIndex] = useState(0)
     const [dismissed, setDismissed] = useState(false)
     const [loaded, setLoaded] = useState(false)
+
+    // Only show on main dashboard pages
+    const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/student'
 
     useEffect(() => {
         // Check if the user already dismissed the banner in this session
@@ -55,7 +61,13 @@ export default function ReminderBanner() {
         if (!user?.uid) return
 
         reminderService.getUpcoming(user.uid, 7).then(upcoming => {
-            setReminders(upcoming)
+            const now = new Date()
+            // Filter out past-due/expired reminders so they disappear when due
+            const activeUpcoming = upcoming.filter(r => {
+                const dt = new Date(`${r.date}T${r.time}`)
+                return dt > now
+            })
+            setReminders(activeUpcoming)
             setLoaded(true)
         }).catch(() => setLoaded(true))
     }, [user?.uid])
@@ -65,7 +77,7 @@ export default function ReminderBanner() {
         setDismissed(true)
     }
 
-    if (!loaded || dismissed || reminders.length === 0) return null
+    if (!isDashboardHome || !loaded || dismissed || reminders.length === 0) return null
 
     const reminder = reminders[index]
     const colors = TYPE_COLORS[reminder.type] ?? TYPE_COLORS.other

@@ -2,11 +2,15 @@
 
 import ProtectedRoute from '@/components/ProtectedRoute'
 import StudyReminders from '@/components/dashboard/StudyReminders'
+import BackButton from '@/components/BackButton'
 
 export default function RemindersPage() {
   return (
     <ProtectedRoute>
       <div className="max-w-6xl mx-auto space-y-6">
+        <div className="mb-2">
+          <BackButton label="Back" href="/dashboard/student" />
+        </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Study Reminders
