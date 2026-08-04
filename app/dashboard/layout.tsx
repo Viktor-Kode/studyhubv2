@@ -25,6 +25,7 @@ import { cbtApi } from '@/lib/api/cbt'
 import { reviewCard } from '@/lib/api/flashcardApi'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
 import { toast } from 'react-hot-toast'
+import ReminderBanner from '@/components/dashboard/ReminderBanner'
 
 interface NavItem {
     href: string
@@ -302,6 +303,7 @@ export default function DashboardLayout({
                             <span>You're offline — showing cached content</span>
                         </div>
                     )}
+                    <ReminderBanner />
                     <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-hidden">
                         {(() => {
                             const noGlobalBack = [
