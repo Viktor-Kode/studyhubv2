@@ -293,19 +293,6 @@ export default function DashboardLayout({
                     />
                 )}
 
-                {/* Mobile Menu Button — only shown on non-student pages that lack their own header */}
-                {!isDarkFullPage && (
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700"
-                        aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                        aria-expanded={sidebarOpen}
-                        aria-controls="sidebar-nav"
-                        style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
-                    >
-                        {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
-                    </button>
-                )}
 
                 {/* Main Content */}
                 <main className="pt-0 lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
