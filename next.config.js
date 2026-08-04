@@ -10,6 +10,13 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   turbopack: {},
+  experimental: {
+    // Reduce client-side router cache so dashboard pages don't show stale data
+    staleTimes: {
+      dynamic: 0,
+      static: 30,
+    },
+  },
   serverExternalPackages: ['officeparser', 'pdfjs-dist', 'mammoth'],
   outputFileTracingRoot: path.resolve(__dirname),
   typescript: {

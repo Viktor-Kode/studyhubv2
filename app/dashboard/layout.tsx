@@ -3,15 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
-import { firebaseSignOut } from '@/lib/firebase-auth'
 import { FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
-    FiBarChart2, FiMenu, FiX, FiLogOut, FiAward,
-    FiUser, FiSettings, FiSun, FiMoon, FiChevronDown,
+    FiBarChart2, FiMenu, FiX,
     FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone,
-    FiTarget, FiBell
+    FiTarget
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { MdQuiz, MdSchool } from 'react-icons/md'
@@ -27,7 +25,6 @@ import { cbtApi } from '@/lib/api/cbt'
 import { reviewCard } from '@/lib/api/flashcardApi'
 import { studyPlanApi } from '@/lib/api/studyPlanApi'
 import { toast } from 'react-hot-toast'
-import { progressApi } from '@/lib/api/progressApi'
 
 interface NavItem {
     href: string
@@ -56,7 +53,7 @@ const navItems: NavItem[] = [
 
     // Admin only
     { href: '/dashboard/admin', label: 'Admin Dashboard', icon: FiShield, roles: ['admin'] },
-    { href: '/dashboard/student/community', label: 'Leaderboard', icon: FiAward, roles: ['student', 'teacher', 'admin'] },
+    { href: '/dashboard/student/community', label: 'Leaderboard', icon: FiTarget, roles: ['student', 'teacher', 'admin'] },
     { href: '/dashboard/admin/logins', label: 'Dashboard Logins', icon: FiClock, roles: ['admin'] },
 ]
 
@@ -66,26 +63,14 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     const pathname = usePathname()
-    const router = useRouter()
-    const { user, logout } = useAuthStore()
+    const { user } = useAuthStore()
     useSaveLastPage()
-    const { theme, toggleTheme } = useThemeStore()
+    const { theme } = useThemeStore()
     const { isInstallable, isInstalled, installApp } = usePWA()
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [showUserMenu, setShowUserMenu] = useState(false)
     const [isOffline, setIsOffline] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
-    const [rank, setRank] = useState('Novice')
-
-    useEffect(() => {
-        if (!user?.uid) return
-        progressApi.getMe().then((res) => {
-            const progData = res?.data
-            const resolvedRank = progData?.levelInfo?.name ?? progData?.levelName ?? 'Novice'
-            setRank(resolvedRank)
-        }).catch(() => {})
-    }, [user?.uid])
 
     const syncProgress = async () => {
         try {
@@ -146,16 +131,6 @@ export default function DashboardLayout({
         }
     }, [])
 
-    const handleLogout = async () => {
-        try {
-            await firebaseSignOut()
-        } catch (error) {
-            // ignore logout errors
-        } finally {
-            logout()
-            router.push('/auth/login')
-        }
-    }
 
     const store = useTimerStore()
 
@@ -216,133 +191,12 @@ export default function DashboardLayout({
         <div className={`min-h-screen ${isDark || isDarkFullPage ? 'dark' : ''}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
             <div className={`min-h-screen ${isDarkFullPage ? '' : 'bg-gray-50 dark:bg-gray-900'}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
 
-                {/* Top Navbar */}
-                {!isDarkFullPage && (
-                    <nav className="fixed top-0 left-0 right-0 min-h-14 sm:min-h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 w-full max-w-[100vw] pt-[env(safe-area-inset-top)]">
-                    <div className="h-full px-3 sm:px-4 flex items-center justify-between min-w-0 w-full">
 
-                        {/* Left: Logo/Menu Toggle + Current Page Info */}
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
-                                aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                                aria-expanded={sidebarOpen}
-                                aria-controls="sidebar-nav"
-                            >
-                                {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
-                            </button>
-
-                            <Link href="/dashboard" className="flex items-center gap-2">
-                                <div className="w-8 h-8 overflow-hidden rounded-lg flex items-center justify-center">
-                                    <img 
-                                        src="/apple-touch-icon.png" 
-                                        alt="StudyHelp" 
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
-                                <span className="font-bold text-xl hidden sm:block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    StudyHelp
-                                </span>
-                            </Link>
-                        </div>
-
-                        {/* Right: Theme Toggle + Notifications + User Menu */}
-                        <div className="flex items-center gap-4">
-                            {/* Theme Toggle */}
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                                title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                            >
-                                {isDark ? (
-                                    <FiSun className="text-xl text-yellow-400" />
-                                ) : (
-                                    <FiMoon className="text-xl text-gray-600" />
-                                )}
-                            </button>
-
-                            {/* Notifications */}
-                            <Link href="/dashboard/notifications" aria-label="View notifications">
-                                <FiBell className="text-xl text-gray-400 cursor-pointer hover:text-purple-500 transition-colors" />
-                            </Link>
-
-                            {/* User Menu */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="flex items-center gap-3 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left"
-                                    aria-label="Open account menu"
-                                    aria-expanded={showUserMenu}
-                                    aria-haspopup="true"
-                                >
-                                    <div className="hidden sm:flex flex-col items-end">
-                                        <div className="flex items-center gap-1.5 bg-blue-500/10 text-[10px] font-bold px-2 py-0.5 rounded-full text-indigo-600 dark:text-indigo-400">
-                                            <FiAward className="text-xs" />
-                                            <span>{rank}</span>
-                                        </div>
-                                        <p className="font-bold text-sm text-gray-900 dark:text-white">
-                                            {user?.name || 'Student'}
-                                        </p>
-                                    </div>
-                                    <div className="relative">
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30">
-                                            <img
-                                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`}
-                                                alt="Profile"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    </div>
-                                    <FiChevronDown className="text-gray-500 dark:text-gray-400" />
-                                </button>
-
-                                {/* Dropdown */}
-                                {showUserMenu && (
-                                    <>
-                                        <div
-                                            className="fixed inset-0 z-10"
-                                            onClick={() => setShowUserMenu(false)}
-                                        />
-                                        <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
-                                            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {user?.name}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {user?.email}
-                                                </p>
-                                            </div>
-
-                                            <Link
-                                                href="/dashboard/settings"
-                                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                                                onClick={() => setShowUserMenu(false)}
-                                            >
-                                                <FiSettings className="text-base" />
-                                                Settings
-                                            </Link>
-
-                                            <button
-                                                onClick={handleLogout}
-                                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                                            >
-                                                <FiLogOut className="text-base" />
-                                                Logout
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-                )}
 
                 {/* Sidebar */}
                 <aside
                     id="sidebar-nav"
-                    className={`fixed ${isDarkFullPage ? 'top-0' : 'top-14 sm:top-16'} left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-0 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                     aria-label="Main navigation"
                 >
@@ -439,8 +293,22 @@ export default function DashboardLayout({
                     />
                 )}
 
+                {/* Mobile Menu Button — only shown on non-student pages that lack their own header */}
+                {!isDarkFullPage && (
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700"
+                        aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                        aria-expanded={sidebarOpen}
+                        aria-controls="sidebar-nav"
+                        style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
+                    >
+                        {sidebarOpen ? <FiX className="text-xl text-gray-900 dark:text-gray-100" /> : <FiMenu className="text-xl text-gray-900 dark:text-gray-100" />}
+                    </button>
+                )}
+
                 {/* Main Content */}
-                <main className={`${isDarkFullPage ? 'pt-0' : 'pt-[calc(3.5rem+env(safe-area-inset-top))] sm:pt-[calc(4rem+env(safe-area-inset-top))]'} lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden`}>
+                <main className="pt-0 lg:pl-64 min-w-0 w-full max-w-full overflow-x-hidden">
                     {isOffline && (
                         <div className="mx-3 sm:mx-5 md:mx-6 mt-3 sm:mt-5 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm animate-pulse">
                             <span className="text-base leading-none">⚡</span>
