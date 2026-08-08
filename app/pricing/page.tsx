@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
-import { FiCheckCircle, FiZap, FiAward, FiArrowRight, FiPhone, FiSparkles, FiHelpCircle } from 'react-icons/fi'
+import { FiCheckCircle, FiZap, FiAward, FiArrowRight, FiPhone, FiHelpCircle } from 'react-icons/fi'
+import { HiOutlineSparkles } from 'react-icons/hi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { PLANS } from '@/lib/config/plans'
 import { useState } from 'react'
@@ -131,7 +132,7 @@ export default function PublicPricingPage() {
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-extrabold uppercase tracking-widest">
-            <FiSparkles className="animate-spin text-sm" />
+            <HiOutlineSparkles className="animate-spin text-sm" />
             Simple & Transparent Pricing
           </div>
 

@@ -9,8 +9,9 @@ import BackButton from '@/components/BackButton'
 import BottomNav from '@/components/dashboard/MobileBottomNav'
 import {
   FiCheck, FiX, FiLoader, FiZap, FiAward, FiPhone, FiShield,
-  FiHelpCircle, FiSparkles, FiClock, FiStar, FiArrowRight, FiCheckCircle
+  FiHelpCircle, FiClock, FiStar, FiArrowRight, FiCheckCircle
 } from 'react-icons/fi'
+import { HiOutlineSparkles } from 'react-icons/hi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import { PLANS } from '@/lib/config/plans'
@@ -213,7 +214,7 @@ export default function PricingPage() {
           {/* ── Header ───────────────────────────────────────────────────────── */}
           <div className="text-center space-y-4 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-extrabold uppercase tracking-widest">
-              <FiSparkles className="animate-spin text-sm" />
+              <HiOutlineSparkles className="animate-spin text-sm" />
               {isTeacherFlow ? 'Teacher Suite Plans' : 'Unlimited Exam Preparation'}
             </div>
 
