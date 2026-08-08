@@ -1,10 +1,11 @@
 'use client'
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 import ProtectedRoute from '@/components/ProtectedRoute'
 import NotesHistory from '@/components/dashboard/NotesHistory'
-import { FiFileText } from 'react-icons/fi'
+import { FiFileText, FiLayers } from 'react-icons/fi'
 import BackButton from '@/components/BackButton'
 import BottomNav from '@/components/dashboard/MobileBottomNav'
 
@@ -19,7 +20,7 @@ function NotesHistoryContent() {
                     <div className="mb-4">
                         <BackButton label="Back" href="/dashboard/student" />
                     </div>
-                    <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
                                 <FiFileText className="text-emerald-500 text-2xl" />
@@ -31,6 +32,19 @@ function NotesHistoryContent() {
                                 Your personalized collection of AI-generated study materials. Deepen your understanding and review key concepts anytime.
                             </p>
                         </div>
+                    </div>
+
+                    {/* ── Tab navigation ───────────────────────────────────── */}
+                    <div className="flex gap-2 mb-8 p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl w-fit">
+                        <span className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm">
+                            <FiFileText /> Study Notes
+                        </span>
+                        <Link
+                            href="/dashboard/flip-cards"
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-gray-700 transition"
+                        >
+                            <FiLayers /> Flashcards
+                        </Link>
                     </div>
                 </>
             )}
