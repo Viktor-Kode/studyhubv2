@@ -140,17 +140,17 @@ export default function ProgressAnalytics() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 {/* 2. Score Trend Chart */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">Your Score Over Time</h3>
+                <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Your Score Over Time</h3>
                     {formattedTrendData.length > 0 ? (
-                        <div className="h-52 sm:h-64">
+                        <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={formattedTrendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                <LineChart data={formattedTrendData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.3} />
-                                    <XAxis dataKey="formattedDate" stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} width={35} />
+                                    <XAxis dataKey="formattedDate" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '0.5rem', fontSize: '12px' }}
+                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '0.5rem' }}
                                         itemStyle={{ color: '#fff' }}
                                     />
                                     <Line
@@ -158,8 +158,8 @@ export default function ProgressAnalytics() {
                                         dataKey="score"
                                         stroke={trendColor}
                                         strokeWidth={3}
-                                        dot={{ fill: trendColor, strokeWidth: 2, r: 3 }}
-                                        activeDot={{ r: 5 }}
+                                        dot={{ fill: trendColor, strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6 }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
