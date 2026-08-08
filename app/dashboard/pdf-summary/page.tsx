@@ -5,14 +5,14 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { generateStudyNotes, saveStudyNote } from '@/lib/api/quizApi'
-import { generateAIFlashCards, createDeck, createFlashCard, FlashCard } from '@/lib/api/flashcardApi'
+import { generateAIFlashCards, FlashCard } from '@/lib/api/flashcardApi'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { useUpgrade } from '@/context/UpgradeContext'
 import {
   FiUploadCloud, FiFileText, FiLoader, FiCheckCircle,
-  FiSave, FiRefreshCw, FiX, FiBookOpen, FiEdit3,
+  FiSave, FiRefreshCw, FiX, FiEdit3,
   FiArrowRight, FiLayers, FiChevronLeft, FiChevronRight,
-  FiRotateCw, FiEye, FiGrid, FiCheck
+  FiRotateCw, FiEye, FiGrid, FiCheck, FiBookOpen
 } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 
@@ -145,7 +145,7 @@ export default function PDFSummaryPage() {
   const { showUpgrade } = useUpgrade()
 
   // Generator Options (Checkbox)
-  const [includeFlashcards, setIncludeFlashcards] = useState(true)
+  const [includeFlashcards, setIncludeFlashcards] = useState(false)
 
   // Navigation tab state (in result)
   const [activeTab, setActiveTab] = useState<ActiveTab>('note')
@@ -170,8 +170,6 @@ export default function PDFSummaryPage() {
   const [cardIndex, setCardIndex] = useState(0)
   const [cardFlipped, setCardFlipped] = useState(false)
   const [cardsViewMode, setCardsViewMode] = useState<'flip' | 'grid'>('flip')
-  const [savingCards, setSavingCards] = useState(false)
-  const [cardsSaved, setCardsSaved] = useState(false)
 
   // Save note state
   const [noteTitle, setNoteTitle] = useState('')
@@ -379,7 +377,6 @@ export default function PDFSummaryPage() {
     setNoteTitle('')
     setError(null)
     setSaved(false)
-    setCardsSaved(false)
     setActiveTab('note')
   }
 
@@ -536,45 +533,27 @@ export default function PDFSummaryPage() {
               )}
 
               {/* ── FLASHCARD CHECKBOX OPTION ───────────────────────────────── */}
-              <div className="mt-6 p-4 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-800/40 rounded-2xl">
-                <label className="flex items-center justify-between cursor-pointer select-none">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={includeFlashcards}
-                        onChange={(e) => setIncludeFlashcards(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                        includeFlashcards
-                          ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
-                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
-                      }`}>
-                        {includeFlashcards && <FiCheck className="text-xs stroke-[3]" />}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <FiLayers className="text-purple-600 dark:text-purple-400 text-sm" />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          Generate AI Flashcards
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Automatically create interactive review cards along with study notes
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-full ${
+              <label className="mt-6 flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={includeFlashcards}
+                    onChange={(e) => setIncludeFlashcards(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                     includeFlashcards
-                      ? 'bg-purple-200 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
                   }`}>
-                    {includeFlashcards ? 'Active' : 'Off'}
-                  </span>
-                </label>
-              </div>
+                    {includeFlashcards && <FiCheck className="text-xs stroke-[3]" />}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100">Also generate flashcards</span>
+                  <p className="text-xs text-gray-400 mt-0.5">Create review cards from your study notes</p>
+                </div>
+              </label>
 
               {/* Generate Button */}
               <button
@@ -684,36 +663,19 @@ export default function PDFSummaryPage() {
               </div>
 
               <div className="flex gap-2 flex-shrink-0">
-                {activeTab === 'note' ? (
-                  saved ? (
-                    <div className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-                      <FiCheckCircle /> Saved Note
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving || !noteTitle}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20"
-                    >
-                      {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
-                      Save Note
-                    </button>
-                  )
+                {saved ? (
+                  <div className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                    <FiCheckCircle /> Saved
+                  </div>
                 ) : (
-                  cardsSaved ? (
-                    <div className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold border border-purple-200 dark:border-purple-800">
-                      <FiCheckCircle /> Deck Saved
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleSaveCards}
-                      disabled={savingCards || flashcards.length === 0}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-purple-500/20"
-                    >
-                      {savingCards ? <FiLoader className="animate-spin" /> : <FiSave />}
-                      Save Flashcards
-                    </button>
-                  )
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !noteTitle}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20"
+                  >
+                    {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
+                    Save Note
+                  </button>
                 )}
 
                 <button
@@ -726,7 +688,7 @@ export default function PDFSummaryPage() {
             </div>
 
             {/* Saved CTA */}
-            {saved && activeTab === 'note' && (
+            {saved && (
               <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl">
                 <div className="flex items-center gap-2">
                   <FiCheckCircle className="text-emerald-500" />
@@ -739,23 +701,6 @@ export default function PDFSummaryPage() {
                   className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
                 >
                   View Notes <FiArrowRight />
-                </Link>
-              </div>
-            )}
-
-            {cardsSaved && activeTab === 'flashcard' && (
-              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <FiCheckCircle className="text-purple-500" />
-                  <p className="text-sm font-bold text-purple-700 dark:text-purple-300">
-                    Saved to your Flashcards! Study them anytime in Flip Cards.
-                  </p>
-                </div>
-                <Link
-                  href="/dashboard/flip-cards"
-                  className="flex items-center gap-1 text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline"
-                >
-                  Open Flip Cards <FiArrowRight />
                 </Link>
               </div>
             )}
@@ -850,15 +795,15 @@ export default function PDFSummaryPage() {
                           >
                             {/* FRONT SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full bg-gradient-to-br from-white via-purple-50/40 to-indigo-50/40 dark:from-gray-800 dark:via-gray-800 dark:to-purple-950/30 border-2 border-purple-200/80 dark:border-purple-800/50 rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              className="absolute inset-0 w-full h-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-3xl p-8 flex flex-col justify-between shadow-md"
                               style={{ backfaceVisibility: 'hidden' }}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-full text-[10px] font-black uppercase tracking-wider">
-                                  Front &bull; Question
+                                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                  Question
                                 </span>
-                                <span className="text-xs text-gray-400 flex items-center gap-1 group-hover:text-purple-600 transition">
-                                  <FiRotateCw /> Click to flip
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                  <FiRotateCw /> Tap to flip
                                 </span>
                               </div>
                               <div className="my-auto text-center px-4">
@@ -867,33 +812,34 @@ export default function PDFSummaryPage() {
                                 </p>
                               </div>
                               <div className="text-center">
-                                <span className="text-xs text-gray-400 font-medium">Click card to reveal answer</span>
+                                <span className="text-xs text-gray-400 font-medium">Tap card to reveal answer</span>
                               </div>
                             </div>
 
                             {/* BACK SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 text-white rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              className="absolute inset-0 w-full h-full bg-gray-50 dark:bg-gray-750 border-2 border-indigo-200 dark:border-indigo-700 rounded-3xl p-8 flex flex-col justify-between shadow-md"
                               style={{
                                 backfaceVisibility: 'hidden',
-                                transform: 'rotateY(180deg)'
+                                transform: 'rotateY(180deg)',
+                                backgroundColor: 'var(--card-back-bg, #f8faff)'
                               }}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="px-3 py-1 bg-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-wider">
-                                  Back &bull; Answer
+                                <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                  Answer
                                 </span>
-                                <span className="text-xs text-purple-200 flex items-center gap-1">
-                                  <FiRotateCw /> Click to flip back
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                  <FiRotateCw /> Tap to flip back
                                 </span>
                               </div>
                               <div className="my-auto text-center px-4 overflow-y-auto max-h-48">
-                                <p className="text-base sm:text-lg font-semibold leading-relaxed text-purple-50">
+                                <p className="text-base sm:text-lg font-semibold leading-relaxed text-gray-800 dark:text-gray-100">
                                   {flashcards[cardIndex]?.back}
                                 </p>
                               </div>
                               <div className="text-center">
-                                <span className="text-xs text-purple-200 font-medium">Click card to return to front</span>
+                                <span className="text-xs text-gray-400 font-medium">Tap card to return to question</span>
                               </div>
                             </div>
                           </div>
@@ -913,7 +859,7 @@ export default function PDFSummaryPage() {
 
                           <button
                             onClick={() => setCardFlipped(!cardFlipped)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-black hover:bg-purple-200 transition"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-black hover:bg-indigo-200 transition"
                           >
                             <FiRotateCw /> Flip Card
                           </button>
@@ -969,10 +915,10 @@ export default function PDFSummaryPage() {
                 <FiRefreshCw /> Summarise Another Document
               </button>
               <Link
-                href="/dashboard/flip-cards"
-                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-indigo-700 transition shadow-lg shadow-purple-500/20"
+                href="/dashboard/notes-history"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/20"
               >
-                <FiLayers /> All Flashcards Decks <FiArrowRight />
+                <FiBookOpen /> My Notes <FiArrowRight />
               </Link>
             </div>
           </div>
