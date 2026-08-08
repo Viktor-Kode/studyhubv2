@@ -63,6 +63,7 @@ export default function StudentDashboardPage() {
 
   const [stats, setStats] = useState({
     totalQuestions: 0,
+    todayQuestions: 0,
     quizSessions: 0,
     cbtAccuracy: 0,
     studyStreak: 0,
@@ -121,6 +122,7 @@ export default function StudentDashboardPage() {
 
         setStats({
           totalQuestions: d.cbt?.totalQuestions ?? 0,
+          todayQuestions: d.cbt?.todayQuestions ?? 0,
           quizSessions: d.studyTimer?.totalSessions ?? 0,
           cbtAccuracy: parseInt(d.cbt?.overallAccuracy) || 0,
           studyStreak: displayStreak,
@@ -225,6 +227,20 @@ export default function StudentDashboardPage() {
       }[activeGoalId] ?? '')
     : ''
 
+  // Daily Goal Calculations
+  const dailyQuestionsDone = stats.todayQuestions || 0
+  let dailyGoalDoneText = ''
+  let dailyGoalPct = 0
+
+  if (activeGoalId === 'pastquestions' || activeGoalId === 'quiz') {
+    dailyGoalDoneText = `${dailyQuestionsDone} / 20 done today`
+    dailyGoalPct = Math.min(100, Math.round((dailyQuestionsDone / 20) * 100))
+  } else {
+    const isActivityDone = stats.studiedToday || dailyQuestionsDone > 0
+    dailyGoalDoneText = isActivityDone ? 'Goal completed today 🎉' : '0 / 1 done today'
+    dailyGoalPct = isActivityDone ? 100 : 0
+  }
+
   // ── Render ─────────────────────────────────────────────────
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
@@ -268,7 +284,7 @@ export default function StudentDashboardPage() {
           </div>
         </header>
 
-        {/* ── Goal bar (only if goal was completed, not skipped) ── */}
+        {/* ── Goal bar (tracks daily progress only) ── */}
         {activeGoalId && goalTitle && (
           <div className="sd-section">
             <div className="sd-goal-bar">
@@ -278,7 +294,7 @@ export default function StudentDashboardPage() {
                   <p className="sd-goal-title">{goalTitle}</p>
                 </div>
                 <div className="sd-goal-right">
-                  <span className="sd-goal-count">{stats.totalQuestions} done</span>
+                  <span className="sd-goal-count">{dailyGoalDoneText}</span>
                   <button
                     className="sd-goal-change"
                     onClick={() => setShowGoalPopup(true)}
@@ -292,7 +308,7 @@ export default function StudentDashboardPage() {
                 <div
                   className="sd-goal-progress-fill"
                   style={{
-                    width: `${Math.min(100, stats.progressToNext)}%`,
+                    width: `${dailyGoalPct}%`,
                   }}
                 />
               </div>

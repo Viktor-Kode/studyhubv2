@@ -222,6 +222,17 @@ export default function GoalPopup({ onClose }: GoalPopupProps) {
   )
 }
 
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000
+
+function isStoredGoalExpired(stored: StoredGoal): boolean {
+  if (!stored.timestamp) return true
+  const elapsed = Date.now() - stored.timestamp
+  if (elapsed >= TWENTY_FOUR_HOURS_MS) return true
+  const goalDate = new Date(stored.timestamp).toDateString()
+  const todayDate = new Date().toDateString()
+  return goalDate !== todayDate
+}
+
 /** Returns true if the goal popup should be shown */
 export function shouldShowGoalPopup(): boolean {
   if (typeof window === 'undefined') return false
@@ -229,22 +240,23 @@ export function shouldShowGoalPopup(): boolean {
   if (!raw) return true
   try {
     const stored: StoredGoal = JSON.parse(raw)
-    const elapsed = Date.now() - (stored.timestamp ?? 0)
-    return elapsed > THREE_DAYS_MS
+    return isStoredGoalExpired(stored)
   } catch {
     return true
   }
 }
 
-/** Returns the stored goal id (null if skipped or not set) */
+/** Returns the stored goal id (null if skipped, expired or not set) */
 export function getStoredGoal(): string | null {
   if (typeof window === 'undefined') return null
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw) return null
   try {
     const stored: StoredGoal = JSON.parse(raw)
+    if (isStoredGoalExpired(stored)) return null
     return stored.skipped ? null : stored.id || null
   } catch {
     return null
   }
 }
+
