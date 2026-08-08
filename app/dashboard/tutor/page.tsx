@@ -431,7 +431,7 @@ export default function AiTutorPage() {
 
         {/* ===== SIDEBAR ===== */}
         <aside
-          className={`w-[260px] md:w-[280px] bg-[#0d1f33] border-r border-white/5 flex flex-col flex-shrink-0 h-full p-4 transition-transform duration-300 ease-out z-50 fixed md:relative left-0 top-0 bottom-0 ${
+          className={`w-[260px] md:w-[280px] bg-[#0d1f33] border-r border-white/5 flex flex-col flex-shrink-0 h-full p-4 pt-[max(16px,env(safe-area-inset-top))] transition-transform duration-300 ease-out z-50 fixed md:relative left-0 top-0 bottom-0 ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
@@ -513,7 +513,7 @@ export default function AiTutorPage() {
         <main className="flex-1 flex flex-col h-full bg-[#0f2340] relative min-w-0">
 
           {/* Chat Header */}
-          <header className="px-4 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-[#0f2340] z-10">
+          <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-white/5 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-[#0f2340]/95 backdrop-blur-md">
             <div className="flex items-center gap-3 min-w-0">
               <a
                 href="/dashboard/student"
