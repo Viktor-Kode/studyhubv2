@@ -5,12 +5,14 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { generateStudyNotes, saveStudyNote } from '@/lib/api/quizApi'
+import { generateAIFlashCards, createDeck, createFlashCard, FlashCard } from '@/lib/api/flashcardApi'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { useUpgrade } from '@/context/UpgradeContext'
 import {
   FiUploadCloud, FiFileText, FiLoader, FiCheckCircle,
-  FiSave, FiRefreshCw, FiX, FiBookOpen, FiEdit3, FiLink,
-  FiArrowLeft, FiArrowRight
+  FiSave, FiRefreshCw, FiX, FiBookOpen, FiEdit3,
+  FiArrowRight, FiLayers, FiChevronLeft, FiChevronRight,
+  FiRotateCw, FiEye, FiGrid
 } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 
@@ -30,6 +32,47 @@ function isUpgradeError(msg: string): boolean {
     m.includes('upgrade') || m.includes('ai limit') ||
     m.includes('limit reached') || m.includes('expired') || m.includes('renew')
   )
+}
+
+function extractFlashcardsFromMarkdown(markdownText: string, category: string): FlashCard[] {
+  const cards: FlashCard[] = []
+  if (!markdownText) return cards
+
+  const boldTermRegex = /(?:^|\n)(?:\d+\.\s*|\*\s*|- \s*)?\*\*(.*?)\*\*\s*[:\-–]?\s*([^\n]+)/g
+  let match
+  while ((match = boldTermRegex.exec(markdownText)) !== null) {
+    const front = match[1].trim().replace(/^#+\s*/, '')
+    const back = match[2].trim()
+    if (front.length >= 3 && back.length >= 5 && front.length < 150 && back.length < 500) {
+      cards.push({
+        userId: '',
+        front: front,
+        back: back,
+        category: category || 'PDF Summary'
+      })
+    }
+  }
+
+  if (cards.length < 4) {
+    const sections = markdownText.split(/(?=\n##+\s)/)
+    for (const sec of sections) {
+      const lines = sec.trim().split('\n').filter(Boolean)
+      if (lines.length >= 2) {
+        const title = lines[0].replace(/^#+\s*/, '').replace(/\*\*/g, '').trim()
+        const content = lines.slice(1).join(' ').replace(/\*\*/g, '').trim()
+        if (title.length > 3 && content.length > 10) {
+          cards.push({
+            userId: '',
+            front: `What is ${title}?`,
+            back: content.slice(0, 300),
+            category: category || 'PDF Summary'
+          })
+        }
+      }
+    }
+  }
+
+  return cards.slice(0, 15)
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
@@ -96,9 +139,13 @@ function MarkdownNote({ content }: { content: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 type InputMode = 'upload' | 'manual'
 type Stage = 'input' | 'generating' | 'result'
+type ActiveTab = 'note' | 'flashcard'
 
 export default function PDFSummaryPage() {
   const { showUpgrade } = useUpgrade()
+
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<ActiveTab>('note')
 
   // Input state
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -112,10 +159,18 @@ export default function PDFSummaryPage() {
   // Generation state
   const [stage, setStage] = useState<Stage>('input')
   const [generatedNotes, setGeneratedNotes] = useState('')
+  const [flashcards, setFlashcards] = useState<FlashCard[]>([])
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Save state
+  // Flashcards UI state
+  const [cardIndex, setCardIndex] = useState(0)
+  const [cardFlipped, setCardFlipped] = useState(false)
+  const [cardsViewMode, setCardsViewMode] = useState<'flip' | 'grid'>('flip')
+  const [savingCards, setSavingCards] = useState(false)
+  const [cardsSaved, setCardsSaved] = useState(false)
+
+  // Save note state
   const [noteTitle, setNoteTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -158,8 +213,8 @@ export default function PDFSummaryPage() {
     if (file) handleFile(file)
   }, [handleFile])
 
-  // ── Generate ────────────────────────────────────────────────────────────────
-  const handleGenerate = async () => {
+  // ── Generate Both Note & Flashcards ─────────────────────────────────────────
+  const handleGenerate = async (targetTab?: ActiveTab) => {
     const text = inputMode === 'upload' ? extractedText : manualText
     if (!text || text.trim().length < 50) {
       setError('Please provide at least 50 characters of content.')
@@ -167,28 +222,57 @@ export default function PDFSummaryPage() {
     }
     setError(null)
     setGeneratedNotes('')
+    setFlashcards([])
     setGenerating(true)
     setStage('generating')
     setSaved(false)
+    setCardsSaved(false)
+    if (targetTab) setActiveTab(targetTab)
 
     // Auto-title from file name or first line
-    if (!noteTitle) {
-      const autoTitle =
-        inputMode === 'upload' && uploadedFile
-          ? uploadedFile.name.replace(/\.[^/.]+$/, '')
-          : text.split('\n')[0].slice(0, 60).trim()
-      setNoteTitle(autoTitle || 'My Study Notes')
-    }
+    const title = noteTitle || (inputMode === 'upload' && uploadedFile
+      ? uploadedFile.name.replace(/\.[^/.]+$/, '')
+      : text.split('\n')[0].slice(0, 60).trim()) || 'My Study Material'
+    setNoteTitle(title)
 
     try {
-      const response = await generateStudyNotes(
+      // Generate Study Notes
+      const notePromise = generateStudyNotes(
         text,
         inputMode === 'upload' ? uploadedFile?.name : undefined,
         (chunk) => setGeneratedNotes(prev => prev + chunk)
       )
-      if (response.success && response.notes) {
-        setGeneratedNotes(response.notes)
+
+      // Generate Flashcards concurrently
+      const cardPromise = generateAIFlashCards({
+        text: text.slice(0, 4000),
+        amount: 10,
+        category: title
+      }).catch(err => {
+        console.warn('AI Flashcards API failed, fallback to parser', err)
+        return null
+      })
+
+      const [noteRes, cardRes] = await Promise.all([notePromise, cardPromise])
+
+      let notesContent = ''
+      if (noteRes?.success && noteRes.notes) {
+        notesContent = noteRes.notes
+        setGeneratedNotes(noteRes.notes)
+      } else {
+        notesContent = generatedNotes
       }
+
+      let generatedCardsList: FlashCard[] = []
+      if (cardRes?.success && Array.isArray(cardRes.flashCards) && cardRes.flashCards.length > 0) {
+        generatedCardsList = cardRes.flashCards
+      } else {
+        generatedCardsList = extractFlashcardsFromMarkdown(notesContent || text, title)
+      }
+
+      setFlashcards(generatedCardsList)
+      setCardIndex(0)
+      setCardFlipped(false)
       setStage('result')
     } catch (e: any) {
       const msg = e?.message || 'Generation failed. Please try again.'
@@ -202,7 +286,33 @@ export default function PDFSummaryPage() {
     }
   }
 
-  // ── Save to My Notes ────────────────────────────────────────────────────────
+  // ── Generate Flashcards On-demand (if tab switched) ─────────────────────────
+  const generateFlashcardsOnDemand = async () => {
+    if (flashcards.length > 0) return
+    const text = generatedNotes || (inputMode === 'upload' ? extractedText : manualText)
+    if (!text) return
+    setGenerating(true)
+    const title = noteTitle || 'PDF Summary'
+    try {
+      const cardRes = await generateAIFlashCards({
+        text: text.slice(0, 4000),
+        amount: 10,
+        category: title
+      }).catch(() => null)
+
+      if (cardRes?.success && Array.isArray(cardRes.flashCards) && cardRes.flashCards.length > 0) {
+        setFlashcards(cardRes.flashCards)
+      } else {
+        setFlashcards(extractFlashcardsFromMarkdown(text, title))
+      }
+    } catch (e) {
+      setFlashcards(extractFlashcardsFromMarkdown(text, title))
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // ── Save Note ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!generatedNotes || !noteTitle) return
     setSaving(true)
@@ -218,16 +328,52 @@ export default function PDFSummaryPage() {
     }
   }
 
+  // ── Save Flashcards Deck ────────────────────────────────────────────────────
+  const handleSaveCards = async () => {
+    if (flashcards.length === 0) return
+    setSavingCards(true)
+    try {
+      const deckTitle = noteTitle || 'PDF Summary Flashcards'
+      const deckRes = await createDeck({
+        name: deckTitle,
+        description: `Generated from ${inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'PDF Summary'}`,
+        category: 'PDF Summary',
+        color: 'purple'
+      }).catch(() => null)
+
+      const deckId = deckRes?.deck?._id || deckRes?._id
+
+      for (const card of flashcards) {
+        await createFlashCard({
+          front: card.front,
+          back: card.back,
+          category: card.category || 'PDF Summary',
+          deckId: deckId
+        }).catch(() => {})
+      }
+      setCardsSaved(true)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to save flashcards.')
+    } finally {
+      setSavingCards(false)
+    }
+  }
+
   // ── Reset ───────────────────────────────────────────────────────────────────
   const handleReset = () => {
     setStage('input')
     setGeneratedNotes('')
+    setFlashcards([])
+    setCardIndex(0)
+    setCardFlipped(false)
     setUploadedFile(null)
     setExtractedText('')
     setManualText('')
     setNoteTitle('')
     setError(null)
     setSaved(false)
+    setCardsSaved(false)
+    setActiveTab('note')
   }
 
   const textReady =
@@ -240,16 +386,64 @@ export default function PDFSummaryPage() {
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
-            <FiFileText className="text-white text-xl" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 shadow-lg shadow-blue-500/25">
+              <FiFileText className="text-white text-xl" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white">PDF Summary & AI Flashcards</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Upload a document or paste text — generate exam notes and interactive flashcards in seconds
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white">PDF Summary</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Upload a document or paste text — get exam-ready study notes in seconds
-            </p>
-          </div>
+        </div>
+
+        {/* ── TOP LEVEL NAVIGATION TABS (NOTE | FLASHCARD) ─────────────────────── */}
+        <div className="mb-6 bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab('note')
+              if (stage === 'input' && textReady) {
+                handleGenerate('note')
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-black transition-all ${
+              activeTab === 'note'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <FiFileText className="text-lg" />
+            <span>Note</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('flashcard')
+              if (stage === 'input' && textReady) {
+                handleGenerate('flashcard')
+              } else if (stage === 'result' && flashcards.length === 0) {
+                generateFlashcardsOnDemand()
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-black transition-all ${
+              activeTab === 'flashcard'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <FiLayers className="text-lg" />
+            <span>Flashcard</span>
+            {flashcards.length > 0 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                activeTab === 'flashcard' ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300'
+              }`}>
+                {flashcards.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Error Banner */}
@@ -382,18 +576,18 @@ export default function PDFSummaryPage() {
 
               {/* Generate Button */}
               <button
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(activeTab)}
                 disabled={!textReady}
-                className="mt-6 w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                className="mt-6 w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
               >
                 <BiBrain className="text-xl" />
-                Generate Study Notes
+                Generate Note & Flashcards
               </button>
 
               {/* Chip list showing what AI will produce */}
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                {['Key Concepts', 'Detailed Explanations', 'Likely Exam Questions', 'Summary'].map(chip => (
-                  <span key={chip} className="text-[10px] font-bold px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full">
+                {['Study Notes', 'Key Concepts', '10+ Flashcards', 'Exam Prep'].map(chip => (
+                  <span key={chip} className="text-[10px] font-bold px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full">
                     {chip}
                   </span>
                 ))}
@@ -410,7 +604,7 @@ export default function PDFSummaryPage() {
                 {/* Live streaming preview */}
                 <div className="flex items-center gap-2 mb-6">
                   <FiLoader className="animate-spin text-blue-500" />
-                  <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Generating your notes...</span>
+                  <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Generating your study notes & flashcards...</span>
                 </div>
                 <div className="prose prose-sm max-w-none">
                   <MarkdownNote content={generatedNotes} />
@@ -419,45 +613,62 @@ export default function PDFSummaryPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-                  <BiBrain className="absolute inset-0 m-auto text-blue-500 text-2xl" />
+                  <div className="w-16 h-16 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
+                  <BiBrain className="absolute inset-0 m-auto text-purple-500 text-2xl" />
                 </div>
-                <p className="font-bold text-gray-700 dark:text-gray-200">Analyzing your document...</p>
-                <p className="text-xs text-gray-400">This may take a few seconds</p>
+                <p className="font-bold text-gray-700 dark:text-gray-200">Analyzing document & generating study materials...</p>
+                <p className="text-xs text-gray-400">Creating notes and key concept flashcards</p>
               </div>
             )}
           </div>
         )}
 
         {/* ── RESULT STAGE ─────────────────────────────────────────────────── */}
-        {stage === 'result' && generatedNotes && (
+        {stage === 'result' && (
           <div className="space-y-4">
-            {/* Action bar */}
+            {/* Title & Action Bar */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex-1 flex gap-2">
                 <input
                   type="text"
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="Title for this note..."
+                  placeholder="Title for this study material..."
                   className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold outline-none focus:border-blue-400 transition"
                 />
               </div>
 
               <div className="flex gap-2 flex-shrink-0">
-                {saved ? (
-                  <div className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-                    <FiCheckCircle /> Saved to My Notes
-                  </div>
+                {activeTab === 'note' ? (
+                  saved ? (
+                    <div className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                      <FiCheckCircle /> Saved Note
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || !noteTitle}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20"
+                    >
+                      {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
+                      Save Note
+                    </button>
+                  )
                 ) : (
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !noteTitle}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20"
-                  >
-                    {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
-                    Save to My Notes
-                  </button>
+                  cardsSaved ? (
+                    <div className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold border border-purple-200 dark:border-purple-800">
+                      <FiCheckCircle /> Deck Saved
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSaveCards}
+                      disabled={savingCards || flashcards.length === 0}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition shadow-md shadow-purple-500/20"
+                    >
+                      {savingCards ? <FiLoader className="animate-spin" /> : <FiSave />}
+                      Save Flashcards
+                    </button>
+                  )
                 )}
 
                 <button
@@ -470,12 +681,12 @@ export default function PDFSummaryPage() {
             </div>
 
             {/* Saved CTA */}
-            {saved && (
+            {saved && activeTab === 'note' && (
               <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl">
                 <div className="flex items-center gap-2">
                   <FiCheckCircle className="text-emerald-500" />
                   <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                    Saved! View it anytime in your notes.
+                    Saved! View it anytime in your notes history.
                   </p>
                 </div>
                 <Link
@@ -487,10 +698,211 @@ export default function PDFSummaryPage() {
               </div>
             )}
 
-            {/* Notes Content */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 sm:p-8">
-              <MarkdownNote content={generatedNotes} />
-            </div>
+            {cardsSaved && activeTab === 'flashcard' && (
+              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <FiCheckCircle className="text-purple-500" />
+                  <p className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                    Saved to your Flashcards! Study them anytime in Flip Cards.
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard/flip-cards"
+                  className="flex items-center gap-1 text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  Open Flip Cards <FiArrowRight />
+                </Link>
+              </div>
+            )}
+
+            {/* ── TAB CONTENT: NOTE VIEW ────────────────────────────────────── */}
+            {activeTab === 'note' && generatedNotes && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 sm:p-8">
+                <MarkdownNote content={generatedNotes} />
+              </div>
+            )}
+
+            {/* ── TAB CONTENT: FLASHCARD VIEW ───────────────────────────────── */}
+            {activeTab === 'flashcard' && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 sm:p-8">
+                {flashcards.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <FiLoader className="text-3xl text-purple-500 animate-spin mb-3" />
+                    <p className="font-bold text-gray-700 dark:text-gray-200">Generating flashcards...</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    {/* View Controls & Info */}
+                    <div className="w-full flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                          Interactive Deck
+                        </span>
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                          {flashcards.length} Flashcards Generated
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCardsViewMode('flip')}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                            cardsViewMode === 'flip'
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          <FiEye /> Flip View
+                        </button>
+                        <button
+                          onClick={() => setCardsViewMode('grid')}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                            cardsViewMode === 'grid'
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          <FiGrid /> Grid View
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Single 3D Flip Card View */}
+                    {cardsViewMode === 'flip' && (
+                      <div className="w-full max-w-xl">
+                        <div className="flex justify-between items-center mb-2 px-1">
+                          <span className="text-xs font-bold text-gray-400">
+                            Card {cardIndex + 1} of {flashcards.length}
+                          </span>
+                          <span className="text-xs text-purple-500 font-medium flex items-center gap-1">
+                            <FiRotateCw /> Click card to flip
+                          </span>
+                        </div>
+
+                        <div
+                          onClick={() => setCardFlipped(!cardFlipped)}
+                          className="cursor-pointer group relative w-full h-80 select-none"
+                          style={{ perspective: '1000px' }}
+                        >
+                          <div
+                            className="relative w-full h-full rounded-3xl shadow-xl transition-all duration-500"
+                            style={{
+                              transformStyle: 'preserve-3d',
+                              transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                              transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                          >
+                            {/* FRONT SIDE */}
+                            <div
+                              className="absolute inset-0 w-full h-full bg-gradient-to-br from-white via-purple-50/40 to-indigo-50/40 dark:from-gray-800 dark:via-gray-800 dark:to-purple-950/30 border-2 border-purple-200/80 dark:border-purple-800/50 rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              style={{ backfaceVisibility: 'hidden' }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                  Front &bull; Question
+                                </span>
+                                <span className="text-xs text-gray-400 flex items-center gap-1 group-hover:text-purple-600 transition">
+                                  <FiRotateCw /> Click to flip
+                                </span>
+                              </div>
+                              <div className="my-auto text-center px-4">
+                                <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-relaxed">
+                                  {flashcards[cardIndex]?.front}
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-xs text-gray-400 font-medium">Click card to reveal answer</span>
+                              </div>
+                            </div>
+
+                            {/* BACK SIDE */}
+                            <div
+                              className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 text-white rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              style={{
+                                backfaceVisibility: 'hidden',
+                                transform: 'rotateY(180deg)'
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="px-3 py-1 bg-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-wider">
+                                  Back &bull; Answer
+                                </span>
+                                <span className="text-xs text-purple-200 flex items-center gap-1">
+                                  <FiRotateCw /> Click to flip back
+                                </span>
+                              </div>
+                              <div className="my-auto text-center px-4 overflow-y-auto max-h-48">
+                                <p className="text-base sm:text-lg font-semibold leading-relaxed text-purple-50">
+                                  {flashcards[cardIndex]?.back}
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-xs text-purple-200 font-medium">Click card to return to front</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Navigation controls */}
+                        <div className="flex items-center justify-between mt-6">
+                          <button
+                            onClick={() => {
+                              setCardFlipped(false)
+                              setCardIndex(prev => (prev > 0 ? prev - 1 : flashcards.length - 1))
+                            }}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
+                          >
+                            <FiChevronLeft /> Previous
+                          </button>
+
+                          <button
+                            onClick={() => setCardFlipped(!cardFlipped)}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-black hover:bg-purple-200 transition"
+                          >
+                            <FiRotateCw /> Flip Card
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setCardFlipped(false)
+                              setCardIndex(prev => (prev < flashcards.length - 1 ? prev + 1 : 0))
+                            }}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
+                          >
+                            Next <FiChevronRight />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* All Cards Grid View */}
+                    {cardsViewMode === 'grid' && (
+                      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {flashcards.map((card, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm flex flex-col justify-between"
+                          >
+                            <div>
+                              <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full inline-block mb-3">
+                                Card #{idx + 1}
+                              </span>
+                              <p className="font-bold text-gray-900 dark:text-white text-sm mb-3">
+                                {card.front}
+                              </p>
+                              <div className="p-3 bg-white dark:bg-gray-800 rounded-xl text-xs text-gray-600 dark:text-gray-300 leading-relaxed border border-gray-200 dark:border-gray-700">
+                                <span className="font-bold text-purple-600 dark:text-purple-400 block mb-1">Answer:</span>
+                                {card.back}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Bottom actions */}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -501,10 +913,10 @@ export default function PDFSummaryPage() {
                 <FiRefreshCw /> Summarise Another Document
               </button>
               <Link
-                href="/dashboard/notes-history"
-                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/20"
+                href="/dashboard/flip-cards"
+                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-indigo-700 transition shadow-lg shadow-purple-500/20"
               >
-                <FiBookOpen /> My Notes <FiArrowRight />
+                <FiLayers /> All Flashcards Decks <FiArrowRight />
               </Link>
             </div>
           </div>
