@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -171,6 +171,13 @@ export default function PDFSummaryPage() {
   const [cardFlipped, setCardFlipped] = useState(false)
   const [cardsViewMode, setCardsViewMode] = useState<'flip' | 'grid'>('flip')
 
+  // Loading UX state
+  const [elapsedSecs, setElapsedSecs] = useState(0)
+  const [stepIndex, setStepIndex] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const abortRef = useRef(false)
+
   // Save note state
   const [noteTitle, setNoteTitle] = useState('')
   const [saving, setSaving] = useState(false)
@@ -214,6 +221,19 @@ export default function PDFSummaryPage() {
     if (file) handleFile(file)
   }, [handleFile])
 
+  // ── Timer helpers ─────────────────────────────────────────────────────────
+  const startLoadingTimers = () => {
+    setElapsedSecs(0)
+    setStepIndex(0)
+    abortRef.current = false
+    timerRef.current = setInterval(() => setElapsedSecs(s => s + 1), 1000)
+    stepTimerRef.current = setInterval(() => setStepIndex(s => s + 1), 3500)
+  }
+  const stopLoadingTimers = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (stepTimerRef.current) clearInterval(stepTimerRef.current)
+  }
+
   // ── Generate ────────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     const text = inputMode === 'upload' ? extractedText : manualText
@@ -227,8 +247,8 @@ export default function PDFSummaryPage() {
     setGenerating(true)
     setStage('generating')
     setSaved(false)
-    setCardsSaved(false)
     setActiveTab('note')
+    startLoadingTimers()
 
     // Auto-title from file name or first line
     const title = noteTitle || (inputMode === 'upload' && uploadedFile
@@ -278,8 +298,9 @@ export default function PDFSummaryPage() {
 
       setCardIndex(0)
       setCardFlipped(false)
-      setStage('result')
+      if (!abortRef.current) setStage('result')
     } catch (e: any) {
+      if (abortRef.current) return
       const msg = e?.message || 'Generation failed. Please try again.'
       setError(msg)
       if (isUpgradeError(msg)) {
@@ -287,6 +308,7 @@ export default function PDFSummaryPage() {
       }
       setStage('input')
     } finally {
+      stopLoadingTimers()
       setGenerating(false)
     }
   }
@@ -586,24 +608,112 @@ export default function PDFSummaryPage() {
                 <div className="flex items-center gap-2 mb-6">
                   <FiLoader className="animate-spin text-blue-500" />
                   <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">
-                    {includeFlashcards ? 'Generating study notes & flashcards...' : 'Generating study notes...'}
+                    Streaming your notes...
                   </span>
+                  <span className="ml-auto text-xs text-gray-400 font-mono">{elapsedSecs}s</span>
                 </div>
                 <div className="prose prose-sm max-w-none">
                   <MarkdownNote content={generatedNotes} />
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 gap-4">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
-                  <BiBrain className="absolute inset-0 m-auto text-purple-500 text-2xl" />
-                </div>
-                <p className="font-bold text-gray-700 dark:text-gray-200">Analyzing document & generating study materials...</p>
-                <p className="text-xs text-gray-400">
-                  {includeFlashcards ? 'Creating notes and key concept flashcards' : 'Creating structured exam notes'}
-                </p>
-              </div>
+              (() => {
+                const steps = includeFlashcards
+                  ? [
+                      { icon: '📄', label: 'Reading your document...' },
+                      { icon: '🧠', label: 'Identifying key concepts...' },
+                      { icon: '📝', label: 'Structuring study notes...' },
+                      { icon: '🃏', label: 'Building flashcards...' },
+                      { icon: '✨', label: 'Polishing output...' },
+                    ]
+                  : [
+                      { icon: '📄', label: 'Reading your document...' },
+                      { icon: '🧠', label: 'Identifying key concepts...' },
+                      { icon: '📝', label: 'Structuring study notes...' },
+                      { icon: '✨', label: 'Almost ready...' },
+                    ]
+                const current = steps[stepIndex % steps.length]
+                const pct = Math.min((elapsedSecs / (includeFlashcards ? 40 : 25)) * 100, 95)
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 gap-6 text-center">
+                    {/* Animated brain icon */}
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full border-4 border-blue-100 dark:border-blue-900 border-t-blue-500 animate-spin" />
+                      <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                        {current.icon}
+                      </div>
+                    </div>
+
+                    {/* Current step label */}
+                    <div>
+                      <p className="font-black text-gray-800 dark:text-white text-lg mb-1">
+                        {current.label}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        AI is working — this usually takes 15–30 seconds
+                      </p>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full max-w-sm">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                        <span>Processing</span>
+                        <span className="font-mono">{elapsedSecs}s</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Steps list */}
+                    <div className="flex flex-col gap-1.5 w-full max-w-sm text-left">
+                      {steps.map((s, i) => {
+                        const done = i < stepIndex % steps.length + (pct >= 95 ? steps.length : 0)
+                        const active = i === stepIndex % steps.length
+                        return (
+                          <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${
+                            active ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                          }`}>
+                            <span className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-black ${
+                              done
+                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                : active
+                                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
+                            }`}>
+                              {done ? '✓' : active ? '●' : '○'}
+                            </span>
+                            <span className={`text-xs font-semibold ${
+                              active ? 'text-blue-700 dark:text-blue-300' :
+                              done ? 'text-gray-500 line-through' :
+                              'text-gray-400'
+                            }`}>{s.label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Cancel button — only after 15s */}
+                    {elapsedSecs >= 15 && (
+                      <button
+                        onClick={() => {
+                          abortRef.current = true
+                          stopLoadingTimers()
+                          setGenerating(false)
+                          setStage('input')
+                          setGeneratedNotes('')
+                        }}
+                        className="text-xs text-gray-400 hover:text-red-500 border border-gray-200 dark:border-gray-600 hover:border-red-300 px-4 py-2 rounded-xl transition font-bold"
+                      >
+                        Cancel & try again
+                      </button>
+                    )}
+                  </div>
+                )
+              })()
             )}
           </div>
         )}
