@@ -382,29 +382,41 @@ export default function NotesHistory() {
                                             >
                                                 {/* FRONT */}
                                                 <div
-                                                    className="absolute inset-0 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-2xl p-6 flex flex-col justify-between"
+                                                    className="absolute inset-0 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-2xl flex flex-col"
                                                     style={{ backfaceVisibility: 'hidden' }}
                                                 >
-                                                    <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full w-fit">Question</span>
-                                                    <p className="text-base font-bold text-gray-900 dark:text-white text-center px-2 leading-relaxed">
-                                                        {noteCards[cardIndex]?.front}
-                                                    </p>
-                                                    <span className="text-xs text-gray-400 text-center">Tap to reveal answer</span>
+                                                    <div className="flex-shrink-0 px-6 pt-5">
+                                                        <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full inline-block">Question</span>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3 flex items-center justify-center">
+                                                        <p className="text-sm font-bold text-gray-900 dark:text-white text-center leading-relaxed">
+                                                            {noteCards[cardIndex]?.front}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex-shrink-0 text-center pb-4">
+                                                        <span className="text-xs text-gray-400">Tap to reveal answer</span>
+                                                    </div>
                                                 </div>
                                                 {/* BACK */}
                                                 <div
-                                                    className="absolute inset-0 rounded-2xl p-6 flex flex-col justify-between border-2 border-indigo-300"
+                                                    className="absolute inset-0 rounded-2xl flex flex-col border-2 border-indigo-300"
                                                     style={{
                                                         backfaceVisibility: 'hidden',
                                                         transform: 'rotateY(180deg)',
                                                         background: '#eef2ff'
                                                     }}
                                                 >
-                                                    <span className="text-[10px] font-black uppercase px-2 py-1 rounded-full w-fit bg-indigo-200 text-indigo-800">Answer</span>
-                                                    <p className="text-base font-semibold text-center px-2 leading-relaxed" style={{ color: '#1e1b4b' }}>
-                                                        {noteCards[cardIndex]?.back}
-                                                    </p>
-                                                    <span className="text-xs text-center" style={{ color: '#6366f1' }}>Tap to return to question</span>
+                                                    <div className="flex-shrink-0 px-6 pt-5">
+                                                        <span className="text-[10px] font-black uppercase px-2 py-1 rounded-full inline-block bg-indigo-200 text-indigo-800">Answer</span>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3 flex items-center justify-center">
+                                                        <p className="text-sm font-semibold text-center leading-relaxed" style={{ color: '#1e1b4b' }}>
+                                                            {noteCards[cardIndex]?.back}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex-shrink-0 text-center pb-4">
+                                                        <span className="text-xs" style={{ color: '#6366f1' }}>Tap to return to question</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

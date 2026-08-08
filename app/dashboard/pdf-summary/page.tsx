@@ -928,14 +928,14 @@ export default function PDFSummaryPage() {
 
                             {/* BACK SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full rounded-3xl p-8 flex flex-col justify-between shadow-md border-2 border-indigo-300 dark:border-indigo-600"
+                              className="absolute inset-0 w-full h-full rounded-3xl flex flex-col border-2 border-indigo-300 dark:border-indigo-600 shadow-md"
                               style={{
                                 backfaceVisibility: 'hidden',
                                 transform: 'rotateY(180deg)',
                                 background: '#eef2ff'
                               }}
                             >
-                              <div className="flex items-center justify-between">
+                              <div className="flex-shrink-0 flex items-center justify-between px-8 pt-6">
                                 <span className="px-3 py-1 bg-indigo-200 text-indigo-800 rounded-full text-[10px] font-black uppercase tracking-wider">
                                   Answer
                                 </span>
@@ -943,12 +943,12 @@ export default function PDFSummaryPage() {
                                   <FiRotateCw /> Tap to flip back
                                 </span>
                               </div>
-                              <div className="my-auto text-center px-4 overflow-y-auto max-h-48">
-                                <p className="text-base sm:text-lg font-semibold leading-relaxed" style={{ color: '#1e1b4b' }}>
+                              <div className="flex-1 min-h-0 overflow-y-auto px-8 py-4 flex items-center justify-center">
+                                <p className="text-sm font-semibold leading-relaxed text-center" style={{ color: '#1e1b4b' }}>
                                   {flashcards[cardIndex]?.back}
                                 </p>
                               </div>
-                              <div className="text-center">
+                              <div className="flex-shrink-0 text-center pb-5">
                                 <span className="text-xs font-medium" style={{ color: '#6366f1' }}>Tap card to return to question</span>
                               </div>
                             </div>
