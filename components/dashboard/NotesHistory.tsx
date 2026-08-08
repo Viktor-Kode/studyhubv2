@@ -193,10 +193,10 @@ export default function NotesHistory() {
                     <div
                         key={note._id}
                         onClick={() => router.push(`/dashboard/notes-history?id=${note._id}`)}
-                        className={`group p-5 rounded-2xl border-2 transition-all cursor-pointer relative
+                        className={`group p-4 rounded-xl border transition-all cursor-pointer relative
               ${selectedNote?._id === note._id
-                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/5'
-                                : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-200'}
+                                ? 'border-emerald-500 border-l-4 bg-emerald-50/30 dark:bg-emerald-900/10'
+                                : 'border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 hover:border-emerald-300'}
             `}
                     >
                         <div className="flex justify-between items-start mb-2">
