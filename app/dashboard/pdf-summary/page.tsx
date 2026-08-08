@@ -928,28 +928,28 @@ export default function PDFSummaryPage() {
 
                             {/* BACK SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full bg-gray-50 dark:bg-gray-750 border-2 border-indigo-200 dark:border-indigo-700 rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              className="absolute inset-0 w-full h-full rounded-3xl p-8 flex flex-col justify-between shadow-md border-2 border-indigo-300 dark:border-indigo-600"
                               style={{
                                 backfaceVisibility: 'hidden',
                                 transform: 'rotateY(180deg)',
-                                backgroundColor: 'var(--card-back-bg, #f8faff)'
+                                background: '#eef2ff'
                               }}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                <span className="px-3 py-1 bg-indigo-200 text-indigo-800 rounded-full text-[10px] font-black uppercase tracking-wider">
                                   Answer
                                 </span>
-                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <span className="text-xs text-indigo-400 flex items-center gap-1">
                                   <FiRotateCw /> Tap to flip back
                                 </span>
                               </div>
                               <div className="my-auto text-center px-4 overflow-y-auto max-h-48">
-                                <p className="text-base sm:text-lg font-semibold leading-relaxed text-gray-800 dark:text-gray-100">
+                                <p className="text-base sm:text-lg font-semibold leading-relaxed" style={{ color: '#1e1b4b' }}>
                                   {flashcards[cardIndex]?.back}
                                 </p>
                               </div>
                               <div className="text-center">
-                                <span className="text-xs text-gray-400 font-medium">Tap card to return to question</span>
+                                <span className="text-xs font-medium" style={{ color: '#6366f1' }}>Tap card to return to question</span>
                               </div>
                             </div>
                           </div>
