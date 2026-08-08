@@ -12,7 +12,7 @@ import {
   FiUploadCloud, FiFileText, FiLoader, FiCheckCircle,
   FiSave, FiRefreshCw, FiX, FiBookOpen, FiEdit3,
   FiArrowRight, FiLayers, FiChevronLeft, FiChevronRight,
-  FiRotateCw, FiEye, FiGrid
+  FiRotateCw, FiEye, FiGrid, FiCheck
 } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 
@@ -144,7 +144,10 @@ type ActiveTab = 'note' | 'flashcard'
 export default function PDFSummaryPage() {
   const { showUpgrade } = useUpgrade()
 
-  // Navigation tab state
+  // Generator Options (Checkbox)
+  const [includeFlashcards, setIncludeFlashcards] = useState(true)
+
+  // Navigation tab state (in result)
   const [activeTab, setActiveTab] = useState<ActiveTab>('note')
 
   // Input state
@@ -213,8 +216,8 @@ export default function PDFSummaryPage() {
     if (file) handleFile(file)
   }, [handleFile])
 
-  // ── Generate Both Note & Flashcards ─────────────────────────────────────────
-  const handleGenerate = async (targetTab?: ActiveTab) => {
+  // ── Generate ────────────────────────────────────────────────────────────────
+  const handleGenerate = async () => {
     const text = inputMode === 'upload' ? extractedText : manualText
     if (!text || text.trim().length < 50) {
       setError('Please provide at least 50 characters of content.')
@@ -227,7 +230,7 @@ export default function PDFSummaryPage() {
     setStage('generating')
     setSaved(false)
     setCardsSaved(false)
-    if (targetTab) setActiveTab(targetTab)
+    setActiveTab('note')
 
     // Auto-title from file name or first line
     const title = noteTitle || (inputMode === 'upload' && uploadedFile
@@ -236,22 +239,24 @@ export default function PDFSummaryPage() {
     setNoteTitle(title)
 
     try {
-      // Generate Study Notes
+      // 1. Generate Study Notes
       const notePromise = generateStudyNotes(
         text,
         inputMode === 'upload' ? uploadedFile?.name : undefined,
         (chunk) => setGeneratedNotes(prev => prev + chunk)
       )
 
-      // Generate Flashcards concurrently
-      const cardPromise = generateAIFlashCards({
-        text: text.slice(0, 4000),
-        amount: 10,
-        category: title
-      }).catch(err => {
-        console.warn('AI Flashcards API failed, fallback to parser', err)
-        return null
-      })
+      // 2. Generate Flashcards if checkbox is checked
+      const cardPromise = includeFlashcards
+        ? generateAIFlashCards({
+            text: text.slice(0, 4000),
+            amount: 10,
+            category: title
+          }).catch(err => {
+            console.warn('AI Flashcards API failed, fallback to parser', err)
+            return null
+          })
+        : Promise.resolve(null)
 
       const [noteRes, cardRes] = await Promise.all([notePromise, cardPromise])
 
@@ -263,14 +268,16 @@ export default function PDFSummaryPage() {
         notesContent = generatedNotes
       }
 
-      let generatedCardsList: FlashCard[] = []
-      if (cardRes?.success && Array.isArray(cardRes.flashCards) && cardRes.flashCards.length > 0) {
-        generatedCardsList = cardRes.flashCards
-      } else {
-        generatedCardsList = extractFlashcardsFromMarkdown(notesContent || text, title)
+      if (includeFlashcards) {
+        let generatedCardsList: FlashCard[] = []
+        if (cardRes?.success && Array.isArray(cardRes.flashCards) && cardRes.flashCards.length > 0) {
+          generatedCardsList = cardRes.flashCards
+        } else {
+          generatedCardsList = extractFlashcardsFromMarkdown(notesContent || text, title)
+        }
+        setFlashcards(generatedCardsList)
       }
 
-      setFlashcards(generatedCardsList)
       setCardIndex(0)
       setCardFlipped(false)
       setStage('result')
@@ -398,52 +405,6 @@ export default function PDFSummaryPage() {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* ── TOP LEVEL NAVIGATION TABS (NOTE | FLASHCARD) ─────────────────────── */}
-        <div className="mb-6 bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-2">
-          <button
-            onClick={() => {
-              setActiveTab('note')
-              if (stage === 'input' && textReady) {
-                handleGenerate('note')
-              }
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'note'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-            }`}
-          >
-            <FiFileText className="text-lg" />
-            <span>Note</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('flashcard')
-              if (stage === 'input' && textReady) {
-                handleGenerate('flashcard')
-              } else if (stage === 'result' && flashcards.length === 0) {
-                generateFlashcardsOnDemand()
-              }
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'flashcard'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-            }`}
-          >
-            <FiLayers className="text-lg" />
-            <span>Flashcard</span>
-            {flashcards.length > 0 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'flashcard' ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300'
-              }`}>
-                {flashcards.length}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Error Banner */}
@@ -574,19 +535,60 @@ export default function PDFSummaryPage() {
                 </div>
               )}
 
+              {/* ── FLASHCARD CHECKBOX OPTION ───────────────────────────────── */}
+              <div className="mt-6 p-4 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-800/40 rounded-2xl">
+                <label className="flex items-center justify-between cursor-pointer select-none">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={includeFlashcards}
+                        onChange={(e) => setIncludeFlashcards(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                        includeFlashcards
+                          ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
+                      }`}>
+                        {includeFlashcards && <FiCheck className="text-xs stroke-[3]" />}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <FiLayers className="text-purple-600 dark:text-purple-400 text-sm" />
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          Generate AI Flashcards
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Automatically create interactive review cards along with study notes
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-full ${
+                    includeFlashcards
+                      ? 'bg-purple-200 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                  }`}>
+                    {includeFlashcards ? 'Active' : 'Off'}
+                  </span>
+                </label>
+              </div>
+
               {/* Generate Button */}
               <button
-                onClick={() => handleGenerate(activeTab)}
+                onClick={handleGenerate}
                 disabled={!textReady}
                 className="mt-6 w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
               >
                 <BiBrain className="text-xl" />
-                Generate Note & Flashcards
+                {includeFlashcards ? 'Generate Note & Flashcards' : 'Generate Study Note'}
               </button>
 
               {/* Chip list showing what AI will produce */}
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                {['Study Notes', 'Key Concepts', '10+ Flashcards', 'Exam Prep'].map(chip => (
+                {['Study Notes', 'Key Concepts', includeFlashcards ? '10+ Flashcards' : '', 'Exam Prep'].filter(Boolean).map(chip => (
                   <span key={chip} className="text-[10px] font-bold px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full">
                     {chip}
                   </span>
@@ -604,7 +606,9 @@ export default function PDFSummaryPage() {
                 {/* Live streaming preview */}
                 <div className="flex items-center gap-2 mb-6">
                   <FiLoader className="animate-spin text-blue-500" />
-                  <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Generating your study notes & flashcards...</span>
+                  <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">
+                    {includeFlashcards ? 'Generating study notes & flashcards...' : 'Generating study notes...'}
+                  </span>
                 </div>
                 <div className="prose prose-sm max-w-none">
                   <MarkdownNote content={generatedNotes} />
@@ -617,7 +621,9 @@ export default function PDFSummaryPage() {
                   <BiBrain className="absolute inset-0 m-auto text-purple-500 text-2xl" />
                 </div>
                 <p className="font-bold text-gray-700 dark:text-gray-200">Analyzing document & generating study materials...</p>
-                <p className="text-xs text-gray-400">Creating notes and key concept flashcards</p>
+                <p className="text-xs text-gray-400">
+                  {includeFlashcards ? 'Creating notes and key concept flashcards' : 'Creating structured exam notes'}
+                </p>
               </div>
             )}
           </div>
@@ -626,6 +632,45 @@ export default function PDFSummaryPage() {
         {/* ── RESULT STAGE ─────────────────────────────────────────────────── */}
         {stage === 'result' && (
           <div className="space-y-4">
+            {/* ── SEPARATED TABS AT THE TOP: NOTE | FLASHCARD ─────────────────── */}
+            <div className="bg-white dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-3 max-w-md mx-auto">
+              <button
+                onClick={() => setActiveTab('note')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl text-sm font-black transition-all ${
+                  activeTab === 'note'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <FiFileText className="text-lg" />
+                <span>Note</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('flashcard')
+                  if (flashcards.length === 0) {
+                    generateFlashcardsOnDemand()
+                  }
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl text-sm font-black transition-all ${
+                  activeTab === 'flashcard'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <FiLayers className="text-lg" />
+                <span>Flashcard</span>
+                {flashcards.length > 0 && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                    activeTab === 'flashcard' ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300'
+                  }`}>
+                    {flashcards.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {/* Title & Action Bar */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex-1 flex gap-2">
@@ -725,10 +770,21 @@ export default function PDFSummaryPage() {
             {/* ── TAB CONTENT: FLASHCARD VIEW ───────────────────────────────── */}
             {activeTab === 'flashcard' && (
               <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 sm:p-8">
-                {flashcards.length === 0 ? (
+                {generating ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FiLoader className="text-3xl text-purple-500 animate-spin mb-3" />
                     <p className="font-bold text-gray-700 dark:text-gray-200">Generating flashcards...</p>
+                  </div>
+                ) : flashcards.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                    <FiLayers className="text-4xl text-purple-400" />
+                    <p className="font-bold text-gray-700 dark:text-gray-200">No flashcards generated yet</p>
+                    <button
+                      onClick={generateFlashcardsOnDemand}
+                      className="px-5 py-2.5 bg-purple-600 text-white font-bold text-xs rounded-xl hover:bg-purple-700 transition"
+                    >
+                      Generate Flashcards Now
+                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
