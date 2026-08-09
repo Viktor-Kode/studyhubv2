@@ -510,7 +510,7 @@ export default function AiTutorPage() {
         </aside>
 
         {/* ===== MAIN CHAT ===== */}
-        <main className="flex-1 flex flex-col h-full bg-[#0f2340] relative min-w-0">
+        <main className="flex-1 flex flex-col min-h-0 bg-[#0f2340] overflow-hidden">
 
           {/* Chat Header */}
           <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-white/5 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-[#0f2340]/95 backdrop-blur-md">
@@ -544,7 +544,7 @@ export default function AiTutorPage() {
           </header>
 
           {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-36 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
             
             {/* AI Welcome State */}
             {messages.length === 0 && (
@@ -693,8 +693,8 @@ export default function AiTutorPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Fixed Input Bar - anchored to bottom, out of document flow */}
-          <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#0f2340]/95 backdrop-blur-md border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
+          {/* Input Bar - flex-shrink-0 keeps it pinned; avoids iOS Safari fixed-position bug */}
+          <div className="flex-shrink-0 bg-[#0f2340] border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
 
             {/* File status tag */}
             {uploadedFiles.length > 0 && (
