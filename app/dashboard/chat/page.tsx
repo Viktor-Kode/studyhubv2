@@ -463,8 +463,8 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-[#F7F8FA] dark:bg-slate-950">
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-4 pt-4 sm:px-6">
+      <div className="flex h-[100dvh] min-h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#F7F8FA] dark:bg-slate-950">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 pb-4 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link
@@ -657,7 +657,7 @@ export default function ChatPage() {
           </div>
 
           <div
-            className="sticky bottom-0 mt-auto w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-lg dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-3"
+            className="mt-auto w-full flex-shrink-0 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-lg dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-3"
             style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.03)' }}
           >
             <div className="flex items-end gap-3">

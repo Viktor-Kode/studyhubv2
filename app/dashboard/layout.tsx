@@ -170,6 +170,7 @@ export default function DashboardLayout({
 
     const isDark = theme === 'dark'
     const isTutorPage = pathname === '/dashboard/tutor'
+    const isChatPage = pathname === '/dashboard/chat'
     const isDarkFullPage =
         pathname === '/dashboard/student' ||
         pathname === '/dashboard/study' ||
@@ -181,9 +182,9 @@ export default function DashboardLayout({
         pathname === '/dashboard/notes-history' ||
         (pathname ? pathname.startsWith('/dashboard/student/') : false)
 
-    if (isTutorPage) {
+    if (isTutorPage || isChatPage) {
         return (
-            <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+            <div className="min-h-[100dvh]" style={isTutorPage ? { background: 'var(--bg)' } : undefined}>
                 <ProtectedRoute>
                     {children}
                 </ProtectedRoute>
