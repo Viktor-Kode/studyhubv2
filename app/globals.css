@@ -71,6 +71,25 @@
   --amber-bg-dark: #78350F;
 }
 
+/* ─── PURPLE BACKGROUND CONTENT SAFETY RULE ─── */
+.bg-purple,
+.bg-purple-deep,
+.bg-purple-600,
+.bg-indigo-600,
+[style*="background: var(--purple)"],
+[style*="background: var(--purple-deep)"],
+[style*="background:var(--purple)"],
+[style*="background:var(--purple-deep)"] {
+  color: #ffffff !important;
+}
+
+[style*="background: var(--purple)"] *,
+[style*="background: var(--purple-deep)"] *,
+[style*="background:var(--purple)"] *,
+[style*="background:var(--purple-deep)"] * {
+  color: #ffffff !important;
+}
+
 /* ─── GLOBAL MOBILE SAFETY NET ─────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
