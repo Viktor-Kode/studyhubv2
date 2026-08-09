@@ -151,23 +151,29 @@
 .sd-goal-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
   flex-shrink: 0;
+  max-width: 50%;
 }
 
 .sd-goal-count {
-  font-size: 13px;
+  font-size: 12px;
   color: #CBD5E1;
+  text-align: right;
+  line-height: 1.3;
 }
 
 .sd-goal-change {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #A5B4FC;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
+  white-space: nowrap;
 }
 
 .sd-goal-progress-track {
