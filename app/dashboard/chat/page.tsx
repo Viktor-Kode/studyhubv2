@@ -463,8 +463,14 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-[100dvh] min-h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#F7F8FA] dark:bg-slate-950">
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 pb-4 pt-4 sm:px-6">
+      <div className="fixed inset-0 flex flex-col bg-[#F7F8FA] dark:bg-slate-950">
+        <div
+          className="mx-auto flex w-full h-full max-w-3xl flex-col overflow-hidden px-4 sm:px-6"
+          style={{
+            paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
+            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
+          }}
+        >
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link
