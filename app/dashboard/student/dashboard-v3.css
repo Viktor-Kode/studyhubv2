@@ -1,6 +1,6 @@
 /* ============================================================
-   Student Dashboard — Dark-Only Theme
-   Uses CSS custom properties from globals.css :root
+   Student Dashboard — Unified Light & Dark Theme
+   Uses CSS custom properties from globals.css :root & .dark
    ============================================================ */
 
 /* ── Base container ── */
@@ -15,6 +15,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Top bar ── */
@@ -28,7 +29,7 @@
 .sd-topbar-left h1 {
   font-size: 20px;
   font-weight: 700;
-  color: #F8FAFC;
+  color: var(--text-primary);
   line-height: 1.2;
   margin: 0 0 4px;
   letter-spacing: -0.01em;
@@ -36,7 +37,7 @@
 
 .sd-topbar-subtitle {
   font-size: 13px;
-  color: #CBD5E1;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -54,13 +55,13 @@
   gap: 5px;
   padding: 5px 12px;
   border-radius: 99px;
-  background: rgba(239, 159, 39, 0.15);
+  background: var(--amber-bg);
   border: 1px solid var(--amber-border);
   color: var(--amber);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 /* Avatar */
@@ -81,7 +82,7 @@
   letter-spacing: 0.5px;
   cursor: pointer;
   transition: opacity 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .sd-avatar:hover { opacity: 0.9; transform: scale(1.04); }
@@ -95,7 +96,7 @@
 .sd-section-label {
   font-size: 11px;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 12px;
@@ -104,17 +105,17 @@
 /* ── Divider ── */
 .sd-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border);
   margin: 0 16px 22px;
 }
 
 /* ── Goal bar ── */
 .sd-goal-bar {
-  background: #0F172A;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .sd-goal-top {
@@ -125,7 +126,6 @@
   margin-bottom: 10px;
 }
 
-/* Left column must shrink so right side is never pushed off-screen */
 .sd-goal-top > div:first-child {
   min-width: 0;
   flex: 1;
@@ -134,7 +134,7 @@
 .sd-goal-label {
   font-size: 11px;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -142,7 +142,7 @@
 .sd-goal-title {
   font-size: 15px;
   font-weight: 700;
-  color: #F8FAFC;
+  color: var(--text-primary);
   margin: 2px 0 0;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -160,7 +160,7 @@
 
 .sd-goal-count {
   font-size: 12px;
-  color: #CBD5E1;
+  color: var(--text-secondary);
   text-align: right;
   line-height: 1.3;
 }
@@ -168,7 +168,7 @@
 .sd-goal-change {
   font-size: 12px;
   font-weight: 700;
-  color: #A5B4FC;
+  color: var(--purple);
   background: none;
   border: none;
   cursor: pointer;
@@ -178,14 +178,14 @@
 
 .sd-goal-progress-track {
   height: 6px;
-  background: #1E293B;
+  background: var(--surface-2);
   border-radius: 99px;
   overflow: hidden;
 }
 
 .sd-goal-progress-fill {
   height: 100%;
-  background: #818CF8;
+  background: var(--purple);
   border-radius: 99px;
   transition: width 0.5s ease;
   min-width: 4px;
@@ -199,8 +199,8 @@
 }
 
 .sd-tool-card {
-  background: #0F172A;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px;
   display: flex;
@@ -212,13 +212,13 @@
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
 }
 
 .sd-tool-card:hover {
-  border-color: #6366F1;
-  background: #1E293B;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25);
+  border-color: var(--purple);
+  background: var(--surface-2);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
 }
 
 .sd-tool-card:active {
@@ -239,14 +239,14 @@
 .sd-tool-name {
   font-size: 13px;
   font-weight: 700;
-  color: #F8FAFC;
+  color: var(--text-primary);
   line-height: 1.25;
   margin: 0;
 }
 
 .sd-tool-sub {
   font-size: 11px;
-  color: #94A3B8;
+  color: var(--text-secondary);
   margin: 2px 0 0;
   line-height: 1.35;
 }
@@ -274,37 +274,37 @@
 }
 
 .sd-stat-card {
-  background: #0F172A;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .sd-stat-number {
   font-size: 22px;
   font-weight: 800;
-  color: #F8FAFC;
+  color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
 .sd-stat-label {
   font-size: 11px;
-  color: #94A3B8;
+  color: var(--text-secondary);
   line-height: 1.3;
 }
 
 /* ── Subscription card ── */
 .sd-sub-card {
-  background: #0F172A;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .sd-sub-top {
@@ -318,9 +318,9 @@
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
-  color: #A5B4FC;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: var(--purple);
+  background: var(--purple-bg);
+  border: 1px solid var(--purple-border);
   padding: 2px 8px;
   border-radius: 99px;
   text-transform: uppercase;
@@ -331,19 +331,19 @@
 .sd-sub-plan-name {
   font-size: 17px;
   font-weight: 800;
-  color: #F8FAFC;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .sd-sub-expires {
   font-size: 13px;
-  color: #94A3B8;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .sd-sub-days {
   font-weight: 700;
-  color: #F97316;
+  color: var(--amber);
 }
 
 .sd-sub-actions {
@@ -358,7 +358,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-deep) 100%);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 700;
@@ -366,7 +366,7 @@
   border-radius: 10px;
   text-decoration: none;
   transition: opacity 0.2s ease, transform 0.15s ease;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
   text-align: center;
 }
 
@@ -381,9 +381,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #F8FAFC;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
   padding: 10px 16px;
@@ -394,8 +394,8 @@
 }
 
 .sd-sub-btn-share:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--border-subtle);
+  border-color: var(--border);
 }
 
 /* ── Focus list ── */
@@ -417,7 +417,7 @@
 .sd-focus-name {
   font-size: 13px;
   font-weight: 600;
-  color: #E2E8F0;
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -428,7 +428,7 @@
 .sd-focus-bar-wrap {
   flex: 2;
   height: 6px;
-  background: #1E293B;
+  background: var(--surface-2);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -443,7 +443,7 @@
 .sd-focus-action {
   font-size: 11px;
   font-weight: 700;
-  color: #818CF8;
+  color: var(--purple);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
@@ -455,7 +455,7 @@
 
 .sd-focus-empty {
   font-size: 13px;
-  color: #94A3B8;
+  color: var(--text-muted);
   padding: 8px 0;
 }
 
@@ -516,7 +516,7 @@
     width: 100%;
     margin: 0;
     padding: 24px 40px;
-    padding-bottom: 40px; /* No bottom nav, normal spacing */
+    padding-bottom: 40px;
   }
 
   .sd-topbar {
@@ -532,7 +532,6 @@
     margin: 0 0 30px;
   }
 
-  /* Grid layouts stretch to 4 columns on laptop for tools */
   .sd-tools-grid {
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
@@ -543,13 +542,11 @@
     gap: 16px;
   }
 
-  /* Space out focus list items slightly more on laptop */
   .sd-focus-list {
     gap: 20px;
   }
 }
 
-/* Hide Bottom Nav on Desktop/Laptop */
 @media (min-width: 1024px) {
   .sd-bottom-nav {
     display: none !important;

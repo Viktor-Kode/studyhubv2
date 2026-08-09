@@ -171,20 +171,10 @@ export default function DashboardLayout({
     const isDark = theme === 'dark'
     const isTutorPage = pathname === '/dashboard/tutor'
     const isChatPage = pathname === '/dashboard/chat'
-    const isDarkFullPage =
-        pathname === '/dashboard/student' ||
-        pathname === '/dashboard/study' ||
-        pathname === '/dashboard/community' ||
-        pathname === '/dashboard/leaderboard' ||
-        pathname === '/dashboard/profile' ||
-        pathname === '/dashboard/analytics' ||
-        pathname === '/dashboard/timetable' ||
-        pathname === '/dashboard/notes-history' ||
-        (pathname ? pathname.startsWith('/dashboard/student/') : false)
 
     if (isTutorPage || isChatPage) {
         return (
-            <div className="min-h-[100dvh]" style={isTutorPage ? { background: 'var(--bg)' } : undefined}>
+            <div className="min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
                 <ProtectedRoute>
                     {children}
                 </ProtectedRoute>
@@ -194,15 +184,12 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className={`min-h-screen ${isDark || isDarkFullPage ? 'dark' : ''}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
-            <div className={`min-h-screen ${isDarkFullPage ? '' : 'bg-gray-50 dark:bg-gray-900'}`} style={isDarkFullPage ? { background: 'var(--bg)' } : undefined}>
-
-
-
+        <div className={`min-h-screen ${isDark ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`} style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>
+            <div className="min-h-screen">
                 {/* Sidebar */}
                 <aside
                     id="sidebar-nav"
-                    className={`fixed top-0 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white lg:bg-transparent dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    className={`fixed top-0 left-0 bottom-0 w-64 max-w-[min(256px,85vw)] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-40 transition-transform duration-300 overflow-hidden flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                         }`}
                     aria-label="Main navigation"
                 >

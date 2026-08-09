@@ -11,31 +11,31 @@
   --color-text-muted: #475569;
   --color-text-inverse: #F8FAFC;
   --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F7F8FA;
+  --color-bg-secondary: #F8FAFC;
   --color-brand: #5B4CF5;
   --color-brand-hover: #4C3FE0;
 
-  /* ── NEW UNIFIED DESIGN TOKENS (dark-first) ── */
-  --bg: #070F1E;
-  --surface: #0F172A;
-  --surface-2: #1E293B;
-  --border: #334155;
-  --border-subtle: #1E293B;
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #475569;
-  --purple: #7F77DD;
-  --purple-deep: #5B21F6;
-  --purple-bg: #26215C;
-  --purple-border: #534AB7;
-  --amber: #EF9F27;
-  --amber-bg: #1C1409;
-  --amber-border: #854F0B;
-  --green: #4ADE80;
-  --red: #E24B4A;
-  --blue-bg: #042C53;
-  --green-bg: #173404;
-  --amber-bg-dark: #412402;
+  /* ── UNIFIED DESIGN TOKENS (Light Mode Default) ── */
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --purple: #6366F1;
+  --purple-deep: #4F46E5;
+  --purple-bg: #EEF2FF;
+  --purple-border: #C7D2FE;
+  --amber: #D97706;
+  --amber-bg: #FFFBEB;
+  --amber-border: #FDE68A;
+  --green: #16A34A;
+  --red: #DC2626;
+  --blue-bg: #EFF6FF;
+  --green-bg: #F0FDF4;
+  --amber-bg-dark: #FEF3C7;
 }
 
 .dark {
@@ -44,9 +44,31 @@
   --color-text-muted: #CBD5E1;
   --color-text-inverse: #0F172A;
   --color-bg-primary: #0B1220;
-  --color-bg-secondary: #111827;
+  --color-bg-secondary: #070F1E;
   --color-brand: #7C70FF;
   --color-brand-hover: #9288FF;
+
+  /* ── UNIFIED DESIGN TOKENS (Dark Mode Override) ── */
+  --bg: #070F1E;
+  --surface: #0F172A;
+  --surface-2: #1E293B;
+  --border: #334155;
+  --border-subtle: #1E293B;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --purple: #818CF8;
+  --purple-deep: #6366F1;
+  --purple-bg: #1E1B4B;
+  --purple-border: #3730A3;
+  --amber: #F59E0B;
+  --amber-bg: #451A03;
+  --amber-border: #78350F;
+  --green: #4ADE80;
+  --red: #EF4444;
+  --blue-bg: #1E3A8A;
+  --green-bg: #14532D;
+  --amber-bg-dark: #78350F;
 }
 
 /* ─── GLOBAL MOBILE SAFETY NET ─────────────────── */
