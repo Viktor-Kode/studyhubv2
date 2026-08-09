@@ -12,9 +12,10 @@ import {
   FiUploadCloud, FiFileText, FiLoader, FiCheckCircle,
   FiSave, FiRefreshCw, FiX, FiEdit3,
   FiArrowRight, FiLayers, FiChevronLeft, FiChevronRight,
-  FiRotateCw, FiEye, FiGrid, FiCheck, FiBookOpen
+  FiRotateCw, FiEye, FiGrid, FiCheck, FiBookOpen, FiZap, FiLock
 } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
+import BlindSummaryModal from '@/components/dashboard/BlindSummaryModal'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getExtractionLabel(file: File): string {
@@ -149,6 +150,8 @@ export default function PDFSummaryPage() {
 
   // Navigation tab state (in result)
   const [activeTab, setActiveTab] = useState<ActiveTab>('note')
+  const [blindSummaryOpen, setBlindSummaryOpen] = useState(false)
+  const [blindSummaryDismissed, setBlindSummaryDismissed] = useState(false)
 
   // Input state
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -732,6 +735,17 @@ export default function PDFSummaryPage() {
                     </span>
                   )}
                 </button>
+
+                <button
+                  onClick={() => setBlindSummaryOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200/60 dark:border-purple-800/40 transition-all shadow-sm"
+                  title="Type 3 main points without looking back to earn +25 XP"
+                >
+                  <span>🙈 Blind Summary</span>
+                  <span className="text-[10px] px-1.5 py-0.2 font-extrabold bg-yellow-400 text-purple-950 rounded-full">
+                    +25 XP
+                  </span>
+                </button>
               </div>
 
               {/* Title & Actions */}
@@ -782,6 +796,44 @@ export default function PDFSummaryPage() {
                 >
                   View Notes <FiArrowRight />
                 </Link>
+              </div>
+            )}
+
+            {/* Active Recall Prompt Banner */}
+            {!blindSummaryDismissed && (
+              <div className="p-4 m-4 mb-0 bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-blue-900/10 border border-purple-200 dark:border-purple-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md">
+                    🙈
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                        Active Recall Challenge
+                      </span>
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-yellow-400 text-purple-950 rounded-full">
+                        +25 XP
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                      Read your summary? Test your memory: Type 3 main points without looking back!
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <button
+                    onClick={() => setBlindSummaryDismissed(true)}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-xl transition-colors"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={() => setBlindSummaryOpen(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95"
+                  >
+                    <BiBrain className="text-sm" /> Test Memory
+                  </button>
+                </div>
               </div>
             )}
 
@@ -988,6 +1040,14 @@ export default function PDFSummaryPage() {
           </div>
         )}
       </div>
+
+      <BlindSummaryModal
+        isOpen={blindSummaryOpen}
+        onClose={() => setBlindSummaryOpen(false)}
+        onSkip={() => setBlindSummaryOpen(false)}
+        title={noteTitle || 'AI Summary'}
+        originalSummaryText={generatedNotes}
+      />
     </ProtectedRoute>
   )
 }

@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 import { fetchStudyNotes, deleteStudyNote, updateStudyNote, StudyNote } from '@/lib/api/quizApi'
 import { generateAIFlashCards, FlashCard } from '@/lib/api/flashcardApi'
 import { toast } from 'react-hot-toast'
+import BlindSummaryModal from '@/components/dashboard/BlindSummaryModal'
 
 export default function NotesHistory() {
     const [notes, setNotes] = useState<StudyNote[]>([])
@@ -24,6 +25,7 @@ export default function NotesHistory() {
 
     // Flashcard state inside note detail
     const [noteTab, setNoteTab] = useState<'note' | 'flashcard'>('note')
+    const [blindSummaryOpen, setBlindSummaryOpen] = useState(false)
     const [noteCards, setNoteCards] = useState<FlashCard[]>([])
     const [cardIndex, setCardIndex] = useState(0)
     const [cardFlipped, setCardFlipped] = useState(false)
@@ -281,21 +283,30 @@ export default function NotesHistory() {
                                     <span>{toLocaleLongDateString(selectedNote.createdAt)}</span>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => {
-                                    try {
-                                        sessionStorage.setItem('quiz_source_content', selectedNote.content)
-                                        sessionStorage.setItem('quiz_source_title', selectedNote.title || 'Study Note')
-                                        window.location.href = '/dashboard/question-bank?tab=quiz&source=notes'
-                                    } catch (e) {
-                                        toast.error('Note too large. Please copy the content and paste it manually in Question Bank.')
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-                            >
-                                <BiBrain className="text-lg" />
-                                Practice with Quiz
-                            </button>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <button
+                                    onClick={() => setBlindSummaryOpen(true)}
+                                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-extrabold text-xs transition shadow-md"
+                                >
+                                    <span>🙈 Blind Summary</span>
+                                    <span className="px-2 py-0.5 text-[10px] bg-yellow-400 text-purple-950 font-black rounded-full">+25 XP</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        try {
+                                            sessionStorage.setItem('quiz_source_content', selectedNote.content)
+                                            sessionStorage.setItem('quiz_source_title', selectedNote.title || 'Study Note')
+                                            window.location.href = '/dashboard/question-bank?tab=quiz&source=notes'
+                                        } catch (e) {
+                                            toast.error('Note too large. Please copy the content and paste it manually in Question Bank.')
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+                                >
+                                    <BiBrain className="text-lg" />
+                                    Practice with Quiz
+                                </button>
+                            </div>
                         </div>
                         {/* ── Tab row: Note | Flashcards ──────────────────────── */}
                         <div className="flex gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl w-fit">
@@ -454,6 +465,14 @@ export default function NotesHistory() {
                     </div>
                 )}
             </div>
+
+            <BlindSummaryModal
+                isOpen={blindSummaryOpen}
+                onClose={() => setBlindSummaryOpen(false)}
+                onSkip={() => setBlindSummaryOpen(false)}
+                title={selectedNote?.title || 'Saved Note'}
+                originalSummaryText={selectedNote?.content || ''}
+            />
         </div>
     )
 }

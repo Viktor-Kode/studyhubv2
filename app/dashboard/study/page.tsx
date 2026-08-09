@@ -6,7 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
 import BottomNav from '@/components/dashboard/MobileBottomNav'
-import { FiTarget, FiClock, FiChevronRight, FiBook, FiCpu, FiFileText, FiCheckSquare, FiPlay } from 'react-icons/fi'
+import { FiTarget, FiClock, FiChevronRight, FiBook, FiCpu, FiFileText, FiCheckSquare, FiPlay, FiEyeOff } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import '@/app/dashboard/student/dashboard-v3.css'
 
@@ -69,6 +69,14 @@ const STUDY_TOOLS = [
     title: 'Summarise & PDF CBT',
     description: 'Upload PDF notes to generate AI summaries and custom practice tests',
     href: '/dashboard/pdf-summary',
+  },
+  {
+    id: 'blind-summary',
+    icon: FiEyeOff,
+    iconBg: 'var(--purple-bg)',
+    title: 'Blind Summary (Active Recall)',
+    description: 'Test active recall: type 3 main points without looking back to earn +25 XP',
+    href: '/dashboard/blind-summary',
   },
   {
     id: 'question-bank',
