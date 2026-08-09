@@ -119,9 +119,16 @@
 
 .sd-goal-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 10px;
+}
+
+/* Left column must shrink so right side is never pushed off-screen */
+.sd-goal-top > div:first-child {
+  min-width: 0;
+  flex: 1;
 }
 
 .sd-goal-label {
@@ -137,6 +144,8 @@
   font-weight: 700;
   color: #F8FAFC;
   margin: 2px 0 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .sd-goal-right {
