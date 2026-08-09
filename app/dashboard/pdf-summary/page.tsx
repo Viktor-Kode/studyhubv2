@@ -735,17 +735,6 @@ export default function PDFSummaryPage() {
                     </span>
                   )}
                 </button>
-
-                <button
-                  onClick={() => setBlindSummaryOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200/60 dark:border-purple-800/40 transition-all shadow-sm"
-                  title="Type 3 main points without looking back to earn +25 XP"
-                >
-                  <span>🙈 Blind Summary</span>
-                  <span className="text-[10px] px-1.5 py-0.2 font-extrabold bg-yellow-400 text-purple-950 rounded-full">
-                    +25 XP
-                  </span>
-                </button>
               </div>
 
               {/* Title & Actions */}
