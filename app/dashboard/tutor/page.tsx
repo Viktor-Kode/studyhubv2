@@ -419,7 +419,7 @@ export default function AiTutorPage() {
         }
       `}</style>
 
-      <div className="flex h-screen w-screen overflow-hidden bg-[#0a1a2e] text-white font-sans relative">
+      <div className="flex h-[100dvh] w-screen overflow-hidden bg-[#0a1a2e] text-white font-sans relative">
 
         {/* ===== SIDEBAR OVERLAY (mobile) ===== */}
         <div
@@ -544,7 +544,7 @@ export default function AiTutorPage() {
           </header>
 
           {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-36 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
             
             {/* AI Welcome State */}
             {messages.length === 0 && (
@@ -693,12 +693,12 @@ export default function AiTutorPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Footer Area */}
-          <footer className="p-3 sm:p-4 flex-shrink-0 bg-[#0f2340]">
-            
+          {/* Fixed Input Bar - anchored to bottom, out of document flow */}
+          <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#0f2340]/95 backdrop-blur-md border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
+
             {/* File status tag */}
             {uploadedFiles.length > 0 && (
-              <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-[#1a2f4a] border border-[#00bcd4]/30 rounded-lg text-xs text-[#00bcd4]">
+              <div className="flex items-center justify-between px-3 py-1.5 mt-2 mx-3 bg-[#1a2f4a] border border-[#00bcd4]/30 rounded-lg text-xs text-[#00bcd4]">
                 <div className="flex items-center gap-2 truncate">
                   <FileText className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate font-medium">
@@ -715,10 +715,10 @@ export default function AiTutorPage() {
               </div>
             )}
 
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto px-3 pt-2 pb-1">
               {/* Input Wrapper */}
               <div className="flex items-center gap-2 bg-[#1a2f4a] border border-white/10 rounded-xl px-3 py-1.5 focus-within:border-[#00bcd4] transition duration-200">
-                
+
                 {/* Upload Plus Button */}
                 <label
                   className="p-2 text-white/40 hover:text-[#00bcd4] hover:bg-[#00bcd4]/10 rounded-lg cursor-pointer transition flex-shrink-0"
@@ -767,33 +767,32 @@ export default function AiTutorPage() {
                 </button>
               </div>
 
-              {/* Suggestion Chips */}
-              <div className="flex items-center justify-center gap-2 mt-2.5 flex-wrap">
+              {/* Suggestion Chips — horizontal scroll, no wrapping = fixed height */}
+              <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                 <button
                   onClick={() => void sendMessage("Generate quiz on this topic")}
-                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap flex-shrink-0"
                 >
                   <Zap className="w-3 h-3 text-[#00bcd4]" />
                   <span>Generate quiz</span>
                 </button>
                 <button
                   onClick={() => void sendMessage("Explain concept simply with real-life examples")}
-                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap flex-shrink-0"
                 >
                   <Lightbulb className="w-3 h-3 text-[#00bcd4]" />
                   <span>Explain concept</span>
                 </button>
                 <button
                   onClick={() => void sendMessage("Summarize study notes into bullet points")}
-                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white bg-[#1a2f4a] hover:bg-[#1f3552] border border-white/5 hover:border-[#00bcd4]/50 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap flex-shrink-0"
                 >
                   <FileText className="w-3 h-3 text-[#00bcd4]" />
                   <span>Summarize notes</span>
                 </button>
               </div>
-
             </div>
-          </footer>
+          </div>
 
         </main>
 
