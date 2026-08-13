@@ -10,16 +10,18 @@ export default function DashboardIndex() {
     const { user, isLoading } = useAuthStore()
 
     useEffect(() => {
-        if (!isLoading) {
-            if (!user) {
-                router.push('/auth/login')
-            } else if (user.role === 'admin') {
-                router.push('/dashboard/admin')
-            } else if (user.role === 'teacher') {
-                router.push('/dashboard/student')
-            } else {
-                router.push('/dashboard/student')
-            }
+        if (isLoading) return
+
+        if (!user) {
+            router.push('/auth/login')
+            return
+        }
+
+        // Redirect admins to admin dashboard; everyone else (student/teacher) to student
+        if (user.role === 'admin') {
+            router.push('/dashboard/admin')
+        } else {
+            router.push('/dashboard/student')
         }
     }, [user, isLoading, router])
 
