@@ -160,7 +160,7 @@ export default function GoalPopup({ onClose }: GoalPopupProps) {
                     style={{
                       fontSize: 14,
                       fontWeight: 700,
-                      color: isSelected ? 'var(--purple)' : 'var(--text-primary)',
+                      color: isSelected ? '#FFFFFF' : 'var(--text-primary)',
                       marginBottom: 2,
                     }}
                   >
@@ -169,7 +169,7 @@ export default function GoalPopup({ onClose }: GoalPopupProps) {
                   <p
                     style={{
                       fontSize: 12,
-                      color: isSelected ? 'var(--purple)' : 'var(--text-muted)',
+                      color: isSelected ? '#FFFFFF' : 'var(--text-muted)',
                       opacity: isSelected ? 0.85 : 1,
                     }}
                   >

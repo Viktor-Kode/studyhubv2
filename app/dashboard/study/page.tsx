@@ -160,7 +160,7 @@ export default function StudyPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--purple)',
+              color: '#FFFFFF',
               textDecoration: 'none',
               flexShrink: 0,
               overflow: 'hidden',

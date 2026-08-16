@@ -6,7 +6,8 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
-import { FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
+import {
+    FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX,
     FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone,
     FiTarget
@@ -45,7 +46,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/library', label: 'My Library', icon: FiBookOpen, roles: ['student', 'teacher'] },
     { href: '/dashboard/study-timer', label: 'Study Timer', icon: FiClock, roles: ['student', 'teacher'] },
     { href: '/dashboard/timetable', label: 'Timetable & Reminders', icon: FiCalendar, roles: ['student', 'teacher'] },
-    { href: '/dashboard/cgpa', label: 'CGPA Calculator', icon: FiCreditCard, roles: ['student', 'teacher'] },
+    { href: '/dashboard/notes-history', label: 'Notes History', icon: FiFileText, roles: ['student', 'teacher'] },
     { href: '/dashboard/cbt', label: 'Past Question', icon: MdQuiz, roles: ['student', 'teacher'] },
 
     { href: '/dashboard/analytics', label: 'Progress Analytics', icon: FiBarChart2, roles: ['student', 'teacher'] },
@@ -148,7 +149,7 @@ export default function DashboardLayout({
         if (uid) {
             store.init()
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uid])
 
     // Global Timer TICK to run anywhere in dashboard

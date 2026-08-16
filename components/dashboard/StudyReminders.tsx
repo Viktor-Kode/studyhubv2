@@ -14,16 +14,16 @@ import { useReminderScheduler } from '@/hooks/useReminderScheduler'
 
 // ─── Type config ─────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
-  study:      { label: 'Study Session', emoji: '📚', color: 'blue' },
-  exam:       { label: 'Exam',          emoji: '📝', color: 'red' },
-  deadline:   { label: 'Deadline',      emoji: '⏳', color: 'orange' },
-  assignment: { label: 'Assignment',    emoji: '📋', color: 'yellow' },
-  class:      { label: 'Class',         emoji: '🏫', color: 'purple' },
-  other:      { label: 'Other',         emoji: '📌', color: 'gray' },
+  study: { label: 'Study Session', emoji: '📚', color: 'blue' },
+  exam: { label: 'Exam', emoji: '📝', color: 'red' },
+  deadline: { label: 'Deadline', emoji: '⏳', color: 'orange' },
+  assignment: { label: 'Assignment', emoji: '📋', color: 'yellow' },
+  class: { label: 'Class', emoji: '🏫', color: 'purple' },
+  other: { label: 'Other', emoji: '📌', color: 'gray' },
 } as const
 
 const NOTIFY_OPTIONS = [
-  { value: 5,  label: '5 min before' },
+  { value: 5, label: '5 min before' },
   { value: 10, label: '10 min before' },
   { value: 15, label: '15 min before' },
   { value: 30, label: '30 min before' },
@@ -40,12 +40,12 @@ type ReminderType = keyof typeof TYPE_CONFIG
 function getTypeStyle(type: string) {
   const c = TYPE_CONFIG[type as ReminderType]?.color ?? 'gray'
   const map: Record<string, string> = {
-    blue:   'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300',
-    red:    'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300',
+    blue: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300',
+    red: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300',
     orange: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300',
     yellow: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300',
     purple: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300',
-    gray:   'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300',
+    gray: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300',
   }
   return map[c] ?? map.gray
 }
@@ -278,10 +278,10 @@ export default function StudyReminders() {
       {/* ── Stats ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Study', count: reminders.filter(r => !r.completed && r.type === 'study').length,    cls: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
-          { label: 'Exams', count: reminders.filter(r => !r.completed && r.type === 'exam').length,     cls: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+          { label: 'Study', count: reminders.filter(r => !r.completed && r.type === 'study').length, cls: 'bg-blue-50 dark:bg-blue-900/20 text-white dark:text-blue-300' },
+          { label: 'Exams', count: reminders.filter(r => !r.completed && r.type === 'exam').length, cls: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
           { label: 'Deadlines', count: reminders.filter(r => !r.completed && r.type === 'deadline').length, cls: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
-          { label: 'Done', count: reminders.filter(r => r.completed).length,                           cls: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+          { label: 'Done', count: reminders.filter(r => r.completed).length, cls: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
         ].map(s => (
           <div key={s.label} className={`${s.cls} rounded-xl p-4`}>
             <div className="text-2xl font-black">{s.count}</div>
@@ -300,9 +300,8 @@ export default function StudyReminders() {
         ) : displayed.map(r => (
           <div
             key={r._id || r.id}
-            className={`group bg-white dark:bg-gray-800 p-4 rounded-2xl border transition-all shadow-sm hover:shadow-md ${
-              r.completed ? 'opacity-60 border-gray-200 dark:border-gray-700' : `border-l-4 border-gray-200 dark:border-gray-700 ${getLeftBorderColor(r.type)}`
-            }`}
+            className={`group bg-white dark:bg-gray-800 p-4 rounded-2xl border transition-all shadow-sm hover:shadow-md ${r.completed ? 'opacity-60 border-gray-200 dark:border-gray-700' : `border-l-4 border-gray-200 dark:border-gray-700 ${getLeftBorderColor(r.type)}`
+              }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
@@ -355,7 +354,7 @@ export default function StudyReminders() {
           <button onClick={() => setCalMonth(m => addMonths(m, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"><FiChevronRight size={16} /></button>
         </div>
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
             <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase py-1">{d}</div>
           ))}
         </div>
@@ -462,11 +461,10 @@ export default function StudyReminders() {
                       key={k}
                       type="button"
                       onClick={() => setForm({ ...form, type: k as ReminderType })}
-                      className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition ${
-                        form.type === k
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-blue-400'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition ${form.type === k
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-blue-400'
+                        }`}
                     >
                       {v.emoji} {v.label}
                     </button>

@@ -341,7 +341,7 @@ export default function StudentDashboardPage() {
 
             {/* Summarise notes */}
             <Link href="/dashboard/pdf-summary" prefetch={true} className="sd-tool-card">
-              <div className="sd-tool-icon" style={{ background: 'var(--purple-bg)' }}><FiFileText size={16} /></div>
+              <div className="sd-tool-icon" style={{ background: 'var(--purple-bg)' }}><FiFileText size={16} style={{ color: '#FFFFFF' }} /></div>
               <div>
                 <p className="sd-tool-name">Summarise Notes</p>
                 <p className="sd-tool-sub">Upload PDF or doc</p>

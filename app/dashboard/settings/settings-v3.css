@@ -188,7 +188,7 @@
 
 .v3-btn-outline:hover {
     background: var(--purple-bg);
-    color: var(--text-primary);
+    color: #FFFFFF;
 }
 
 /* Toggles */
@@ -224,6 +224,7 @@
 .theme-card.active {
     border-color: var(--purple);
     background: var(--purple-bg);
+    color: #FFFFFF;
     box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
 }
 

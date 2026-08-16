@@ -115,7 +115,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="sd-bottom-nav"
+      className="sd-bottom-nav flex md:hidden lg:hidden"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -123,7 +123,6 @@ export default function BottomNav() {
         right: 0,
         background: 'var(--surface)',
         borderTop: '1px solid var(--border-subtle)',
-        display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'flex-end',
         paddingTop: 10,
@@ -212,7 +211,7 @@ export default function BottomNav() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: active ? 'var(--purple)' : 'var(--text-muted)',
+                color: active ? '#FFFFFF' : 'var(--text-muted)',
                 position: 'relative',
                 transition: 'background 0.18s ease',
               }}
