@@ -512,7 +512,7 @@ export default function StudyReminders() {
                   className="w-4 h-4 accent-blue-600"
                 />
                 <FiMail className="text-blue-500" size={18} />
-                <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                <span className="text-sm font-medium text-white dark:text-blue-300">
                   Send email reminder{userEmail ? ` to ${userEmail}` : ''}
                 </span>
               </label>
