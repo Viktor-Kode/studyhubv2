@@ -280,11 +280,11 @@ export default function BlindSummaryModal({
 
                 {/* Original note reveal (Optional comparison) */}
                 {showOriginal && originalSummaryText && (
-                  <div className="mt-4 p-4 bg-[#5b4cf5] text-white dark:bg-purple-950/50 rounded-2xl space-y-2 max-h-60 overflow-y-auto">
-                    <span className="text-xs font-bold uppercase tracking-wider text-white dark:text-purple-300 flex items-center gap-1.5">
+                  <div className="mt-4 p-4 bg-[#5b4cf5] text-white rounded-2xl space-y-2 max-h-60 overflow-y-auto">
+                    <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
                       <FiBookOpen className="w-3.5 h-3.5" /> Original Summary Material:
                     </span>
-                    <div className="text-xs text-white dark:text-slate-200 leading-relaxed font-medium">
+                    <div className="text-xs text-white leading-relaxed font-medium [&_*]:text-white">
                       <FormattedMarkdown content={originalSummaryText} />
                     </div>
                   </div>

@@ -121,7 +121,7 @@ function MarkdownNote({ content }: { content: string }) {
           ),
           code: ({ inline, children, ...props }: any) =>
             inline ? (
-              <code className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+              <code className="bg-[#5b4cf5] text-white px-2 py-0.5 rounded-md text-xs font-mono font-bold" {...props}>
                 {children}
               </code>
             ) : (
@@ -270,13 +270,13 @@ export default function PDFSummaryPage() {
       // 2. Generate Flashcards if checkbox is checked
       const cardPromise = includeFlashcards
         ? generateAIFlashCards({
-            text: text.slice(0, 4000),
-            amount: 10,
-            category: title
-          }).catch(err => {
-            console.warn('AI Flashcards API failed, fallback to parser', err)
-            return null
-          })
+          text: text.slice(0, 4000),
+          amount: 10,
+          category: title
+        }).catch(err => {
+          console.warn('AI Flashcards API failed, fallback to parser', err)
+          return null
+        })
         : Promise.resolve(null)
 
       const [noteRes, cardRes] = await Promise.all([notePromise, cardPromise])
@@ -379,7 +379,7 @@ export default function PDFSummaryPage() {
           back: card.back,
           category: card.category || 'PDF Summary',
           deckId: deckId
-        }).catch(() => {})
+        }).catch(() => { })
       }
       setCardsSaved(true)
     } catch (e: any) {
@@ -414,7 +414,7 @@ export default function PDFSummaryPage() {
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="max-w-4xl mx-auto">
-                {/* ── INPUT STAGE ─────────────────────────────────────────────────── */}
+        {/* ── INPUT STAGE ─────────────────────────────────────────────────── */}
         {stage === 'input' && (
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             {/* Mode Tabs */}
@@ -489,8 +489,8 @@ export default function PDFSummaryPage() {
                       </>
                     ) : (
                       <>
-                        <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/30">
-                          <FiUploadCloud className="text-4xl text-blue-600 dark:text-blue-400" />
+                        <div className="p-4 rounded-2xl bg-[#5b4cf5] dark:bg-blue-900/30">
+                          <FiUploadCloud className="text-4xl text-white dark:text-blue-400" />
                         </div>
                         <div className="text-center">
                           <p className="font-bold text-gray-700 dark:text-gray-200 text-base">
@@ -540,11 +540,10 @@ export default function PDFSummaryPage() {
                     onChange={(e) => setIncludeFlashcards(e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                    includeFlashcards
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${includeFlashcards
                       ? 'bg-indigo-600 border-indigo-600 text-white'
                       : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
-                  }`}>
+                    }`}>
                     {includeFlashcards && <FiCheck className="text-xs stroke-[3]" />}
                   </div>
                 </div>
@@ -567,7 +566,7 @@ export default function PDFSummaryPage() {
               {/* Chip list showing what AI will produce */}
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
                 {['Study Notes', 'Key Concepts', includeFlashcards ? '10+ Flashcards' : '', 'Exam Prep'].filter(Boolean).map(chip => (
-                  <span key={chip} className="text-[10px] font-bold px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-full">
+                  <span key={chip} className="text-[10px] font-bold px-2.5 py-1 bg-[#5b4cf5] text-white rounded-full">
                     {chip}
                   </span>
                 ))}
@@ -597,18 +596,18 @@ export default function PDFSummaryPage() {
               (() => {
                 const steps = includeFlashcards
                   ? [
-                      { icon: '📄', label: 'Reading your document...' },
-                      { icon: '🧠', label: 'Identifying key concepts...' },
-                      { icon: '📝', label: 'Structuring study notes...' },
-                      { icon: '🃏', label: 'Building flashcards...' },
-                      { icon: '✨', label: 'Polishing output...' },
-                    ]
+                    { icon: '📄', label: 'Reading your document...' },
+                    { icon: '🧠', label: 'Identifying key concepts...' },
+                    { icon: '📝', label: 'Structuring study notes...' },
+                    { icon: '🃏', label: 'Building flashcards...' },
+                    { icon: '✨', label: 'Polishing output...' },
+                  ]
                   : [
-                      { icon: '📄', label: 'Reading your document...' },
-                      { icon: '🧠', label: 'Identifying key concepts...' },
-                      { icon: '📝', label: 'Structuring study notes...' },
-                      { icon: '✨', label: 'Almost ready...' },
-                    ]
+                    { icon: '📄', label: 'Reading your document...' },
+                    { icon: '🧠', label: 'Identifying key concepts...' },
+                    { icon: '📝', label: 'Structuring study notes...' },
+                    { icon: '✨', label: 'Almost ready...' },
+                  ]
                 const current = steps[stepIndex % steps.length]
                 const pct = Math.min((elapsedSecs / (includeFlashcards ? 40 : 25)) * 100, 95)
                 return (
@@ -651,23 +650,20 @@ export default function PDFSummaryPage() {
                         const done = i < stepIndex % steps.length + (pct >= 95 ? steps.length : 0)
                         const active = i === stepIndex % steps.length
                         return (
-                          <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${
-                            active ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                          }`}>
-                            <span className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-black ${
-                              done
+                          <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${active ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            }`}>
+                            <span className={`w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-black ${done
                                 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
                                 : active
                                   ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
                                   : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
-                            }`}>
+                              }`}>
                               {done ? '✓' : active ? '●' : '○'}
                             </span>
-                            <span className={`text-xs font-semibold ${
-                              active ? 'text-blue-700 dark:text-blue-300' :
-                              done ? 'text-gray-500 line-through' :
-                              'text-gray-400'
-                            }`}>{s.label}</span>
+                            <span className={`text-xs font-semibold ${active ? 'text-blue-700 dark:text-blue-300' :
+                                done ? 'text-gray-500 line-through' :
+                                  'text-gray-400'
+                              }`}>{s.label}</span>
                           </div>
                         )
                       })}
@@ -695,116 +691,83 @@ export default function PDFSummaryPage() {
           </div>
         )}
 
-        {/* ── RESULT STAGE (SEAMLESS UNIFIED CARD CONTAINER) ─────────────────── */}
+        {/* ── RESULT STAGE (BORDERLESS FOCUSED VIEW MATCHING NOTES HISTORY ID) ─────── */}
         {stage === 'result' && (
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            {/* Header: Tabs + Title & Actions in a single bar */}
-            <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* Note / Flashcard Tabs */}
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 p-1 rounded-xl self-start md:self-auto">
-                <button
-                  onClick={() => setActiveTab('note')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === 'note'
-                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm font-black'
-                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  <FiFileText className="text-sm" />
-                  <span>Note</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('flashcard')
-                    if (flashcards.length === 0) {
-                      generateFlashcardsOnDemand()
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === 'flashcard'
-                      ? 'bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-sm font-black'
-                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  <FiLayers className="text-sm" />
-                  <span>Flashcards</span>
-                  {flashcards.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
-                      {flashcards.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* Title & Actions */}
-              <div className="flex flex-1 items-center gap-3">
+          <div className="max-w-6xl mx-auto w-full bg-transparent p-0 animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col min-h-[650px]">
+            {/* Top Navigation & Action Row */}
+            <div className="mb-6 pb-6 border-b border-gray-100 dark:border-gray-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex-1">
                 <input
                   type="text"
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
                   placeholder="Title for this note..."
-                  className="flex-1 px-3 py-2 bg-transparent border-b border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition"
+                  className="text-2xl sm:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-[#5b4cf5] dark:focus:border-emerald-500 w-full py-1 text-gray-900 dark:text-white outline-none transition"
                 />
+                {uploadedFile && (
+                  <p className="text-xs font-bold text-gray-400 mt-1 flex items-center gap-1">
+                    <FiFileText className="text-[#5b4cf5]" /> Generated from {uploadedFile.name}
+                  </p>
+                )}
+              </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {saved ? (
-                    <div className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-                      <FiCheckCircle /> Saved
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving || !noteTitle}
-                      className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-sm"
-                    >
-                      {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
-                      Save Note
-                    </button>
-                  )}
-
+              <div className="flex items-center gap-3 shrink-0">
+                {saved ? (
+                  <div className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-extrabold border border-emerald-200 dark:border-emerald-800">
+                    <FiCheckCircle className="text-sm" /> Saved to History
+                  </div>
+                ) : (
                   <button
-                    onClick={handleReset}
-                    className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+                    onClick={handleSave}
+                    disabled={saving || !noteTitle}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md"
                   >
-                    <FiRefreshCw /> New
+                    {saving ? <FiLoader className="animate-spin" /> : <FiSave />}
+                    Save Note
                   </button>
-                </div>
+                )}
+
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition"
+                >
+                  <FiRefreshCw /> New Summary
+                </button>
               </div>
             </div>
 
-            {/* Saved Banner inside card */}
+            {/* Saved Toast Banner */}
             {saved && (
-              <div className="px-6 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-900/30 flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                  <FiCheckCircle /> Saved to your notes history
+              <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-between border border-emerald-100 dark:border-emerald-900/30">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                  <FiCheckCircle className="text-base" /> Saved to your study notes history!
                 </span>
                 <Link
                   href="/dashboard/notes-history"
-                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                 >
-                  View Notes <FiArrowRight />
+                  View Notes History <FiArrowRight />
                 </Link>
               </div>
             )}
 
-            {/* Active Recall Prompt Banner */}
+            {/* Active Recall Prompt Banner (Purple bg with white text in lightmode) */}
             {!blindSummaryDismissed && (
-              <div className="p-4 m-4 mb-0 bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-blue-900/10 border border-purple-200 dark:border-purple-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="p-5 mb-6 bg-[#5b4cf5] text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center text-xl shrink-0 backdrop-blur-md">
                     🙈
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                      <span className="text-xs font-black text-white uppercase tracking-wider">
                         Active Recall Challenge
                       </span>
-                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-yellow-400 text-purple-950 rounded-full">
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-yellow-400 text-gray-950 rounded-full">
                         +25 XP
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    <p className="text-xs text-white/90 mt-0.5 font-medium">
                       Read your summary? Test your memory: Type 3 main points without looking back!
                     </p>
                   </div>
@@ -812,42 +775,75 @@ export default function PDFSummaryPage() {
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                   <button
                     onClick={() => setBlindSummaryDismissed(true)}
-                    className="px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-xl transition-colors"
+                    className="px-3.5 py-2 text-xs font-bold text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
                   >
                     Skip
                   </button>
                   <button
                     onClick={() => setBlindSummaryOpen(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95"
+                    className="px-4 py-2 bg-white hover:bg-gray-100 text-[#5b4cf5] text-xs font-extrabold rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95"
                   >
-                    <BiBrain className="text-sm" /> Test Memory
+                    <BiBrain className="text-sm text-[#5b4cf5]" /> Test Memory
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ── TAB CONTENT: NOTE VIEW ────────────────────────────────────── */}
+            {/* Tab row: Note | Flashcards (Matching NotesHistory.tsx) */}
+            <div className="flex gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl w-fit">
+              <button
+                onClick={() => setActiveTab('note')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${activeTab === 'note'
+                    ? 'bg-[#5b4cf5] text-white shadow-md'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+              >
+                <FiFileText /> Note
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('flashcard')
+                  if (flashcards.length === 0) {
+                    generateFlashcardsOnDemand()
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${activeTab === 'flashcard'
+                    ? 'bg-[#5b4cf5] text-white shadow-md'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+              >
+                <FiLayers /> Flashcards
+                {flashcards.length > 0 && (
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'flashcard' ? 'bg-white/30 text-white' : 'bg-[#5b4cf5] text-white'
+                    }`}>
+                    {flashcards.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* ── TAB CONTENT: NOTE VIEW (Borderless focused reading view) ────── */}
             {activeTab === 'note' && generatedNotes && (
-              <div className="p-6 sm:p-8">
+              <div className="prose dark:prose-invert max-w-none text-base sm:text-lg leading-relaxed font-medium text-gray-700 dark:text-gray-300 flex-1 overflow-y-auto pr-2">
                 <MarkdownNote content={generatedNotes} />
               </div>
             )}
 
             {/* ── TAB CONTENT: FLASHCARD VIEW ───────────────────────────────── */}
             {activeTab === 'flashcard' && (
-              <div className="p-6 sm:p-8">
+              <div className="flex-1 flex flex-col justify-center py-4">
                 {generating ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FiLoader className="text-3xl text-purple-500 animate-spin mb-3" />
+                    <FiLoader className="text-3xl text-[#5b4cf5] animate-spin mb-3" />
                     <p className="font-bold text-gray-700 dark:text-gray-200">Generating flashcards...</p>
                   </div>
                 ) : flashcards.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-                    <FiLayers className="text-4xl text-purple-400" />
+                    <FiLayers className="text-4xl text-[#5b4cf5]" />
                     <p className="font-bold text-gray-700 dark:text-gray-200">No flashcards generated yet</p>
                     <button
                       onClick={generateFlashcardsOnDemand}
-                      className="px-5 py-2.5 bg-purple-600 text-white font-bold text-xs rounded-xl hover:bg-purple-700 transition"
+                      className="px-5 py-2.5 bg-[#5b4cf5] hover:bg-[#4b3ce5] text-white font-bold text-xs rounded-xl transition shadow-md"
                     >
                       Generate Flashcards Now
                     </button>
@@ -855,9 +851,9 @@ export default function PDFSummaryPage() {
                 ) : (
                   <div className="flex flex-col items-center">
                     {/* View Controls & Info */}
-                    <div className="w-full flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="w-full flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/80">
                       <div>
-                        <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                        <span className="text-xs font-black uppercase tracking-wider text-[#5b4cf5] dark:text-indigo-400">
                           Interactive Deck
                         </span>
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
@@ -868,21 +864,19 @@ export default function PDFSummaryPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setCardsViewMode('flip')}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                            cardsViewMode === 'flip'
-                              ? 'bg-purple-600 text-white shadow-sm'
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${cardsViewMode === 'flip'
+                              ? 'bg-[#5b4cf5] text-white shadow-sm'
                               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          }`}
+                            }`}
                         >
                           <FiEye /> Flip View
                         </button>
                         <button
                           onClick={() => setCardsViewMode('grid')}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                            cardsViewMode === 'grid'
-                              ? 'bg-purple-600 text-white shadow-sm'
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition ${cardsViewMode === 'grid'
+                              ? 'bg-[#5b4cf5] text-white shadow-sm'
                               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          }`}
+                            }`}
                         >
                           <FiGrid /> Grid View
                         </button>
@@ -896,7 +890,7 @@ export default function PDFSummaryPage() {
                           <span className="text-xs font-bold text-gray-400">
                             Card {cardIndex + 1} of {flashcards.length}
                           </span>
-                          <span className="text-xs text-purple-500 font-medium flex items-center gap-1">
+                          <span className="text-xs text-[#5b4cf5] font-medium flex items-center gap-1">
                             <FiRotateCw /> Click card to flip
                           </span>
                         </div>
@@ -916,7 +910,7 @@ export default function PDFSummaryPage() {
                           >
                             {/* FRONT SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-3xl p-8 flex flex-col justify-between shadow-md"
+                              className="absolute inset-0 w-full h-full bg-white dark:bg-gray-800 rounded-3xl p-8 flex flex-col justify-between shadow-md"
                               style={{ backfaceVisibility: 'hidden' }}
                             >
                               <div className="flex items-center justify-between">
@@ -939,7 +933,7 @@ export default function PDFSummaryPage() {
 
                             {/* BACK SIDE */}
                             <div
-                              className="absolute inset-0 w-full h-full rounded-3xl flex flex-col border-2 border-indigo-300 dark:border-indigo-600 shadow-md"
+                              className="absolute inset-0 w-full h-full rounded-3xl flex flex-col shadow-md"
                               style={{
                                 backfaceVisibility: 'hidden',
                                 transform: 'rotateY(180deg)',
@@ -947,7 +941,7 @@ export default function PDFSummaryPage() {
                               }}
                             >
                               <div className="flex-shrink-0 flex items-center justify-between px-8 pt-6">
-                                <span className="px-3 py-1 bg-indigo-200 text-indigo-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                <span className="px-3 py-1 bg-[#5b4cf5] text-white rounded-full text-[10px] font-black uppercase tracking-wider">
                                   Answer
                                 </span>
                                 <span className="text-xs text-indigo-400 flex items-center gap-1">
@@ -955,7 +949,7 @@ export default function PDFSummaryPage() {
                                 </span>
                               </div>
                               <div className="flex-1 min-h-0 overflow-y-auto px-8 py-4 flex items-center justify-center">
-                                <p className="text-sm font-semibold leading-relaxed text-center" style={{ color: '#1e1b4b' }}>
+                                <p className="text-sm sm:text-base font-semibold leading-relaxed text-center" style={{ color: '#1e1b4b' }}>
                                   {flashcards[cardIndex]?.back}
                                 </p>
                               </div>
@@ -973,14 +967,14 @@ export default function PDFSummaryPage() {
                               setCardFlipped(false)
                               setCardIndex(prev => (prev > 0 ? prev - 1 : flashcards.length - 1))
                             }}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
                           >
                             <FiChevronLeft /> Previous
                           </button>
 
                           <button
                             onClick={() => setCardFlipped(!cardFlipped)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-black hover:bg-indigo-200 transition"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[#5b4cf5] hover:bg-[#4b3ce5] text-white rounded-xl text-xs font-black transition shadow-sm"
                           >
                             <FiRotateCw /> Flip Card
                           </button>
@@ -990,7 +984,7 @@ export default function PDFSummaryPage() {
                               setCardFlipped(false)
                               setCardIndex(prev => (prev < flashcards.length - 1 ? prev + 1 : 0))
                             }}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 transition"
                           >
                             Next <FiChevronRight />
                           </button>
@@ -1004,17 +998,17 @@ export default function PDFSummaryPage() {
                         {flashcards.map((card, idx) => (
                           <div
                             key={idx}
-                            className="bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm flex flex-col justify-between"
+                            className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between"
                           >
                             <div>
-                              <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full inline-block mb-3">
+                              <span className="text-[10px] font-black uppercase text-white bg-[#5b4cf5] px-2.5 py-0.5 rounded-full inline-block mb-3">
                                 Card #{idx + 1}
                               </span>
                               <p className="font-bold text-gray-900 dark:text-white text-sm mb-3">
                                 {card.front}
                               </p>
-                              <div className="p-3 bg-white dark:bg-gray-800 rounded-xl text-xs text-gray-600 dark:text-gray-300 leading-relaxed border border-gray-200 dark:border-gray-700">
-                                <span className="font-bold text-purple-600 dark:text-purple-400 block mb-1">Answer:</span>
+                              <div className="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                <span className="font-bold text-[#5b4cf5] dark:text-indigo-400 block mb-1">Answer:</span>
                                 {card.back}
                               </div>
                             </div>
