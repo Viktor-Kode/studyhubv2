@@ -137,6 +137,8 @@ function MarkdownNote({ content }: { content: string }) {
   )
 }
 
+const PDF_SUMMARY_STORAGE_KEY = 'pdf_summary_session_v1'
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 type InputMode = 'upload' | 'manual'
 type Stage = 'input' | 'generating' | 'result'
@@ -156,6 +158,7 @@ export default function PDFSummaryPage() {
   // Input state
   const [inputMode, setInputMode] = useState<InputMode>('upload')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedFileName, setUploadedFileName] = useState<string>('')
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
   const [extracting, setExtracting] = useState(false)
@@ -188,6 +191,55 @@ export default function PDFSummaryPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Load session from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PDF_SUMMARY_STORAGE_KEY)
+      if (raw) {
+        const data = JSON.parse(raw)
+        if (data && (data.stage === 'result' || data.stage === 'generating') && data.generatedNotes) {
+          setStage('result')
+          setGeneratedNotes(data.generatedNotes || '')
+          setFlashcards(data.flashcards || [])
+          setNoteTitle(data.noteTitle || '')
+          setInputMode(data.inputMode || 'upload')
+          setExtractedText(data.extractedText || '')
+          setManualText(data.manualText || '')
+          setSaved(!!data.saved)
+          setActiveTab(data.activeTab || 'note')
+          setIncludeFlashcards(!!data.includeFlashcards)
+          setUploadedFileName(data.uploadedFileName || '')
+        }
+      }
+    } catch (e) {
+      console.error('Error loading PDF summary session:', e)
+    }
+  }, [])
+
+  // Persist session to localStorage whenever result state updates
+  useEffect(() => {
+    if (stage === 'result' && generatedNotes) {
+      try {
+        const sessionData = {
+          stage: 'result',
+          generatedNotes,
+          flashcards,
+          noteTitle,
+          inputMode,
+          extractedText,
+          manualText,
+          saved,
+          activeTab,
+          includeFlashcards,
+          uploadedFileName: uploadedFile?.name || uploadedFileName || ''
+        }
+        localStorage.setItem(PDF_SUMMARY_STORAGE_KEY, JSON.stringify(sessionData))
+      } catch (e) {
+        console.error('Error saving PDF summary session:', e)
+      }
+    }
+  }, [stage, generatedNotes, flashcards, noteTitle, inputMode, extractedText, manualText, saved, activeTab, includeFlashcards, uploadedFile, uploadedFileName])
+
   // ── File Upload & Extraction ────────────────────────────────────────────────
   const handleFile = useCallback(async (file: File) => {
     const MAX_MB = 50
@@ -196,6 +248,7 @@ export default function PDFSummaryPage() {
       return
     }
     setUploadedFile(file)
+    setUploadedFileName(file.name)
     setExtractedText('')
     setError(null)
     setExtractionLabel(getExtractionLabel(file))
@@ -347,8 +400,9 @@ export default function PDFSummaryPage() {
     if (!generatedNotes || !noteTitle) return
     setSaving(true)
     try {
+      const fileName = uploadedFile?.name || uploadedFileName
       const sourceName =
-        inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'Manual text'
+        inputMode === 'upload' && fileName ? fileName : 'Manual text'
       await saveStudyNote(noteTitle, generatedNotes, sourceName)
       setSaved(true)
     } catch (e: any) {
@@ -363,10 +417,11 @@ export default function PDFSummaryPage() {
     if (flashcards.length === 0) return
     setSavingCards(true)
     try {
+      const fileName = uploadedFile?.name || uploadedFileName
       const deckTitle = noteTitle || 'PDF Summary Flashcards'
       const deckRes = await createDeck({
         name: deckTitle,
-        description: `Generated from ${inputMode === 'upload' && uploadedFile ? uploadedFile.name : 'PDF Summary'}`,
+        description: `Generated from ${inputMode === 'upload' && fileName ? fileName : 'PDF Summary'}`,
         category: 'PDF Summary',
         color: 'purple'
       }).catch(() => null)
@@ -391,12 +446,16 @@ export default function PDFSummaryPage() {
 
   // ── Reset ───────────────────────────────────────────────────────────────────
   const handleReset = () => {
+    try {
+      localStorage.removeItem(PDF_SUMMARY_STORAGE_KEY)
+    } catch (e) { }
     setStage('input')
     setGeneratedNotes('')
     setFlashcards([])
     setCardIndex(0)
     setCardFlipped(false)
     setUploadedFile(null)
+    setUploadedFileName('')
     setExtractedText('')
     setManualText('')
     setNoteTitle('')
@@ -704,9 +763,9 @@ export default function PDFSummaryPage() {
                   placeholder="Title for this note..."
                   className="text-2xl sm:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-[#5b4cf5] dark:focus:border-emerald-500 w-full py-1 text-gray-900 dark:text-white outline-none transition"
                 />
-                {uploadedFile && (
+                {(uploadedFile?.name || uploadedFileName) && (
                   <p className="text-xs font-bold text-gray-400 mt-1 flex items-center gap-1">
-                    <FiFileText className="text-[#5b4cf5]" /> Generated from {uploadedFile.name}
+                    <FiFileText className="text-[#5b4cf5]" /> Generated from {uploadedFile?.name || uploadedFileName}
                   </p>
                 )}
               </div>

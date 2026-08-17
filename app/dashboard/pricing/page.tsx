@@ -84,132 +84,129 @@ export default function PricingPage() {
   // Define plan cards
   const displayPlans = isTeacherFlow
     ? [
-        {
-          key: 'free',
-          name: 'Teacher Free Trial',
-          price: 0,
-          period: 'forever',
-          badge: null,
-          highlight: false,
-          desc: 'Test all teacher tools with free runs.',
-          features: [
-            'Access all teacher tools',
-            '3 free runs per tool (Lesson Note, Scheme, etc.)',
-            'Export lesson notes & reports as PDF/Word',
-            'Try StudyHelp in your classroom',
-          ],
-          cta: 'Current Plan',
-        },
-        {
-          key: 'weekly',
-          name: 'Teacher Basic',
-          price: 700,
-          period: 'week',
-          badge: 'Short Pass',
-          highlight: false,
-          desc: 'Short-term access for lesson prep.',
-          features: [
-            'Unlimited Lesson Notes & Scheme of Work',
-            'Access to Result Compiler & Report Comments',
-            'Unlock saving & exporting all content',
-            'Priority AI generation speed',
-          ],
-          cta: 'Upgrade Basic',
-        },
-        {
-          key: 'monthly',
-          name: 'Teacher Premium',
-          price: 1500,
-          period: 'month',
-          badge: 'Most Popular',
-          highlight: true,
-          desc: 'Best value for full-term planning.',
-          features: [
-            'Unlimited access to ALL Teacher Tools',
-            'Unlimited downloads (Word, PDF, Excel)',
-            'Full-term planning & assessments',
-            'Priority support for teachers',
-          ],
-          cta: 'Get Teacher Premium',
-        },
-      ]
+      {
+        key: 'free',
+        name: 'Teacher Free Trial',
+        price: 0,
+        period: 'forever',
+        badge: null,
+        highlight: false,
+        desc: 'Test all teacher tools with free runs.',
+        features: [
+          'Access all teacher tools',
+          '3 free runs per tool (Lesson Note, Scheme, etc.)',
+          'Export lesson notes & reports as PDF/Word',
+          'Try StudyHelp in your classroom',
+        ],
+        cta: 'Current Plan',
+      },
+      {
+        key: 'weekly',
+        name: 'Teacher Basic',
+        price: 700,
+        period: 'week',
+        badge: 'Short Pass',
+        highlight: false,
+        desc: 'Short-term access for lesson prep.',
+        features: [
+          'Unlimited Lesson Notes & Scheme of Work',
+          'Access to Result Compiler & Report Comments',
+          'Unlock saving & exporting all content',
+          'Priority AI generation speed',
+        ],
+        cta: 'Upgrade Basic',
+      },
+      {
+        key: 'monthly',
+        name: 'Teacher Premium',
+        price: 1500,
+        period: 'month',
+        badge: 'Most Popular',
+        highlight: true,
+        desc: 'Best value for full-term planning.',
+        features: [
+          'Unlimited access to ALL Teacher Tools',
+          'Unlimited downloads (Word, PDF, Excel)',
+          'Full-term planning & assessments',
+          'Priority support for teachers',
+        ],
+        cta: 'Get Teacher Premium',
+      },
+    ]
     : [
-        {
-          key: 'free',
-          name: 'Free Starter',
-          price: 0,
-          period: 'forever',
-          badge: null,
-          highlight: false,
-          desc: 'Perfect for exploring StudyHelp CBT & AI.',
-          features: [
-            '3 practice CBT sessions',
-            'Basic study timer & tracking',
-            'Limited analytics view',
-          ],
-          cta: status?.subscription?.plan === 'free' || !status?.subscription?.plan ? 'Current Plan' : 'Free Plan',
-        },
-        {
-          key: 'weekly',
-          name: '7-Day Sprint',
-          price: PLANS.weekly.price,
-          period: 'week',
-          badge: 'Exam Rush',
-          highlight: cycle === 'weekly',
-          desc: 'Ideal for quick revision before test day.',
-          features: [
-            'Unlimited CBT tests (JAMB, WAEC, Post-UTME)',
-            'Unlimited AI explanations & tutoring',
-            'Smart study timer & streak tracking',
-            'Full progress analytics',
-          ],
-          cta: 'Start 7-Day Pass',
-        },
-        {
-          key: 'monthly',
-          name: 'Monthly Pro',
-          price: PLANS.monthly.price,
-          period: 'month',
-          badge: 'Best Value',
-          highlight: cycle === 'monthly',
-          desc: 'Complete power for continuous high scores.',
-          features: [
-            'Unlimited CBT tests & practice sessions',
-            'Unlimited AI questions & tutoring',
-            'All exam types (JAMB, WAEC, Post-UTME)',
-            'Full analytics & progress tracking',
-            'Saved notes, highlights & streaks',
-            'Priority AI speed & 24/7 support',
-          ],
-          cta: 'Get Monthly Pro',
-        },
-        {
-          key: 'yearly',
-          name: 'Annual Pass',
-          price: PLANS.yearly.price,
-          period: 'year',
-          badge: 'Save 30%',
-          highlight: cycle === 'yearly',
-          desc: 'Ultimate year-round exam dominance.',
-          features: [
-            'Everything in Monthly Pro for 365 days',
-            'Guaranteed lowest cost per month',
-            'All upcoming AI updates & new features',
-            'VIP Priority support',
-          ],
-          cta: 'Get Annual Pass',
-        },
-      ]
+      {
+        key: 'free',
+        name: 'Free Starter',
+        price: 0,
+        period: 'forever',
+        badge: null,
+        highlight: false,
+        desc: 'Perfect for exploring StudyHelp CBT & AI.',
+        features: [
+          '3 practice CBT sessions',
+          'Basic study timer & tracking',
+          'Limited analytics view',
+        ],
+        cta: status?.subscription?.plan === 'free' || !status?.subscription?.plan ? 'Current Plan' : 'Free Plan',
+      },
+      {
+        key: 'weekly',
+        name: '7-Day Sprint',
+        price: PLANS.weekly.price,
+        period: 'week',
+        badge: 'Exam Rush',
+        highlight: cycle === 'weekly',
+        desc: 'Ideal for quick revision before test day.',
+        features: [
+          'Unlimited CBT tests (JAMB, WAEC, Post-UTME)',
+          'Unlimited AI explanations & tutoring',
+          'Smart study timer & streak tracking',
+          'Full progress analytics',
+        ],
+        cta: 'Start 7-Day Pass',
+      },
+      {
+        key: 'monthly',
+        name: 'Monthly Pro',
+        price: PLANS.monthly.price,
+        period: 'month',
+        badge: 'Best Value',
+        highlight: cycle === 'monthly',
+        desc: 'Complete power for continuous high scores.',
+        features: [
+          'Unlimited CBT tests & practice sessions',
+          'Unlimited AI questions & tutoring',
+          'All exam types (JAMB, WAEC, Post-UTME)',
+          'Full analytics & progress tracking',
+          'Saved notes, highlights & streaks',
+          'Priority AI speed & 24/7 support',
+        ],
+        cta: 'Get Monthly Pro',
+      },
+      {
+        key: 'yearly',
+        name: 'Annual Pass',
+        price: PLANS.yearly.price,
+        period: 'year',
+        badge: 'Save 30%',
+        highlight: cycle === 'yearly',
+        desc: 'Ultimate year-round exam dominance.',
+        features: [
+          'Everything in Monthly Pro for 365 days',
+          'Guaranteed lowest cost per month',
+          'All upcoming AI updates & new features',
+          'VIP Priority support',
+        ],
+        cta: 'Get Annual Pass',
+      },
+    ]
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-white px-4 sm:px-6 lg:px-8 py-6 pb-28">
         <div className="max-w-7xl mx-auto space-y-10">
 
-          {/* Back button */}
-          <div className="flex items-center justify-between">
-            <BackButton label="Back" href="/dashboard/student" />
-          </div>
+
 
           {/* ── Header ───────────────────────────────────────────────────────── */}
           <div className="text-center space-y-4 max-w-3xl mx-auto">
@@ -248,11 +245,10 @@ export default function PricingPage() {
                     <button
                       key={c}
                       onClick={() => setCycle(c)}
-                      className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all capitalize ${
-                        cycle === c
+                      className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all capitalize ${cycle === c
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
+                        }`}
                     >
                       {c === 'weekly' ? 'Weekly' : c === 'monthly' ? 'Monthly 🔥' : 'Yearly (Save 30%)'}
                     </button>
@@ -302,11 +298,10 @@ export default function PricingPage() {
               return (
                 <div
                   key={plan.key}
-                  className={`relative flex flex-col rounded-3xl transition-all duration-300 bg-white dark:bg-gray-900 border-2 overflow-hidden shadow-lg hover:shadow-2xl ${
-                    plan.highlight
+                  className={`relative flex flex-col rounded-3xl transition-all duration-300 bg-white dark:bg-gray-900 border-2 overflow-hidden shadow-lg hover:shadow-2xl ${plan.highlight
                       ? 'border-blue-500 ring-4 ring-blue-500/20 dark:ring-blue-500/30 lg:-translate-y-2'
                       : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-                  }`}
+                    }`}
                 >
                   {/* Badge */}
                   {plan.badge && (
@@ -360,13 +355,12 @@ export default function PricingPage() {
                     <button
                       onClick={() => handleSubscribe(plan.key)}
                       disabled={isFree || isLoading}
-                      className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 ${
-                        plan.highlight
+                      className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 ${plan.highlight
                           ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 hover:shadow-blue-500/40'
                           : isFree
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default shadow-none'
-                          : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                      } disabled:opacity-50`}
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default shadow-none'
+                            : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
+                        } disabled:opacity-50`}
                     >
                       {isLoading ? (
                         <FiLoader className="animate-spin text-lg" />
