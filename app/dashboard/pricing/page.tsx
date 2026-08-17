@@ -203,7 +203,7 @@ export default function PricingPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-white px-4 sm:px-6 lg:px-8 py-6 pb-28">
+      <div className="min-h-screen bg-transparent from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-white px-4 sm:px-6 lg:px-8 py-6 pb-28">
         <div className="max-w-7xl mx-auto space-y-10">
 
 
@@ -246,8 +246,8 @@ export default function PricingPage() {
                       key={c}
                       onClick={() => setCycle(c)}
                       className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all capitalize ${cycle === c
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`}
                     >
                       {c === 'weekly' ? 'Weekly' : c === 'monthly' ? 'Monthly 🔥' : 'Yearly (Save 30%)'}
@@ -299,8 +299,8 @@ export default function PricingPage() {
                 <div
                   key={plan.key}
                   className={`relative flex flex-col rounded-3xl transition-all duration-300 bg-white dark:bg-gray-900 border-2 overflow-hidden shadow-lg hover:shadow-2xl ${plan.highlight
-                      ? 'border-blue-500 ring-4 ring-blue-500/20 dark:ring-blue-500/30 lg:-translate-y-2'
-                      : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                    ? 'border-blue-500 ring-4 ring-blue-500/20 dark:ring-blue-500/30 lg:-translate-y-2'
+                    : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
                     }`}
                 >
                   {/* Badge */}
@@ -356,10 +356,10 @@ export default function PricingPage() {
                       onClick={() => handleSubscribe(plan.key)}
                       disabled={isFree || isLoading}
                       className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 ${plan.highlight
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 hover:shadow-blue-500/40'
-                          : isFree
-                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default shadow-none'
-                            : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 hover:shadow-blue-500/40'
+                        : isFree
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default shadow-none'
+                          : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                         } disabled:opacity-50`}
                     >
                       {isLoading ? (
