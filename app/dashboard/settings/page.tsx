@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
-  ChevronRight, Shield, LifeBuoy, Settings, HelpCircle, Palette,
-  Users, Copy, Award, Share2
+    User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
+    ChevronRight, Shield, LifeBuoy, Settings, HelpCircle, Palette,
+    Users, Copy, Award, Share2
 } from 'lucide-react'
 import { MdSchool, MdQuiz } from 'react-icons/md'
 import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw } from 'react-icons/fi'
@@ -24,223 +24,223 @@ import './settings-v3.css'
 type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals' | 'offline'
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('profile')
-  const { user, refreshUser } = useAuthStore()
+    const [activeTab, setActiveTab] = useState<TabType>('profile')
+    const { user, refreshUser } = useAuthStore()
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      const tab = params.get('tab') as TabType
-      if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals', 'offline'].includes(tab)) {
-        setActiveTab(tab)
-      }
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            const tab = params.get('tab') as TabType
+            if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals', 'offline'].includes(tab)) {
+                setActiveTab(tab)
+            }
+        }
+    }, [])
+
+    const handleSaved = () => {
+        refreshUser()
+        toast.success('Settings updated successfully')
     }
-  }, [])
-  
-  const handleSaved = () => {
-    refreshUser()
-    toast.success('Settings updated successfully')
-  }
 
-  return (
-    <ProtectedRoute>
-      <div className="settings-v3-container">
-        <div className="mb-4">
-          <BackButton label="Back" href="/dashboard/student" />
-        </div>
+    return (
+        <ProtectedRoute>
+            <div className="settings-v3-container">
+                <div className="mb-4">
+                    <BackButton label="Back" href="/dashboard/student" />
+                </div>
 
-        <header className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1">
-                Settings
-            </h1>
-            <p className="text-sm font-medium text-slate-400">Manage your account and app preferences</p>
-        </header>
+                <header className="mb-6">
+                    <h1 className="text-2xl sm:text-3xl font-black text-black dark:text-white tracking-tight mb-1">
+                        Settings
+                    </h1>
+                    <p className="text-sm font-medium text-slate-400">Manage your account and app preferences</p>
+                </header>
 
-        <nav className="settings-tabs no-scrollbar">
-            <button 
-                onClick={() => setActiveTab('profile')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'profile' ? 'active' : ''}`}
-            >
-                <FiUser /> Profile
-            </button>
-            <button 
-                onClick={() => setActiveTab('account')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'account' ? 'active' : ''}`}
-            >
-                <FiShield /> Account
-            </button>
-            <button 
-                onClick={() => setActiveTab('notifications')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'notifications' ? 'active' : ''}`}
-            >
-                <FiBell /> Notifications
-            </button>
-            <button 
-                onClick={() => setActiveTab('appearance')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'appearance' ? 'active' : ''}`}
-            >
-                <Palette className="w-4 h-4" /> Appearance
-            </button>
-            <button 
-                onClick={() => setActiveTab('referrals')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'referrals' ? 'active' : ''}`}
-            >
-                <Users className="w-4 h-4" /> Referrals
-            </button>
-            <button 
-                onClick={() => setActiveTab('help')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'help' ? 'active' : ''}`}
-            >
-                <FiHelpCircle /> Help
-            </button>
-            <button 
-                onClick={() => setActiveTab('offline')}
-                className={`settings-tab flex items-center gap-2 ${activeTab === 'offline' ? 'active' : ''}`}
-            >
-                <FiWifiOff size={14} /> Offline
-            </button>
-        </nav>
+                <nav className="settings-tabs no-scrollbar">
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'profile' ? 'active' : ''}`}
+                    >
+                        <FiUser /> Profile
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('account')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'account' ? 'active' : ''}`}
+                    >
+                        <FiShield /> Account
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('notifications')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'notifications' ? 'active' : ''}`}
+                    >
+                        <FiBell /> Notifications
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('appearance')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'appearance' ? 'active' : ''}`}
+                    >
+                        <Palette className="w-4 h-4" /> Appearance
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('referrals')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'referrals' ? 'active' : ''}`}
+                    >
+                        <Users className="w-4 h-4" /> Referrals
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('help')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'help' ? 'active' : ''}`}
+                    >
+                        <FiHelpCircle /> Help
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('offline')}
+                        className={`settings-tab flex items-center gap-2 ${activeTab === 'offline' ? 'active' : ''}`}
+                    >
+                        <FiWifiOff size={14} /> Offline
+                    </button>
+                </nav>
 
-        <main className="max-w-4xl">
-            {activeTab === 'profile' && <ProfileSection user={user} onSaved={handleSaved} />}
-            {activeTab === 'account' && <AccountSection user={user} onSaved={handleSaved} />}
-            {activeTab === 'notifications' && <NotificationsSection user={user} onSaved={handleSaved} />}
-            {activeTab === 'appearance' && <AppearanceSection onSaved={handleSaved} />}
-            {activeTab === 'referrals' && <ReferralSection />}
-            {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
-            {activeTab === 'offline' && <OfflineSection />}
-        </main>
-        <MobileBottomNav />
-      </div>
-    </ProtectedRoute>
-  )
+                <main className="max-w-4xl">
+                    {activeTab === 'profile' && <ProfileSection user={user} onSaved={handleSaved} />}
+                    {activeTab === 'account' && <AccountSection user={user} onSaved={handleSaved} />}
+                    {activeTab === 'notifications' && <NotificationsSection user={user} onSaved={handleSaved} />}
+                    {activeTab === 'appearance' && <AppearanceSection onSaved={handleSaved} />}
+                    {activeTab === 'referrals' && <ReferralSection />}
+                    {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
+                    {activeTab === 'offline' && <OfflineSection />}
+                </main>
+                <MobileBottomNav />
+            </div>
+        </ProtectedRoute>
+    )
 }
 
 // ─── Sections ────────────────────────────────────────────────────────────────
 
 function ProfileSection({ user, onSaved }: any) {
-  const [form, setForm] = useState({
-    displayName: user?.name || '',
-    phone: '',
-    schoolName: user?.schoolName || '',
-    classLevel: user?.classLevel || '',
-    courseOfStudy: user?.courseOfStudy || '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null)
-  const fileRef = useRef<HTMLInputElement>(null)
+    const [form, setForm] = useState({
+        displayName: user?.name || '',
+        phone: '',
+        schoolName: user?.schoolName || '',
+        classLevel: user?.classLevel || '',
+        courseOfStudy: user?.courseOfStudy || '',
+    })
+    const [loading, setLoading] = useState(false)
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null)
+    const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await apiClient.get('/settings')
-        const p = res.data?.profile || {}
-        setForm({
-          displayName: p.name || user?.name || '',
-          phone: p.phone || '',
-          schoolName: p.schoolName || '',
-          classLevel: p.classLevel || '',
-          courseOfStudy: p.courseOfStudy || '',
-        })
-        setAvatarPreview(p.avatar || user?.avatar || null)
-      } catch {}
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await apiClient.get('/settings')
+                const p = res.data?.profile || {}
+                setForm({
+                    displayName: p.name || user?.name || '',
+                    phone: p.phone || '',
+                    schoolName: p.schoolName || '',
+                    classLevel: p.classLevel || '',
+                    courseOfStudy: p.courseOfStudy || '',
+                })
+                setAvatarPreview(p.avatar || user?.avatar || null)
+            } catch { }
+        }
+        load()
+    }, [user?.uid])
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onloadend = () => setAvatarPreview(reader.result as string)
+        reader.readAsDataURL(file)
     }
-    load()
-  }, [user?.uid])
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => setAvatarPreview(reader.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  const handleSave = async () => {
-    setLoading(true)
-    try {
-      await apiClient.put('/settings', { profile: { ...form, avatar: avatarPreview } })
-      onSaved()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save profile')
-    } finally {
-      setLoading(false)
+    const handleSave = async () => {
+        setLoading(true)
+        try {
+            await apiClient.put('/settings', { profile: { ...form, avatar: avatarPreview } })
+            onSaved()
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to save profile')
+        } finally {
+            setLoading(false)
+        }
     }
-  }
 
-  return (
-    <div className="settings-card">
-        <div className="flex flex-col items-center mb-8">
-            <div className="v3-avatar-wrapper">
-                {avatarPreview ? (
-                    <img src={avatarPreview} className="v3-avatar-img" alt="Profile" />
-                ) : (
-                    <div className="v3-avatar-placeholder">{form.displayName[0] || 'U'}</div>
-                )}
-                <div className="v3-avatar-edit" onClick={() => fileRef.current?.click()}>
-                    <Camera size={16} />
+    return (
+        <div className="settings-card">
+            <div className="flex flex-col items-center mb-8">
+                <div className="v3-avatar-wrapper">
+                    {avatarPreview ? (
+                        <img src={avatarPreview} className="v3-avatar-img" alt="Profile" />
+                    ) : (
+                        <div className="v3-avatar-placeholder">{form.displayName[0] || 'U'}</div>
+                    )}
+                    <div className="v3-avatar-edit" onClick={() => fileRef.current?.click()}>
+                        <Camera size={16} />
+                    </div>
+                </div>
+                <input ref={fileRef} type="file" hidden accept="image/*" onChange={handleAvatarChange} />
+                <h3 className="text-xl font-bold">{form.displayName || 'Student'}</h3>
+                <p className="text-sm text-gray-500">{user?.email}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="settings-group">
+                    <label className="settings-label">Display Name</label>
+                    <input
+                        className="settings-input-v3"
+                        value={form.displayName}
+                        onChange={e => setForm({ ...form, displayName: e.target.value })}
+                    />
+                </div>
+                <div className="settings-group">
+                    <label className="settings-label">Phone Number</label>
+                    <input
+                        className="settings-input-v3"
+                        value={form.phone}
+                        onChange={e => setForm({ ...form, phone: e.target.value })}
+                        placeholder="e.g. 08012345678"
+                    />
+                </div>
+                <div className="settings-group">
+                    <label className="settings-label">School Name</label>
+                    <input
+                        className="settings-input-v3"
+                        value={form.schoolName}
+                        onChange={e => setForm({ ...form, schoolName: e.target.value })}
+                    />
+                </div>
+                <div className="settings-group">
+                    <label className="settings-label">Class / Level</label>
+                    <input
+                        className="settings-input-v3"
+                        value={form.classLevel}
+                        onChange={e => setForm({ ...form, classLevel: e.target.value })}
+                    />
+                </div>
+                <div className="settings-group md:col-span-2">
+                    <label className="settings-label">Course of Study (Optional)</label>
+                    <input
+                        className="settings-input-v3"
+                        value={form.courseOfStudy}
+                        onChange={e => setForm({ ...form, courseOfStudy: e.target.value })}
+                    />
                 </div>
             </div>
-            <input ref={fileRef} type="file" hidden accept="image/*" onChange={handleAvatarChange} />
-            <h3 className="text-xl font-bold">{form.displayName || 'Student'}</h3>
-            <p className="text-sm text-gray-500">{user?.email}</p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="settings-group">
-                <label className="settings-label">Display Name</label>
-                <input 
-                    className="settings-input-v3" 
-                    value={form.displayName} 
-                    onChange={e => setForm({...form, displayName: e.target.value})}
-                />
-            </div>
-            <div className="settings-group">
-                <label className="settings-label">Phone Number</label>
-                <input 
-                    className="settings-input-v3" 
-                    value={form.phone} 
-                    onChange={e => setForm({...form, phone: e.target.value})}
-                    placeholder="e.g. 08012345678"
-                />
-            </div>
-            <div className="settings-group">
-                <label className="settings-label">School Name</label>
-                <input 
-                    className="settings-input-v3" 
-                    value={form.schoolName} 
-                    onChange={e => setForm({...form, schoolName: e.target.value})}
-                />
-            </div>
-            <div className="settings-group">
-                <label className="settings-label">Class / Level</label>
-                <input 
-                    className="settings-input-v3" 
-                    value={form.classLevel} 
-                    onChange={e => setForm({...form, classLevel: e.target.value})}
-                />
-            </div>
-            <div className="settings-group md:col-span-2">
-                <label className="settings-label">Course of Study (Optional)</label>
-                <input 
-                    className="settings-input-v3" 
-                    value={form.courseOfStudy} 
-                    onChange={e => setForm({...form, courseOfStudy: e.target.value})}
-                />
+            <div className="mt-8">
+                <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="v3-btn-primary w-full md:w-auto"
+                >
+                    {loading ? 'Saving Changes...' : 'Save Profile Changes'}
+                </button>
             </div>
         </div>
-
-        <div className="mt-8">
-            <button 
-                onClick={handleSave} 
-                disabled={loading}
-                className="v3-btn-primary w-full md:w-auto"
-            >
-                {loading ? 'Saving Changes...' : 'Save Profile Changes'}
-            </button>
-        </div>
-    </div>
-  )
+    )
 }
 
 function AccountSection({ user, onSaved }: any) {
@@ -265,7 +265,7 @@ function AccountSection({ user, onSaved }: any) {
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Account & Security</h3>
-            
+
             <div className="settings-group">
                 <label className="settings-label">Email Address</label>
                 <div className="settings-input-v3 bg-gray-50/50 dark:bg-white/5 opacity-80 flex items-center justify-between">
@@ -299,7 +299,7 @@ function AccountSection({ user, onSaved }: any) {
                 <div className="mt-8 p-6 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
                     <h4 className="font-bold mb-2">Password</h4>
                     <p className="text-sm text-gray-500 mb-4">Want to change your password? We'll send you a secure link.</p>
-                    <button 
+                    <button
                         onClick={handlePasswordReset}
                         disabled={loading}
                         className="v3-btn-outline"
@@ -326,7 +326,7 @@ function NotificationsSection({ user, onSaved }: any) {
         apiClient.get('/settings').then(res => {
             if (res.data?.notificationPrefs) setPrefs(res.data.notificationPrefs)
         })
-        
+
         if (typeof window !== 'undefined' && 'Notification' in window) {
             setPushEnabled(Notification.permission === 'granted')
         }
@@ -403,14 +403,14 @@ function NotificationsSection({ user, onSaved }: any) {
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Notification Preferences</h3>
-            
+
             <div className="space-y-4 mb-8">
                 <div className="v3-toggle p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
                     <div>
                         <p className="font-bold text-slate-900 dark:text-white">Study Reminders</p>
                         <p className="text-xs text-gray-500">Get push notifications for study sessions and goals</p>
                     </div>
-                    <button 
+                    <button
                         onClick={pushEnabled ? undefined : handleTestPush}
                         disabled={pushEnabled}
                         className={`w-11 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}
@@ -422,7 +422,7 @@ function NotificationsSection({ user, onSaved }: any) {
                 <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
                     <p className="font-bold text-sm mb-2">Test Your Setup</p>
                     <p className="text-xs text-gray-500 mb-4">Make sure you can receive notifications on this device.</p>
-                    <button 
+                    <button
                         onClick={handleTestPush}
                         disabled={loading}
                         className={`w-full py-3 px-4 rounded-xl font-bold transition-all active:scale-[0.98] ${pushEnabled ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
@@ -445,7 +445,7 @@ function NotificationsSection({ user, onSaved }: any) {
                             <p className="font-bold text-sm">{item.label}</p>
                             <p className="text-xs text-gray-500">{item.desc}</p>
                         </div>
-                        <button 
+                        <button
                             onClick={() => toggle(item.key)}
                             className={`w-11 h-6 rounded-full transition-colors relative ${prefs[item.key] ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}
                         >
@@ -475,21 +475,21 @@ function urlBase64ToUint8Array(base64String: string) {
 
 function AppearanceSection({ onSaved }: any) {
     const { theme, setTheme } = useThemeStore()
-    
+
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Appearance</h3>
-            
+
             <label className="settings-label">Color Theme</label>
             <div className="appearance-grid">
-                <div 
+                <div
                     onClick={() => setTheme('light')}
                     className={`theme-card ${theme === 'light' ? 'active' : ''}`}
                 >
                     <Sun className={`mx-auto mb-2 ${theme === 'light' ? 'text-purple-500' : 'text-gray-400'}`} />
                     <p className="font-bold text-sm">Light</p>
                 </div>
-                <div 
+                <div
                     onClick={() => setTheme('dark')}
                     className={`theme-card ${theme === 'dark' ? 'active' : ''}`}
                 >
@@ -507,14 +507,14 @@ function HelpSection({ onSaved }: any) {
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Help & Support</h3>
-            
+
             <div className="space-y-4">
                 <div className="v3-toggle">
                     <div>
                         <p className="font-bold text-sm">Show Page Tour</p>
                         <p className="text-xs text-gray-500">Interactive guide for new features</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setTourHidden(tourButtonVisible)}
                         className={`w-11 h-6 rounded-full transition-colors relative ${tourButtonVisible ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}
                     >
@@ -526,7 +526,7 @@ function HelpSection({ onSaved }: any) {
                         <p className="font-bold text-sm">AI Help Chatbot</p>
                         <p className="text-xs text-gray-500">Floating assistant for instant support</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setChatbotHidden(chatbotVisible)}
                         className={`w-11 h-6 rounded-full transition-colors relative ${chatbotVisible ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}
                     >
@@ -599,7 +599,7 @@ function ReferralSection() {
     return (
         <div className="settings-card">
             <h3 className="text-xl font-bold mb-6">Refer & Earn</h3>
-            
+
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white mb-8 shadow-md relative overflow-hidden">
                 <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
                     <Award size={200} />
@@ -618,7 +618,7 @@ function ReferralSection() {
                     <span className="text-2xl font-black">{stats.referralCount}</span>
                     <span className="text-xs text-gray-500 mt-1">Total Referrals</span>
                 </div>
-                
+
                 <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center text-center shadow-sm">
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3">
                         <Award size={24} />
@@ -634,7 +634,7 @@ function ReferralSection() {
                     <div className="settings-input-v3 flex-grow bg-gray-50/50 dark:bg-white/5 opacity-90 overflow-x-auto whitespace-nowrap scrollbar-thin select-all font-mono py-3 px-4 rounded-xl flex items-center justify-between border border-gray-200 dark:border-white/10">
                         {referralLink}
                     </div>
-                    <button 
+                    <button
                         onClick={handleCopy}
                         className="v3-btn-primary flex items-center justify-center gap-2 whitespace-nowrap min-w-[140px]"
                     >
@@ -647,7 +647,7 @@ function ReferralSection() {
             <div className="mt-8 border-t border-gray-100 dark:border-white/10 pt-6">
                 <h4 className="font-bold text-sm mb-4">Quick Share</h4>
                 <div className="flex flex-col md:flex-row gap-4">
-                    <button 
+                    <button
                         onClick={handleShareWhatsApp}
                         className="flex-grow flex items-center justify-center gap-3 py-3 px-6 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold rounded-xl shadow-lg transition active:scale-[0.98]"
                     >
@@ -768,11 +768,10 @@ function OfflineSection() {
                     </p>
                 </div>
                 {/* Status pill */}
-                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
-                    isOnline
+                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${isOnline
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                         : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                }`}>
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`} />
                     {isOnline ? 'Online' : 'Offline'}
                 </span>
@@ -869,11 +868,10 @@ function OfflineSection() {
                 <button
                     onClick={handleClearAll}
                     disabled={isClearing}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${
-                        confirmClear
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${confirmClear
                             ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 animate-pulse'
                             : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800'
-                    }`}
+                        }`}
                 >
                     {isClearing
                         ? <><FiRefreshCw className="animate-spin" /> Clearing...</>
