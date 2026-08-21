@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
+import { firebaseSignOut } from '@/lib/firebase-auth'
 import { useThemeStore } from '@/lib/store/themeStore'
 import {
     FiHome, FiBook, FiClock, FiCalendar, FiCreditCard,
     FiBarChart2, FiMenu, FiX,
     FiGrid, FiFileText, FiCpu, FiBookOpen, FiShield, FiFile, FiUsers, FiPhone,
-    FiTarget
+    FiTarget, FiLogOut
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { MdQuiz, MdSchool } from 'react-icons/md'
@@ -66,7 +68,13 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     const pathname = usePathname()
+    const router = useRouter()
     const { user } = useAuthStore()
+
+    const handleLogout = async () => {
+        await firebaseSignOut()
+        router.push('/auth/login')
+    }
     useSaveLastPage()
     const { theme } = useThemeStore()
     const { isInstallable, isInstalled, installApp } = usePWA()
@@ -248,6 +256,14 @@ export default function DashboardLayout({
                                     <FaWhatsapp className="text-lg text-green-500" />
                                     <span>WhatsApp Support</span>
                                 </a>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                                    aria-label="Log out"
+                                >
+                                    <FiLogOut className="text-lg" />
+                                    <span>Log Out</span>
+                                </button>
                             </div>
                         </div>
 

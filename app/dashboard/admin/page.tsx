@@ -282,8 +282,8 @@ function AdminCampaignsTab() {
             <p className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Test API connectivity and preview system templates.</p>
           </div>
         </div>
-        <Link 
-          href="/dashboard/admin/email-test" 
+        <Link
+          href="/dashboard/admin/email-test"
           className="text-xs font-bold bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
         >
           Verify Resend
@@ -296,11 +296,10 @@ function AdminCampaignsTab() {
             <button
               key={key}
               type="button"
-              className={`audience-card p-4 rounded-xl border-2 text-center cursor-pointer transition-all ${
-                form.targetAudience === key
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
-              }`}
+              className={`audience-card p-4 rounded-xl border-2 text-center cursor-pointer transition-all ${form.targetAudience === key
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+                }`}
               onClick={() => setForm((p) => ({ ...p, targetAudience: key }))}
             >
               <span className="block text-2xl font-black text-indigo-600">{val.count}</span>
@@ -321,11 +320,10 @@ function AdminCampaignsTab() {
               <button
                 key={opt.value}
                 type="button"
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                  form.campaignType === opt.value
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                    : 'border-gray-200 dark:border-gray-600'
-                }`}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${form.campaignType === opt.value
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-600'
+                  }`}
                 onClick={() => setForm((p) => ({ ...p, campaignType: opt.value }))}
               >
                 <span className="block font-bold text-sm">{opt.label}</span>
@@ -2333,7 +2331,7 @@ export default function AdminDashboardPage() {
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="admin-wrap my-6">
+      <div className="">
         <div className="admin-layout">
           {/* Sidebar */}
           <aside className="admin-sidebar">
