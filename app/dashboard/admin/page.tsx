@@ -22,6 +22,15 @@ import {
   Lock,
   TrendingUp,
   Smartphone,
+  GraduationCap,
+  Clock,
+  ArrowLeft,
+  Trophy,
+  BookOpen,
+  PieChart as PieChartIcon,
+  Rss,
+  UserCheck,
+  BarChart3,
 } from 'lucide-react'
 import { FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import Link from 'next/link'
@@ -415,6 +424,8 @@ function AdminCampaignsTab() {
 
 // ─── Tab: Overview ───────────────────────────────────────────────────────────
 
+// ─── Tab: Overview ───────────────────────────────────────────────────────────
+
 function OverviewTab({
   stats,
   onGoActivity,
@@ -434,106 +445,132 @@ function OverviewTab({
   const weeklyBars = (stats.revenue.weekly || []).slice(-8)
   const teacherToolsUsed = Object.values(stats.teacherToolTotals || {}).reduce((a, b) => a + b, 0)
   const capBytes = 500 * 1024 * 1024
-  const storagePct = Math.min(100, ((stats.library.storage || 0) / capBytes) * 100)
+  const storagePct = Math.min(100, Math.round(((stats.library.storage || 0) / capBytes) * 100))
 
   return (
     <div>
-      <div className="admin-grid-kpi-4">
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-label">Total Users</span>
-          <span className="admin-kpi-value">{stats.users.total.toLocaleString()}</span>
-          <span className="admin-kpi-badge">+{stats.users.today} today</span>
+      {/* KPI Grid */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-label">Total Users</div>
+          <div className="kpi-value">{stats.users.total.toLocaleString()}</div>
+          <span className="kpi-badge">+{stats.users.today} today</span>
         </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-label">Total Revenue</span>
-          <span className="admin-kpi-value">{nairaFromKobo(stats.revenue.total)}</span>
-          <span className="admin-kpi-sub">This week: {nairaFromKobo(stats.revenue.week)}</span>
+        <div className="kpi-card">
+          <div className="kpi-label">Total Revenue</div>
+          <div className="kpi-value">{nairaFromKobo(stats.revenue.total)}</div>
+          <span className="kpi-sub">This week: {nairaFromKobo(stats.revenue.week)}</span>
         </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-label">CBT Tests Taken</span>
-          <span className="admin-kpi-value">{stats.cbt.total.toLocaleString()}</span>
-          <span className="admin-kpi-sub">Avg score: {stats.cbt.avgScore}%</span>
+        <div className="kpi-card">
+          <div className="kpi-label">CBT Tests</div>
+          <div className="kpi-value">{stats.cbt.total.toLocaleString()}</div>
+          <span className="kpi-sub">Avg score {stats.cbt.avgScore}%</span>
         </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-label">Active Paid Users</span>
-          <span className="admin-kpi-value">{stats.users.paid.toLocaleString()}</span>
-          <span className="admin-kpi-sub">{paidPct}% of all users</span>
+        <div className="kpi-card">
+          <div className="kpi-label">Active Paid</div>
+          <div className="kpi-value">{stats.users.paid.toLocaleString()}</div>
+          <span className="kpi-sub">{paidPct}% of users</span>
         </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-label">PWA Users (Installed)</span>
-          <span className="admin-kpi-value">{stats.users.pwa?.toLocaleString() || 0}</span>
-          <span className="admin-kpi-sub">Mobile/Desktop apps</span>
-        </div>
-      </div>
-
-      <div className="admin-grid-charts-2">
-        <div className="admin-chart-card-v2">
-          <h3 className="admin-chart-title-v2">User Growth (30 days)</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={growthChart}>
-              <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#5B4CF5"
-                fill="#EEF2FF"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="admin-chart-card-v2">
-          <h3 className="admin-chart-title-v2">Weekly Revenue (8 weeks)</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weeklyBars}>
-              <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => nairaFromKobo(v)} />
-              <Bar dataKey="total" fill="#5B4CF5" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="kpi-card">
+          <div className="kpi-label">PWA Users</div>
+          <div className="kpi-value">{(stats.users.pwa || 0).toLocaleString()}</div>
+          <span className="kpi-sub">Mobile/Desktop apps</span>
         </div>
       </div>
 
-      <div className="admin-overview-row-3">
-        <div className="admin-card-v2">
-          <h3 className="admin-chart-title-v2">Top Students</h3>
-          <div className="flex flex-col gap-2">
-            {(stats.topStudents || []).length === 0 && (
-              <p className="text-sm text-slate-500">No progress data yet.</p>
-            )}
-            {(stats.topStudents || []).map((s, i) => (
-              <div
-                key={`${s.userId}-${i}`}
-                className="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0"
-              >
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-800 block truncate">
-                    {s.user?.name || s.user?.email || s.userId}
+      {/* Charts Row */}
+      <div className="charts-row">
+        <div className="chart-box">
+          <h3>
+            <TrendingUp size={16} className="text-[#5b4cf5]" />
+            User Growth (30 days)
+          </h3>
+          <div className="h-[200px] w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={growthChart}>
+                <defs>
+                  <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#5b4cf5" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#5b4cf5" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="_id" tick={{ fontSize: 10, fill: '#60758e' }} stroke="#eef2f6" />
+                <YAxis tick={{ fontSize: 10, fill: '#60758e' }} stroke="#eef2f6" allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: '#0b1a33', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
+                />
+                <Area type="monotone" dataKey="count" stroke="#5b4cf5" strokeWidth={2.5} fill="url(#growthGradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="chart-box">
+          <h3>
+            <BarChart3 size={16} className="text-[#5b4cf5]" />
+            Weekly Revenue (8 weeks)
+          </h3>
+          <div className="h-[200px] w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyBars}>
+                <XAxis dataKey="_id" tick={{ fontSize: 10, fill: '#60758e' }} stroke="#eef2f6" />
+                <YAxis tick={{ fontSize: 10, fill: '#60758e' }} stroke="#eef2f6" />
+                <Tooltip
+                  formatter={(v: number) => nairaFromKobo(v)}
+                  contentStyle={{ background: '#0b1a33', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
+                />
+                <Bar dataKey="total" fill="#5b4cf5" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3 Cards */}
+      <div className="row-3">
+        <div className="info-card">
+          <h3>
+            <Trophy size={16} className="text-[#f59e0b]" />
+            Top Students
+          </h3>
+          <div className="mt-2">
+            {(stats.topStudents || []).length === 0 ? (
+              <p className="text-xs text-slate-400 py-4 text-center">No student progress recorded yet.</p>
+            ) : (
+              (stats.topStudents || []).slice(0, 4).map((s, i) => (
+                <div key={`${s.userId}-${i}`} className="student-row">
+                  <span className="student-name truncate max-w-[140px]" title={s.user?.name || s.user?.email || s.userId}>
+                    {s.user?.name || s.user?.email?.split('@')[0] || `User #${s.userId.slice(-4)}`}
                   </span>
-                  <span className="text-xs text-slate-500">{s.xp.toLocaleString()} XP</span>
+                  <span className="student-xp flex items-center gap-2">
+                    {s.xp.toLocaleString()} XP
+                    <span className="level-tag">Lv {s.level}</span>
+                  </span>
                 </div>
-                <span className="plan-badge-v2 teacher shrink-0">Lv {s.level}</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
-        <div className="admin-card-v2">
-          <h3 className="admin-chart-title-v2">Library</h3>
-          <p className="admin-kpi-value text-2xl">{stats.library.files.toLocaleString()} files</p>
-          <p className="admin-kpi-sub mb-1">{formatBytes(stats.library.storage)} used</p>
-          <div className="storage-bar-track">
-            <div className="storage-bar-fill" style={{ width: `${storagePct}%` }} />
+        <div className="info-card">
+          <h3>
+            <BookOpen size={16} className="text-[#3b82f6]" />
+            Library
+          </h3>
+          <div>
+            <span className="kpi-value text-2xl">{stats.library.files.toLocaleString()}</span>{' '}
+            <span className="text-slate-500 text-sm">files</span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">vs 500 MB reference scale</p>
-          <div className="mt-4 space-y-2">
+          <div className="text-sm text-slate-500">{formatBytes(stats.library.storage)} used</div>
+          <div className="storage-bar">
+            <div className="storage-fill" style={{ width: `${storagePct}%` }} />
+          </div>
+          <div className="text-xs text-slate-500">vs 500 MB reference scale ({storagePct}% used)</div>
+          <div className="mt-3 space-y-1.5">
             {(stats.library.byRole || []).map((r) => (
-              <div key={r._id} className="flex justify-between text-sm">
-                <span className="text-slate-600 capitalize">{r._id}</span>
-                <span className="font-semibold text-slate-800">
+              <div key={r._id} className="flex justify-between items-center text-xs">
+                <span className="capitalize font-medium text-slate-600 dark:text-slate-300">{r._id}s</span>
+                <span className="text-slate-500">
                   {r.files} files · {formatBytes(r.bytes)}
                 </span>
               </div>
@@ -541,91 +578,100 @@ function OverviewTab({
           </div>
         </div>
 
-        <div className="admin-card-v2">
-          <h3 className="admin-chart-title-v2">Quick Stats</h3>
-          <ul className="space-y-2 text-sm text-slate-700 m-0 p-0 list-none">
+        <div className="info-card">
+          <h3>
+            <PieChartIcon size={16} className="text-[#8b5cf6]" />
+            Quick Stats
+          </h3>
+          <ul className="quick-stats">
             <li>
-              <strong>Teacher accounts:</strong> {stats.users.teachers}
+              <span>Teacher accounts</span>
+              <span className="font-semibold">{stats.users.teachers}</span>
             </li>
             <li>
-              <strong>Failed payments:</strong>{' '}
-              <span className={stats.failedPayments > 0 ? 'text-red-600 font-bold' : ''}>
-                {stats.failedPayments}
-              </span>{' '}
-              {stats.failedPayments > 0 && (
-                <button
-                  type="button"
-                  className="text-indigo-600 font-bold underline ml-1"
-                  onClick={onGoActivity}
-                >
-                  View activity
-                </button>
-              )}
+              <span>Failed payments</span>
+              <span className="flex items-center gap-1.5">
+                <span className={`font-bold ${stats.failedPayments > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {stats.failedPayments}
+                </span>
+                {stats.failedPayments > 0 && (
+                  <button
+                    type="button"
+                    className="text-[#5b4cf5] text-xs font-semibold hover:underline"
+                    onClick={onGoActivity}
+                  >
+                    view
+                  </button>
+                )}
+              </span>
             </li>
             <li>
-              <strong>Library files:</strong> {stats.library.files}
+              <span>Library files</span>
+              <span className="font-semibold">{stats.library.files}</span>
             </li>
             <li>
-              <strong>Total AI Prompts (Global):</strong> {(stats.aiUsageTotal ?? 0).toLocaleString()}
+              <span>Total AI prompts</span>
+              <span className="font-semibold">{(stats.aiUsageTotal ?? 0).toLocaleString()}</span>
             </li>
             <li>
-              <strong>Teacher tool runs:</strong> {teacherToolsUsed.toLocaleString()}
+              <span>Teacher tool runs</span>
+              <span className="font-semibold">{teacherToolsUsed.toLocaleString()}</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <div className="admin-grid-charts-2 mt-4">
-        <div className="admin-card-v2">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="admin-chart-title-v2">Site Change Monitor</h3>
-            <button
-              type="button"
-              className="text-xs text-indigo-600 font-semibold"
-              onClick={onGoActivity}
-            >
-              Open full activity
-            </button>
-          </div>
+      {/* Bottom: Monitor & Online */}
+      <div className="charts-row" style={{ marginBottom: 0 }}>
+        <div className="chart-box">
+          <h3>
+            <Rss size={16} className="text-[#5b4cf5]" />
+            Site Change Monitor
+          </h3>
           {monitoringLoading && monitoringFeed.length === 0 ? (
-            <p className="text-sm text-slate-500">Loading changes...</p>
+            <div className="py-6 text-center text-xs text-slate-400">Loading changes...</div>
           ) : monitoringFeed.length === 0 ? (
-            <p className="text-sm text-slate-500">No recent platform changes recorded.</p>
+            <div className="py-6 text-center text-xs text-slate-400">No recent activity recorded.</div>
           ) : (
-            <div className="space-y-2">
-              {monitoringFeed.slice(0, 8).map((item, i) => (
-                <div
-                  key={`${item.type}-${item.time}-${i}`}
-                  className="p-2 rounded-lg border border-slate-100 bg-slate-50/60"
-                >
-                  <p className="text-sm font-semibold text-slate-700 m-0">{item.message}</p>
-                  <p className="text-xs text-slate-500 m-0 mt-1">
+            <div className="space-y-2 mt-2">
+              {monitoringFeed.slice(0, 4).map((item, i) => (
+                <div key={`${item.type}-${item.time}-${i}`} className="feed-item">
+                  <strong>{item.message}</strong>
+                  <div className="feed-time">
                     {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
-                  </p>
+                  </div>
                 </div>
               ))}
+              <button
+                type="button"
+                className="btn-admin-outline text-xs py-1 px-3 mt-2"
+                onClick={onGoActivity}
+              >
+                Open full activity
+              </button>
             </div>
           )}
         </div>
 
-        <div className="admin-card-v2">
-          <h3 className="admin-chart-title-v2">Online Right Now</h3>
-          <p className="text-xs text-slate-500 mb-3">Active in the last 5 minutes (admin accounts excluded)</p>
+        <div className="chart-box">
+          <h3>
+            <UserCheck size={16} className="text-[#5b4cf5]" />
+            Online Right Now
+          </h3>
+          <div className="text-xs text-slate-500 mb-2">Active in last 5 minutes</div>
           {monitoringLoading && onlineUsers.length === 0 ? (
-            <p className="text-sm text-slate-500">Checking online users...</p>
+            <div className="py-6 text-center text-xs text-slate-400">Checking online users...</div>
           ) : onlineUsers.length === 0 ? (
-            <p className="text-sm text-slate-500">No users currently online.</p>
+            <div className="py-6 text-center text-xs text-slate-400">No users currently online.</div>
           ) : (
-            <div className="space-y-2">
-              {onlineUsers.map((u) => (
-                <div key={u._id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate m-0">{u.email || 'Unknown user'}</p>
-                    <p className="text-xs text-slate-500 m-0">
-                      {u.subscriptionStatus === 'active' ? (u.subscriptionPlan || 'active') : 'free'}
-                    </p>
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">
+            <div>
+              {onlineUsers.slice(0, 5).map((u) => (
+                <div key={u._id} className="online-user">
+                  <span className="flex items-center gap-2 truncate">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="truncate">{u.email || u.name || 'Anonymous Student'}</span>
+                  </span>
+                  <span className="text-xs text-slate-400 shrink-0">
                     {u.lastSeen ? formatDistanceToNow(new Date(u.lastSeen), { addSuffix: true }) : 'just now'}
                   </span>
                 </div>
@@ -633,6 +679,21 @@ function OverviewTab({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Footer note */}
+      <div className="border-t border-slate-100 dark:border-slate-800 pt-5 mt-6 flex justify-between items-center text-xs text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <Shield size={14} className="text-[#5b4cf5]" />
+          Admin · StudyHelp v2.4
+        </span>
+        <span>
+          Last refreshed:{' '}
+          {new Date().toLocaleTimeString('en-NG', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </span>
       </div>
     </div>
   )
@@ -2271,88 +2332,96 @@ export default function AdminDashboardPage() {
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="admin-layout-v2">
-        <aside className="admin-sidebar-v2">
-          {SIDEBAR.map((t) => {
-            const Icon = t.icon
-            return (
-              <button
-                key={t.id}
-                type="button"
-                className={`admin-sidebar-item-v2 ${activeTab === t.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(t.id)}
-              >
-                <Icon size={18} />
-                {t.label}
-              </button>
-            )
-          })}
-        </aside>
-
-        <main className="admin-content-v2">
-          {apiError && <div className="admin-api-error">{apiError}</div>}
-
-          <div className="admin-topbar-v2">
-            <div>
-              <h1>Admin Dashboard</h1>
-              <p>StudyHelp platform overview</p>
+      <div className="admin-wrap my-6">
+        <div className="admin-layout">
+          {/* Sidebar */}
+          <aside className="admin-sidebar">
+            <div className="brand">
+              <GraduationCap size={22} className="text-[#5b4cf5]" />
+              <span>StudyHelp</span>
             </div>
-            <div className="admin-topbar-actions">
-              <span className="last-refreshed">
-                Updated{' '}
-                {lastRefreshed.toLocaleTimeString('en-NG', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <button
-                type="button"
-                className={`refresh-btn ${refreshing ? 'spinning' : ''}`}
-                onClick={handleRefresh}
-                disabled={refreshing}
-              >
-                <RefreshCw size={16} />
-                {refreshing ? 'Refreshing…' : 'Refresh'}
-              </button>
-              <span className="admin-badge">
-                <Shield size={14} /> Admin
-              </span>
-              <button type="button" className="back-to-site" onClick={() => router.push('/dashboard')}>
-                Back to Site
-              </button>
+            {SIDEBAR.map((t) => {
+              const Icon = t.icon
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`admin-sidebar-item ${activeTab === t.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(t.id)}
+                >
+                  <Icon size={18} />
+                  <span>{t.label}</span>
+                </button>
+              )
+            })}
+          </aside>
+
+          {/* Main */}
+          <main className="admin-main">
+            {apiError && <div className="p-3 mb-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold">{apiError}</div>}
+
+            <div className="admin-topbar">
+              <div className="admin-topbar-left">
+                <h1>Admin Dashboard</h1>
+                <p>StudyHelp platform overview</p>
+              </div>
+              <div className="admin-topbar-right">
+                <span className="last-updated">
+                  <Clock size={14} /> Updated{' '}
+                  {lastRefreshed.toLocaleTimeString('en-NG', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+                <button
+                  type="button"
+                  className={`btn-admin-outline ${refreshing ? 'opacity-50' : ''}`}
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                >
+                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                  {refreshing ? 'Refreshing…' : 'Refresh'}
+                </button>
+                <span className="badge-admin">
+                  <Shield size={14} className="text-[#5b4cf5]" /> Admin
+                </span>
+                <button type="button" className="btn-admin-outline" onClick={() => router.push('/dashboard')}>
+                  <ArrowLeft size={14} /> Back
+                </button>
+              </div>
             </div>
-          </div>
 
-          {activeTab === 'overview' && (
-            <OverviewTab
-              stats={stats}
-              onGoActivity={() => setActiveTab('activity')}
-              onlineUsers={onlineUsers}
-              monitoringFeed={monitoringFeed}
-              monitoringLoading={monitoringLoading}
-            />
-          )}
-          {activeTab === 'users' && (
-            <UsersTab
-              onViewProfile={(u) => setSelectedUser(u)}
-              onRefreshUsers={fetchDashboard}
-            />
-          )}
-          {activeTab === 'pwa' && (
-            <PWAUsersTab onViewProfile={(u) => setSelectedUser(u)} />
-          )}
-          {activeTab === 'revenue' && (
-            <RevenueTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
-          )}
-          {activeTab === 'activity' && <ActivityTab />}
-          {activeTab === 'paywall' && <PaywallEventsTab />}
-          {activeTab === 'campaigns' && <AdminCampaignsTab />}
-          {activeTab === 'analytics' && <AdminAnalyticsTab stats={stats} />}
-        </main>
+            {activeTab === 'overview' && (
+              <OverviewTab
+                stats={stats}
+                onGoActivity={() => setActiveTab('activity')}
+                onlineUsers={onlineUsers}
+                monitoringFeed={monitoringFeed}
+                monitoringLoading={monitoringLoading}
+              />
+            )}
+            {activeTab === 'users' && (
+              <UsersTab
+                onViewProfile={(u) => setSelectedUser(u)}
+                onRefreshUsers={fetchDashboard}
+              />
+            )}
+            {activeTab === 'pwa' && (
+              <PWAUsersTab onViewProfile={(u) => setSelectedUser(u)} />
+            )}
+            {activeTab === 'revenue' && (
+              <RevenueTab stats={stats} onGoActivity={() => setActiveTab('activity')} />
+            )}
+            {activeTab === 'activity' && <ActivityTab />}
+            {activeTab === 'paywall' && <PaywallEventsTab />}
+            {activeTab === 'campaigns' && <AdminCampaignsTab />}
+            {activeTab === 'analytics' && <AdminAnalyticsTab stats={stats} />}
+          </main>
 
-        {selectedUser && (
-          <UserActivityDrawer userId={selectedUser._id} onClose={() => setSelectedUser(null)} />
-        )}
+          {selectedUser && (
+            <UserActivityDrawer userId={selectedUser._id} onClose={() => setSelectedUser(null)} />
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   )
