@@ -172,8 +172,9 @@ export default function DashboardLayout({
     const isDark = theme === 'dark'
     const isTutorPage = pathname === '/dashboard/tutor'
     const isChatPage = pathname === '/dashboard/chat'
+    const isAdminPage = pathname.startsWith('/dashboard/admin')
 
-    if (isTutorPage || isChatPage) {
+    if (isTutorPage || isChatPage || isAdminPage) {
         return (
             <div className="min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
                 <ProtectedRoute>

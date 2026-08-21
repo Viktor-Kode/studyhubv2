@@ -31,6 +31,7 @@ import {
   Rss,
   UserCheck,
   BarChart3,
+  LogIn,
 } from 'lucide-react'
 import { FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import Link from 'next/link'
@@ -2354,6 +2355,16 @@ export default function AdminDashboardPage() {
                 </button>
               )
             })}
+
+            {/* Divider + Logins link */}
+            <div style={{ height: 1, background: '#eef2f6', margin: '8px 4px' }} className="dark:bg-slate-700/50" />
+            <Link
+              href="/dashboard/admin/logins"
+              className="admin-sidebar-item"
+            >
+              <LogIn size={18} />
+              <span>Logins</span>
+            </Link>
           </aside>
 
           {/* Main */}
