@@ -188,7 +188,14 @@ function VaultContent() {
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isComplete) return
+      // Do not intercept keystrokes if user is typing in inputs or textareas
+      const target = e.target as HTMLElement | null
+      const tagName = target?.tagName?.toLowerCase()
+      if (tagName === "input" || tagName === "textarea" || target?.isContentEditable) {
+        return
+      }
+
+      if (activeTab !== "flashcards" || isComplete) return
 
       if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault()
@@ -207,7 +214,7 @@ function VaultContent() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isComplete, toggleFlip, handleRate])
+  }, [activeTab, isComplete, toggleFlip, handleRate])
 
   // Reset Deck
   const handleRestart = () => {
@@ -539,142 +546,59 @@ function VaultContent() {
 
         {/* ── TAB 2: BLIND SUMMARY CHALLENGE ── */}
         {activeTab === "blind" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1, maxWidth: 580, margin: "0 auto", width: "100%" }}>
-            {/* Blind Summary Header Banner */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1, maxWidth: 580, margin: "0 auto", width: "100%" }}>
+            {/* Clean Prompt Card */}
             <div
               style={{
-                background: "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
-                borderRadius: 20,
-                padding: "16px 20px",
+                background: "linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(79, 70, 229, 0.08) 100%)",
+                borderRadius: 16,
+                padding: "12px 16px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                boxShadow: "0 8px 24px -4px rgba(79, 70, 229, 0.4)",
+                border: "1px solid rgba(129, 140, 248, 0.2)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
-                    background: "rgba(255, 255, 255, 0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 22,
-                  }}
-                >
-                  🙈
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "#FBBF24",
-                        color: "#0F172A",
-                        fontSize: 10,
-                        fontWeight: 900,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      ACTIVE RECALL
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#FDE047", display: "flex", alignItems: "center", gap: 3 }}>
-                      <FiZap /> +25 XP
-                    </span>
-                  </div>
-                  <h2 style={{ fontSize: 18, fontWeight: 900, margin: "4px 0 0", color: "#FFFFFF" }}>
-                    Blind Summary Challenge
-                  </h2>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <FiLock style={{ color: "#FBBF24", fontSize: 16, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#FFFFFF" }}>
+                  Recall: <strong style={{ color: "#FBBF24" }}>{activeNode.title}</strong>
+                </span>
               </div>
-            </div>
 
-            {/* Context Notice */}
-            <div
-              style={{
-                background: "#2D2B66",
-                borderRadius: 18,
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 12,
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-              }}
-            >
-              <div
+              <span
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  background: "rgba(255, 255, 255, 0.18)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#FFFFFF",
-                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  background: filledCount === 3 ? "#059669" : "rgba(129, 140, 248, 0.2)",
+                  color: filledCount === 3 ? "#FFFFFF" : "#C7D2FE",
                 }}
               >
-                <FiLock size={16} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#FFFFFF" }}>
-                  Content hidden for recall testing:{" "}
-                  <span style={{ textDecoration: "underline", color: "#FBBF24" }}>
-                    {activeNode.title}
-                  </span>
-                </p>
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#E0E7FF", lineHeight: 1.45 }}>
-                  Without looking back at your summary or notes, test your retention by typing 3 main points you remember.
-                </p>
-              </div>
+                {filledCount} / 3 Completed
+              </span>
             </div>
 
             {!blindSubmitted ? (
-              <form onSubmit={handleBlindSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <label style={{ fontSize: 12, fontWeight: 900, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
-                    <BiBrain size={16} style={{ color: "#818CF8" }} />
-                    TYPE 3 MAIN POINTS BELOW:
-                  </label>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      padding: "4px 12px",
-                      borderRadius: 999,
-                      background: filledCount === 3 ? "#059669" : "#312E81",
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    {filledCount} / 3 Completed
-                  </span>
-                </div>
-
+              <form onSubmit={handleBlindSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {/* Point 1 */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 800, color: "#E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 999, background: "#4F46E5", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>
-                      1
-                    </span>
-                    First Main Point
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "#94A3B8" }}>
+                    Point 1
                   </label>
                   <textarea
                     rows={2}
                     value={point1}
                     onChange={(e) => setPoint1(e.target.value)}
-                    placeholder="e.g. The core concept or primary principle discussed..."
+                    placeholder="Core concept or primary rule..."
                     style={{
                       width: "100%",
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                       fontSize: 14,
                       background: "#131C31",
                       border: "1px solid #1E293B",
-                      borderRadius: 14,
+                      borderRadius: 12,
                       color: "#F8FAFC",
                       outline: "none",
                       resize: "none",
@@ -683,25 +607,22 @@ function VaultContent() {
                 </div>
 
                 {/* Point 2 */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 800, color: "#E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 999, background: "#4F46E5", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>
-                      2
-                    </span>
-                    Second Main Point
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "#94A3B8" }}>
+                    Point 2
                   </label>
                   <textarea
                     rows={2}
                     value={point2}
                     onChange={(e) => setPoint2(e.target.value)}
-                    placeholder="e.g. Key rule, definition, or supporting detail..."
+                    placeholder="Supporting mechanism or detail..."
                     style={{
                       width: "100%",
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                       fontSize: 14,
                       background: "#131C31",
                       border: "1px solid #1E293B",
-                      borderRadius: 14,
+                      borderRadius: 12,
                       color: "#F8FAFC",
                       outline: "none",
                       resize: "none",
@@ -710,25 +631,22 @@ function VaultContent() {
                 </div>
 
                 {/* Point 3 */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 800, color: "#E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 999, background: "#4F46E5", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>
-                      3
-                    </span>
-                    Third Main Point
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "#94A3B8" }}>
+                    Point 3
                   </label>
                   <textarea
                     rows={2}
                     value={point3}
                     onChange={(e) => setPoint3(e.target.value)}
-                    placeholder="e.g. Conclusion, formula, or practical takeaway..."
+                    placeholder="Key takeaway or practical application..."
                     style={{
                       width: "100%",
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                       fontSize: 14,
                       background: "#131C31",
                       border: "1px solid #1E293B",
-                      borderRadius: 14,
+                      borderRadius: 12,
                       color: "#F8FAFC",
                       outline: "none",
                       resize: "none",
@@ -741,20 +659,20 @@ function VaultContent() {
                   disabled={!canSubmitBlind || blindAwarding}
                   style={{
                     width: "100%",
-                    padding: 16,
-                    borderRadius: 16,
+                    padding: 14,
+                    borderRadius: 14,
                     background: canSubmitBlind ? "#4F46E5" : "#1E293B",
                     color: canSubmitBlind ? "#FFFFFF" : "#64748B",
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: 900,
                     border: "none",
                     cursor: canSubmitBlind ? "pointer" : "not-allowed",
-                    boxShadow: canSubmitBlind ? "0 4px 16px rgba(79, 70, 229, 0.4)" : "none",
+                    boxShadow: canSubmitBlind ? "0 4px 14px rgba(79, 70, 229, 0.4)" : "none",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
-                    marginTop: 6,
+                    marginTop: 4,
                   }}
                 >
                   {blindAwarding ? (
