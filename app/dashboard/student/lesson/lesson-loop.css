@@ -125,6 +125,43 @@
   cursor: not-allowed;
 }
 
+/* ── Nav Row (Prev / Next) ── */
+.ll-nav-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .ll-nav-row {
+    grid-template-columns: 110px 1fr;
+  }
+}
+.ll-btn-prev {
+  background: #151D30;
+  color: #C5D2E6;
+  border: 2px solid #2B3A55;
+  box-shadow: 0 6px 0 #0C1220;
+}
+.ll-btn-prev:hover:not(:disabled) {
+  background: #1C2740;
+  color: #FFFFFF;
+  border-color: #3D4F75;
+}
+.ll-btn-prev:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #0C1220 !important;
+}
+.ll-btn-prev.disabled,
+.ll-btn-prev:disabled {
+  background: #101524;
+  color: #475569;
+  border-color: #1A2338;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* ── Feedback banners ── */
 .ll-feedback { display: flex; align-items: flex-start; gap: 12px; }
 .ll-feedback-icon {

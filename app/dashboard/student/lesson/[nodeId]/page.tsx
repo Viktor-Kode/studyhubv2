@@ -10,8 +10,7 @@ import {
   type LearningNode,
 } from "@/lib/data/studyPath"
 import "../lesson-loop.css"
-import RetentionModeSwitcher from "@/components/study/RetentionModeSwitcher"
-import { FiX, FiClock } from "react-icons/fi"
+import { FiClock, FiArrowLeft, FiArrowRight } from "react-icons/fi"
 
 type Phase = "lesson" | "quiz" | "reward"
 
@@ -46,15 +45,17 @@ function LessonLoopContent() {
 
   const node = useMemo(() => resolveNode(nodeId), [nodeId])
 
-  const [phase,   setPhase]   = useState<Phase>("lesson")
-  const [correct, setCorrect] = useState(false)
-  const [wrong,   setWrong]   = useState<number[]>([])
-  const [xp,      setXp]      = useState(2480)
+  const [phase,          setPhase]          = useState<Phase>("lesson")
+  const [correct,        setCorrect]        = useState(false)
+  const [wrong,          setWrong]          = useState<number[]>([])
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  const [xp,             setXp]             = useState(2480)
 
   useEffect(() => {
     setPhase("lesson")
     setCorrect(false)
     setWrong([])
+    setSelectedOption(null)
   }, [nodeId])
 
   if (!node) {
@@ -88,6 +89,28 @@ function LessonLoopContent() {
     }
   }
 
+  const handlePrev = () => {
+    if (phase === "reward") {
+      setPhase("quiz")
+    } else if (phase === "quiz") {
+      setPhase("lesson")
+    }
+  }
+
+  const isNextDisabled = phase === "quiz" && (selectedOption === null || !correct)
+
+  const handleNext = () => {
+    if (phase === "lesson") {
+      setPhase("quiz")
+    } else if (phase === "quiz") {
+      if (correct) {
+        handleGoReward()
+      }
+    } else if (phase === "reward") {
+      router.push("/dashboard/student")
+    }
+  }
+
   return (
     <ProtectedRoute allowedRoles={["student", "teacher"]}>
       <div className="ll-root">
@@ -95,9 +118,6 @@ function LessonLoopContent() {
 
           {/* TOP BAR */}
           <header className="ll-topbar">
-            <button className="ll-close-btn" onClick={() => router.back()} aria-label="Close lesson">
-              <FiX size={20} strokeWidth={2.6} />
-            </button>
             <div role="img" aria-label={`Step ${step} of 3`} className="ll-progress-bar">
               <div className="ll-seg" style={{ background: SEG_ON }} />
               <div className="ll-seg" style={{ background: step >= 2 ? SEG_ON : SEG_OFF }} />
@@ -113,15 +133,6 @@ function LessonLoopContent() {
 
           {/* MAIN */}
           <main className="ll-main">
-            {/* Retention Mode Switcher */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-              <RetentionModeSwitcher
-                courseId={DEFAULT_TOPIC.topicId}
-                nodeId={node.id}
-                activeMode="standard"
-              />
-            </div>
-
             {/* PHASE 1: CONCEPT */}
             {phase === "lesson" && (
               <div className="ll-rise" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -226,6 +237,7 @@ function LessonLoopContent() {
                           disabled={correct}
                           onClick={() => {
                             if (correct) return
+                            setSelectedOption(i)
                             if (i === q.correctAnswerIndex) setCorrect(true)
                             else if (!wrong.includes(i)) setWrong((prev) => [...prev, i])
                           }}
@@ -374,28 +386,28 @@ function LessonLoopContent() {
               </div>
             )}
 
-            {phase === "lesson" && (
-              <button className="ll-cta-btn green" onClick={() => setPhase("quiz")}>
-                GOT IT, LET&apos;S TEST
-              </button>
-            )}
-            {phase === "quiz" && (
+            <div className="ll-nav-row">
               <button
-                className={`ll-cta-btn ${correct ? "green" : "disabled"}`}
-                onClick={handleGoReward}
-                disabled={!correct}
+                type="button"
+                className={`ll-cta-btn ll-btn-prev ${phase === "lesson" ? "disabled" : ""}`}
+                disabled={phase === "lesson"}
+                onClick={handlePrev}
+                aria-label="Previous step"
               >
-                CONTINUE
+                <FiArrowLeft size={20} />
+                <span>PREV</span>
               </button>
-            )}
-            {phase === "reward" && (
-              <Link href="/dashboard/student" className="ll-cta-btn green">
-                <span>BACK TO MAP</span>
-                <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="#08241A">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </Link>
-            )}
+              <button
+                type="button"
+                className={`ll-cta-btn ${isNextDisabled ? "disabled" : "green"}`}
+                disabled={isNextDisabled}
+                onClick={handleNext}
+                aria-label="Next step"
+              >
+                <span>{phase === "reward" ? "FINISH" : "NEXT"}</span>
+                <FiArrowRight size={20} />
+              </button>
+            </div>
           </footer>
 
         </div>

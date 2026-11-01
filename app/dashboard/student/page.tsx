@@ -9,7 +9,6 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import { apiClient } from '@/lib/api/client'
 import './study-path.css'
-import RetentionModeSwitcher from '@/components/study/RetentionModeSwitcher'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 
 import {
@@ -64,7 +63,6 @@ export default function StudentDashboardPage() {
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [showRecallModes, setShowRecallModes] = useState(false)
 
   // New topic input state (upload document or paste text)
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -792,57 +790,49 @@ export default function StudentDashboardPage() {
                 </div>
               )}
 
-              {selectedNode.status !== 'locked' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <button
-                      className="sp-modal-btn-primary"
-                      onClick={() => {
-                        const id = selectedNode.id
-                        setSelectedNode(null)
-                        router.push(`/dashboard/student/lesson/${id}`)
-                      }}
-                    >
-                      <FiPlay />
-                      <span>
-                        {selectedNode.status === 'completed' ? 'Review Concept' : 'Start Learning'}
-                      </span>
-                    </button>
-                    <button
-                      className="sp-modal-btn-primary"
-                      style={{
-                        background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-                        color: '#FFFFFF',
-                        boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
-                      }}
-                      onClick={() => setShowRecallModes((prev) => !prev)}
-                    >
-                      <FiZap />
-                      <span>Active Recall</span>
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      High-Retention Recall Modes:
-                    </span>
-                    <RetentionModeSwitcher
-                      courseId={topic?.topicId || 'csc202-queues-deques'}
-                      nodeId={selectedNode.id}
-                      activeMode="flashcards"
-                      onChangeMode={(mode) => {
-                        const id = selectedNode.id
-                        const tId = topic?.topicId || 'csc202-queues-deques'
-                        setSelectedNode(null)
-                        if (mode === 'flashcards') {
-                          router.push(`/vault/${tId}?nodeId=${id}`)
-                        } else {
-                          router.push(`/blurting/${id}`)
-                        }
-                      }}
-                    />
-                  </div>
+              {selectedNode.status === 'completed' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
+                  <button
+                    className="sp-modal-btn-primary"
+                    onClick={() => {
+                      const id = selectedNode.id
+                      setSelectedNode(null)
+                      router.push(`/dashboard/student/lesson/${id}`)
+                    }}
+                  >
+                    <FiPlay />
+                    <span>Review Concept</span>
+                  </button>
+                  <button
+                    className="sp-modal-btn-primary"
+                    style={{
+                      background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+                      color: '#FFFFFF',
+                      boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
+                    }}
+                    onClick={() => {
+                      const id = selectedNode.id
+                      const tId = topic?.topicId || 'csc202-queues-deques'
+                      setSelectedNode(null)
+                      router.push(`/vault/${tId}?nodeId=${id}`)
+                    }}
+                  >
+                    <FiZap />
+                    <span>Active Recall</span>
+                  </button>
                 </div>
+              ) : selectedNode.status === 'active' ? (
+                <button
+                  className="sp-modal-btn-primary"
+                  onClick={() => {
+                    const id = selectedNode.id
+                    setSelectedNode(null)
+                    router.push(`/dashboard/student/lesson/${id}`)
+                  }}
+                >
+                  <FiPlay />
+                  <span>Start Learning</span>
+                </button>
               ) : (
                 <button
                   className="sp-btn-paste"
