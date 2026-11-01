@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation"
 import { FiZap, FiEdit3 } from "react-icons/fi"
 
 interface RetentionModeSwitcherProps {
-  activeMode?: "flashcards" | "blurting" | "standard"
+  activeMode?: "flashcards" | "blind" | "standard"
   courseId?: string
   nodeId?: number | string
-  onChangeMode?: (mode: "flashcards" | "blurting") => void
+  onChangeMode?: (mode: "flashcards" | "blind") => void
   className?: string
   compact?: boolean
 }
@@ -23,20 +23,15 @@ export default function RetentionModeSwitcher({
 }: RetentionModeSwitcherProps) {
   const router = useRouter()
 
-  const handleSelect = (mode: "flashcards" | "blurting") => {
+  const handleSelect = (mode: "flashcards" | "blind") => {
     if (onChangeMode) {
       onChangeMode(mode)
       return
     }
 
-    if (mode === "flashcards") {
-      const targetCourse = courseId || "csc202-queues-deques"
-      const query = nodeId ? `?nodeId=${nodeId}` : ""
-      router.push(`/vault/${targetCourse}${query}`)
-    } else {
-      const targetNode = nodeId || "1"
-      router.push(`/blurting/${targetNode}`)
-    }
+    const targetCourse = courseId || "csc202-queues-deques"
+    const query = nodeId ? `?nodeId=${nodeId}&mode=${mode}` : `?mode=${mode}`
+    router.push(`/vault/${targetCourse}${query}`)
   }
 
   return (
@@ -45,13 +40,12 @@ export default function RetentionModeSwitcher({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        background: "rgba(15, 23, 42, 0.85)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(148, 163, 184, 0.16)",
-        borderRadius: "14px",
+        background: "#0c1322",
+        border: "1px solid #1E293B",
+        borderRadius: "999px",
         padding: "4px",
         gap: "4px",
-        boxShadow: "0 8px 24px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
       }}
     >
       <button
@@ -61,41 +55,23 @@ export default function RetentionModeSwitcher({
           display: "inline-flex",
           alignItems: "center",
           gap: "8px",
-          padding: compact ? "6px 12px" : "8px 18px",
-          borderRadius: "10px",
+          padding: compact ? "6px 14px" : "8px 18px",
+          borderRadius: "999px",
           fontSize: compact ? "13px" : "14px",
-          fontWeight: 700,
+          fontWeight: 800,
           fontFamily: "inherit",
           cursor: "pointer",
           border: "none",
           transition: "all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)",
-          background:
-            activeMode === "flashcards"
-              ? "linear-gradient(135deg, #FFD23F 0%, #F59E0B 100%)"
-              : "transparent",
-          color: activeMode === "flashcards" ? "#0F172A" : "#94A3B8",
-          boxShadow:
-            activeMode === "flashcards"
-              ? "0 4px 14px rgba(245, 158, 11, 0.35), 0 2px 0 #D97706"
-              : "none",
-        }}
-        onMouseEnter={(e) => {
-          if (activeMode !== "flashcards") {
-            e.currentTarget.style.color = "#F1F5F9"
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (activeMode !== "flashcards") {
-            e.currentTarget.style.color = "#94A3B8"
-            e.currentTarget.style.background = "transparent"
-          }
+          background: activeMode === "flashcards" ? "#059669" : "transparent",
+          color: activeMode === "flashcards" ? "#FFFFFF" : "#94A3B8",
+          boxShadow: activeMode === "flashcards" ? "0 2px 8px rgba(5, 150, 105, 0.4)" : "none",
         }}
       >
         <FiZap
           style={{
             fontSize: compact ? "15px" : "16px",
-            color: activeMode === "flashcards" ? "#0F172A" : "#FBBF24",
+            color: activeMode === "flashcards" ? "#FFFFFF" : "#64748B",
           }}
         />
         <span>Flashcards</span>
@@ -103,49 +79,31 @@ export default function RetentionModeSwitcher({
 
       <button
         type="button"
-        onClick={() => handleSelect("blurting")}
+        onClick={() => handleSelect("blind")}
         style={{
           display: "inline-flex",
           alignItems: "center",
           gap: "8px",
-          padding: compact ? "6px 12px" : "8px 18px",
-          borderRadius: "10px",
+          padding: compact ? "6px 14px" : "8px 18px",
+          borderRadius: "999px",
           fontSize: compact ? "13px" : "14px",
-          fontWeight: 700,
+          fontWeight: 800,
           fontFamily: "inherit",
           cursor: "pointer",
           border: "none",
           transition: "all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)",
-          background:
-            activeMode === "blurting"
-              ? "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)"
-              : "transparent",
-          color: activeMode === "blurting" ? "#FFFFFF" : "#94A3B8",
-          boxShadow:
-            activeMode === "blurting"
-              ? "0 4px 14px rgba(139, 92, 246, 0.35), 0 2px 0 #5B21B6"
-              : "none",
-        }}
-        onMouseEnter={(e) => {
-          if (activeMode !== "blurting") {
-            e.currentTarget.style.color = "#F1F5F9"
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (activeMode !== "blurting") {
-            e.currentTarget.style.color = "#94A3B8"
-            e.currentTarget.style.background = "transparent"
-          }
+          background: activeMode === "blind" ? "#059669" : "transparent",
+          color: activeMode === "blind" ? "#FFFFFF" : "#94A3B8",
+          boxShadow: activeMode === "blind" ? "0 2px 8px rgba(5, 150, 105, 0.4)" : "none",
         }}
       >
         <FiEdit3
           style={{
             fontSize: compact ? "15px" : "16px",
-            color: activeMode === "blurting" ? "#FFFFFF" : "#A78BFA",
+            color: activeMode === "blind" ? "#FFFFFF" : "#64748B",
           }}
         />
-        <span>Blurting Method</span>
+        <span>Blind Summary</span>
       </button>
     </div>
   )
