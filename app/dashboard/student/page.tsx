@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import { apiClient } from '@/lib/api/client'
 import './study-path.css'
+import { extractTextFromFile } from '@/lib/utils/extraction'
 
 import {
   FiCheck,
@@ -25,7 +26,10 @@ import {
   FiClock,
   FiLayers,
   FiArrowRight,
-  FiUploadCloud
+  FiUploadCloud,
+  FiEdit3,
+  FiLoader,
+  FiCheckCircle
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
@@ -38,6 +42,17 @@ import {
 export type { LearningNode, StudyPathTopic }
 export { DEFAULT_TOPIC }
 
+type InputMode = 'upload' | 'text'
+
+// Human-friendly label shown while a document is being read
+function getExtractionLabel(file: File): string {
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'Scanning image with OCR...'
+  if (ext === '.pdf') return 'Extracting PDF pages...'
+  if (ext === '.docx') return 'Reading Word document...'
+  if (ext === '.pptx' || ext === '.ppt') return 'Extracting presentation text...'
+  return 'Reading document...'
+}
 
 export default function StudentDashboardPage() {
   const router = useRouter()
@@ -47,8 +62,18 @@ export default function StudentDashboardPage() {
   const [topic, setTopic] = useState<StudyPathTopic | null>(DEFAULT_TOPIC)
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
-  const [rawText, setRawText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+
+  // New topic input state (upload document or paste text)
+  const [inputMode, setInputMode] = useState<InputMode>('upload')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [extractedText, setExtractedText] = useState('')
+  const [manualText, setManualText] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractionLabel, setExtractionLabel] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const [inputError, setInputError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Real progress state
   const [realStats, setRealStats] = useState({
@@ -165,12 +190,73 @@ export default function StudentDashboardPage() {
     }
   }
 
-  // Handle mock generation from raw text
+  // Open / close the new topic modal
+  const openGenerateModal = () => {
+    setInputError(null)
+    setShowGenerateModal(true)
+  }
+
+  const closeGenerateModal = () => {
+    setShowGenerateModal(false)
+    setInputError(null)
+  }
+
+  // ── File upload & text extraction ──────────────────────────────────────────
+  const handleFile = useCallback(async (file: File) => {
+    const MAX_MB = 50
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setInputError(`File too large. Maximum is ${MAX_MB}MB.`)
+      return
+    }
+    setUploadedFile(file)
+    setExtractedText('')
+    setInputError(null)
+    setExtractionLabel(getExtractionLabel(file))
+    setExtracting(true)
+    try {
+      const text = await extractTextFromFile(file)
+      if (!text || text.trim().length < 30) {
+        setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
+        setUploadedFile(null)
+        setExtractedText('')
+      } else {
+        setExtractedText(text)
+      }
+    } catch (e: any) {
+      setInputError(e?.message || 'Failed to read file.')
+      setUploadedFile(null)
+      setExtractedText('')
+    } finally {
+      setExtracting(false)
+      setExtractionLabel('')
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }, [handleFile])
+
+  const sourceText = inputMode === 'upload' ? extractedText : manualText
+  const textReady =
+    inputMode === 'upload'
+      ? !!extractedText && !extracting
+      : manualText.trim().length >= 50
+
+  // Handle generation from the uploaded / pasted material
   const handleGenerateStudyPath = () => {
+    if (!textReady) return
+    setInputError(null)
     setIsGenerating(true)
     setTimeout(() => {
       // Create new study path
-      const title = rawText.trim() ? rawText.split('\n')[0].slice(0, 32) : 'Data Structures & Algorithms'
+      const sourceTitle =
+        inputMode === 'upload' && uploadedFile
+          ? uploadedFile.name.replace(/\.[^/.]+$/, '')
+          : sourceText.split('\n')[0].slice(0, 40).trim()
+      const title = sourceTitle || 'Data Structures & Algorithms'
       const generated: StudyPathTopic = {
         topicId: 'custom-topic-' + Date.now(),
         title: title || 'Computer Science Concepts',
@@ -218,7 +304,9 @@ export default function StudentDashboardPage() {
       saveTopic(generated)
       setIsGenerating(false)
       setShowGenerateModal(false)
-      setRawText('')
+      setUploadedFile(null)
+      setExtractedText('')
+      setManualText('')
     }, 1000)
   }
 
@@ -351,7 +439,7 @@ export default function StudentDashboardPage() {
                   <span>RESUME LEARNING</span>
                   <FiPlay size={14} />
                 </button>
-                <button className="sp-btn-new-topic" onClick={() => setShowGenerateModal(true)}>
+                <button className="sp-btn-new-topic" onClick={openGenerateModal}>
                   <FiPlus size={16} />
                   <span>New Topic</span>
                 </button>
@@ -365,11 +453,11 @@ export default function StudentDashboardPage() {
                 Upload a lecture PDF, textbook chapter, or syllabus to generate your first interactive learning path.
               </p>
               <div className="sp-empty-actions">
-                <button className="sp-btn-generate" onClick={() => setShowGenerateModal(true)}>
+                <button className="sp-btn-generate" onClick={openGenerateModal}>
                   <FiPlus size={18} />
                   <span>GENERATE STUDY PATH</span>
                 </button>
-                <button className="sp-btn-paste" onClick={() => setShowGenerateModal(true)}>
+                <button className="sp-btn-paste" onClick={openGenerateModal}>
                   Paste text instead
                 </button>
               </div>
@@ -784,95 +872,149 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        {/* ── GENERATE STUDY PATH / NEW TOPIC MODAL ── */}
+        {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}
         {showGenerateModal && (
-          <div className="sp-modal-overlay" onClick={() => setShowGenerateModal(false)}>
-            <div className="sp-modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="sp-modal-overlay" onClick={closeGenerateModal}>
+            <div className="sp-modal-box sp-modal-box-lg" onClick={(e) => e.stopPropagation()}>
               <div className="sp-modal-header">
                 <div>
-                  <h3 className="sp-modal-title">Generate Study Path</h3>
+                  <h3 className="sp-modal-title">New Topic</h3>
                   <p className="sp-tool-sub" style={{ marginTop: 4 }}>
-                    Convert raw lecture notes, syllabus, or topics into a gamified path.
+                    Upload a document or paste text to generate your study path.
                   </p>
                 </div>
                 <button
                   className="sp-modal-close-btn"
-                  onClick={() => setShowGenerateModal(false)}
+                  onClick={closeGenerateModal}
                   aria-label="Close"
                 >
                   <FiX />
                 </button>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <textarea
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder="Paste lecture notes, syllabus, or topic outline here (e.g. CSC 202 Data Structures, Queues, Graphs, Trees...)"
-                  rows={5}
-                  style={{
-                    width: '100%',
-                    background: '#0d1322',
-                    border: '1px solid #1f2b45',
-                    borderRadius: 12,
-                    padding: 12,
-                    color: '#ffffff',
-                    fontSize: 13,
-                    resize: 'none',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+              {/* Mode Tabs */}
+              <div className="sp-input-tabs">
                 <button
-                  className="sp-btn-generate"
-                  style={{ flex: 1 }}
-                  onClick={handleGenerateStudyPath}
-                  disabled={isGenerating}
+                  className={`sp-input-tab ${inputMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => setInputMode('upload')}
                 >
-                  {isGenerating ? (
-                    <span>Deconstructing with AI...</span>
-                  ) : (
-                    <>
-                      <IoSparklesSharp />
-                      <span>Create Path</span>
-                    </>
-                  )}
+                  <FiUploadCloud /> Upload Document
+                </button>
+                <button
+                  className={`sp-input-tab ${inputMode === 'text' ? 'active' : ''}`}
+                  onClick={() => setInputMode('text')}
+                >
+                  <FiEdit3 /> Paste Text
                 </button>
               </div>
 
-              {/* Dev Quick Actions to toggle empty/mockup state */}
-              <div
-                style={{
-                  borderTop: '1px solid #1f2b45',
-                  paddingTop: 16,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 10
-                }}
+              {/* Upload Mode */}
+              {inputMode === 'upload' && (
+                <div>
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => !extracting && fileInputRef.current?.click()}
+                    className={`sp-dropzone ${isDragging ? 'dragging' : ''} ${
+                      uploadedFile && extractedText ? 'done' : ''
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="sp-hidden-input"
+                      accept=".pdf,.docx,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                    />
+
+                    {extracting ? (
+                      <>
+                        <FiLoader className="animate-spin sp-dropzone-loader" />
+                        <p className="sp-dropzone-title">{extractionLabel}</p>
+                      </>
+                    ) : uploadedFile && extractedText ? (
+                      <>
+                        <div className="sp-dropzone-icon done">
+                          <FiCheckCircle />
+                        </div>
+                        <div>
+                          <p className="sp-dropzone-title sp-dropzone-file">{uploadedFile.name}</p>
+                          <p className="sp-dropzone-sub">
+                            {extractedText.length.toLocaleString()} characters extracted
+                          </p>
+                        </div>
+                        <button
+                          className="sp-dropzone-remove"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setUploadedFile(null)
+                            setExtractedText('')
+                          }}
+                        >
+                          <FiX /> Remove file
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="sp-dropzone-icon">
+                          <FiUploadCloud />
+                        </div>
+                        <div>
+                          <p className="sp-dropzone-title">Drop your document here</p>
+                          <p className="sp-dropzone-sub">
+                            or click to browse &mdash; PDF, Word, PPT, Images (max 50 MB)
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className="sp-dropzone-hint">
+                    Supports PDF, DOCX, PPTX, TXT, and images (JPG, PNG)
+                  </p>
+                </div>
+              )}
+
+              {/* Paste Text Mode */}
+              {inputMode === 'text' && (
+                <div>
+                  <label className="sp-input-label">Your Content</label>
+                  <textarea
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    rows={8}
+                    placeholder="Paste your lecture notes, textbook excerpt, or study material here... (minimum 50 characters)"
+                    className="sp-modal-textarea"
+                  />
+                  <p
+                    className={`sp-char-count ${
+                      manualText.trim().length < 50 ? 'warn' : 'ok'
+                    }`}
+                  >
+                    {manualText.trim().length} / 50 min characters
+                  </p>
+                </div>
+              )}
+
+              {inputError && <p className="sp-input-error">{inputError}</p>}
+
+              <button
+                className="sp-btn-generate sp-generate-full"
+                onClick={handleGenerateStudyPath}
+                disabled={!textReady || isGenerating}
               >
-                <button
-                  className="sp-btn-paste"
-                  style={{ fontSize: 11, padding: '8px 12px' }}
-                  onClick={() => {
-                    saveTopic(DEFAULT_TOPIC)
-                    setShowGenerateModal(false)
-                  }}
-                >
-                  Load Queues & Deques Mockup
-                </button>
-                <button
-                  className="sp-btn-paste"
-                  style={{ fontSize: 11, padding: '8px 12px' }}
-                  onClick={() => {
-                    saveTopic(null)
-                    setShowGenerateModal(false)
-                  }}
-                >
-                  Show Empty State Mockup
-                </button>
-              </div>
+                {isGenerating ? (
+                  <span>Deconstructing with AI...</span>
+                ) : (
+                  <>
+                    <IoSparklesSharp />
+                    <span>Generate Study Path</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
