@@ -1,0 +1,419 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+/* ── Blurting Method Studio CSS ── */
+.bl-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #0A0E1A;
+  color: #F2F5FA;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bl-glow-top {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 650px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.16) 0%, rgba(59, 130, 246, 0.08) 50%, transparent 70%);
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bl-container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.bl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bl-btn-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #131B2E;
+  border: 1px solid #1E2A47;
+  color: #F2F5FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.bl-btn-icon:hover {
+  background: #1C2740;
+  border-color: #2D3D66;
+  transform: translateY(-1px);
+}
+
+/* Steps breadcrumb bar */
+.bl-steps-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.bl-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #131B2E;
+  border: 1px solid #1E2A47;
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748B;
+  transition: all 0.2s ease;
+}
+
+.bl-step-item.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #C4B5FD;
+}
+
+.bl-step-item.completed {
+  background: rgba(61, 220, 151, 0.12);
+  border-color: rgba(61, 220, 151, 0.3);
+  color: #3DDC97;
+}
+
+.bl-step-sep {
+  width: 16px;
+  height: 2px;
+  background: #1E2A47;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STEP 1: STUDY PROMPT (30s timer)
+   ───────────────────────────────────────────────────────────── */
+.bl-study-card {
+  background: #111827;
+  border: 2px solid #1E2A47;
+  border-radius: 24px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5);
+  animation: blFadeIn 0.3s ease-out;
+}
+
+.bl-timer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #1E2A47;
+}
+
+.bl-countdown-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bl-timer-circle {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.bl-timer-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+  color: #A78BFA;
+}
+
+.bl-study-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bl-study-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #F8FAFC;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.bl-study-summary {
+  font-size: 16px;
+  color: #CBD5E1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.bl-concepts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bl-concept-chip {
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #DDD6FE;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.bl-analogy-box {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #1E2A47;
+  border-left: 4px solid #8B5CF6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #E2E8F0;
+}
+
+.bl-cta-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.16s ease;
+}
+
+.bl-cta-purple {
+  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 0 #5B21B6, 0 10px 24px rgba(139, 92, 246, 0.35);
+}
+
+.bl-cta-purple:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #5B21B6, 0 14px 28px rgba(139, 92, 246, 0.45);
+}
+
+.bl-cta-purple:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #5B21B6;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STEP 2: THE BLANK CANVAS (THE BLURT)
+   ───────────────────────────────────────────────────────────── */
+.bl-canvas-card {
+  background: #111827;
+  border: 2px solid #1E2A47;
+  border-radius: 24px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5);
+  animation: blFadeIn 0.3s ease-out;
+}
+
+.bl-canvas-stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #1E2A47;
+  font-size: 13px;
+  font-weight: 800;
+  color: #94A3B8;
+}
+
+.bl-live-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #131B2E;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #1E2A47;
+  color: #F8FAFC;
+}
+
+.bl-editor-area {
+  width: 100%;
+  min-height: 280px;
+  background: #090D16;
+  border: 2px solid #1E2A47;
+  border-radius: 16px;
+  padding: 20px;
+  color: #F8FAFC;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bl-editor-area:focus {
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 24px rgba(139, 92, 246, 0.15);
+}
+
+.bl-editor-area::placeholder {
+  color: #475569;
+}
+
+.bl-canvas-tips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STEP 3: AI EVALUATION SCREEN
+   ───────────────────────────────────────────────────────────── */
+.bl-eval-card {
+  background: #111827;
+  border: 2px solid #1E2A47;
+  border-radius: 24px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5);
+  animation: blFadeIn 0.3s ease-out;
+}
+
+.bl-eval-score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.bl-score-number-badge {
+  font-size: 42px;
+  font-weight: 900;
+  color: #A78BFA;
+  line-height: 1;
+}
+
+.bl-xp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FBBF24;
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 6px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.35);
+}
+
+.bl-diff-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bl-diff-box-missed {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-left: 4px solid #EF4444;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bl-diff-box-matched {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-left: 4px solid #22C55E;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bl-diff-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bl-diff-title.missed {
+  color: #F87171;
+}
+
+.bl-diff-title.matched {
+  color: #4ADE80;
+}
+
+.bl-feedback-quote {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #E2E8F0;
+  margin: 0;
+}
+
+@keyframes blFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

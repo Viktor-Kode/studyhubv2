@@ -10,6 +10,7 @@ import {
   type LearningNode,
 } from "@/lib/data/studyPath"
 import "../lesson-loop.css"
+import RetentionModeSwitcher from "@/components/study/RetentionModeSwitcher"
 import { FiX, FiClock } from "react-icons/fi"
 
 type Phase = "lesson" | "quiz" | "reward"
@@ -112,6 +113,14 @@ function LessonLoopContent() {
 
           {/* MAIN */}
           <main className="ll-main">
+            {/* Retention Mode Switcher */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+              <RetentionModeSwitcher
+                courseId={DEFAULT_TOPIC.topicId}
+                nodeId={node.id}
+                activeMode="standard"
+              />
+            </div>
 
             {/* PHASE 1: CONCEPT */}
             {phase === "lesson" && (

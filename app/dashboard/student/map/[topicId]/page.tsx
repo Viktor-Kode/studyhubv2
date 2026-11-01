@@ -11,6 +11,7 @@ import {
   SAMPLE_TOPICS
 } from '@/lib/data/studyPath'
 import '../map.css'
+import RetentionModeSwitcher from '@/components/study/RetentionModeSwitcher'
 
 import {
   FiArrowLeft,
@@ -39,6 +40,7 @@ function StudyPathMapContent() {
   const [showNewTopicModal, setShowNewTopicModal] = useState(false)
   const [newTopicText, setNewTopicText] = useState('')
   const [isCreatingTopic, setIsCreatingTopic] = useState(false)
+  const [showRecallModes, setShowRecallModes] = useState(false)
 
   // Circle refs for dynamic SVG connector lines
   const containerRef = useRef<HTMLDivElement>(null)
@@ -519,27 +521,102 @@ function StudyPathMapContent() {
               )}
 
               {selectedNode.status === 'active' ? (
-                <button
-                  className="sm-modal-btn-purple"
-                  onClick={() => {
-                    setSelectedNode(null)
-                    router.push(`/dashboard/student/lesson/${selectedNode.id}`)
-                  }}
-                >
-                  <FiPlay />
-                  <span>Start Learning</span>
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      className="sm-modal-btn-purple"
+                      onClick={() => {
+                        const id = selectedNode.id
+                        setSelectedNode(null)
+                        router.push(`/dashboard/student/lesson/${id}`)
+                      }}
+                    >
+                      <FiPlay />
+                      <span>Start Learning</span>
+                    </button>
+                    <button
+                      className="sm-modal-btn-purple"
+                      style={{
+                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                        boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+                      }}
+                      onClick={() => setShowRecallModes((prev) => !prev)}
+                    >
+                      <FiZap />
+                      <span>Active Recall</span>
+                    </button>
+                  </div>
+
+                  {showRecallModes && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Retention Study Mode:
+                      </span>
+                      <RetentionModeSwitcher
+                        courseId={topic.topicId}
+                        nodeId={selectedNode.id}
+                        activeMode="flashcards"
+                        onChangeMode={(mode) => {
+                          const id = selectedNode.id
+                          setSelectedNode(null)
+                          if (mode === 'flashcards') {
+                            router.push(`/vault/${topic.topicId}?nodeId=${id}`)
+                          } else {
+                            router.push(`/blurting/${id}`)
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               ) : selectedNode.status === 'completed' ? (
-                <button
-                  className="sm-modal-btn-primary"
-                  onClick={() => {
-                    setSelectedNode(null)
-                    router.push(`/dashboard/student/lesson/${selectedNode.id}`)
-                  }}
-                >
-                  <FiPlay />
-                  <span>Review Concept</span>
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      className="sm-modal-btn-primary"
+                      onClick={() => {
+                        const id = selectedNode.id
+                        setSelectedNode(null)
+                        router.push(`/dashboard/student/lesson/${id}`)
+                      }}
+                    >
+                      <FiPlay />
+                      <span>Review Concept</span>
+                    </button>
+                    <button
+                      className="sm-modal-btn-purple"
+                      style={{
+                        background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+                        boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
+                      }}
+                      onClick={() => setShowRecallModes((prev) => !prev)}
+                    >
+                      <FiZap />
+                      <span>Active Recall</span>
+                    </button>
+                  </div>
+
+                  {/* Mode Switcher Tab */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      High-Retention Recall Modes:
+                    </span>
+                    <RetentionModeSwitcher
+                      courseId={topic.topicId}
+                      nodeId={selectedNode.id}
+                      activeMode="flashcards"
+                      onChangeMode={(mode) => {
+                        const id = selectedNode.id
+                        setSelectedNode(null)
+                        if (mode === 'flashcards') {
+                          router.push(`/vault/${topic.topicId}?nodeId=${id}`)
+                        } else {
+                          router.push(`/blurting/${id}`)
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               ) : (
                 <button className="sm-modal-btn-locked" disabled>
                   <FiLock />
