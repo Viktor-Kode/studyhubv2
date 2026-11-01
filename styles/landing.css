@@ -1,0 +1,1818 @@
+/* StudyHelp Landing Page Stylesheet */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+.studyhelp-landing {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #14122B;
+  background: #ffffff;
+  line-height: 1.5;
+  width: 100%;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.studyhelp-landing * {
+  box-sizing: border-box;
+}
+
+.studyhelp-landing a {
+  text-decoration: none;
+}
+
+.studyhelp-landing .w {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Nav */
+.studyhelp-landing .nv {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(216, 212, 238, 0.6);
+  transition: all 0.3s ease;
+}
+
+.studyhelp-landing .nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.studyhelp-landing .logo {
+  font-weight: 800;
+  font-size: 22px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #14122B;
+  transition: color 0.2s ease;
+}
+
+.studyhelp-landing .logo-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #E9E5F8;
+  box-shadow: 0 3px 10px rgba(109, 59, 242, 0.12);
+  flex-shrink: 0;
+}
+
+.studyhelp-landing .logo-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Theme Toggle Button (Light & Dark) */
+.studyhelp-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #E4DFFA;
+  background: #F7F4FF;
+  color: #6D3BF2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(109, 59, 242, 0.08);
+  flex-shrink: 0;
+}
+
+.studyhelp-theme-toggle:hover {
+  background: #ECE5FF;
+  border-color: #6D3BF2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(109, 59, 242, 0.15);
+}
+
+.studyhelp-theme-toggle .theme-toggle-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+}
+
+.studyhelp-theme-toggle:hover .theme-toggle-icon-wrap {
+  transform: rotate(15deg);
+}
+
+.studyhelp-theme-toggle .theme-icon-moon {
+  color: #6D3BF2;
+}
+
+.studyhelp-theme-toggle .theme-icon-sun {
+  color: #FFAE19;
+}
+
+.studyhelp-landing .btn-pwa-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #5B2BD9;
+  background: #F0EBFF;
+  border: 1px solid #E3DAFB;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.studyhelp-landing .btn-pwa-install:hover {
+  background: #E8E0FF;
+  border-color: #6D3BF2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(109, 59, 242, 0.15);
+}
+
+.studyhelp-landing .btn-pwa-install svg {
+  color: #6D3BF2;
+}
+
+.studyhelp-landing .links a {
+  color: #4A4766;
+  margin: 0 14px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+
+.studyhelp-landing .links a:hover {
+  color: #6D3BF2;
+}
+
+/* Desktop nav actions */
+.studyhelp-landing .nav-actions-desktop {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Mobile nav controls */
+.studyhelp-landing .nav-mobile-controls {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile hamburger button */
+.studyhelp-landing .nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #E9E5F8;
+  background: #ffffff;
+  color: #14122B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(109, 59, 242, 0.08);
+}
+
+.studyhelp-landing .nav-hamburger:hover {
+  background: #F8F7FF;
+  border-color: #6D3BF2;
+  color: #6D3BF2;
+}
+
+/* Mobile menu drawer & overlay */
+.studyhelp-landing .mobile-menu-overlay {
+  position: fixed;
+  top: 73px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 18, 43, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 999;
+  animation: studyhelp-fadeIn 0.2s ease;
+}
+
+.studyhelp-landing .mobile-menu-drawer {
+
+  border-bottom: 1px solid #E9E5F8;
+  box-shadow: 0 20px 40px -10px rgba(40, 30, 100, 0.2);
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  animation: studyhelp-slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studyhelp-landing .mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.studyhelp-landing .mobile-nav-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+
+  transition: all 0.2s ease;
+}
+
+.studyhelp-landing .mobile-nav-link:hover,
+.studyhelp-landing .mobile-nav-link:active {
+  background: #F4F1FD;
+  color: #6D3BF2;
+}
+
+.studyhelp-landing .mobile-menu-divider {
+  height: 1px;
+  background: #E9E5F8;
+  margin: 14px 0;
+}
+
+.studyhelp-landing .mobile-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyhelp-landing .mobile-install-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: 14.5px;
+  border-radius: 10px;
+}
+
+.studyhelp-landing .mobile-auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyhelp-landing .mobile-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  padding: 12px 18px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+
+/* Buttons */
+.studyhelp-landing .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 26px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s;
+  cursor: pointer;
+  text-align: center;
+}
+
+.studyhelp-landing .btn:hover {
+  transform: translateY(-2px);
+}
+
+.studyhelp-landing .b1 {
+  background: #6D3BF2;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(109, 59, 242, 0.28);
+}
+
+.studyhelp-landing .b1:hover {
+  box-shadow: 0 14px 30px rgba(109, 59, 242, 0.4);
+}
+
+.studyhelp-landing .b2 {
+  background: #ffffff;
+  color: #14122B;
+  border: 1px solid #D8D4EE;
+}
+
+.studyhelp-landing .b2:hover {
+  border-color: #6D3BF2;
+  background: #F7F4FF;
+}
+
+.studyhelp-landing .sm {
+  padding: 10px 18px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+/* Hero Section */
+.studyhelp-landing .hero {
+  position: relative;
+  text-align: center;
+  padding: 56px 0 0;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.studyhelp-landing .hg {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: end;
+  text-align: left;
+}
+
+.studyhelp-landing .ht {
+  padding-bottom: 72px;
+  align-self: center;
+}
+
+.studyhelp-landing .hg .h1 {
+  margin: 0 0 20px;
+  max-width: none;
+  font-size: clamp(38px, 4.8vw, 64px);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #14122B;
+}
+
+.studyhelp-landing .gt {
+  background: linear-gradient(90deg, #6D3BF2, #2F6BFF, #6D3BF2);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: studyhelp-sh 6s linear infinite;
+}
+
+.studyhelp-landing .hg .sub {
+  margin: 0 0 32px;
+  max-width: 520px;
+  font-size: 19px;
+  color: #4A4766;
+  line-height: 1.5;
+}
+
+.studyhelp-landing .acts {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.studyhelp-landing .hb1,
+.studyhelp-landing .hb2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 17px 32px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.studyhelp-landing .hb1 {
+  background: #6D3BF2;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 14px 30px -10px rgba(109, 59, 242, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.studyhelp-landing .hb1:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.28);
+  transform: skewX(-20deg);
+  transition: left 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.studyhelp-landing .hb1:hover:after {
+  left: 130%;
+}
+
+.studyhelp-landing .hb1:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px -10px rgba(109, 59, 242, 0.65);
+}
+
+.studyhelp-landing .hb1 svg,
+.studyhelp-landing .hb2 svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.studyhelp-landing .hb1:hover svg {
+  transform: translateX(5px);
+}
+
+.studyhelp-landing .hb2 {
+  background: #ffffff;
+  color: #14122B;
+  border: 1.5px solid #D8D4EE;
+}
+
+.studyhelp-landing .hb2:hover {
+  border-color: #6D3BF2;
+  background: #F7F4FF;
+  transform: translateY(-2px);
+}
+
+.studyhelp-landing .hb2 svg {
+  color: #6D3BF2;
+}
+
+/* Stats */
+.studyhelp-landing .stats {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 40px;
+  border: none;
+}
+
+.studyhelp-landing .stats > div {
+  padding: 0;
+  border: none;
+}
+
+.studyhelp-landing .stats > div:first-child {
+  border: none;
+  padding-left: 0;
+}
+
+.studyhelp-landing .stats b {
+  display: block;
+  font-size: 26px;
+  color: #6D3BF2;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.studyhelp-landing .stats span {
+  font-size: 14px;
+  color: #4A4766;
+  font-weight: 600;
+}
+
+/* Phone Mockup */
+.studyhelp-landing .ph {
+  width: 300px;
+  margin: 0 auto;
+  background: #14122B;
+  border-radius: 46px 46px 0 0;
+  padding: 10px 10px 0;
+  box-shadow: 0 40px 80px -30px rgba(40, 30, 100, 0.45);
+  text-align: left;
+}
+
+.studyhelp-landing .ps {
+  background: #F7F6FF;
+  border-radius: 36px 36px 0 0;
+  height: 440px;
+  padding: 14px 16px;
+  overflow: hidden;
+}
+
+.studyhelp-landing .pn {
+  width: 84px;
+  height: 22px;
+  background: #14122B;
+  border-radius: 99px;
+  margin: 0 auto 14px;
+}
+
+.studyhelp-landing .pt small {
+  color: #5B2BD9;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.studyhelp-landing .pt b {
+  display: block;
+  font-size: 20px;
+
+}
+
+.studyhelp-landing .pk {
+  background: #6D3BF2;
+  color: #ffffff;
+  border-radius: 18px;
+  padding: 14px;
+  margin: 12px 0;
+}
+
+.studyhelp-landing .pk small {
+  opacity: 0.9;
+  font-size: 11px;
+  display: block;
+}
+
+.studyhelp-landing .pk b {
+  font-size: 22px;
+  display: block;
+  color: #ffffff;
+  margin: 2px 0 6px;
+}
+
+.studyhelp-landing .bar {
+  height: 8px;
+  border-radius: 9px;
+  background: #EAE8F6;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.studyhelp-landing .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #2F6BFF, #6D3BF2);
+  transform-origin: left;
+  animation: studyhelp-bg 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.studyhelp-landing .pk .bar {
+  background: rgba(255, 255, 255, 0.25);
+  margin-top: 6px;
+}
+
+.studyhelp-landing .pk .bar i {
+
+}
+
+.studyhelp-landing .pa {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.studyhelp-landing .pa div {
+  background: #ffffff;
+  border: 1px solid #E9E5F8;
+  border-radius: 14px;
+  padding: 10px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  color: #3B3858;
+}
+
+.studyhelp-landing .pa i {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #E3ECFF;
+  margin: 0 auto 6px;
+}
+
+.studyhelp-landing .pa div:nth-child(even) i {
+  background: #EFE8FF;
+}
+
+.studyhelp-landing .pa svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #4B3FE0;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studyhelp-landing .pc {
+  background: #ffffff;
+  border: 1px solid #E9E5F8;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #14122B;
+}
+
+.studyhelp-landing .pc small {
+  color: #5B5876;
+  font-size: 11px;
+}
+
+/* Floating icons in hero */
+.studyhelp-landing .ico {
+  position: absolute;
+  z-index: 1;
+  color: #6D3BF2;
+  opacity: 0.08;
+  pointer-events: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: studyhelp-fy 9s ease-in-out infinite;
+}
+
+/* Marquee */
+.studyhelp-landing .mq {
+  overflow: hidden;
+  border-top: 1px solid #E6E3F5;
+  border-bottom: 1px solid #E6E3F5;
+  background: #ffffff;
+  padding: 18px 0;
+  display: flex;
+}
+
+.studyhelp-landing .mt {
+  display: flex;
+  width: max-content;
+  animation: studyhelp-mq 35s linear infinite;
+  font-weight: 700;
+  color: #5B5876;
+}
+
+.studyhelp-landing .mt span {
+  white-space: nowrap;
+  margin-right: 48px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.studyhelp-landing .mt span:before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2F6BFF, #6D3BF2);
+  margin-right: 14px;
+}
+
+/* Sections */
+.studyhelp-landing .sec {
+  position: relative;
+  overflow: hidden;
+  padding: 80px 0;
+}
+
+.studyhelp-landing .sec > .w {
+  position: relative;
+  z-index: 2;
+}
+
+.studyhelp-landing .tint {
+  background: #F7F6FF;
+}
+
+.studyhelp-landing .k {
+  color: #5B2BD9;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.studyhelp-landing .h2 {
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 10px 0 12px;
+  color: #14122B;
+}
+
+.studyhelp-landing .lead {
+  text-align: center;
+  color: #4A4766;
+  font-size: 18px;
+  max-width: 560px;
+  margin: 0 auto 48px;
+}
+
+/* Grids */
+.studyhelp-landing .g3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.studyhelp-landing .g4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+/* Cards */
+.studyhelp-landing .card {
+  border-radius: 24px;
+  padding: 32px;
+  background: linear-gradient(180deg, #ffffff, #FBFAFF);
+  border: 1px solid #E9E5F8;
+  box-shadow: 0 1px 2px rgba(40, 30, 100, 0.04), 0 12px 32px -12px rgba(60, 40, 140, 0.12);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.55s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.55s;
+}
+
+.studyhelp-landing .card:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2F6BFF, #6D3BF2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.studyhelp-landing .card:hover:before {
+  transform: scaleX(1);
+}
+
+.studyhelp-landing .card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 2px 4px rgba(40, 30, 100, 0.04), 0 30px 60px -18px rgba(90, 50, 220, 0.28);
+  border-color: #D6C9FA;
+}
+
+.studyhelp-landing .card h3 {
+  margin: 14px 0 8px;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+  color: #14122B;
+}
+
+.studyhelp-landing .card p {
+  margin: 0;
+  color: #4A4766;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.studyhelp-landing .ic {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #E3ECFF, #EFE8FF);
+  color: #3F4FD8;
+  font-size: 16px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px rgba(109, 59, 242, 0.12);
+  transition: transform 0.3s;
+}
+
+.studyhelp-landing .card:hover .ic {
+  transform: scale(1.1) rotate(-4deg);
+}
+
+.studyhelp-landing .ic.v {
+  background: linear-gradient(135deg, #F0E9FF, #E3ECFF);
+  color: #6D3BF2;
+}
+
+.studyhelp-landing .ic svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studyhelp-landing .bridge {
+  text-align: center;
+  margin: 40px 0 0;
+  font-weight: 800;
+  font-size: 19px;
+  color: #5B2BD9;
+}
+
+/* Number badges and mini cards */
+.studyhelp-landing .num {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2F6BFF, #6D3BF2);
+  color: #ffffff;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 22px -6px rgba(109, 59, 242, 0.5);
+}
+
+.studyhelp-landing .bn {
+  position: absolute;
+  right: 24px;
+  top: 6px;
+  font-size: 96px;
+  font-weight: 800;
+  color: #6D3BF2;
+  opacity: 0.07;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.studyhelp-landing .mini {
+  margin-top: 18px;
+  background: #ffffff;
+  border: 1px solid #ECE9F9;
+  border-radius: 16px;
+  padding: 14px;
+  font-size: 14px;
+  color: #4A4766;
+  box-shadow: 0 8px 20px -12px rgba(60, 40, 140, 0.2);
+}
+
+/* Pricing Cards */
+.studyhelp-landing .pcd {
+  display: flex;
+  flex-direction: column;
+}
+
+.studyhelp-landing .pcd b {
+  font-size: 18px;
+  color: #14122B;
+}
+
+.studyhelp-landing .pcd ul {
+  flex: 1;
+  padding-left: 0;
+  margin: 20px 0 24px;
+}
+
+.studyhelp-landing .pcd .ps2 {
+  color: #4A4766;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.studyhelp-landing .pcd .btn {
+  text-align: center;
+}
+
+.studyhelp-landing .price {
+  font-size: 40px;
+  font-weight: 800;
+  margin: 10px 0;
+  color: #14122B;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.studyhelp-landing .price small {
+  font-size: 16px;
+  color: #4A4766;
+  font-weight: 600;
+}
+
+.studyhelp-landing .pr li {
+  list-style: none;
+  position: relative;
+  padding-left: 28px;
+  margin: 10px 0;
+  color: #3B3858;
+  font-size: 14.5px;
+}
+
+.studyhelp-landing .pr li:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #EFE8FF;
+}
+
+.studyhelp-landing .pr li:after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 7px;
+  width: 4px;
+  height: 8px;
+  border: solid #6D3BF2;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.studyhelp-landing .pop {
+  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #2F6BFF, #6D3BF2) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 20px 44px rgba(109, 59, 242, 0.18);
+}
+
+.studyhelp-landing .tag {
+  display: inline-block;
+  background: #6D3BF2;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 99px;
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+.studyhelp-landing .tag.bl {
+  background: #2F6BFF;
+}
+
+.studyhelp-landing .chips {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+
+.studyhelp-landing .chips span {
+  background: #F7F6FF;
+  border: 1px solid #E9E5F8;
+  border-radius: 99px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #3B3858;
+}
+
+/* CTA */
+.studyhelp-landing .cta-wrap {
+  padding-bottom: 80px;
+}
+
+.studyhelp-landing .cta {
+  background: linear-gradient(135deg, #2F5FE0, #6D3BF2, #2F5FE0);
+  background-size: 200% 200%;
+  border-radius: 28px;
+  padding: 64px 24px;
+  text-align: center;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  animation: studyhelp-gs 8s ease infinite;
+}
+
+.studyhelp-landing .cta > :not(.ico) {
+  position: relative;
+  z-index: 2;
+}
+
+.studyhelp-landing .cta .btn {
+  background: #ffffff;
+  color: #4A22B8;
+  font-weight: 800;
+}
+
+.studyhelp-landing .cta .btn:hover {
+  background: #F7F6FF;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* Footer */
+.studyhelp-landing .foot {
+  padding: 56px 0 36px;
+  border-top: 1px solid #E6E3F5;
+  color: #4A4766;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.studyhelp-landing .fg {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 48px;
+}
+
+.studyhelp-landing .foot-brand {
+  flex-shrink: 0;
+}
+
+.studyhelp-landing .foot-links {
+  display: flex;
+  gap: 56px;
+  flex-wrap: wrap;
+}
+
+.studyhelp-landing .foot-col b {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #14122B;
+}
+
+.studyhelp-landing .foot-col a {
+  display: block;
+  color: #4A4766;
+  margin: 8px 0;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.studyhelp-landing .foot-col a:hover {
+  color: #6D3BF2;
+}
+
+.studyhelp-landing .foot-bottom {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #ECE9F9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13.5px;
+  color: #5B5876;
+}
+
+.studyhelp-landing .foot-contact a {
+  color: #6D3BF2;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.studyhelp-landing .foot-contact a:hover {
+  text-decoration: underline;
+}
+
+/* Animations */
+@keyframes studyhelp-fy {
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes studyhelp-sh {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes studyhelp-mq {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes studyhelp-bg {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes studyhelp-gs {
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes studyhelp-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes studyhelp-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .studyhelp-landing .hg {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .studyhelp-landing .hg .acts,
+  .studyhelp-landing .hg .stats {
+    justify-content: center;
+  }
+  .studyhelp-landing .hg .sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .studyhelp-landing .ht {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 800px) {
+  .studyhelp-landing .nav {
+    padding: 12px 16px;
+  }
+  .studyhelp-landing .logo {
+    font-size: 20px;
+    gap: 10px;
+  }
+  .studyhelp-landing .logo-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .studyhelp-landing .mobile-menu-overlay {
+    top: 61px;
+  }
+  .studyhelp-landing .links {
+    display: none !important;
+  }
+  .studyhelp-landing .nav-actions-desktop {
+    display: none !important;
+  }
+  .studyhelp-landing .nav-mobile-controls {
+    display: inline-flex !important;
+  }
+  .studyhelp-landing .nav-hamburger {
+    display: inline-flex !important;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  /* HIDE HERO MOCKUP ON MOBILE ONLY */
+  .studyhelp-landing .ph {
+    display: none !important;
+  }
+
+  /* Hero Section: Generous clean space between navbar and hero on mobile only */
+  .studyhelp-landing .hero {
+    padding: 52px 0 44px !important;
+  }
+  .studyhelp-landing .ht {
+    padding-bottom: 0 !important;
+  }
+  .studyhelp-landing .hg {
+    gap: 0 !important;
+  }
+  .studyhelp-landing .hg .h1 {
+    font-size: 32px !important;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .studyhelp-landing .hg .sub {
+    font-size: 15.5px !important;
+    line-height: 1.5;
+    margin-bottom: 22px;
+    padding: 0 4px;
+  }
+  .studyhelp-landing .hg .acts {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 320px;
+    margin: 0 auto;
+    gap: 10px;
+  }
+  .studyhelp-landing .hb1,
+  .studyhelp-landing .hb2 {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px !important;
+    font-size: 15.5px !important;
+    border-radius: 14px;
+  }
+  .studyhelp-landing .stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin: 28px auto 0 !important;
+    max-width: 380px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .studyhelp-landing .stats > div {
+    border: none !important;
+    padding: 0 2px !important;
+    text-align: center;
+  }
+  .studyhelp-landing .stats b {
+    font-size: 20px !important;
+    line-height: 1.2;
+  }
+  .studyhelp-landing .stats span {
+    font-size: 11px !important;
+    line-height: 1.3;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* Reduce opacity of floating icons on mobile */
+  .studyhelp-landing .hero .ico {
+    opacity: 0.03;
+  }
+
+  /* Marquee */
+  .studyhelp-landing .mq {
+    padding: 12px 0;
+  }
+  .studyhelp-landing .mt span {
+    font-size: 13px;
+    margin-right: 30px;
+  }
+
+  /* Sections & Typography */
+  .studyhelp-landing .sec {
+    padding: 56px 0 !important;
+  }
+  .studyhelp-landing .k {
+    font-size: 12px !important;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .studyhelp-landing .h2 {
+    font-size: 26px !important;
+    line-height: 1.2;
+    margin: 8px 0 10px;
+  }
+  .studyhelp-landing .lead {
+    font-size: 15px !important;
+    line-height: 1.5;
+    margin: 0 auto 30px !important;
+    padding: 0 8px;
+  }
+
+  /* Grids & Cards */
+  .studyhelp-landing .g3,
+  .studyhelp-landing .g4 {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .studyhelp-landing .card {
+    padding: 22px 18px !important;
+    border-radius: 18px !important;
+  }
+  .studyhelp-landing .card h3 {
+    font-size: 18px !important;
+    margin: 12px 0 6px !important;
+  }
+  .studyhelp-landing .card p {
+    font-size: 14px !important;
+    line-height: 1.55;
+  }
+  .studyhelp-landing .ic {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    font-size: 14px;
+  }
+  .studyhelp-landing .num {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .studyhelp-landing .bn {
+    font-size: 64px !important;
+    right: 14px !important;
+    top: 4px !important;
+    opacity: 0.06 !important;
+  }
+  .studyhelp-landing .bridge {
+    margin-top: 28px !important;
+    font-size: 15.5px !important;
+    padding: 0 12px;
+  }
+  .studyhelp-landing .mini {
+    margin-top: 14px !important;
+    padding: 12px !important;
+    font-size: 12.5px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Pricing Cards */
+  .studyhelp-landing .pcd {
+    padding: 24px 18px !important;
+  }
+  .studyhelp-landing .price {
+    font-size: 32px !important;
+    margin: 8px 0 !important;
+  }
+  .studyhelp-landing .price small {
+    font-size: 13.5px !important;
+  }
+  .studyhelp-landing .pcd ul {
+    margin: 14px 0 18px !important;
+  }
+  .studyhelp-landing .pr li {
+    font-size: 13.5px !important;
+    margin: 7px 0 !important;
+    padding-left: 24px !important;
+  }
+  .studyhelp-landing .pcd .btn {
+    width: 100%;
+    padding: 13px 20px !important;
+    font-size: 15px !important;
+    border-radius: 12px;
+  }
+  .studyhelp-landing .chips {
+    gap: 8px !important;
+    margin-top: 24px !important;
+  }
+  .studyhelp-landing .chips span {
+    font-size: 12px !important;
+    padding: 7px 12px !important;
+    text-align: center;
+  }
+
+  /* Final CTA */
+  .studyhelp-landing .cta-wrap {
+    padding-bottom: 48px !important;
+  }
+  .studyhelp-landing .cta {
+    padding: 38px 18px !important;
+    border-radius: 20px !important;
+  }
+  .studyhelp-landing .cta .h2 {
+    font-size: 24px !important;
+    line-height: 1.25;
+    margin-bottom: 10px !important;
+  }
+  .studyhelp-landing .cta p {
+    font-size: 14.5px !important;
+    margin-bottom: 22px !important;
+  }
+  .studyhelp-landing .cta .btn {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    padding: 14px 22px !important;
+    font-size: 15.5px !important;
+    border-radius: 12px;
+  }
+
+  /* Footer: Perfect 2x2 symmetrical columns on mobile */
+  .studyhelp-landing .foot {
+    padding: 40px 0 28px !important;
+  }
+  .studyhelp-landing .fg {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 24px !important;
+  }
+  .studyhelp-landing .foot-brand {
+    width: 100% !important;
+    text-align: left;
+  }
+  .studyhelp-landing .foot-links {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px 16px !important;
+    width: 100% !important;
+  }
+  .studyhelp-landing .foot-col b {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+    display: block;
+  }
+  .studyhelp-landing .foot-col a {
+    font-size: 13.5px !important;
+    margin: 6px 0 !important;
+  }
+  .studyhelp-landing .foot-bottom {
+    margin-top: 24px !important;
+    padding-top: 20px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    font-size: 12.5px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .studyhelp-landing .w {
+    padding: 0 16px;
+  }
+  .studyhelp-landing .hg .h1 {
+    font-size: 28px !important;
+  }
+  .studyhelp-landing .stats {
+    max-width: 100% !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  .studyhelp-landing .stats b {
+    font-size: 18px !important;
+  }
+  .studyhelp-landing .stats span {
+    font-size: 10.5px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studyhelp-landing * {
+    animation: none !important;
+  }
+}
+
+/* ==========================================================================
+   DARK MODE COMPREHENSIVE STYLES (.dark .studyhelp-landing)
+   Sensible, beautiful, and deeply cohesive dark theme
+   ========================================================================== */
+.dark .studyhelp-landing {
+  background: #0C0B1A !important;
+  color: #F1EFFC !important;
+}
+
+/* Theme Toggle Button in Dark Mode */
+.dark .studyhelp-theme-toggle {
+  background: #1C1936 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #FFD15C !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .studyhelp-theme-toggle:hover {
+  background: #262248 !important;
+  border-color: rgba(255, 209, 92, 0.45) !important;
+  color: #FFE082 !important;
+  box-shadow: 0 4px 12px rgba(255, 209, 92, 0.2) !important;
+}
+
+.dark .studyhelp-theme-toggle .theme-icon-sun {
+  color: #FFD15C !important;
+}
+
+/* Nav Dark */
+.dark .studyhelp-landing .nv {
+  background: rgba(12, 11, 26, 0.88) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .studyhelp-landing .logo {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .logo-icon-wrap {
+  background: #17152D !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .studyhelp-landing .links a {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .links a:hover {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .btn-pwa-install {
+  background: #211A42 !important;
+  border-color: #3F3278 !important;
+  color: #C0A8FF !important;
+}
+
+.dark .studyhelp-landing .btn-pwa-install:hover {
+  background: #2B2256 !important;
+  border-color: #8A57FF !important;
+  box-shadow: 0 4px 14px rgba(109, 59, 242, 0.3) !important;
+}
+
+.dark .studyhelp-landing .btn-pwa-install svg {
+  color: #C0A8FF !important;
+}
+
+/* Secondary Button Dark (.b2, .hb2) */
+.dark .studyhelp-landing .b2,
+.dark .studyhelp-landing .hb2 {
+  background: #17152D !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.dark .studyhelp-landing .b2:hover,
+.dark .studyhelp-landing .hb2:hover {
+  background: #221F3E !important;
+  border-color: #8A57FF !important;
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .hb2 svg {
+  color: #8A57FF !important;
+}
+
+/* Mobile Hamburger & Drawer Dark */
+.dark .studyhelp-landing .nav-hamburger {
+  background: #17152D !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .studyhelp-landing .nav-hamburger:hover {
+  background: #221F3E !important;
+  border-color: #8A57FF !important;
+  color: #8A57FF !important;
+}
+
+.dark .studyhelp-landing .mobile-menu-drawer {
+  background: #121026 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark .studyhelp-landing .mobile-nav-link {
+  color: #F1EFFC !important;
+}
+
+.dark .studyhelp-landing .mobile-nav-link:hover,
+.dark .studyhelp-landing .mobile-nav-link:active {
+  background: #1E1B3B !important;
+  color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .mobile-menu-divider {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Hero Section Dark */
+.dark .studyhelp-landing .hero {
+  background: #0C0B1A !important;
+}
+
+.dark .studyhelp-landing .hg .h1 {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .hg .sub {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .stats {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dark .studyhelp-landing .stats > div {
+  border: none !important;
+}
+
+.dark .studyhelp-landing .stats b {
+  color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .stats span {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .hero .ico {
+  color: #8A57FF !important;
+  opacity: 0.12 !important;
+}
+
+/* Phone Mockup Dark */
+.dark .studyhelp-landing .ph {
+  background: #070611 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .studyhelp-landing .ps {
+  background: #15132B !important;
+}
+
+.dark .studyhelp-landing .pn {
+  background: #070611 !important;
+}
+
+.dark .studyhelp-landing .pt small {
+  color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .pt b {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .pa div {
+  background: #1E1B3B !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #E2DEFA !important;
+}
+
+.dark .studyhelp-landing .pa i {
+  background: #2B2554 !important;
+}
+
+.dark .studyhelp-landing .pa div:nth-child(even) i {
+  background: #332A64 !important;
+}
+
+.dark .studyhelp-landing .pa svg {
+  stroke: #A782FF !important;
+}
+
+.dark .studyhelp-landing .pc {
+  background: #1E1B3B !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .pc small {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .bar {
+  background: #252048 !important;
+}
+
+/* Marquee Dark */
+.dark .studyhelp-landing .mq {
+  background: #110F24 !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.dark .studyhelp-landing .mt {
+  color: #B2ACB2 !important;
+}
+
+/* Sections Dark */
+.dark .studyhelp-landing .sec {
+  background: #0C0B1A !important;
+}
+
+.dark .studyhelp-landing .tint {
+  background: #110F24 !important;
+}
+
+.dark .studyhelp-landing .k {
+  color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .h2 {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .lead {
+  color: #A39EBC !important;
+}
+
+/* Cards Dark */
+.dark .studyhelp-landing .card {
+  background: linear-gradient(180deg, #17152E, #1A1833) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 16px 36px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .studyhelp-landing .card:hover {
+  border-color: rgba(138, 87, 255, 0.5) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 24px 50px -12px rgba(109, 59, 242, 0.35) !important;
+}
+
+.dark .studyhelp-landing .card h3 {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .card p {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .ic {
+  background: linear-gradient(135deg, #25204C, #2E275C) !important;
+  color: #A782FF !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .studyhelp-landing .ic.v {
+  background: linear-gradient(135deg, #2C2258, #25204C) !important;
+  color: #C0A8FF !important;
+}
+
+.dark .studyhelp-landing .bridge {
+  color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .bn {
+  color: #8A57FF !important;
+  opacity: 0.1 !important;
+}
+
+.dark .studyhelp-landing .mini {
+  background: #1C1938 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #A39EBC !important;
+  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Pricing Dark */
+.dark .studyhelp-landing .pcd b {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .pcd .ps2 {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .price {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .price small {
+  color: #A39EBC !important;
+}
+
+.dark .studyhelp-landing .pr li {
+  color: #E2DEFA !important;
+}
+
+.dark .studyhelp-landing .pr li:before {
+  background: #2B2358 !important;
+}
+
+.dark .studyhelp-landing .pr li:after {
+  border-color: #A782FF !important;
+}
+
+.dark .studyhelp-landing .pop {
+  background: linear-gradient(#17152E, #17152E) padding-box, linear-gradient(135deg, #2F6BFF, #8A57FF) border-box !important;
+  border: 2px solid transparent !important;
+  box-shadow: 0 24px 50px rgba(109, 59, 242, 0.3) !important;
+}
+
+.dark .studyhelp-landing .chips span {
+  background: #17152E !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #E2DEFA !important;
+}
+
+/* Footer Dark */
+.dark .studyhelp-landing .foot {
+  background: #080713 !important;
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  color: #8A85A4 !important;
+}
+
+.dark .studyhelp-landing .foot-col b {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .foot-col a {
+  color: #8A85A4 !important;
+}
+
+.dark .studyhelp-landing .foot-col a:hover {
+  color: #FFFFFF !important;
+}
+
+.dark .studyhelp-landing .foot-bottom {
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  color: #6D6886 !important;
+}
+
+.dark .studyhelp-landing .foot-contact a {
+  color: #A782FF !important;
+}
+
+
