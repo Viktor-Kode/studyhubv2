@@ -29,106 +29,15 @@ import {
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
+import {
+  type LearningNode,
+  type StudyPathTopic,
+  DEFAULT_TOPIC
+} from '@/lib/data/studyPath'
 
-export interface LearningNode {
-  id: number
-  title: string
-  status: 'completed' | 'active' | 'locked'
-  xp: number
-  duration: string
-  summary: string
-  keyConcepts: string[]
-}
+export type { LearningNode, StudyPathTopic }
+export { DEFAULT_TOPIC }
 
-export interface StudyPathTopic {
-  topicId: string
-  title: string
-  courseCode: string
-  currentProgress: number
-  nodes: LearningNode[]
-}
-
-// Default initial topic matching mockup exactly
-const DEFAULT_TOPIC: StudyPathTopic = {
-  topicId: 'csc202-queues-deques',
-  title: 'Queues & Deques',
-  courseCode: 'CSC 202 · Data Structures',
-  currentProgress: 3,
-  nodes: [
-    {
-      id: 1,
-      title: 'Arrays & Memory',
-      status: 'completed',
-      xp: 20,
-      duration: '5 min',
-      summary: 'Explore contiguous memory allocation, direct indexing, and spatial cache locality in modern processors.',
-      keyConcepts: ['Contiguous Memory', 'Index Offsets', 'Cache Locality']
-    },
-    {
-      id: 2,
-      title: 'Pointers',
-      status: 'completed',
-      xp: 20,
-      duration: '7 min',
-      summary: 'Master address arithmetic, dynamic heap allocation, and pointer dereferencing safety.',
-      keyConcepts: ['Memory Addresses', 'Dereferencing', 'Heap vs Stack']
-    },
-    {
-      id: 3,
-      title: 'Stacks',
-      status: 'completed',
-      xp: 20,
-      duration: '8 min',
-      summary: 'Understand Last-In First-Out (LIFO) semantics, call stack management, and expression evaluation.',
-      keyConcepts: ['LIFO Semantics', 'Push & Pop', 'Call Stack Frames']
-    },
-    {
-      id: 4,
-      title: 'Queues & Deques',
-      status: 'active',
-      xp: 20,
-      duration: '6 min',
-      summary: 'Learn First-In First-Out (FIFO) queue principles, ring buffers, and double-ended queue implementations.',
-      keyConcepts: ['FIFO Principle', 'Circular Queues', 'Deque Operations']
-    },
-    {
-      id: 5,
-      title: 'Linked Lists',
-      status: 'locked',
-      xp: 25,
-      duration: '8 min',
-      summary: 'Construct dynamic singly and doubly linked node sequences with constant-time insertions.',
-      keyConcepts: ['Node References', 'Head & Tail Pointers', 'O(1) Insertion']
-    },
-    {
-      id: 6,
-      title: 'Trees & Traversal',
-      status: 'locked',
-      xp: 30,
-      duration: '10 min',
-      summary: 'Navigate hierarchical graph structures using Breadth-First and Depth-First traversal algorithms.',
-      keyConcepts: ['Binary Trees', 'In-Order Traversal', 'Recursive Exploration']
-    },
-    {
-      id: 7,
-      title: 'Hash Tables',
-      status: 'locked',
-      xp: 35,
-      duration: '10 min',
-      summary: 'Implement hash functions, chaining collision strategies, and amortized O(1) key-value lookup.',
-      keyConcepts: ['Hash Functions', 'Bucket Arrays', 'Collision Resolution']
-    },
-    {
-      id: 8,
-      title: 'Unit Challenge',
-      status: 'locked',
-      xp: 50,
-      duration: '15 min',
-      summary: 'Capstone mastery test challenging data structure tradeoffs, runtime complexities, and system design.',
-      keyConcepts: ['Time & Space Tradeoffs', 'Capstone Challenge', 'Architecture Review']
-    }
-  ]
-}
 
 export default function StudentDashboardPage() {
   const router = useRouter()
@@ -435,7 +344,8 @@ export default function StudentDashboardPage() {
                 <button
                   className="sp-btn-resume"
                   onClick={() => {
-                    if (activeNode) setSelectedNode(activeNode)
+                    const targetTopicId = topic.topicId || 'csc202-queues-deques'
+                    router.push(`/dashboard/student/map/${targetTopicId}`)
                   }}
                 >
                   <span>RESUME LEARNING</span>
@@ -515,10 +425,22 @@ export default function StudentDashboardPage() {
           {/* ── YOUR PATH SECTION ── */}
           <section className="sp-path-container">
             <div className="sp-section-heading">
-              <span>YOUR PATH</span>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                onClick={() => {
+                  if (topic) router.push(`/dashboard/student/map/${topic.topicId}`)
+                }}
+              >
+                <span>YOUR PATH</span>
+                <FiArrowRight size={14} style={{ color: '#22c55e' }} />
+              </div>
               {topic && (
-                <span className="sp-fraction">
-                  {completedCount} of {totalCount}
+                <span
+                  className="sp-fraction"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => router.push(`/dashboard/student/map/${topic.topicId}`)}
+                >
+                  {completedCount} of {totalCount} · View Map
                 </span>
               )}
             </div>
@@ -576,7 +498,10 @@ export default function StudentDashboardPage() {
                         >
                           <div
                             className="sp-node-anchor"
-                            onClick={() => setSelectedNode(node)}
+                            onClick={() => {
+                              const targetTopicId = topic.topicId || 'csc202-queues-deques'
+                              router.push(`/dashboard/student/map/${targetTopicId}?node=${node.id}`)
+                            }}
                             role="button"
                             tabIndex={0}
                           >
