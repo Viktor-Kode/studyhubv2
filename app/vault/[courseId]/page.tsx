@@ -19,7 +19,6 @@ import {
   FiVolume2,
   FiVolumeX,
   FiHelpCircle,
-  FiTrendingUp,
   FiLock,
   FiChevronLeft,
   FiChevronRight,
@@ -364,15 +363,6 @@ function VaultContent() {
                         <div className="rv-card-definition">
                           {currentCard.definition}
                         </div>
-
-                        {currentCard.analogy && (
-                          <div className="rv-card-analogy-box">
-                            <FiTrendingUp style={{ flexShrink: 0, marginTop: 2 }} />
-                            <span>
-                              <strong>Analogy:</strong> {currentCard.analogy}
-                            </span>
-                          </div>
-                        )}
 
                         {currentCard.codeSnippet && (
                           <pre className="rv-card-code">
