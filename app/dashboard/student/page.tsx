@@ -10,6 +10,7 @@ import { progressApi } from '@/lib/api/progressApi'
 import { apiClient } from '@/lib/api/client'
 import './study-path.css'
 import { extractTextFromFile } from '@/lib/utils/extraction'
+import { getActiveStudyPath, uploadStudyMaterial } from '@/src/services/api'
 
 import {
   FiCheck,
@@ -36,8 +37,7 @@ import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
 import {
   type LearningNode,
-  type StudyPathTopic,
-  DEFAULT_TOPIC
+  type StudyPathTopic
 } from '@/lib/data/studyPath'
 
 export type { LearningNode, StudyPathTopic }
@@ -59,10 +59,12 @@ export default function StudentDashboardPage() {
   const { user } = useAuthStore()
 
   // State
-  const [topic, setTopic] = useState<StudyPathTopic | null>(DEFAULT_TOPIC)
+  const [topic, setTopic] = useState<StudyPathTopic | null>(null)
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isLoadingPath, setIsLoadingPath] = useState(true)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   // New topic input state (upload document or paste text)
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -77,9 +79,9 @@ export default function StudentDashboardPage() {
 
   // Real progress state
   const [realStats, setRealStats] = useState({
-    streak: 12,
-    xp: 2480,
-    dailyGoalXp: 30,
+    streak: 0,
+    xp: 0,
+    dailyGoalXp: 0,
     dailyGoalTarget: 50
   })
 
@@ -145,19 +147,44 @@ export default function StudentDashboardPage() {
     }
   }, [topic])
 
-  // Load saved topic or default
+  // Load active study path: backend first, then localStorage fallback
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('studyhelp_active_topic')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          setTopic(parsed)
-        } catch {
-          setTopic(DEFAULT_TOPIC)
+    let cancelled = false
+    setIsLoadingPath(true)
+    getActiveStudyPath()
+      .then((backendPath) => {
+        if (cancelled) return
+        if (backendPath && backendPath.nodes?.length > 0) {
+          setTopic(backendPath)
+          // Keep localStorage in sync
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('studyhelp_active_topic', JSON.stringify(backendPath))
+          }
+        } else {
+          // Fallback to localStorage cache
+          if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('studyhelp_active_topic')
+            if (saved) {
+              try {
+                setTopic(JSON.parse(saved))
+              } catch { /* ignore */ }
+            }
+          }
         }
-      }
-    }
+      })
+      .catch(() => {
+        // Network error — fall back to localStorage silently
+        if (!cancelled && typeof window !== 'undefined') {
+          const saved = localStorage.getItem('studyhelp_active_topic')
+          if (saved) {
+            try { setTopic(JSON.parse(saved)) } catch { /* ignore */ }
+          }
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPath(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   // Fetch real progress from backend if logged in
@@ -170,8 +197,8 @@ export default function StudentDashboardPage() {
         if (d) {
           setRealStats((prev) => ({
             ...prev,
-            streak: typeof d.streak === 'number' && d.streak > 0 ? d.streak : prev.streak,
-            xp: typeof d.xp === 'number' && d.xp > 0 ? d.xp : prev.xp
+            streak: typeof d.streak === 'number' ? d.streak : prev.streak,
+            xp: typeof d.xp === 'number' ? d.xp : prev.xp
           }))
         }
       })
@@ -245,73 +272,61 @@ export default function StudentDashboardPage() {
       ? !!extractedText && !extracting
       : manualText.trim().length >= 50
 
-  // Handle generation from the uploaded / pasted material
-  const handleGenerateStudyPath = () => {
+  // Handle generation — sends PDF/text to the real backend
+  const handleGenerateStudyPath = async () => {
     if (!textReady) return
     setInputError(null)
+    setGenerateError(null)
     setIsGenerating(true)
-    setTimeout(() => {
-      // Create new study path
-      const sourceTitle =
+    try {
+      const title =
         inputMode === 'upload' && uploadedFile
           ? uploadedFile.name.replace(/\.[^/.]+$/, '')
-          : sourceText.split('\n')[0].slice(0, 40).trim()
-      const title = sourceTitle || 'Data Structures & Algorithms'
-      const generated: StudyPathTopic = {
-        topicId: 'custom-topic-' + Date.now(),
-        title: title || 'Computer Science Concepts',
-        courseCode: 'CS 101 · Interactive Study Path',
-        currentProgress: 0,
-        nodes: [
-          {
-            id: 1,
-            title: 'Foundational Concepts',
-            status: 'active',
-            xp: 20,
-            duration: '5 min',
-            summary: 'Core foundational principles extracted from your uploaded material.',
-            keyConcepts: ['Core Definition', 'Key Principles', 'Terminology']
-          },
-          {
-            id: 2,
-            title: 'Core Mechanics',
-            status: 'locked',
-            xp: 25,
-            duration: '7 min',
-            summary: 'In-depth analysis of architectural mechanisms and standard patterns.',
-            keyConcepts: ['Mechanisms', 'Internal State', 'Standard Operations']
-          },
-          {
-            id: 3,
-            title: 'Applied Problem Solving',
-            status: 'locked',
-            xp: 30,
-            duration: '8 min',
-            summary: 'Hands-on practical execution and algorithmic problem solving.',
-            keyConcepts: ['Edge Cases', 'Efficiency', 'Patterns']
-          },
-          {
-            id: 4,
-            title: 'Unit Assessment',
-            status: 'locked',
-            xp: 50,
-            duration: '10 min',
-            summary: 'Comprehensive active recall quiz testing mastery of the full subject matter.',
-            keyConcepts: ['Active Recall', 'Synthesized Knowledge', 'Retention Quiz']
-          }
-        ]
+          : sourceText.split('\n')[0].slice(0, 60).trim() || 'Study Material'
+
+      let studyPath: StudyPathTopic
+      if (inputMode === 'upload' && uploadedFile) {
+        // Send actual PDF file to backend
+        studyPath = await uploadStudyMaterial(uploadedFile, { title })
+      } else {
+        // Send extracted/pasted text to backend
+        studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
       }
-      saveTopic(generated)
-      setIsGenerating(false)
+
+      saveTopic(studyPath)
       setShowGenerateModal(false)
       setUploadedFile(null)
       setExtractedText('')
       setManualText('')
-    }, 1000)
+      router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
+    } catch (err: any) {
+      setGenerateError(err?.message || 'Failed to generate study path. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
+  // Leaderboard state (real backend data)
+  const [leaderboard, setLeaderboard] = useState<{name: string; xp: number; initials: string}[]>([])
+
+  useEffect(() => {
+    if (!user?.uid) return
+    progressApi.getLeaderboard()
+      .then((res: any) => {
+        const list = res?.data?.leaderboard || res?.data?.leaders || []
+        if (Array.isArray(list) && list.length > 0) {
+          setLeaderboard(list.slice(0, 3).map((u: any) => ({
+            name: u.name || u.displayName || 'Student',
+            xp: typeof u.xp === 'number' ? u.xp : 0,
+            initials: (u.name || u.displayName || 'S')[0].toUpperCase()
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [user?.uid])
+
   // Greeting
-  const firstName = user?.name?.split(' ')[0] || 'Vkay'
+  const firstName = user?.name?.split(' ')[0] || 'Student'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -396,7 +411,7 @@ export default function StudentDashboardPage() {
                 <button
                   className="sp-btn-resume"
                   onClick={() => {
-                    const targetTopicId = topic.topicId || 'csc202-queues-deques'
+                    const targetTopicId = topic.topicId
                     router.push(`/dashboard/student/map/${targetTopicId}`)
                   }}
                 >
@@ -498,8 +513,22 @@ export default function StudentDashboardPage() {
             </div>
 
             <div className="sp-path-scroll-area">
-              {topic ? (
+              {isLoadingPath ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 0' }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} style={{
+                      height: 72,
+                      borderRadius: 16,
+                      background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.4s infinite',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }} />
+                  ))}
+                </div>
+              ) : topic ? (
                 <div className="sp-path-interactive" ref={containerRef}>
+
                   {/* SVG Curve Path Connectors (Both Solid & Broken Lines Connecting the Dots) */}
                   <svg className="sp-path-svg-canvas" xmlns="http://www.w3.org/2000/svg">
                     {lineSegments.map((seg) => {
@@ -551,7 +580,7 @@ export default function StudentDashboardPage() {
                           <div
                             className="sp-node-anchor"
                             onClick={() => {
-                              const targetTopicId = topic.topicId || 'csc202-queues-deques'
+                              const targetTopicId = topic.topicId
                               router.push(`/dashboard/student/map/${targetTopicId}?node=${node.id}`)
                             }}
                             role="button"
@@ -671,7 +700,8 @@ export default function StudentDashboardPage() {
 
             <div className="sp-streak-days-row">
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
-                const isDone = i < 6 // Mon through Sat done in mockup
+                // Mark days up to the streak count as done (capped at 7)
+                const isDone = i < Math.min(realStats.streak, 7)
                 return (
                   <div key={i} className="sp-streak-day-item">
                     <div className={`sp-streak-circle ${isDone ? 'done' : 'pending'}`}>
@@ -688,36 +718,26 @@ export default function StudentDashboardPage() {
           <div className="sp-widget-card">
             <div className="sp-widget-header">
               <span className="sp-widget-title">GLOBAL LEAGUE</span>
-              <span className="sp-widget-highlight">Top 5%</span>
             </div>
 
             <div className="sp-league-list">
-              <div className="sp-league-row">
-                <div className="sp-league-left">
-                  <span className="sp-league-rank-num">1</span>
-                  <div className="sp-league-avatar-badge sp-league-avatar-gold">1</div>
-                  <span className="sp-league-name">[Student name]</span>
-                </div>
-                <span className="sp-league-xp">[XP] XP</span>
-              </div>
-
-              <div className="sp-league-row">
-                <div className="sp-league-left">
-                  <span className="sp-league-rank-num">2</span>
-                  <div className="sp-league-avatar-badge sp-league-avatar-silver">2</div>
-                  <span className="sp-league-name">[Student name]</span>
-                </div>
-                <span className="sp-league-xp">[XP] XP</span>
-              </div>
-
-              <div className="sp-league-row">
-                <div className="sp-league-left">
-                  <span className="sp-league-rank-num">3</span>
-                  <div className="sp-league-avatar-badge sp-league-avatar-bronze">3</div>
-                  <span className="sp-league-name">[Student name]</span>
-                </div>
-                <span className="sp-league-xp">[XP] XP</span>
-              </div>
+              {leaderboard.length > 0 ? (
+                leaderboard.map((entry, i) => {
+                  const medalClass = i === 0 ? 'sp-league-avatar-gold' : i === 1 ? 'sp-league-avatar-silver' : 'sp-league-avatar-bronze'
+                  return (
+                    <div key={i} className="sp-league-row">
+                      <div className="sp-league-left">
+                        <span className="sp-league-rank-num">{i + 1}</span>
+                        <div className={`sp-league-avatar-badge ${medalClass}`}>{entry.initials}</div>
+                        <span className="sp-league-name">{entry.name}</span>
+                      </div>
+                      <span className="sp-league-xp">{entry.xp.toLocaleString()} XP</span>
+                    </div>
+                  )
+                })
+              ) : (
+                <div style={{ color: '#64748b', fontSize: 13, padding: '8px 0' }}>No leaderboard data yet</div>
+              )}
 
               {/* Current User Row */}
               <div className="sp-league-row current-user">
@@ -812,7 +832,7 @@ export default function StudentDashboardPage() {
                     }}
                     onClick={() => {
                       const id = selectedNode.id
-                      const tId = topic?.topicId || 'csc202-queues-deques'
+                      const tId = topic?.topicId
                       setSelectedNode(null)
                       router.push(`/vault/${tId}?nodeId=${id}`)
                     }}
@@ -975,13 +995,31 @@ export default function StudentDashboardPage() {
 
               {inputError && <p className="sp-input-error">{inputError}</p>}
 
+              {generateError && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#fca5a5',
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  marginTop: 4
+                }}>
+                  ⚠️ {generateError}
+                </div>
+              )}
+
               <button
                 className="sp-btn-generate sp-generate-full"
                 onClick={handleGenerateStudyPath}
                 disabled={!textReady || isGenerating}
               >
                 {isGenerating ? (
-                  <span>Deconstructing with AI...</span>
+                  <>
+                    <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Analysing with AI...</span>
+                  </>
                 ) : (
                   <>
                     <IoSparklesSharp />

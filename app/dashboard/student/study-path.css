@@ -3,6 +3,18 @@
    Matching Desktop & Mobile Mockups
    ============================================================ */
 
+/* ── Loading animations ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
 .sp-dashboard-root {
   min-height: 100vh;
   min-height: 100dvh;

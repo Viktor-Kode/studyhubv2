@@ -9,9 +9,12 @@ function DashboardMapRedirectContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const topicId = (params?.topicId as string) || 'csc202-queues-deques'
+    const topicId = params?.topicId as string
     const query = searchParams.toString()
-    router.replace(`/dashboard/student/map/${topicId}${query ? `?${query}` : ''}`)
+    const dest = topicId
+      ? `/dashboard/student/map/${topicId}${query ? `?${query}` : ''}`
+      : '/dashboard/student'
+    router.replace(dest)
   }, [params, router, searchParams])
 
   return null

@@ -9,7 +9,8 @@ import {
   getFlashcardsForCourse,
   type Flashcard,
 } from "@/lib/data/flashcards"
-import { DEFAULT_TOPIC, SAMPLE_TOPICS } from "@/lib/data/studyPath"
+import { type StudyPathTopic } from "@/lib/data/studyPath"
+import { getFlashcards, reviewFlashcard } from "@/src/services/api"
 import {
   FiArrowLeft,
   FiRepeat,
@@ -24,6 +25,7 @@ import {
   FiChevronRight,
   FiRotateCw,
   FiX,
+  FiLoader,
 } from "react-icons/fi"
 import { BiBrain } from "react-icons/bi"
 import "./vault.css"
@@ -41,7 +43,8 @@ function VaultContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const courseId = (params?.courseId as string) || "csc202-queues-deques"
+  const courseId = params?.courseId as string | undefined
+  const resolvedCourseId = courseId || ""
   const nodeIdQuery = searchParams?.get("nodeId")
   const modeQuery = searchParams?.get("mode")
   const initialNodeId = nodeIdQuery ? parseInt(nodeIdQuery, 10) : undefined
@@ -51,20 +54,38 @@ function VaultContent() {
     modeQuery === "blind" ? "blind" : "flashcards"
   )
 
-  // Find topic info for header
-  const topic = useMemo(() => {
-    return (
-      SAMPLE_TOPICS.find((t) => t.topicId === courseId) || DEFAULT_TOPIC
-    )
-  }, [courseId])
+  // Find topic info for header from localStorage (no demo data)
+  const [topic, setTopic] = useState<StudyPathTopic | null>(null)
 
-  // Initial cards
-  const initialCards = useMemo(() => {
-    return getFlashcardsForCourse(courseId, initialNodeId)
-  }, [courseId, initialNodeId])
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const tryLoad = () => {
+      try {
+        const rawActive = localStorage.getItem("studyhelp_active_topic")
+        if (rawActive) {
+          const parsed = JSON.parse(rawActive)
+          if (!resolvedCourseId || parsed?.topicId === resolvedCourseId) {
+            setTopic(parsed)
+            return
+          }
+        }
+        const rawSaved = localStorage.getItem("studyhelp_saved_topics")
+        if (rawSaved && resolvedCourseId) {
+          const list: StudyPathTopic[] = JSON.parse(rawSaved)
+          const found = list.find((t) => t.topicId === resolvedCourseId)
+          if (found) {
+            setTopic(found)
+            return
+          }
+        }
+      } catch {}
+    }
+    tryLoad()
+  }, [resolvedCourseId])
 
   // Active deck state (Hard cards get scheduled to repeat)
   const [deck, setDeck] = useState<Flashcard[]>([])
+  const [isLoadingCards, setIsLoadingCards] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
@@ -84,19 +105,46 @@ function VaultContent() {
   const [isComplete, setIsComplete] = useState(false)
   const [totalReviewed, setTotalReviewed] = useState(0)
 
-  // Initialize deck
+  // Load cards from backend API on mount, with localStorage fallback
   useEffect(() => {
-    if (initialCards && initialCards.length > 0) {
-      setDeck([...initialCards])
-      setCurrentIndex(0)
-      setIsFlipped(false)
-      setIsComplete(false)
-      setHardCount(0)
-      setGoodCount(0)
-      setEasyCount(0)
-      setTotalReviewed(0)
-    }
-  }, [initialCards])
+    let cancelled = false
+    setIsLoadingCards(true)
+
+    getFlashcards({ category: resolvedCourseId })
+      .then((res: any[]) => {
+        if (cancelled) return
+        if (Array.isArray(res) && res.length > 0) {
+          const mapped: Flashcard[] = res.map((c, i) => ({
+            id: c._id || c.id || `card-${i}`,
+            nodeId: c.nodeId || initialNodeId || 1,
+            nodeTitle: c.nodeTitle || c.category || topic?.title || 'Study Card',
+            term: c.front || c.term || 'Concept',
+            question: c.front || c.question || 'Concept question',
+            definition: c.back || c.definition || 'Concept definition',
+            analogy: c.analogy,
+            keyConcepts: c.keyConcepts || c.tags || [],
+            codeSnippet: c.codeSnippet,
+            tags: c.tags || []
+          }))
+          setDeck(mapped)
+        } else {
+          // Graceful fallback using localStorage topic nodes
+          const fallback = getFlashcardsForCourse(resolvedCourseId, initialNodeId)
+          setDeck(fallback)
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.warn('[FlashcardVault] Backend load failed, falling back to local:', err)
+        const fallback = getFlashcardsForCourse(resolvedCourseId, initialNodeId)
+        setDeck(fallback)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingCards(false)
+      })
+
+    return () => { cancelled = true }
+  }, [resolvedCourseId, initialNodeId, topic?.title])
 
   const currentCard: Flashcard | undefined = deck[currentIndex]
 
@@ -180,8 +228,18 @@ function VaultContent() {
       } else {
         setCurrentIndex((prev) => prev + 1)
       }
+
+      // Sync SRS rating with backend
+      if (currentCard && !currentCard.id.includes('-rep-')) {
+        reviewFlashcard({
+          cardId: currentCard.id,
+          rating,
+          subject: topic.courseCode || topic.title,
+          topic: currentCard.nodeTitle
+        }).catch((err) => console.warn('[reviewFlashcard] sync error:', err))
+      }
     },
-    [currentCard, currentIndex, deck, soundEnabled, playChime]
+    [currentCard, currentIndex, deck, soundEnabled, playChime, topic.courseCode, topic.title]
   )
 
   // Keyboard shortcut listener
@@ -217,16 +275,15 @@ function VaultContent() {
 
   // Reset Deck
   const handleRestart = () => {
-    if (initialCards && initialCards.length > 0) {
-      setDeck([...initialCards])
-      setCurrentIndex(0)
-      setIsFlipped(false)
-      setIsComplete(false)
-      setHardCount(0)
-      setGoodCount(0)
-      setEasyCount(0)
-      setTotalReviewed(0)
-    }
+    const fallback = getFlashcardsForCourse(courseId, initialNodeId)
+    setDeck(fallback)
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setIsComplete(false)
+    setHardCount(0)
+    setGoodCount(0)
+    setEasyCount(0)
+    setTotalReviewed(0)
   }
 
   // Handle Blind Summary Submit
@@ -291,7 +348,12 @@ function VaultContent() {
 
         {/* ── TAB 1: FLASHCARDS ── */}
         {activeTab === "flashcards" && (
-          !isComplete ? (
+          isLoadingCards ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 340, gap: 16 }}>
+              <FiLoader size={30} style={{ color: "#3DDC97", animation: "spin 1s linear infinite" }} />
+              <span style={{ color: "#94A3B8", fontSize: 14, fontWeight: 600 }}>Loading flashcards from vault...</span>
+            </div>
+          ) : !isComplete ? (
             <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
               {/* Card Header Info */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 4px" }}>

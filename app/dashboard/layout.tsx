@@ -137,8 +137,9 @@ export default function DashboardLayout({
     const isAdminPage = pathname.startsWith('/dashboard/admin')
     const isStudentDashboard = pathname === '/dashboard/student'
     const isMapPage = pathname.includes('/map')
+    const isLessonPage = pathname.includes('/lesson')
 
-    if (isTutorPage || isChatPage || isAdminPage || isStudentDashboard || isMapPage) {
+    if (isTutorPage || isChatPage || isAdminPage || isStudentDashboard || isMapPage || isLessonPage) {
         return (
             <div className="min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
                 <ProtectedRoute>

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RetentionModeSwitcher from "@/components/study/RetentionModeSwitcher"
-import { DEFAULT_TOPIC, SAMPLE_TOPICS, type LearningNode } from "@/lib/data/studyPath"
+import { type LearningNode } from "@/lib/data/studyPath"
 import {
   FiArrowLeft,
   FiClock,
@@ -34,34 +34,32 @@ function resolveNode(nodeIdStr: string): { node: LearningNode; courseId: string;
         if (found) {
           return {
             node: found,
-            courseId: parsed.topicId || "csc202-queues-deques",
-            courseTitle: parsed.title || "Data Structures",
+            courseId: parsed.topicId || "",
+            courseTitle: parsed.title || "",
           }
         }
       } catch {
         /* ignore */
       }
     }
-  }
-
-  // Check sample topics
-  for (const topic of SAMPLE_TOPICS) {
-    const found = topic.nodes.find((n) => n.id === id)
-    if (found) {
-      return {
-        node: found,
-        courseId: topic.topicId,
-        courseTitle: topic.title,
-      }
-    }
-  }
-
-  const defNode = DEFAULT_TOPIC.nodes.find((n) => n.id === id)
-  if (defNode) {
-    return {
-      node: defNode,
-      courseId: DEFAULT_TOPIC.topicId,
-      courseTitle: DEFAULT_TOPIC.title,
+    // Check saved topics list
+    const rawSaved = localStorage.getItem("studyhelp_saved_topics")
+    if (rawSaved) {
+      try {
+        const list = JSON.parse(rawSaved)
+        if (Array.isArray(list)) {
+          for (const topic of list) {
+            const found = topic?.nodes?.find((n: LearningNode) => n.id === id)
+            if (found) {
+              return {
+                node: found,
+                courseId: topic.topicId || "",
+                courseTitle: topic.title || "",
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
     }
   }
 
@@ -83,7 +81,7 @@ function BlurtingStudioContent() {
 
   const nodeData = useMemo(() => resolveNode(nodeId), [nodeId])
   const node = nodeData?.node
-  const courseId = nodeData?.courseId || "csc202-queues-deques"
+  const courseId = nodeData?.courseId || ""
 
   // Step state: 1 = Study Prompt (30s), 2 = The Blank Canvas, 3 = AI Evaluation
   const [step, setStep] = useState<1 | 2 | 3>(1)

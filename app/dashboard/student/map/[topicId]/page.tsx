@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import {
   type LearningNode,
-  type StudyPathTopic,
-  DEFAULT_TOPIC,
-  SAMPLE_TOPICS
+  type StudyPathTopic
 } from '@/lib/data/studyPath'
+import '../../study-path.css'
 import '../map.css'
+import { extractTextFromFile } from '@/lib/utils/extraction'
+import { getStudyPath, getActiveStudyPath, getUserStudyPaths, uploadStudyMaterial } from '@/src/services/api'
 
 import {
   FiArrowLeft,
@@ -22,23 +23,54 @@ import {
   FiClock,
   FiAward,
   FiX,
-  FiPlus
+  FiPlus,
+  FiUploadCloud,
+  FiEdit3,
+  FiLoader,
+  FiCheckCircle
 } from 'react-icons/fi'
+import { IoSparklesSharp } from 'react-icons/io5'
+
+type InputMode = 'upload' | 'text'
+
+// Human-friendly label shown while a document is being read
+function getExtractionLabel(file: File): string {
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'Scanning image with OCR...'
+  if (ext === '.pdf') return 'Extracting PDF pages...'
+  if (ext === '.docx') return 'Reading Word document...'
+  if (ext === '.pptx' || ext === '.ppt') return 'Extracting presentation text...'
+  return 'Reading document...'
+}
 
 function StudyPathMapContent() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const topicId = (params?.topicId as string) || DEFAULT_TOPIC.topicId
+  const rawParamId = params?.topicId as string
+  const topicId = rawParamId && rawParamId !== 'default' ? rawParamId : ''
 
   // Topic State
-  const [topic, setTopic] = useState<StudyPathTopic>(DEFAULT_TOPIC)
+  const [topic, setTopic] = useState<StudyPathTopic | null>(null)
+  const [userTopics, setUserTopics] = useState<StudyPathTopic[]>([])
+  const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showNewTopicModal, setShowNewTopicModal] = useState(false)
-  const [newTopicText, setNewTopicText] = useState('')
-  const [isCreatingTopic, setIsCreatingTopic] = useState(false)
+
+  // New topic input state (upload document or paste text)
+  const [inputMode, setInputMode] = useState<InputMode>('upload')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [extractedText, setExtractedText] = useState('')
+  const [manualText, setManualText] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractionLabel, setExtractionLabel] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const [inputError, setInputError] = useState<string | null>(null)
+  const [generateError, setGenerateError] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Circle refs for dynamic SVG connector lines
   const containerRef = useRef<HTMLDivElement>(null)
@@ -52,34 +84,129 @@ function StudyPathMapContent() {
     isSolid: boolean
   }[]>([])
 
-  // Load topic from localStorage or default/sample
+  // Load all user topics for dropdown switcher (no demo data)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('studyhelp_active_topic')
-      if (saved) {
+    let cancelled = false
+
+    const loadAllTopics = async () => {
+      const topicMap = new Map<string, StudyPathTopic>()
+
+      // 1. From localStorage
+      if (typeof window !== 'undefined') {
         try {
-          const parsed = JSON.parse(saved)
-          if (parsed && (parsed.topicId === topicId || !topicId)) {
-            setTopic(parsed)
-            return
+          const rawActive = localStorage.getItem('studyhelp_active_topic')
+          if (rawActive) {
+            const parsed = JSON.parse(rawActive)
+            if (parsed?.topicId && !parsed.topicId.startsWith('csc202') && !parsed.topicId.startsWith('mth201')) {
+              topicMap.set(parsed.topicId, parsed)
+            }
           }
-        } catch {
-          // ignore error
+          const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+          if (rawSaved) {
+            const list: StudyPathTopic[] = JSON.parse(rawSaved)
+            if (Array.isArray(list)) {
+              list.forEach((t) => {
+                if (t?.topicId && !t.topicId.startsWith('csc202') && !t.topicId.startsWith('mth201')) {
+                  topicMap.set(t.topicId, t)
+                }
+              })
+            }
+          }
+        } catch {}
+      }
+
+      // 2. From Backend
+      try {
+        const backendList = await getUserStudyPaths()
+        if (Array.isArray(backendList)) {
+          backendList.forEach((t) => {
+            if (t?.topicId && !t.topicId.startsWith('csc202') && !t.topicId.startsWith('mth201')) {
+              topicMap.set(t.topicId, t)
+            }
+          })
         }
+      } catch {}
+
+      if (!cancelled) {
+        setUserTopics(Array.from(topicMap.values()))
       }
     }
 
-    // Match in samples
-    const found = SAMPLE_TOPICS.find((t) => t.topicId === topicId)
-    if (found) {
-      setTopic(found)
-    } else {
-      setTopic(DEFAULT_TOPIC)
+    loadAllTopics()
+    return () => { cancelled = true }
+  }, [topic?.topicId])
+
+  // Load topic: try backend by topicId, then localStorage
+  useEffect(() => {
+    let cancelled = false
+    setIsLoadingPath(true)
+
+    const loadFromLocal = () => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('studyhelp_active_topic')
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved)
+            if (parsed && (parsed.topicId === topicId || !topicId)) {
+              if (!cancelled) setTopic(parsed)
+              return true
+            }
+          } catch { /* ignore */ }
+        }
+        const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+        if (rawSaved) {
+          try {
+            const list: StudyPathTopic[] = JSON.parse(rawSaved)
+            const found = list.find((t) => t.topicId === topicId || !topicId)
+            if (found) {
+              if (!cancelled) setTopic(found)
+              return true
+            }
+          } catch {}
+        }
+      }
+      return false
     }
+
+    const backendFetch = topicId
+      ? getStudyPath(topicId)
+      : getActiveStudyPath()
+
+    backendFetch
+      .then((backendPath) => {
+        if (cancelled) return
+        if (backendPath && backendPath.nodes?.length > 0) {
+          setTopic(backendPath)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('studyhelp_active_topic', JSON.stringify(backendPath))
+            try {
+              const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+              const list: StudyPathTopic[] = rawSaved ? JSON.parse(rawSaved) : []
+              const updated = [backendPath, ...list.filter((p) => p.topicId !== backendPath.topicId)]
+              localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
+            } catch {}
+          }
+        } else {
+          const foundLocal = loadFromLocal()
+          if (!foundLocal && !cancelled) setTopic(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          const foundLocal = loadFromLocal()
+          if (!foundLocal) setTopic(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPath(false)
+      })
+
+    return () => { cancelled = true }
   }, [topicId])
 
-  // Active node (UP NEXT)
+  // Active node (UP NEXT) — safe when topic is null during loading
   const activeNode = useMemo(() => {
+    if (!topic) return null
     return topic.nodes.find((n) => n.status === 'active') || topic.nodes[0]
   }, [topic])
 
@@ -97,16 +224,17 @@ function StudyPathMapContent() {
 
   // Completed count and totals
   const completedCount = useMemo(() => {
+    if (!topic || !topic.nodes) return 0
     return topic.nodes.filter((n) => n.status === 'completed').length
   }, [topic])
 
-  const totalCount = topic.nodes.length
+  const totalCount = topic?.nodes?.length || 0
 
 
   // Recalculate SVG connector coordinates
   useEffect(() => {
     const updateLines = () => {
-      if (!containerRef.current) return
+      if (!containerRef.current || !topic || !topic.nodes) return
       const containerRect = containerRef.current.getBoundingClientRect()
       const newSegments: {
         id: string
@@ -167,70 +295,106 @@ function StudyPathMapContent() {
     }
   }, [topic])
 
-  // Create new topic handler
-  const handleCreateNewTopic = () => {
-    setIsCreatingTopic(true)
-    setTimeout(() => {
-      const title = newTopicText.trim() ? newTopicText.split('\n')[0].slice(0, 32) : 'Custom Learning Path'
-      const newTopicObj: StudyPathTopic = {
-        topicId: 'custom-' + Date.now(),
-        title: title || 'Computer Science Concepts',
-        courseCode: 'CS 101 · Interactive Study Path',
-        currentProgress: 0,
-        nodes: [
-          {
-            id: 1,
-            title: 'Foundational Concepts',
-            status: 'active',
-            xp: 20,
-            duration: '5 min',
-            summary: 'Core foundational principles extracted from your uploaded material.',
-            keyConcepts: ['Core Definition', 'Key Principles', 'Terminology']
-          },
-          {
-            id: 2,
-            title: 'Core Mechanics',
-            status: 'locked',
-            xp: 25,
-            duration: '7 min',
-            summary: 'In-depth analysis of architectural mechanisms and standard patterns.',
-            keyConcepts: ['Mechanisms', 'Internal State', 'Standard Operations']
-          },
-          {
-            id: 3,
-            title: 'Applied Problem Solving',
-            status: 'locked',
-            xp: 30,
-            duration: '8 min',
-            summary: 'Hands-on practical execution and algorithmic problem solving.',
-            keyConcepts: ['Edge Cases', 'Efficiency', 'Patterns']
-          },
-          {
-            id: 4,
-            title: 'Unit Challenge',
-            status: 'locked',
-            xp: 50,
-            duration: '15 min',
-            summary: 'Capstone mastery test challenging concept understanding and practical applications.',
-            keyConcepts: ['Capstone Challenge', 'Mastery Review']
-          }
-        ]
+  // Open / close the new topic modal
+  const openNewTopicModal = () => {
+    setInputError(null)
+    setShowNewTopicModal(true)
+  }
+
+  const closeNewTopicModal = () => {
+    setShowNewTopicModal(false)
+    setInputError(null)
+  }
+
+  // File upload & text extraction
+  const handleFile = useCallback(async (file: File) => {
+    const MAX_MB = 50
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setInputError(`File too large. Maximum is ${MAX_MB}MB.`)
+      return
+    }
+    setUploadedFile(file)
+    setExtractedText('')
+    setInputError(null)
+    setExtractionLabel(getExtractionLabel(file))
+    setExtracting(true)
+    try {
+      const text = await extractTextFromFile(file)
+      if (!text || text.trim().length < 30) {
+        setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
+        setUploadedFile(null)
+        setExtractedText('')
+      } else {
+        setExtractedText(text)
+      }
+    } catch (e: any) {
+      setInputError(e?.message || 'Failed to read file.')
+      setUploadedFile(null)
+      setExtractedText('')
+    } finally {
+      setExtracting(false)
+      setExtractionLabel('')
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }, [handleFile])
+
+  const sourceText = inputMode === 'upload' ? extractedText : manualText
+  const textReady =
+    inputMode === 'upload'
+      ? !!extractedText && !extracting
+      : manualText.trim().length >= 50
+
+  // Handle generation — sends PDF/text to the real backend
+  const handleGenerateStudyPath = async () => {
+    if (!textReady) return
+    setInputError(null)
+    setGenerateError(null)
+    setIsGenerating(true)
+    try {
+      const title =
+        inputMode === 'upload' && uploadedFile
+          ? uploadedFile.name.replace(/\.[^/.]+$/, '')
+          : sourceText.split('\n')[0].slice(0, 60).trim() || 'Study Material'
+
+      let studyPath: StudyPathTopic
+      if (inputMode === 'upload' && uploadedFile) {
+        studyPath = await uploadStudyMaterial(uploadedFile, { title })
+      } else {
+        studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
       }
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('studyhelp_active_topic', JSON.stringify(newTopicObj))
+        localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
+        try {
+          const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+          const list: StudyPathTopic[] = rawSaved ? JSON.parse(rawSaved) : []
+          const updated = [studyPath, ...list.filter((p) => p.topicId !== studyPath.topicId)]
+          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
+        } catch {}
       }
-      setTopic(newTopicObj)
-      setIsCreatingTopic(false)
+      setTopic(studyPath)
+      setUserTopics((prev) => [studyPath, ...prev.filter((p) => p.topicId !== studyPath.topicId)])
       setShowNewTopicModal(false)
-      setNewTopicText('')
-      router.push(`/dashboard/student/map/${newTopicObj.topicId}`)
-    }, 350)
+      setUploadedFile(null)
+      setExtractedText('')
+      setManualText('')
+      router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
+    } catch (err: any) {
+      setGenerateError(err?.message || 'Failed to generate study path. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   // Scroll to active node
   const handleScrollToFocus = () => {
-    if (!activeNode) return
+    if (!activeNode || !topic) return
     const idx = topic.nodes.findIndex((n) => n.id === activeNode.id)
     if (idx !== -1 && circleRefs.current[idx]) {
       circleRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -241,7 +405,22 @@ function StudyPathMapContent() {
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="sm-map-root">
-        <div className="sm-map-container">
+        {/* Loading skeleton while fetching path from backend */}
+        {isLoadingPath && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 16 }}>
+            <FiLoader size={28} style={{ color: '#22c55e', animation: 'spin 1s linear infinite' }} />
+            <span style={{ color: '#94a3b8', fontSize: 14, fontWeight: 600, letterSpacing: '0.05em' }}>Loading your study path...</span>
+          </div>
+        )}
+        {!isLoadingPath && !topic && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 16 }}>
+            <span style={{ color: '#94a3b8', fontSize: 15 }}>No study path found.</span>
+            <button className="sm-btn-back" onClick={() => router.push('/dashboard/student')} style={{ padding: '10px 24px' }}>← Back to Dashboard</button>
+          </div>
+        )}
+        {!isLoadingPath && topic && (
+          <>
+            <div className="sm-map-container">
           {/* ── TOP BAR ── */}
           <header className="sm-topbar">
             {/* Back button */}
@@ -259,7 +438,7 @@ function StudyPathMapContent() {
                 className="sm-course-pill"
                 onClick={() => setDropdownOpen((prev) => !prev)}
               >
-                <span className="sm-course-pill-text">{topic.courseCode}</span>
+                <span className="sm-course-pill-text">{topic?.courseCode}</span>
                 <FiChevronDown />
               </button>
 
@@ -270,20 +449,20 @@ function StudyPathMapContent() {
                     className="sm-course-dropdown-item sm-course-dropdown-new"
                     onClick={() => {
                       setDropdownOpen(false)
-                      setShowNewTopicModal(true)
+                      openNewTopicModal()
                     }}
                   >
                     <FiPlus size={15} />
                     <span>+ New Topic</span>
                   </div>
 
-                  <div className="sm-course-dropdown-divider" />
+                  {userTopics.length > 0 && <div className="sm-course-dropdown-divider" />}
 
-                  {SAMPLE_TOPICS.map((item) => (
+                  {userTopics.map((item) => (
                     <div
                       key={item.topicId}
                       className={`sm-course-dropdown-item ${
-                        item.topicId === topic.topicId ? 'active' : ''
+                        item.topicId === topic?.topicId ? 'active' : ''
                       }`}
                       onClick={() => {
                         setTopic(item)
@@ -368,7 +547,7 @@ function StudyPathMapContent() {
 
             {/* Nodes Trail */}
             <div className="sm-nodes-flow">
-              {topic.nodes.map((node, i) => {
+              {(topic?.nodes || []).map((node, i) => {
                 const isCompleted = node.status === 'completed'
                 const isActive = node.status === 'active'
                 const isLocked = node.status === 'locked'
@@ -552,7 +731,7 @@ function StudyPathMapContent() {
                     onClick={() => {
                       const id = selectedNode.id
                       setSelectedNode(null)
-                      router.push(`/vault/${topic.topicId}?nodeId=${id}`)
+                      router.push(`/vault/${topic?.topicId || topicId}?nodeId=${id}`)
                     }}
                   >
                     <FiZap />
@@ -568,54 +747,169 @@ function StudyPathMapContent() {
             </div>
           </div>
         )}
+          </>
+        )}
 
-        {/* ── CREATE NEW TOPIC MODAL ── */}
+        {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}
         {showNewTopicModal && (
-          <div className="sm-modal-overlay" onClick={() => setShowNewTopicModal(false)}>
-            <div className="sm-modal-box" onClick={(e) => e.stopPropagation()}>
-              <div className="sm-modal-header">
+          <div className="sp-modal-overlay" onClick={closeNewTopicModal}>
+            <div className="sp-modal-box sp-modal-box-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="sp-modal-header">
                 <div>
-                  <h3 className="sm-modal-title">New Study Path</h3>
-                  <p className="sm-modal-summary" style={{ margin: '4px 0 0', fontSize: 13 }}>
-                    Enter topic or course name to create a new learning trail.
+                  <h3 className="sp-modal-title">New Topic</h3>
+                  <p className="sp-tool-sub" style={{ marginTop: 4 }}>
+                    Upload a document or paste text to generate your study path.
                   </p>
                 </div>
                 <button
-                  className="sm-modal-close-btn"
-                  onClick={() => setShowNewTopicModal(false)}
+                  className="sp-modal-close-btn"
+                  onClick={closeNewTopicModal}
                   aria-label="Close"
                 >
                   <FiX />
                 </button>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <textarea
-                  value={newTopicText}
-                  onChange={(e) => setNewTopicText(e.target.value)}
-                  placeholder="e.g. MTH 301 Complex Analysis, Residues, Contour Integration..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    background: '#0d1322',
-                    border: '1px solid #1f2b45',
-                    borderRadius: 12,
-                    padding: 12,
-                    color: '#ffffff',
-                    fontSize: 13,
-                    resize: 'none',
-                    outline: 'none'
-                  }}
-                />
+              {/* Mode Tabs */}
+              <div className="sp-input-tabs">
+                <button
+                  className={`sp-input-tab ${inputMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => setInputMode('upload')}
+                >
+                  <FiUploadCloud /> Upload Document
+                </button>
+                <button
+                  className={`sp-input-tab ${inputMode === 'text' ? 'active' : ''}`}
+                  onClick={() => setInputMode('text')}
+                >
+                  <FiEdit3 /> Paste Text
+                </button>
               </div>
 
+              {/* Upload Mode */}
+              {inputMode === 'upload' && (
+                <div>
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => !extracting && fileInputRef.current?.click()}
+                    className={`sp-dropzone ${isDragging ? 'dragging' : ''} ${
+                      uploadedFile && extractedText ? 'done' : ''
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="sp-hidden-input"
+                      accept=".pdf,.docx,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                    />
+
+                    {extracting ? (
+                      <>
+                        <FiLoader className="animate-spin sp-dropzone-loader" />
+                        <p className="sp-dropzone-title">{extractionLabel}</p>
+                      </>
+                    ) : uploadedFile && extractedText ? (
+                      <>
+                        <div className="sp-dropzone-icon done">
+                          <FiCheckCircle />
+                        </div>
+                        <div>
+                          <p className="sp-dropzone-title sp-dropzone-file">{uploadedFile.name}</p>
+                          <p className="sp-dropzone-sub">
+                            {extractedText.length.toLocaleString()} characters extracted
+                          </p>
+                        </div>
+                        <button
+                          className="sp-dropzone-remove"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setUploadedFile(null)
+                            setExtractedText('')
+                          }}
+                        >
+                          <FiX /> Remove file
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="sp-dropzone-icon">
+                          <FiUploadCloud />
+                        </div>
+                        <div>
+                          <p className="sp-dropzone-title">Drop your document here</p>
+                          <p className="sp-dropzone-sub">
+                            or click to browse &mdash; PDF, Word, PPT, Images (max 50 MB)
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className="sp-dropzone-hint">
+                    Supports PDF, DOCX, PPTX, TXT, and images (JPG, PNG)
+                  </p>
+                </div>
+              )}
+
+              {/* Paste Text Mode */}
+              {inputMode === 'text' && (
+                <div>
+                  <label className="sp-input-label">Your Content</label>
+                  <textarea
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    rows={8}
+                    placeholder="Paste your lecture notes, textbook excerpt, or study material here... (minimum 50 characters)"
+                    className="sp-modal-textarea"
+                  />
+                  <p
+                    className={`sp-char-count ${
+                      manualText.trim().length < 50 ? 'warn' : 'ok'
+                    }`}
+                  >
+                    {manualText.trim().length} / 50 min characters
+                  </p>
+                </div>
+              )}
+
+              {inputError && <p className="sp-input-error">{inputError}</p>}
+
+              {generateError && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#fca5a5',
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  marginTop: 4
+                }}>
+                  ⚠️ {generateError}
+                </div>
+              )}
+
               <button
-                className="sm-modal-btn-primary"
-                onClick={handleCreateNewTopic}
-                disabled={isCreatingTopic}
+                className="sp-btn-generate sp-generate-full"
+                onClick={handleGenerateStudyPath}
+                disabled={!textReady || isGenerating}
               >
-                <FiPlus size={18} />
-                <span>{isCreatingTopic ? 'Generating Trail...' : 'Create Path'}</span>
+                {isGenerating ? (
+                  <>
+                    <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Analysing with AI...</span>
+                  </>
+                ) : (
+                  <>
+                    <IoSparklesSharp />
+                    <span>Generate Study Path</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

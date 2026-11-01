@@ -426,3 +426,56 @@ export const deleteTutorChatSession = async (sessionId: string): Promise<{ succe
     if (!response.ok) throw new Error('Failed to delete tutor chat session')
     return response.json()
 }
+
+/**
+ * Extract document text using the PDF processing system:
+ * 1. Express backend AI extract endpoint (/api/backend/ai/extract)
+ * 2. Next.js server extract route (/api/extract-pdf)
+ * 3. Client-side extraction fallback
+ */
+export const extractDocumentText = async (file: File): Promise<string> => {
+    // 1. Try Express backend AI extract system
+    try {
+        const formData = new FormData()
+        formData.append('pdf', file, file.name)
+        formData.append('file', file, file.name)
+
+        const headers = await authHeaders()
+        const res = await fetch('/api/backend/ai/extract', {
+            method: 'POST',
+            headers,
+            body: formData
+        })
+        if (res.ok) {
+            const data = await res.json()
+            if (data?.text && data.text.trim().length >= 30) {
+                return data.text
+            }
+        }
+    } catch (e) {
+        console.warn('[quizApi] Backend PDF extraction failed, trying /api/extract-pdf fallback:', e)
+    }
+
+    // 2. Try Next.js server route
+    try {
+        const nextFormData = new FormData()
+        nextFormData.append('file', file, file.name)
+        const nextRes = await fetch('/api/extract-pdf', {
+            method: 'POST',
+            body: nextFormData
+        })
+        if (nextRes.ok) {
+            const data = await nextRes.json()
+            if (data?.text && data.text.trim().length >= 30) {
+                return data.text
+            }
+        }
+    } catch (nextErr) {
+        console.warn('[quizApi] /api/extract-pdf failed, trying client-side extraction:', nextErr)
+    }
+
+    // 3. Fallback to client-side extraction
+    const { extractTextFromFile } = await import('@/lib/utils/extraction')
+    return await extractTextFromFile(file)
+}
+
