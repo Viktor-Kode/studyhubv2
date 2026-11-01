@@ -8,7 +8,6 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import AdBanner from '@/components/AdBanner'
 import { confirmToast } from '@/lib/utils/confirm'
-import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useUpgrade } from '@/context/UpgradeContext'
 import { getErrorMessage } from '@/lib/utils/errorHandler'
@@ -245,7 +244,6 @@ export default function LibraryPage() {
             }}
           />
         )}
-        <MobileBottomNav />
       </div>
     </ProtectedRoute>
   )

@@ -6,7 +6,6 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { paymentApi } from '@/lib/api/paymentApi'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 import {
   FiCheck, FiX, FiLoader, FiZap, FiAward, FiPhone, FiShield,
   FiHelpCircle, FiClock, FiStar, FiArrowRight, FiCheckCircle
@@ -446,7 +445,6 @@ export default function PricingPage() {
 
         </div>
 
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )

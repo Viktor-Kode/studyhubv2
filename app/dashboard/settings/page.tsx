@@ -10,7 +10,6 @@ import { MdSchool, MdQuiz } from 'react-icons/md'
 import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw } from 'react-icons/fi'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
-import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useThemeStore } from '@/lib/store/themeStore'
 import { firebaseSignOut } from '@/lib/firebase-auth'
@@ -110,7 +109,6 @@ export default function SettingsPage() {
                     {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
                     {activeTab === 'offline' && <OfflineSection />}
                 </main>
-                <MobileBottomNav />
             </div>
         </ProtectedRoute>
     )

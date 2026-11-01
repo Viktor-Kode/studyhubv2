@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import StudySidebar from '@/components/dashboard/StudySidebar'
 import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import { apiClient } from '@/lib/api/client'
@@ -339,44 +340,8 @@ export default function StudentDashboardPage() {
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="sp-dashboard-root">
-        {/* ── LEFT SIDEBAR (Desktop) ── */}
-        <aside className="sp-sidebar">
-          <Link href="/dashboard/student" className="sp-logo-wrap">
-            <div className="sp-logo-icon">
-              <IoSparklesSharp size={20} />
-            </div>
-            <span className="sp-logo-text">StudyHelp</span>
-          </Link>
-
-          <nav>
-            <ul className="sp-nav-list">
-              <li>
-                <Link href="/dashboard/student" className="sp-nav-item active">
-                  <FiBookOpen className="sp-nav-icon" />
-                  <span>Home</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/flip-cards" className="sp-nav-item">
-                  <FiLayers className="sp-nav-icon" />
-                  <span>Flashcard Vault</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/notes-history" className="sp-nav-item">
-                  <FiFileText className="sp-nav-icon" />
-                  <span>Notes Library</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/profile" className="sp-nav-item">
-                  <FiUser className="sp-nav-icon" />
-                  <span>Profile</span>
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </aside>
+        {/* ── SHARED NAVIGATION ── */}
+        <StudySidebar />
 
         {/* ── MAIN CONTENT ── */}
         <main className="sp-main-container">
@@ -769,26 +734,6 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </aside>
-
-        {/* ── MOBILE BOTTOM NAVIGATION ── */}
-        <nav className="sp-bottom-nav">
-          <Link href="/dashboard/student" className="sp-bottom-nav-item active">
-            <FiBookOpen className="sp-bottom-nav-icon" />
-            <span>Home</span>
-          </Link>
-          <Link href="/dashboard/flip-cards" className="sp-bottom-nav-item">
-            <FiLayers className="sp-bottom-nav-icon" />
-            <span>Flashcards</span>
-          </Link>
-          <Link href="/dashboard/notes-history" className="sp-bottom-nav-item">
-            <FiFileText className="sp-bottom-nav-icon" />
-            <span>Notes</span>
-          </Link>
-          <Link href="/dashboard/profile" className="sp-bottom-nav-item">
-            <FiUser className="sp-bottom-nav-icon" />
-            <span>Profile</span>
-          </Link>
-        </nav>
 
         {/* ── NODE DETAIL MODAL ── */}
         {selectedNode && (

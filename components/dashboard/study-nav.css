@@ -1,0 +1,228 @@
+/* ============================================================
+   Shared dashboard navigation (matches the redesigned home)
+   ============================================================ */
+
+.sp-app-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+.sp-app-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .sp-app-main {
+    padding-bottom: 76px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LEFT SIDEBAR (Desktop)
+   ───────────────────────────────────────────────────────────── */
+.sp-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: #0d1322;
+  border-right: 1px solid #1a233a;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 30;
+}
+
+.sp-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 36px;
+  padding-left: 8px;
+  text-decoration: none;
+}
+
+.sp-logo-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+.sp-logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.sp-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+}
+
+.sp-nav-item:hover {
+  color: #f1f5f9;
+  background: #141c2e;
+}
+
+.sp-nav-item.active {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.sp-nav-item.active .sp-nav-icon {
+  color: #22c55e;
+}
+
+.sp-nav-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SUPPORT SECTION
+   ───────────────────────────────────────────────────────────── */
+.sp-nav-support {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid #1a233a;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sp-nav-support-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 8px;
+  padding-left: 16px;
+}
+
+.sp-nav-support-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: #94a3b8;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sp-nav-support-link:hover {
+  color: #f1f5f9;
+  background: #141c2e;
+}
+
+.sp-nav-support-icon {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.sp-nav-support-icon.referrals {
+  color: #a855f7;
+}
+
+.sp-nav-support-icon.call {
+  color: #60a5fa;
+}
+
+.sp-nav-support-icon.whatsapp {
+  color: #22c55e;
+}
+
+.sp-nav-logout {
+  color: #f87171;
+}
+
+.sp-nav-logout:hover {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MOBILE BOTTOM NAVIGATION BAR
+   ───────────────────────────────────────────────────────────── */
+.sp-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #0d1322;
+  border-top: 1px solid #1a233a;
+  z-index: 50;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: space-around;
+}
+
+@media (max-width: 1024px) {
+  .sp-sidebar {
+    display: none;
+  }
+  .sp-bottom-nav {
+    display: flex;
+  }
+}
+
+.sp-bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.sp-bottom-nav-item.active {
+  color: #22c55e;
+}
+
+.sp-bottom-nav-icon {
+  font-size: 20px;
+}

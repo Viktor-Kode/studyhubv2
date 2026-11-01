@@ -57,18 +57,6 @@ function getSteps(user: AppUser) {
       cta: isUni ? 'Find a Group →' : 'Visit Community →',
       color: '#D97706',
     },
-    {
-      id: 'flashcard',
-      icon: '🃏',
-      title: isUni ? 'Create flashcards for key concepts' : 'Create a flashcard',
-      description: isUni
-        ? 'Build cards for definitions, cases, or formulae'
-        : 'Build your first card or generate a deck with AI',
-      link: '/dashboard/flip-cards',
-      done: user.progress?.hasCreatedFlashcard,
-      cta: 'Open Flashcards →',
-      color: '#7C3AED',
-    },
   ]
 }
 

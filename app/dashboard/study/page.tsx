@@ -5,7 +5,6 @@ import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuthStore } from '@/lib/store/authStore'
 import { apiClient } from '@/lib/api/client'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 import { FiTarget, FiClock, FiChevronRight, FiBook, FiCpu, FiFileText, FiCheckSquare, FiPlay, FiEyeOff } from 'react-icons/fi'
 import { BiBrain } from 'react-icons/bi'
 import '@/app/dashboard/student/dashboard-v3.css'
@@ -366,7 +365,6 @@ export default function StudyPage() {
           )}
         </div>
 
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )

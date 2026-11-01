@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 import BlindSummaryModal from '@/components/dashboard/BlindSummaryModal'
 import { fetchStudyNotes, StudyNote } from '@/lib/api/quizApi'
 import { useProgress } from '@/hooks/useProgress'
@@ -217,7 +216,6 @@ export default function BlindSummaryPage() {
           originalSummaryText={activeText}
         />
 
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )
