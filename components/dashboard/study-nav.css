@@ -1,5 +1,7 @@
 /* ============================================================
    Shared dashboard navigation (matches the redesigned home)
+   Theme-aware: dark values are the default, light values apply
+   whenever the <html> element is not `.dark`.
    ============================================================ */
 
 .sp-app-shell {
@@ -22,20 +24,69 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   THEME TOKENS
+   ───────────────────────────────────────────────────────────── */
+.sp-sidebar,
+.sp-bottom-nav {
+  --nav-bg: #0d1322;
+  --nav-border: #1a233a;
+  --nav-text: #94a3b8;
+  --nav-text-strong: #f1f5f9;
+  --nav-hover-bg: #141c2e;
+  --nav-muted: #64748b;
+  --nav-active-bg: rgba(34, 197, 94, 0.1);
+  --nav-active-border: rgba(34, 197, 94, 0.4);
+  --nav-active-text: #22c55e;
+  --nav-logout: #f87171;
+  --nav-logout-hover: #fca5a5;
+  --nav-logout-bg: rgba(248, 113, 113, 0.1);
+}
+
+html:not(.dark) .sp-sidebar,
+html:not(.dark) .sp-bottom-nav {
+  --nav-bg: #ffffff;
+  --nav-border: #e2e8f0;
+  --nav-text: #64748b;
+  --nav-text-strong: #0f172a;
+  --nav-hover-bg: #f1f5f9;
+  --nav-muted: #94a3b8;
+  --nav-active-bg: rgba(34, 197, 94, 0.12);
+  --nav-active-border: rgba(34, 197, 94, 0.45);
+  --nav-active-text: #15803d;
+  --nav-logout: #dc2626;
+  --nav-logout-hover: #b91c1c;
+  --nav-logout-bg: rgba(220, 38, 38, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────
    LEFT SIDEBAR (Desktop)
+   Fixed to the viewport so it always reaches the bottom edge —
+   no strip of page background showing underneath it.
    ───────────────────────────────────────────────────────────── */
 .sp-sidebar {
   width: 240px;
   min-width: 240px;
-  background: #0d1322;
-  border-right: 1px solid #1a233a;
+  background: var(--nav-bg);
+  border-right: 1px solid var(--nav-border);
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
-  position: sticky;
+  position: fixed;
   top: 0;
-  height: 100vh;
+  left: 0;
+  bottom: 0;
+  height: 100dvh;
+  overflow-y: auto;
   z-index: 30;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (min-width: 1025px) {
+  .sp-app-main,
+  .sp-main-container {
+    margin-left: 240px;
+  }
 }
 
 .sp-logo-wrap {
@@ -63,7 +114,7 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--nav-text-strong);
 }
 
 .sp-nav-list {
@@ -83,25 +134,25 @@
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--nav-text);
   text-decoration: none;
   transition: all 0.18s ease;
   border: 1px solid transparent;
 }
 
 .sp-nav-item:hover {
-  color: #f1f5f9;
-  background: #141c2e;
+  color: var(--nav-text-strong);
+  background: var(--nav-hover-bg);
 }
 
 .sp-nav-item.active {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #22c55e;
+  background: var(--nav-active-bg);
+  border: 1px solid var(--nav-active-border);
+  color: var(--nav-active-text);
 }
 
 .sp-nav-item.active .sp-nav-icon {
-  color: #22c55e;
+  color: var(--nav-active-text);
 }
 
 .sp-nav-icon {
@@ -115,7 +166,7 @@
 .sp-nav-support {
   margin-top: auto;
   padding-top: 18px;
-  border-top: 1px solid #1a233a;
+  border-top: 1px solid var(--nav-border);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -126,7 +177,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--nav-muted);
   margin: 0 0 8px;
   padding-left: 16px;
 }
@@ -141,7 +192,7 @@
   font-size: 13px;
   font-weight: 600;
   text-align: left;
-  color: #94a3b8;
+  color: var(--nav-text);
   text-decoration: none;
   background: none;
   border: none;
@@ -150,8 +201,8 @@
 }
 
 .sp-nav-support-link:hover {
-  color: #f1f5f9;
-  background: #141c2e;
+  color: var(--nav-text-strong);
+  background: var(--nav-hover-bg);
 }
 
 .sp-nav-support-icon {
@@ -171,13 +222,21 @@
   color: #22c55e;
 }
 
+html:not(.dark) .sp-nav-support-icon.call {
+  color: #2563eb;
+}
+
+html:not(.dark) .sp-nav-support-icon.whatsapp {
+  color: #15803d;
+}
+
 .sp-nav-logout {
-  color: #f87171;
+  color: var(--nav-logout);
 }
 
 .sp-nav-logout:hover {
-  color: #fca5a5;
-  background: rgba(248, 113, 113, 0.1);
+  color: var(--nav-logout-hover);
+  background: var(--nav-logout-bg);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -190,12 +249,13 @@
   left: 0;
   right: 0;
   height: 64px;
-  background: #0d1322;
-  border-top: 1px solid #1a233a;
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-border);
   z-index: 50;
   padding: 0 16px;
   align-items: center;
   justify-content: space-around;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 @media (max-width: 1024px) {
@@ -215,12 +275,12 @@
   text-decoration: none;
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--nav-text);
   transition: color 0.15s ease;
 }
 
 .sp-bottom-nav-item.active {
-  color: #22c55e;
+  color: var(--nav-active-text);
 }
 
 .sp-bottom-nav-icon {

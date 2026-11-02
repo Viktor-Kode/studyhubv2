@@ -1386,3 +1386,209 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* ============================================================
+   LIGHT THEME
+   The gamified dashboard is authored in dark tones, so light
+   mode re-maps its surfaces, borders and text here.
+   ============================================================ */
+html:not(.dark) .sp-dashboard-root {
+  background-color: #f6f8fc;
+  color: #0f172a;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────── */
+html:not(.dark) .sp-topic-card,
+html:not(.dark) .sp-empty-card,
+html:not(.dark) .sp-quick-tool-card,
+html:not(.dark) .sp-widget-card,
+html:not(.dark) .sp-modal-box {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html:not(.dark) .sp-stat-pill,
+html:not(.dark) .sp-node-card,
+html:not(.dark) .sp-sidebar-tool-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .sp-node-card.active {
+  background: #faf5ff;
+  border-color: #8b5cf6;
+}
+
+html:not(.dark) .sp-quick-tool-card:hover,
+html:not(.dark) .sp-sidebar-tool-card:hover {
+  background: #f8fafc;
+  border-color: #c7d2fe;
+}
+
+html:not(.dark) .sp-topic-card-quick-tools {
+  border-top-color: #e2e8f0;
+}
+
+html:not(.dark) .sp-topic-qt-item,
+html:not(.dark) .sp-btn-paste,
+html:not(.dark) .sp-modal-tag {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .sp-topic-qt-item:hover,
+html:not(.dark) .sp-btn-paste:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+html:not(.dark) .sp-topic-progress-track {
+  background: #e2e8f0;
+}
+
+html:not(.dark) .sp-input-tabs {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .sp-input-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+html:not(.dark) .sp-dropzone,
+html:not(.dark) .sp-modal-textarea {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+html:not(.dark) .sp-dropzone:hover {
+  background: #ffffff;
+}
+
+html:not(.dark) .sp-modal-close-btn {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+html:not(.dark) .sp-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+html:not(.dark) .sp-node-circle.locked {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+
+html:not(.dark) .sp-streak-circle.pending {
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .sp-league-row {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+html:not(.dark) .sp-generate-full:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+}
+
+html:not(.dark) .sp-modal-overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+html:not(.dark) .sp-path-scroll-area::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+html:not(.dark) .sp-path-scroll-area::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html:not(.dark) .sp-path-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Text ─────────────────────────────────────────────────── */
+html:not(.dark) .sp-greeting-name,
+html:not(.dark) .sp-topic-title,
+html:not(.dark) .sp-topic-qt-name,
+html:not(.dark) .sp-section-heading,
+html:not(.dark) .sp-tool-title,
+html:not(.dark) .sp-node-card-title,
+html:not(.dark) .sp-radial-text,
+html:not(.dark) .sp-daily-goal-value,
+html:not(.dark) .sp-league-name,
+html:not(.dark) .sp-league-rank-num,
+html:not(.dark) .sp-modal-title,
+html:not(.dark) .sp-dropzone-title,
+html:not(.dark) .sp-modal-textarea {
+  color: #0f172a;
+}
+
+html:not(.dark) .sp-greeting-sub,
+html:not(.dark) .sp-topic-label,
+html:not(.dark) .sp-topic-course,
+html:not(.dark) .sp-topic-qt-label,
+html:not(.dark) .sp-topic-qt-desc,
+html:not(.dark) .sp-empty-desc,
+html:not(.dark) .sp-tool-sub,
+html:not(.dark) .sp-node-card-sub,
+html:not(.dark) .sp-daily-goal-info h4,
+html:not(.dark) .sp-daily-goal-sub,
+html:not(.dark) .sp-widget-title,
+html:not(.dark) .sp-league-xp,
+html:not(.dark) .sp-modal-meta-row,
+html:not(.dark) .sp-modal-concepts-title,
+html:not(.dark) .sp-input-tab,
+html:not(.dark) .sp-input-label,
+html:not(.dark) .sp-dropzone-sub,
+html:not(.dark) .sp-dropzone-hint,
+html:not(.dark) .sp-dropzone-remove {
+  color: #64748b;
+}
+
+html:not(.dark) .sp-topic-progress-text,
+html:not(.dark) .sp-modal-summary,
+html:not(.dark) .sp-btn-paste,
+html:not(.dark) .sp-modal-tag {
+  color: #334155;
+}
+
+html:not(.dark) .sp-stat-pill,
+html:not(.dark) .sp-widget-highlight,
+html:not(.dark) .sp-char-count.warn {
+  color: #b45309;
+}
+
+html:not(.dark) .sp-section-heading .sp-fraction,
+html:not(.dark) .sp-node-card-sub.completed,
+html:not(.dark) .sp-league-row.current-user .sp-league-xp,
+html:not(.dark) .sp-char-count.ok {
+  color: #15803d;
+}
+
+html:not(.dark) .sp-modal-badge.locked {
+  color: #475569;
+}
+
+html:not(.dark) .sp-tool-icon-green {
+  color: #15803d;
+}
+
+html:not(.dark) .sp-tool-icon-purple {
+  color: #7c3aed;
+}
+
+html:not(.dark) .sp-tool-icon-gold {
+  color: #b45309;
+}
+
+html:not(.dark) .sp-tool-icon-trophy {
+  color: #a16207;
+}

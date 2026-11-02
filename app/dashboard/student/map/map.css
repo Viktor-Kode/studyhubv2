@@ -789,24 +789,29 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* -------------------------------------------------------------
    DESKTOP LAYOUT
-   The map was capped at 520px, which left it as a narrow phone
-   strip in the middle of a wide screen. Give it real width and
-   spread the winding trail symmetrically.
-   ───────────────────────────────────────────────────────────── */
-@media (min-width: 1024px) {
+   The map was capped at 520px with zig-zag offsets tuned for that
+   width, so on a desktop screen it read as a stray phone column
+   with big dead space around it. Centre the trail in a readable
+   column and give it a deliberate alternating curve.
+   ------------------------------------------------------------- */
+@media (min-width: 900px) {
   .sm-map-container {
-    max-width: 1000px;
-    padding: 32px 40px 64px;
+    max-width: 1080px;
+    padding: 36px 48px 72px;
   }
 
   .sm-topbar {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
 
   .sm-course-pill-wrap {
     max-width: 320px;
+  }
+
+  .sm-hero-section {
+    margin-bottom: 28px;
   }
 
   .sm-hero-title {
@@ -817,13 +822,18 @@
     font-size: 15px;
   }
 
+  /* Keep the trail in a centred, readable column instead of
+     stretching percentage offsets across the whole window */
   .sm-path-area {
-    min-height: 1040px;
-    padding: 32px 0 96px;
+    max-width: 760px;
+    margin: 0 auto;
+    min-height: 0;
+    padding: 24px 0 64px;
   }
 
   .sm-nodes-flow {
     gap: 56px;
+    padding: 0 4px;
   }
 
   .sm-node-combo {
@@ -831,8 +841,8 @@
   }
 
   .sm-node-card {
-    min-width: 200px;
-    max-width: 240px;
+    min-width: 220px;
+    max-width: 260px;
     padding: 14px 20px;
   }
 
@@ -840,12 +850,43 @@
     font-size: 15px;
   }
 
-  /* Symmetric zig-zag across the wider canvas */
-  .sm-node-row-0 { padding-left: 10%; }
-  .sm-node-row-1 { padding-left: 32%; }
-  .sm-node-row-2 { padding-right: 16%; }
-  .sm-node-row-3 { padding-right: 6%; }
-  .sm-node-row-4 { padding-right: 34%; }
-  .sm-node-row-5 { padding-left: 30%; }
-  .sm-node-row-6 { padding-left: 8%; }
+  .sm-node-card-sub {
+    font-size: 12.5px;
+  }
+
+  /* Alternate the rows: circles hug the edges, cards fill inward */
+  .sm-node-row-0,
+  .sm-node-row-2,
+  .sm-node-row-4,
+  .sm-node-row-6 {
+    justify-content: flex-start;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sm-node-row-1,
+  .sm-node-row-3,
+  .sm-node-row-5 {
+    justify-content: flex-end;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sm-node-row-0 .sm-node-combo,
+  .sm-node-row-2 .sm-node-combo,
+  .sm-node-row-4 .sm-node-combo,
+  .sm-node-row-6 .sm-node-combo {
+    flex-direction: row;
+  }
+
+  .sm-node-row-1 .sm-node-combo,
+  .sm-node-row-3 .sm-node-combo,
+  .sm-node-row-5 .sm-node-combo {
+    flex-direction: row-reverse;
+  }
+
+  .sm-node-row-7 {
+    justify-content: center;
+    margin-top: 8px;
+  }
 }
