@@ -107,7 +107,7 @@ export default function Home() {
                 priceCurrency: 'NGN',
               },
               description:
-                'AI-powered CBT practice platform for Nigerian university students. Turn lecturer notes into practice questions for JAMB, WAEC, NECO, and Post-UTME.',
+                'AI-powered study platform for Nigerian university students. Upload lecture PDFs to generate interactive study paths, practice questions, and earn XP on the leaderboard.',
               url: 'https://www.studyhelp.site',
             },
             {
@@ -116,7 +116,7 @@ export default function Home() {
               name: 'StudyHelp',
               url: 'https://www.studyhelp.site',
               description:
-                'The #1 AI-powered study platform for Nigerian university students preparing for JAMB, WAEC, NECO, and Post-UTME examinations.',
+                'The #1 AI-powered study platform for Nigerian university students. Turn course PDFs into structured study paths, CBT questions, and competitive leaderboard rankings.',
               areaServed: {
                 '@type': 'Country',
                 name: 'Nigeria',
@@ -132,7 +132,7 @@ export default function Home() {
                   acceptedAnswer: {
                     '@type': 'Answer',
                     text:
-                      'StudyHelp is an AI-powered CBT practice platform built for Nigerian university students. It lets you turn your lecturer notes into practice questions for JAMB, WAEC, NECO, and Post-UTME exams.',
+                      'StudyHelp is an AI-powered study platform built for Nigerian students. Upload your lecture PDFs or notes, and StudyHelp analyzes them to map out a step-by-step study path, generate CBT practice questions, and reward you with XP as you compete on the student leaderboard.',
                   },
                 },
                 {
@@ -146,20 +146,20 @@ export default function Home() {
                 },
                 {
                   '@type': 'Question',
-                  name: 'Can StudyHelp generate JAMB past questions?',
+                  name: 'How does the PDF to study path work?',
                   acceptedAnswer: {
                     '@type': 'Answer',
                     text:
-                      'Yes. StudyHelp uses AI to generate CBT-style practice questions in the format of JAMB, WAEC, NECO, and Post-UTME exams. You can also upload your own notes and get custom questions instantly.',
+                      'Simply upload your course PDF, textbook, or lecturer slides. Our AI analyzes the material, breaks it into sequential learning nodes on an interactive map, and generates practice questions for each topic so you can test your knowledge and earn XP.',
                   },
                 },
                 {
                   '@type': 'Question',
-                  name: 'How do I prepare for WAEC using StudyHelp?',
+                  name: 'How do the XP and leaderboard work?',
                   acceptedAnswer: {
                     '@type': 'Answer',
                     text:
-                      'Sign up for free on StudyHelp, select WAEC as your exam type, choose your subjects, and start practicing. The AI study tutor explains every answer so you learn while you practice.',
+                      'Every time you complete a study node, take CBT quizzes, and maintain daily streaks, you earn XP. You can see your standing against university peers on the student leaderboard.',
                   },
                 },
               ],
@@ -467,7 +467,7 @@ export default function Home() {
               The tool behind every <span className="gt">first class</span>
             </h1>
             <p className="sub">
-              Upload your notes, practice past questions and track your progress, all in one place.
+              Upload your course PDF or notes. Our AI analyzes your material, maps out an interactive study path, generates tailored practice questions, and helps you earn XP to climb the student leaderboard.
             </p>
             <div className="acts">
               <Link className="btn hb1" href="/auth/signup">
@@ -490,12 +490,12 @@ export default function Home() {
                 <span>students studying smarter</span>
               </div>
               <div>
-                <b>AI</b>
-                <span>tutor and note-to-quiz</span>
+                <b>AI Path</b>
+                <span>from your PDF upload</span>
               </div>
               <div>
-                <b>₦0</b>
-                <span>to get started</span>
+                <b>XP & Rank</b>
+                <span>student leaderboard</span>
               </div>
             </div>
           </div>
@@ -505,16 +505,16 @@ export default function Home() {
             <div className="ps">
               <div className="pn" />
               <div className="pt">
-                <small>SCHOLAR</small>
+                <small>SCHOLAR · LEVEL 4</small>
                 <b>Hi, Viktor</b>
               </div>
               <div className="pk">
-                <small>Streak</small>
-                <b>12 Days</b>
+                <small>Daily Streak · Leaderboard</small>
+                <b>1,450 XP · Rank #3</b>
                 <div className="bar">
                   <i style={{ width: '75%' }} />
                 </div>
-                <small style={{ marginTop: '8px' }}>75% to next rank: Master</small>
+                <small style={{ marginTop: '8px' }}>50 XP to reach Rank #2</small>
               </div>
               <div className="pa">
                 <div>
@@ -524,7 +524,18 @@ export default function Home() {
                       <path d="M14 2v6h6" />
                     </svg>
                   </i>
-                  Past Questions
+                  Upload PDF
+                </div>
+                <div>
+                  <i>
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="6" cy="6" r="3" />
+                      <circle cx="18" cy="9" r="3" />
+                      <path d="M6 9v6M9 9h9" />
+                    </svg>
+                  </i>
+                  Study Path
                 </div>
                 <div>
                   <i>
@@ -533,7 +544,17 @@ export default function Home() {
                       <path d="m8 12 3 3 5-6" />
                     </svg>
                   </i>
-                  Practice CBT
+                  CBT Quizzes
+                </div>
+                <div>
+                  <i>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                      <path d="M4 22h16M10 14.66V17c0 .55-.45 1-1 1H7M14 14.66V17c0 .55.45 1 1 1h2" />
+                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+                    </svg>
+                  </i>
+                  Leaderboard
                 </div>
                 <div>
                   <i>
@@ -542,23 +563,7 @@ export default function Home() {
                       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
                     </svg>
                   </i>
-                  Note Generator
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M4 6h16M4 12h16M4 18h10" />
-                    </svg>
-                  </i>
-                  AI Summaries
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
-                    </svg>
-                  </i>
-                  AI Study Tutor
+                  Active Recall
                 </div>
                 <div>
                   <i>
@@ -571,11 +576,11 @@ export default function Home() {
               </div>
               <div className="pc">
                 <div>
-                  <b>Maths Practice</b>
+                  <b>Study Path: Cell Bio</b>
                   <br />
-                  <small>2:00 PM · Today</small>
+                  <small>Node 3 · 10 Questions Ready</small>
                 </div>
-                <small style={{ color: '#6D3BF2', fontWeight: 700 }}>Upcoming</small>
+                <small style={{ color: '#6D3BF2', fontWeight: 700 }}>+60 XP</small>
               </div>
             </div>
           </div>
@@ -585,22 +590,24 @@ export default function Home() {
       {/* Infinite Scrolling Marquee */}
       <div className="mq">
         <div className="mt">
+          <span>PDF analysis</span>
+          <span>AI study path</span>
+          <span>Interactive study map</span>
+          <span>Tailored questions</span>
+          <span>Earn XP & level up</span>
+          <span>Student leaderboard</span>
           <span>CBT practice</span>
-          <span>AI study tutor</span>
           <span>Flashcards</span>
-          <span>Note generator</span>
-          <span>AI summaries</span>
-          <span>Question bank</span>
-          <span>Progress tracking</span>
-          <span>Study groups</span>
+          <span>Active recall</span>
+          <span>PDF analysis</span>
+          <span>AI study path</span>
+          <span>Interactive study map</span>
+          <span>Tailored questions</span>
+          <span>Earn XP & level up</span>
+          <span>Student leaderboard</span>
           <span>CBT practice</span>
-          <span>AI study tutor</span>
           <span>Flashcards</span>
-          <span>Note generator</span>
-          <span>AI summaries</span>
-          <span>Question bank</span>
-          <span>Progress tracking</span>
-          <span>Study groups</span>
+          <span>Active recall</span>
         </div>
       </div>
 
@@ -644,25 +651,25 @@ export default function Home() {
         <div className="w">
           <div className="k">Sound familiar?</div>
           <h2 className="h2">We&apos;ve all been there</h2>
-          <p className="lead">Studying shouldn&apos;t be this hard.</p>
+          <p className="lead">Studying messy slides shouldn&apos;t be this stressful.</p>
           <div className="g3">
             <div className="card">
               <div className="ic v">01</div>
-              <h3>Information overload</h3>
-              <p>You have 100+ pages of notes but don&apos;t know what will actually appear in the exam.</p>
+              <h3>PDF & slide overload</h3>
+              <p>You have 100+ pages of lecturer slides and PDFs, but no idea what will actually show up in the exam.</p>
             </div>
             <div className="card">
               <div className="ic">02</div>
-              <h3>Time is running out</h3>
-              <p>Exam is in 2 days and you&apos;re still struggling to memorize basic concepts.</p>
+              <h3>No structured roadmap</h3>
+              <p>Randomly skimming materials leaves knowledge gaps, panic right before test day, and low recall.</p>
             </div>
             <div className="card">
               <div className="ic v">03</div>
-              <h3>Boring study sessions</h3>
-              <p>Reading the same textbook over and over is making you fall asleep.</p>
+              <h3>Zero motivation alone</h3>
+              <p>Passive reading puts you to sleep. Without progress milestones, streaks, or peer ranks, procrastination wins.</p>
             </div>
           </div>
-          <p className="bridge">StudyHelp fixes all three. Here&apos;s how ↓</p>
+          <p className="bridge">StudyHelp turns your PDFs into a clear study path, questions, and an XP leaderboard. Here&apos;s how ↓</p>
         </div>
       </section>
 
@@ -671,7 +678,7 @@ export default function Home() {
         <div className="w">
           <div className="k">Features</div>
           <h2 className="h2">Study smarter, not harder</h2>
-          <p className="lead">Everything you need to ace your exams in one platform.</p>
+          <p className="lead">From raw PDF to full mastery with gamified study paths.</p>
           <div className="g4">
             <div className="card">
               <div className="ic">
@@ -680,37 +687,41 @@ export default function Home() {
                   <path d="M14 2v6h6M8 13h8M8 17h5" />
                 </svg>
               </div>
-              <h3>Note-to-Quiz</h3>
-              <p>Upload your notes and get exam-standard questions instantly.</p>
+              <h3>AI PDF Analysis</h3>
+              <p>Upload your lecture slides or textbooks. AI extracts the core syllabus and key exam points in seconds.</p>
             </div>
             <div className="card">
               <div className="ic v">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="6" cy="6" r="3" />
+                  <circle cx="18" cy="9" r="3" />
+                  <path d="M6 9v6M9 9h9" />
                 </svg>
               </div>
-              <h3>Past Questions</h3>
-              <p>Thousands of past questions with detailed solutions.</p>
+              <h3>Interactive Study Path</h3>
+              <p>Get a visual, node-by-node learning map that guides your revision step-by-step from beginner to mastery.</p>
             </div>
             <div className="card">
               <div className="ic">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m8 12 3 3 5-6" />
                 </svg>
               </div>
-              <h3>Progress Tracking</h3>
-              <p>See your weak points and track your improvement.</p>
+              <h3>Targeted Practice Questions</h3>
+              <p>Practice exam-standard questions and CBT quizzes generated directly from your material with detailed solutions.</p>
             </div>
             <div className="card">
               <div className="ic v">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16M10 14.66V17c0 .55-.45 1-1 1H7M14 14.66V17c0 .55.45 1 1 1h2" />
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
                 </svg>
               </div>
-              <h3>Study Groups</h3>
-              <p>Share notes and grow together with other students.</p>
+              <h3>XP, Streaks & Leaderboard</h3>
+              <p>Earn XP for completing nodes and acing quizzes. Keep your daily streak and climb the student ranks.</p>
             </div>
           </div>
         </div>
@@ -719,29 +730,29 @@ export default function Home() {
       {/* How it works Section */}
       <section className="sec tint" id="how-it-works">
         <div className="w">
-          <div className="k">Fast · AI-powered · Simple</div>
+          <div className="k">Fast · AI-powered · Gamified</div>
           <h2 className="h2">Simple 3-step process</h2>
-          <p className="lead">From stressed student to top of the class in 3 steps.</p>
+          <p className="lead">From raw notes to top of the leaderboard in 3 steps.</p>
           <div className="g3">
             <div className="card">
               <span className="bn">1</span>
               <div className="num">1</div>
-              <h3>Upload</h3>
-              <p>Drop your lecture notes, PDFs, or textbooks into the platform.</p>
+              <h3>Upload your PDF</h3>
+              <p>Drop your course slides, handouts, or textbook chapters right into the platform.</p>
               <div className="mini">
-                physics_lecture_3.pdf · 12.4 MB
+                biochemistry_lectures.pdf · Uploaded
                 <div className="bar">
-                  <i style={{ width: '80%' }} />
+                  <i style={{ width: '100%' }} />
                 </div>
               </div>
             </div>
             <div className="card">
               <span className="bn">2</span>
               <div className="num">2</div>
-              <h3>Generate</h3>
-              <p>Get AI summaries, flashcards and exam-style questions from your material.</p>
+              <h3>AI Maps Your Path & Questions</h3>
+              <p>Our AI analyzes the material, builds an interactive roadmap, and creates tailored CBT practice questions.</p>
               <div className="mini">
-                AI summary ready
+                10 Study Nodes & 60 Questions Mapped
                 <div className="bar">
                   <i style={{ width: '100%' }} />
                 </div>
@@ -750,12 +761,12 @@ export default function Home() {
             <div className="card">
               <span className="bn">3</span>
               <div className="num">3</div>
-              <h3>Practice and improve</h3>
-              <p>Take CBT practice, review explanations and watch your scores climb.</p>
+              <h3>Learn, Quiz & Earn XP</h3>
+              <p>Pass topic quizzes, earn XP, protect your streak, and climb the university leaderboard.</p>
               <div className="mini">
-                Mock score average · 88%
+                +150 XP · Rank #3 on Leaderboard
                 <div className="bar">
-                  <i style={{ width: '88%' }} />
+                  <i style={{ width: '85%' }} />
                 </div>
               </div>
             </div>
@@ -778,9 +789,10 @@ export default function Home() {
               </div>
               <span className="ps2">Get started with no commitment</span>
               <ul>
+                <li>1 AI Study Path from PDF</li>
                 <li>3 practice sessions (10 questions each)</li>
+                <li>XP & Leaderboard access</li>
                 <li>Basic study timer</li>
-                <li>Limited analytics</li>
               </ul>
               <Link className="btn b2" href="/auth/signup">
                 Get started free
@@ -796,13 +808,12 @@ export default function Home() {
               </div>
               <span className="ps2">Perfect for exam season</span>
               <ul>
-                <li>Unlimited CBT tests and study sessions</li>
-                <li>Unlimited AI questions and tutoring</li>
-                <li>All exam types</li>
-                <li>Smart study timer</li>
-                <li>Full analytics and progress tracking</li>
-                <li>Notes, highlights and streak tracking</li>
-                <li>AI explanations for answers</li>
+                <li>Unlimited PDF uploads & AI Study Paths</li>
+                <li>Unlimited CBT quizzes and practice tests</li>
+                <li>Full XP, daily streaks & Leaderboard standing</li>
+                <li>All courses & exam subjects</li>
+                <li>Smart node tracking & detailed analytics</li>
+                <li>Flashcards & AI explanations</li>
               </ul>
               <Link className="btn b1" href="/auth/signup?plan=weekly">
                 Start weekly plan
@@ -821,6 +832,7 @@ export default function Home() {
               </span>
               <ul>
                 <li>Everything in Weekly</li>
+                <li>Priority AI processing for large PDFs</li>
                 <li>Priority support</li>
               </ul>
               <Link className="btn b2" href="/auth/signup?plan=monthly">
