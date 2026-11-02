@@ -97,6 +97,19 @@ export async function POST(request: NextRequest) {
             const result = await mammoth.extractRawText({ buffer });
             extractedText = result.value;
 
+        } else if (fileName.endsWith('.pptx') || fileName.endsWith('.ppt')) {
+            stage = "extracting_pptx_text";
+            const JSZip = (await import('jszip')).default;
+            const zip = await JSZip.loadAsync(buffer);
+            const slideFiles = Object.keys(zip.files).filter(f => f.includes('ppt/slides/slide'));
+            let text = '';
+            for (const slideFile of slideFiles) {
+                const content = await zip.files[slideFile].async('text');
+                const matches = content.match(/<a:t>(.*?)<\/a:t>/g) || [];
+                text += matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ') + '\n';
+            }
+            extractedText = text;
+
         } else if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
             stage = "reading_plain_text";
             extractedText = buffer.toString('utf-8');

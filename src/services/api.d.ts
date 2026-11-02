@@ -28,6 +28,8 @@ export declare function updateStudyPathNode(
   status: 'active' | 'completed' | 'locked'
 ): Promise<StudyPathTopic | null>;
 
+export declare function deleteStudyPath(topicId: string): Promise<void>;
+
 export declare function getFlashcards(params?: {
   category?: string;
   deckId?: string;
@@ -54,6 +56,7 @@ declare const api: {
   getUserStudyPaths: typeof getUserStudyPaths;
   getStudyPath: typeof getStudyPath;
   updateStudyPathNode: typeof updateStudyPathNode;
+  deleteStudyPath: typeof deleteStudyPath;
   getFlashcards: typeof getFlashcards;
   getFlashcardDecks: typeof getFlashcardDecks;
   generateFlashcards: typeof generateFlashcards;

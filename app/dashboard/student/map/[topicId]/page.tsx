@@ -11,7 +11,7 @@ import {
 import '../../study-path.css'
 import '../map.css'
 import { extractTextFromFile } from '@/lib/utils/extraction'
-import { getStudyPath, getActiveStudyPath, getUserStudyPaths, uploadStudyMaterial } from '@/src/services/api'
+import { getStudyPath, getActiveStudyPath, getUserStudyPaths, uploadStudyMaterial, deleteStudyPath } from '@/src/services/api'
 
 import {
   FiArrowLeft,
@@ -27,7 +27,8 @@ import {
   FiUploadCloud,
   FiEdit3,
   FiLoader,
-  FiCheckCircle
+  FiCheckCircle,
+  FiTrash2
 } from 'react-icons/fi'
 import { IoSparklesSharp } from 'react-icons/io5'
 
@@ -58,6 +59,8 @@ function StudyPathMapContent() {
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showNewTopicModal, setShowNewTopicModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // New topic input state (upload document or paste text)
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -304,6 +307,43 @@ function StudyPathMapContent() {
   const closeNewTopicModal = () => {
     setShowNewTopicModal(false)
     setInputError(null)
+  }
+
+
+  // Delete current topic: backend + localStorage
+  const handleDeleteCurrentTopic = async () => {
+    if (!topic?.topicId) return
+    const tid = topic.topicId
+    setIsDeleting(true)
+    try {
+      await deleteStudyPath(tid)
+    } catch { /* ignore backend errors — still remove locally */ }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const rawActive = localStorage.getItem('studyhelp_active_topic')
+        if (rawActive) {
+          const parsed = JSON.parse(rawActive)
+          if (parsed?.topicId === tid) localStorage.removeItem('studyhelp_active_topic')
+        }
+        const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+        if (rawSaved) {
+          const list = JSON.parse(rawSaved)
+          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(list.filter((t: any) => t.topicId !== tid)))
+        }
+      } catch {}
+    }
+
+    const remaining = userTopics.filter((t) => t.topicId !== tid)
+    setUserTopics(remaining)
+    setIsDeleting(false)
+    setShowDeleteConfirm(false)
+
+    if (remaining.length > 0) {
+      router.push(`/dashboard/student/map/${remaining[0].topicId}`)
+    } else {
+      router.push('/dashboard/student')
+    }
   }
 
   // File upload & text extraction
@@ -639,6 +679,19 @@ function StudyPathMapContent() {
               })}
             </div>
           </section>
+
+          {/* ── BOTTOM ACTIONS ── */}
+          <div className="sm-bottom-actions">
+            <button
+              type="button"
+              className="sm-btn-delete-topic"
+              onClick={() => setShowDeleteConfirm(true)}
+              aria-label="Delete this topic"
+            >
+              <FiTrash2 size={15} />
+              <span>Delete Topic</span>
+            </button>
+          </div>
         </div>
 
         {/* ── NODE DETAIL MODAL ── */}
@@ -748,6 +801,92 @@ function StudyPathMapContent() {
           </div>
         )}
           </>
+        )}
+
+        
+        {/* ── DELETE TOPIC CONFIRMATION POPUP ── */}
+        {showDeleteConfirm && topic && (
+          <div className="sm-modal-overlay" onClick={() => !isDeleting && setShowDeleteConfirm(false)}>
+            <div className="sm-modal-box" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+              <div className="sm-modal-header" style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <FiTrash2 size={20} />
+                  </div>
+                  <h3 className="sm-modal-title" style={{ fontSize: 18 }}>Delete this topic?</h3>
+                </div>
+                <button
+                  className="sm-modal-close-btn"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  aria-label="Close"
+                >
+                  <FiX />
+                </button>
+              </div>
+
+              <p className="sm-modal-summary" style={{ marginBottom: 24, fontSize: 14 }}>
+                Are you sure you want to delete <strong style={{ color: 'inherit' }}>&ldquo;{topic.title}&rdquo;</strong>? All learning nodes and saved progress will be permanently removed.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <button
+                  type="button"
+                  className="sm-modal-btn-locked"
+                  style={{ cursor: 'pointer', color: 'inherit' }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCurrentTopic}
+                  disabled={isDeleting}
+                  style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    padding: 14,
+                    borderRadius: 12,
+                    border: 'none',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    transition: 'all 0.18s ease',
+                    opacity: isDeleting ? 0.7 : 1
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+                >
+                  {isDeleting ? (
+                    <>
+                      <FiLoader style={{ animation: 'spin 1s linear infinite' }} size={16} />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 size={16} />
+                      <span>Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}

@@ -22,6 +22,10 @@ export interface LearningNode {
   keyConcepts: string[]
   lessonContent?: LessonContent
   quiz?: QuizData
+  quiz2?: QuizData
+  finalQuiz?: QuizData[]
+  isSummary?: boolean
+  isFinalQuiz?: boolean
   nextNodeTitle?: string
 }
 

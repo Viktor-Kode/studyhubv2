@@ -70,6 +70,10 @@
   height: 8px;
   border-radius: 9999px;
   transition: background 0.4s ease;
+  background: #1E293B;
+}
+.ll-seg.active {
+  background: #2EE59D;
 }
 .ll-xp-pill {
   flex: none;
@@ -91,9 +95,12 @@
 .ll-main {
   flex: 1;
   box-sizing: border-box;
-  padding: 16px 20px 140px;
+  padding: 16px 20px calc(200px + env(safe-area-inset-bottom, 20px));
   display: flex;
   flex-direction: column;
+}
+.ll-main.ll-main-feedback {
+  padding-bottom: calc(300px + env(safe-area-inset-bottom, 24px));
 }
 .ll-main.ll-main-reward {
   padding: 8px 20px 24px;
@@ -108,20 +115,29 @@
   width: 100%;
   max-width: 560px;
   box-sizing: border-box;
-  padding: 14px 20px 20px;
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 16px));
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   transition: background 0.3s, border-color 0.3s;
-  border-top: 2px solid;
+  border-top: 2px solid #1E2A47;
+  background: #0F1528;
   z-index: 50;
   backdrop-filter: blur(12px);
+}
+.ll-footer.ll-footer-correct {
+  background: #0F2E28;
+  border-color: #1F6F55;
+}
+.ll-footer.ll-footer-wrong {
+  background: #3B1219;
+  border-color: #7F1D1D;
 }
 
 /* ── CTA Button ── */
 .ll-cta-btn {
   width: 100%;
-  height: 64px;
+  height: 54px;
   border: 0;
   border-radius: 18px;
   font-size: 18px;
@@ -328,8 +344,35 @@
   line-height: 1.25;
   cursor: pointer;
   font-family: inherit;
-  border: 2px solid;
+  border: 2px solid #1E2A47;
+  background: #0F1528;
+  box-shadow: 0 4px 0 #0A111C;
+  color: #F2F5FA;
   transition: transform 0.08s;
+}
+.ll-option-btn.correct {
+  background: #0F2E28;
+  border-color: #22C55E;
+  box-shadow: 0 4px 0 #15803D;
+  color: #F2F5FA;
+}
+.ll-option-btn.correct .ll-option-badge {
+  background: #22C55E;
+  color: #052E16;
+}
+.ll-option-btn.wrong {
+  background: #3B1219;
+  border-color: #F87171;
+  box-shadow: 0 4px 0 #7F1D1D;
+  color: #FECACA;
+}
+.ll-option-btn.wrong .ll-option-badge {
+  background: #F87171;
+  color: #3B0A0A;
+}
+.ll-option-btn.dimmed {
+  color: #8392AD;
+  box-shadow: none;
 }
 .ll-option-btn:not(:disabled):active { transform: translateY(3px); }
 .ll-option-btn:disabled { cursor: not-allowed; }
@@ -609,9 +652,19 @@
   font-size: 13px;
   color: #94A3B8;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   font-weight: 700;
+  line-height: 1.5;
+}
+.ll-source-note .ll-note-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.ll-source-note .ll-note-text {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Header Actions & Regenerate Button ── */
@@ -652,4 +705,430 @@
 }
 @keyframes spin {
   100% { transform: rotate(360deg); }
+}
+
+
+/* Assessment intro stat boxes */
+.ll-assessment-stat-box {
+  background: #0a1120;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.ll-assessment-stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+  display: block;
+}
+.ll-assessment-stat-val {
+  font-size: 18px;
+  color: #f8fafc;
+  font-weight: 800;
+}
+.ll-assessment-stat-val.gold {
+  color: #fbbf24;
+}
+
+
+/* ============================================================
+   LIGHT THEME
+   The learning loop is authored in dark tones, so light
+   mode re-maps its surfaces, cards, quiz options, and footer here.
+   ============================================================ */
+html:not(.dark) .ll-root {
+  background: #f6f8fc;
+  color: #0f172a;
+}
+
+/* ── Top Bar ── */
+html:not(.dark) .ll-close-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #64748b;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html:not(.dark) .ll-close-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+html:not(.dark) .ll-seg {
+  background: #e2e8f0;
+}
+
+html:not(.dark) .ll-seg.active {
+  background: #10b981;
+}
+
+html:not(.dark) .ll-xp-pill {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* ── Badges ── */
+html:not(.dark) .ll-badge-concept {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #7c3aed;
+}
+
+html:not(.dark) .ll-badge-source {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+html:not(.dark) .ll-badge-duration {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+html:not(.dark) .ll-badge-checkpoint {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+/* ── Slide Titles & Cards ── */
+html:not(.dark) .ll-concept-title {
+  color: #0f172a;
+}
+
+html:not(.dark) .ll-source-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+html:not(.dark) .ll-source-label {
+  color: #0284c7;
+}
+
+html:not(.dark) .ll-source-meta {
+  color: #64748b;
+}
+
+html:not(.dark) .ll-source-quote-box {
+  border-left-color: #38bdf8;
+}
+
+html:not(.dark) .ll-source-text {
+  color: #1e293b;
+}
+
+html:not(.dark) .ll-source-note {
+  color: #64748b;
+}
+
+html:not(.dark) .ll-assessment-stat-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .ll-assessment-stat-label {
+  color: #64748b;
+}
+
+html:not(.dark) .ll-assessment-stat-val {
+  color: #0f172a;
+}
+
+html:not(.dark) .ll-assessment-stat-val.gold {
+  color: #b45309;
+}
+
+/* ── Analogy & Explanations ── */
+html:not(.dark) .ll-analogy-card {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+html:not(.dark) .ll-analogy-label {
+  color: #6d28d9;
+}
+
+html:not(.dark) .ll-analogy-text {
+  color: #2e1065;
+}
+
+html:not(.dark) .ll-para {
+  color: #334155;
+}
+
+/* ── Key Concepts ── */
+html:not(.dark) .ll-key-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+html:not(.dark) .ll-key-label {
+  color: #b45309;
+}
+
+html:not(.dark) .ll-key-item {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .ll-key-num {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+html:not(.dark) .ll-key-text {
+  color: #0f172a;
+}
+
+/* ── Quiz & Options ── */
+html:not(.dark) .ll-btn-regen {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #2563eb;
+}
+
+html:not(.dark) .ll-btn-regen:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+html:not(.dark) .ll-question {
+  color: #0f172a;
+}
+
+html:not(.dark) .ll-option-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 0 #cbd5e1;
+  color: #0f172a;
+}
+
+html:not(.dark) .ll-option-btn:hover:not(:disabled) {
+  border-color: #94a3b8;
+}
+
+html:not(.dark) .ll-option-badge {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+html:not(.dark) .ll-option-btn.correct {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  box-shadow: 0 4px 0 #16a34a;
+  color: #14532d;
+}
+
+html:not(.dark) .ll-option-btn.correct .ll-option-badge {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+html:not(.dark) .ll-option-btn.wrong {
+  background: #fef2f2;
+  border-color: #ef4444;
+  box-shadow: 0 4px 0 #dc2626;
+  color: #991b1b;
+}
+
+html:not(.dark) .ll-option-btn.wrong .ll-option-badge {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+html:not(.dark) .ll-option-btn.dimmed {
+  color: #94a3b8;
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+/* ── Reward Slide ── */
+html:not(.dark) .ll-reward-title {
+  color: #15803d;
+}
+
+html:not(.dark) .ll-reward-subtitle {
+  color: #475569;
+}
+
+html:not(.dark) .ll-reward-pill-xp {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+html:not(.dark) .ll-reward-pill-streak {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+html:not(.dark) .ll-reward-total-xp {
+  color: #64748b;
+}
+
+html:not(.dark) .ll-reward-upnext-tag {
+  color: #6366f1;
+}
+
+html:not(.dark) .ll-reward-upnext-title {
+  color: #334155;
+}
+
+html:not(.dark) .ll-reward-continue-btn {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 5px 0 #15803d;
+}
+
+html:not(.dark) .ll-reward-continue-btn:hover {
+  background: #15803d;
+}
+
+html:not(.dark) .ll-reward-continue-btn svg {
+  stroke: #ffffff;
+}
+
+/* ── Footer ── */
+html:not(.dark) .ll-footer {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #e2e8f0;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+}
+
+html:not(.dark) .ll-footer.ll-footer-correct {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+html:not(.dark) .ll-footer.ll-footer-wrong {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+html:not(.dark) .ll-feedback-title.correct {
+  color: #15803d;
+}
+
+html:not(.dark) .ll-feedback-body.correct {
+  color: #166534;
+}
+
+html:not(.dark) .ll-feedback-title.wrong {
+  color: #b91c1c;
+}
+
+html:not(.dark) .ll-feedback-body.wrong {
+  color: #991b1b;
+}
+
+html:not(.dark) .ll-btn-prev {
+  background: #ffffff;
+  color: #334155;
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 0 #94a3b8;
+}
+
+html:not(.dark) .ll-btn-prev:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+html:not(.dark) .ll-btn-prev.disabled,
+html:not(.dark) .ll-btn-prev:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  box-shadow: none;
+}
+
+html:not(.dark) .ll-cta-btn.disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  box-shadow: 0 6px 0 #cbd5e1;
+}
+
+
+/* ── Clean Assessment Intro Card ── */
+.ll-assessment-card {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ll-assessment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ll-assessment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #FBBF24;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+.ll-assessment-meta-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ll-assessment-chip {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #101726;
+  border: 1px solid #1E293B;
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ll-assessment-chip.gold {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #FBBF24;
+}
+.ll-assessment-desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  font-weight: 600;
+}
+
+/* Light Theme Overrides for Assessment Intro */
+html:not(.dark) .ll-assessment-badge {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+  color: #B45309;
+}
+html:not(.dark) .ll-assessment-chip {
+  background: #F1F5F9;
+  border-color: #E2E8F0;
+  color: #475569;
+}
+html:not(.dark) .ll-assessment-chip.gold {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  color: #B45309;
+}
+html:not(.dark) .ll-assessment-desc {
+  color: #334155;
 }

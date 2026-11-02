@@ -25,3 +25,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 export async function PUT(req: NextRequest, context: RouteContext) {
   return forward(req, context)
 }
+
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  return forward(req, context)
+}

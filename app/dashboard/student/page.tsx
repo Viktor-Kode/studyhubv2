@@ -10,7 +10,7 @@ import { progressApi } from '@/lib/api/progressApi'
 import { apiClient } from '@/lib/api/client'
 import './study-path.css'
 import { extractTextFromFile } from '@/lib/utils/extraction'
-import { getActiveStudyPath, uploadStudyMaterial } from '@/src/services/api'
+import { getActiveStudyPath, uploadStudyMaterial, deleteStudyPath } from '@/src/services/api'
 
 import {
   FiCheck,
@@ -31,7 +31,8 @@ import {
   FiUploadCloud,
   FiEdit3,
   FiLoader,
-  FiCheckCircle
+  FiCheckCircle,
+  FiTrash2
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
@@ -65,6 +66,8 @@ export default function StudentDashboardPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeletingTopic, setIsDeletingTopic] = useState(false)
 
   // New topic input state (upload document or paste text)
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -217,6 +220,29 @@ export default function StudentDashboardPage() {
     }
   }
 
+  // Delete active topic
+  const handleDeleteActiveTopic = async () => {
+    if (!topic) return
+    setIsDeletingTopic(true)
+    try {
+      await deleteStudyPath(topic.topicId)
+    } catch (e) {
+      console.warn('Failed to delete topic from server:', e)
+    }
+    saveTopic(null)
+    if (typeof window !== 'undefined') {
+      try {
+        const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+        if (rawSaved) {
+          const list = JSON.parse(rawSaved)
+          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(list.filter((t: any) => t.topicId !== topic.topicId)))
+        }
+      } catch {}
+    }
+    setIsDeletingTopic(false)
+    setShowDeleteConfirm(false)
+  }
+
   // Open / close the new topic modal
   const openGenerateModal = () => {
     setInputError(null)
@@ -286,8 +312,8 @@ export default function StudentDashboardPage() {
 
       let studyPath: StudyPathTopic
       if (inputMode === 'upload' && uploadedFile) {
-        // Send actual PDF file to backend
-        studyPath = await uploadStudyMaterial(uploadedFile, { title })
+        // Send file along with client pre-extracted text
+        studyPath = await uploadStudyMaterial(uploadedFile, { title, text: sourceText })
       } else {
         // Send extracted/pasted text to backend
         studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
@@ -395,7 +421,7 @@ export default function StudentDashboardPage() {
                   </div>
                   <div className="sp-topic-progress-bar-wrap">
                     <div className="sp-topic-progress-text">
-                      Node {completedCount + 1} of {totalCount} · {completedCount} complete
+                      Lesson {completedCount + 1} of {totalCount} · {completedCount} complete
                     </div>
                     <div className="sp-topic-progress-track">
                       <div
@@ -418,10 +444,32 @@ export default function StudentDashboardPage() {
                   <span>RESUME LEARNING</span>
                   <FiPlay size={14} />
                 </button>
-                <button className="sp-btn-new-topic" onClick={openGenerateModal}>
-                  <FiPlus size={16} />
-                  <span>New Topic</span>
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button className="sp-btn-new-topic" onClick={openGenerateModal}>
+                    <FiPlus size={16} />
+                    <span>New Topic</span>
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    title="Delete Topic"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      color: '#f87171',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                  >
+                    <FiTrash2 size={16} />
+                  </button>
+                </div>
               </div>
             </section>
           ) : (
@@ -641,7 +689,7 @@ export default function StudentDashboardPage() {
                     <line x1="48" y1="20" x2="56" y2="28" stroke="currentColor" />
                   </svg>
                   <p className="sp-empty-path-text">
-                    Your interactive node path will appear here once you upload a document.
+                    Your interactive lesson path will appear here once you upload a document.
                   </p>
                 </div>
               )}
@@ -859,7 +907,7 @@ export default function StudentDashboardPage() {
                   style={{ width: '100%', opacity: 0.7 }}
                   disabled
                 >
-                  Complete previous nodes to unlock
+                  Complete previous lessons to unlock
                 </button>
               )}
             </div>
@@ -1027,6 +1075,69 @@ export default function StudentDashboardPage() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        )}
+        {/* ── DELETE TOPIC CONFIRMATION MODAL ── */}
+        {showDeleteConfirm && topic && (
+          <div className="sp-modal-overlay" onClick={() => !isDeletingTopic && setShowDeleteConfirm(false)}>
+            <div className="sp-modal-box" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+              <div className="sp-modal-header">
+                <div>
+                  <h3 className="sp-modal-title" style={{ color: '#ef4444' }}>Delete Topic</h3>
+                  <p className="sp-tool-sub" style={{ marginTop: 4 }}>
+                    Are you sure you want to delete &ldquo;{topic.title}&rdquo;? All learning nodes and progress for this topic will be removed.
+                  </p>
+                </div>
+                <button
+                  className="sp-modal-close-btn"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeletingTopic}
+                  aria-label="Close"
+                >
+                  <FiX />
+                </button>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+                <button
+                  className="sp-btn-paste"
+                  style={{ padding: '8px 16px' }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeletingTopic}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteActiveTopic}
+                  disabled={isDeletingTopic}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 18px',
+                    borderRadius: 10,
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: isDeletingTopic ? 'not-allowed' : 'pointer',
+                    opacity: isDeletingTopic ? 0.7 : 1
+                  }}
+                >
+                  {isDeletingTopic ? (
+                    <>
+                      <FiLoader style={{ animation: 'spin 1s linear infinite' }} size={15} />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 size={15} />
+                      <span>Delete Topic</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -174,6 +174,25 @@ export async function updateStudyPathNode(topicId, nodeId, status) {
   }
 }
 
+/**
+ * Delete a study path by topicId
+ *
+ * @param {string} topicId
+ */
+export async function deleteStudyPath(topicId) {
+  if (!topicId) throw new Error('topicId is required');
+  try {
+    await apiClient.delete(`/api/study-path/${encodeURIComponent(topicId)}`);
+  } catch (err) {
+    try {
+      await apiClient.delete(`/api/backend/study-path/${encodeURIComponent(topicId)}`);
+    } catch (fbErr) {
+      const msg = fbErr?.response?.data?.message || err?.response?.data?.message || fbErr?.message || 'Failed to delete study path.';
+      throw new Error(msg);
+    }
+  }
+}
+
 // ─── FLASHCARD API INTEGRATION (Replacing mock demo data) ─────────────────────
 
 /**
@@ -262,6 +281,7 @@ const api = {
   getUserStudyPaths,
   getStudyPath,
   updateStudyPathNode,
+  deleteStudyPath,
   getFlashcards,
   getFlashcardDecks,
   generateFlashcards,

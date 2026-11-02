@@ -32,10 +32,12 @@
 .sm-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   margin-bottom: 24px;
 }
+
+
 
 .sm-btn-back {
   width: 44px;
@@ -889,4 +891,336 @@
     justify-content: center;
     margin-top: 8px;
   }
+}
+
+
+/* ============================================================
+   LIGHT THEME
+   The gamified map is authored in dark tones, so light
+   mode re-maps its surfaces, borders, text, and SVG paths here.
+   ============================================================ */
+html:not(.dark) .sm-map-root {
+  background-color: #f6f8fc;
+  color: #0f172a;
+}
+
+/* ── Top Bar ── */
+html:not(.dark) .sm-btn-back,
+html:not(.dark) .sm-course-pill {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html:not(.dark) .sm-btn-back:hover,
+html:not(.dark) .sm-course-pill:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+html:not(.dark) .sm-course-dropdown-menu {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+}
+
+html:not(.dark) .sm-course-dropdown-item {
+  color: #475569;
+}
+
+html:not(.dark) .sm-course-dropdown-item:hover,
+html:not(.dark) .sm-course-dropdown-item.active {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+html:not(.dark) .sm-course-dropdown-new {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.4);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+html:not(.dark) .sm-course-dropdown-new:hover {
+  background: rgba(22, 163, 74, 0.16);
+  color: #15803d;
+  border-color: #16a34a;
+}
+
+html:not(.dark) .sm-course-dropdown-divider {
+  background: #e2e8f0;
+}
+
+html:not(.dark) .sm-course-dropdown-sub {
+  color: #64748b;
+}
+
+html:not(.dark) .sm-progress-bar-track {
+  background: #e2e8f0;
+}
+
+/* ── Hero Heading ── */
+html:not(.dark) .sm-hero-title {
+  color: #0f172a;
+}
+
+html:not(.dark) .sm-hero-subtitle {
+  color: #64748b;
+}
+
+html:not(.dark) .sm-focus-pill {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.08);
+}
+
+html:not(.dark) .sm-focus-pill:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+
+html:not(.dark) .sm-focus-icon {
+  color: #7c3aed;
+}
+
+/* ── Metric Stat Cards ── */
+html:not(.dark) .sm-stat-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+html:not(.dark) .sm-stat-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+html:not(.dark) .sm-stat-icon-gold {
+  background: #fefce8;
+  border-color: #fef08a;
+  color: #ca8a04;
+}
+
+html:not(.dark) .sm-stat-icon-cyan {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+html:not(.dark) .sm-stat-val-gold {
+  color: #b45309;
+}
+
+html:not(.dark) .sm-stat-val-cyan {
+  color: #0369a1;
+}
+
+html:not(.dark) .sm-stat-sub {
+  color: #64748b;
+}
+
+/* ── SVG Trail & Connectors ── */
+.sm-svg-line-solid {
+  stroke: #22c55e;
+}
+.sm-svg-line-dashed {
+  stroke: #4e6288;
+}
+html:not(.dark) .sm-svg-line-dashed {
+  stroke: #cbd5e1;
+}
+
+/* ── Node Circles & Cards ── */
+html:not(.dark) .sm-circle.locked {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #d97706;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+html:not(.dark) .sm-circle.active {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.35), 0 0 0 6px rgba(147, 51, 234, 0.12);
+}
+
+html:not(.dark) .sm-node-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+html:not(.dark) .sm-node-combo:hover .sm-node-card {
+  border-color: #cbd5e1;
+}
+
+html:not(.dark) .sm-node-card.active {
+  background: #faf5ff;
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15);
+}
+
+html:not(.dark) .sm-node-card-upnext {
+  color: #7c3aed;
+}
+
+html:not(.dark) .sm-node-card-title {
+  color: #0f172a;
+}
+
+html:not(.dark) .sm-node-card-sub {
+  color: #64748b;
+}
+
+html:not(.dark) .sm-badge-xp-green {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+/* ── Unit Challenge Card & Medallion ── */
+html:not(.dark) .sm-challenge-card {
+  background: #fffbeb;
+  border-color: #fde68a;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
+}
+
+html:not(.dark) .sm-challenge-title {
+  color: #b45309;
+}
+
+html:not(.dark) .sm-challenge-sub {
+  color: #92400e;
+}
+
+html:not(.dark) .sm-trophy-circle {
+  background: radial-gradient(circle, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+html:not(.dark) .sm-trophy-circle.completed {
+  background: radial-gradient(circle, #dcfce7 0%, #bbf7d0 100%) !important;
+  border-color: #22c55e !important;
+}
+
+html:not(.dark) .sm-trophy-icon {
+  color: #d97706;
+}
+
+html:not(.dark) .sm-trophy-circle.completed .sm-trophy-icon {
+  color: #15803d !important;
+}
+
+html:not(.dark) .sm-trophy-lock-badge {
+  background: #ffffff;
+  border-color: #fde68a;
+  color: #d97706;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+html:not(.dark) .sm-trophy-circle.completed .sm-trophy-lock-badge {
+  background: #ffffff;
+  border-color: #86efac !important;
+  color: #16a34a !important;
+}
+
+/* ── Node Detail Modal ── */
+html:not(.dark) .sm-modal-overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+html:not(.dark) .sm-modal-box {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.15);
+}
+
+html:not(.dark) .sm-modal-title {
+  color: #0f172a;
+}
+
+html:not(.dark) .sm-modal-close-btn {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+html:not(.dark) .sm-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+html:not(.dark) .sm-modal-meta-row {
+  color: #64748b;
+}
+
+html:not(.dark) .sm-modal-summary {
+  color: #334155;
+}
+
+html:not(.dark) .sm-modal-concepts-title {
+  color: #64748b;
+}
+
+html:not(.dark) .sm-modal-tag {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+html:not(.dark) .sm-modal-btn-locked {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BOTTOM ACTIONS / DELETE TOPIC
+   ───────────────────────────────────────────────────────────── */
+.sm-bottom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 40px;
+  margin-bottom: 24px;
+  padding: 0 16px;
+}
+
+.sm-btn-delete-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sm-btn-delete-topic:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.sm-btn-delete-topic:active {
+  transform: translateY(0);
+}
+
+html:not(.dark) .sm-btn-delete-topic {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+html:not(.dark) .sm-btn-delete-topic:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #dc2626;
+  color: #b91c1c;
 }
