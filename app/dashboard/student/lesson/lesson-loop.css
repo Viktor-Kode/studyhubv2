@@ -290,7 +290,7 @@
 .ll-key-label { font-size: 12px; font-weight: 900; letter-spacing: 0.12em; color: #FFB547; }
 .ll-key-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   padding: 12px 14px;
   box-sizing: border-box;
@@ -300,8 +300,8 @@
 }
 .ll-key-num {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #0F3D35;
   border: 2px solid #14705E;
@@ -312,7 +312,7 @@
   font-weight: 900;
   color: #3DDC97;
 }
-.ll-key-text { font-size: 17px; font-weight: 900; }
+.ll-key-text { flex: 1; min-width: 0; font-size: 16px; line-height: 1.4; font-weight: 500; }
 
 /* ── Phase 2: Quiz ── */
 .ll-quiz-header { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
@@ -327,7 +327,7 @@
   letter-spacing: 0.1em;
 }
 .ll-quiz-sub { font-size: 13px; font-weight: 800; color: #94A3B8; }
-.ll-question { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 900; }
+.ll-question { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 600; }
 .ll-options { display: flex; flex-direction: column; gap: 12px; }
 .ll-option-btn {
   width: 100%;
@@ -339,9 +339,9 @@
   align-items: center;
   gap: 14px;
   text-align: left;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1.25;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
   cursor: pointer;
   font-family: inherit;
   border: 2px solid #1E2A47;
@@ -566,6 +566,15 @@
   outline: 3px solid #F2F5FA;
   outline-offset: 3px;
 }
+
+.ll-assessment-desc.clamped, .ll-source-text.clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.ll-assessment-desc.expanded, .ll-source-text.expanded { display: block; }
+.ll-read-more { margin-top: 6px; border: 0; padding: 0; background: transparent; color: #60A5FA; font: inherit; font-size: 14px; cursor: pointer; }
 
 /* ── Animations ── */
 .ll-pop  { animation: ll-pop  0.7s cubic-bezier(.2,1.5,.4,1) both; }

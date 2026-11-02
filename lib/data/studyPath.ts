@@ -9,7 +9,7 @@ export interface QuizData {
   options: string[]
   correctAnswerIndex: number
   explanation: string
-  hint: string
+  hint?: string
 }
 
 export interface LearningNode {

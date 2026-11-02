@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { proxyBackend } from '@/lib/server/backend-proxy'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120
 
 type RouteParams = { path?: string[] }
 type RouteContext = { params: Promise<RouteParams> | RouteParams }

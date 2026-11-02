@@ -14,7 +14,6 @@ import {
 import "../lesson-loop.css"
 import ThemeToggle from "@/components/ThemeToggle"
 import { FiClock, FiArrowLeft, FiArrowRight, FiFileText, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap } from "react-icons/fi"
-import { generateQuiz } from "@/lib/api/quizApi"
 import { updateStudyPathNode } from "@/src/services/api"
 
 interface SlideDef {
@@ -54,58 +53,6 @@ function resolveNodeAndTopic(nodeIdStr: string): { node: LearningNode | null; to
  * Builds a dynamic, unique second quiz tailored to the node's specific concept
  * (Never repeats identical questions across nodes)
  */
-function buildDefaultQuiz2(node: LearningNode): QuizData {
-  if (node.quiz2 && node.quiz2.question) {
-    return node.quiz2
-  }
-
-  const c1 = node.keyConcepts?.[1] || node.keyConcepts?.[0] || node.title
-  const c2 = node.keyConcepts?.[2] || "practical execution"
-  const title = node.title
-
-  // Generate varied question patterns depending on node.id
-  if (node.id % 3 === 1) {
-    return {
-      question: `In practical application, how does ${c1} interact with the overall mechanics of ${title}?`,
-      options: [
-        `By governing structured workflows and preventing unexpected state errors through ${c2}`,
-        `By operating completely detached from any system constraints`,
-        `By resetting all prior computations on every execution cycle`,
-        `By only engaging when manual developer intervention is triggered`
-      ],
-      correctAnswerIndex: 0,
-      explanation: `${title} relies on ${c1} to enforce predictable boundaries and maintain workflow stability.`,
-      hint: `Consider how structured rules prevent unpredictable system behavior.`
-    }
-  } else if (node.id % 3 === 2) {
-    return {
-      question: `When diagnosing unexpected edge cases in ${title}, which approach best safeguards ${c1}?`,
-      options: [
-        `Verifying invariant conditions and systematically tracing ${c2}`,
-        `Ignoring boundary conditions until critical failure occurs`,
-        `Disabling error handlers to increase throughput`,
-        `Overriding definitions without validating upstream dependencies`
-      ],
-      correctAnswerIndex: 0,
-      explanation: `Systematic verification of boundary invariants ensures ${title} handles complex edge cases reliably.`,
-      hint: `Focus on invariant testing and systematic validation.`
-    }
-  } else {
-    return {
-      question: `What primary advantage does mastering ${c1} provide when implementing ${title}?`,
-      options: [
-        `It establishes a robust conceptual foundation that optimizes ${c2}`,
-        `It eliminates the need for any further testing or validation`,
-        `It guarantees zero resource consumption under all conditions`,
-        `It is purely theoretical with no impact on implementation`
-      ],
-      correctAnswerIndex: 0,
-      explanation: `Understanding ${c1} allows developers and students to architect high-performance, resilient solutions.`,
-      hint: `Think about how conceptual foundations lead to practical optimization.`
-    }
-  }
-}
-
 /**
  * Builds 10 comprehensive assessment questions across all unit topics
  */
@@ -133,32 +80,6 @@ function build10QuestionFinalQuiz(topic: StudyPathTopic | null, node: LearningNo
     }
   }
 
-  // Synthesize remaining questions from key concepts
-  const allConcepts = [
-    ...(topic?.nodes?.flatMap((n) => n.keyConcepts || []) || []),
-    ...(node.keyConcepts || []),
-  ]
-  const uniqueConcepts = Array.from(new Set(allConcepts)).filter(Boolean)
-
-  const topicName = topic?.title || "this course"
-  let idx = 0
-  while (result.length < 10) {
-    const cA = uniqueConcepts[idx % uniqueConcepts.length] || `Core Principle ${idx + 1}`
-    const cB = uniqueConcepts[(idx + 1) % uniqueConcepts.length] || "applied problem solving"
-    result.push({
-      question: `Question ${result.length + 1}: How does ${cA} synthesize with ${cB} in ${topicName}?`,
-      options: [
-        `It forms a foundational framework that guides the implementation of ${cB}`,
-        `It contradicts the core premises established in ${cB}`,
-        `It is completely obsolete once ${cB} is introduced`,
-        `It operates only in isolation and cannot be combined with ${cB}`
-      ],
-      correctAnswerIndex: 0,
-      explanation: `Mastery across ${topicName} requires connecting foundational concepts like ${cA} with advanced execution in ${cB}.`,
-      hint: `Think about how concepts build upon one another throughout the learning path.`
-    })
-    idx++
-  }
 
   return result.slice(0, 10)
 }
@@ -202,6 +123,7 @@ function LessonLoopContent() {
   // Slide Index & Meta
   const [slideIdx, setSlideIdx] = useState(0)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [summaryExpanded, setSummaryExpanded] = useState(false)
   const [xp, setXp] = useState(2510)
   const [streak, setStreak] = useState(12)
   const [hasCompleted, setHasCompleted] = useState(false)
@@ -233,7 +155,7 @@ function LessonLoopContent() {
         setFinalAnswers(initialMap)
       } else {
         setQuiz1(node.quiz || null)
-        setQuiz2(buildDefaultQuiz2(node))
+        setQuiz2(null)
         setSelectedOpt1(null)
         setCorrect1(false)
         setWrong1([])
@@ -339,16 +261,7 @@ function LessonLoopContent() {
       quizNum: 1
     })
 
-    // 5. Quiz 2 (Practical Application - Distinct Question)
-    list.push({
-      id: "quiz_2",
-      type: "quiz",
-      title: node.title,
-      badge: "QUIZ 2/2",
-      quizNum: 2
-    })
-
-    // 6. Final Reward
+    // Final Reward
     list.push({
       id: "reward",
       type: "reward",
@@ -408,126 +321,19 @@ function LessonLoopContent() {
     }
   }, [node, topic, hasCompleted])
 
-  // Instant local question variant generator (fallback so regenerate never fails)
-  const generateLocalVariant = useCallback((quizNum: number) => {
-    if (!node) return
-    const c1 = node.keyConcepts?.[(quizNum - 1) % (node.keyConcepts?.length || 1)] || node.title
-    const c2 = node.keyConcepts?.[quizNum % (node.keyConcepts?.length || 1)] || "system mechanisms"
-    const fresh: QuizData = {
-      question: `Regenerated: How should a practitioner evaluate the role of ${c1} under real-world conditions?`,
-      options: [
-        `By systematically benchmarking performance against established ${c2} parameters`,
-        `By bypassing constraints and disregarding telemetry metrics`,
-        `By completely separating ${c1} from all operational workflows`,
-        `By forcing execution without validating preconditions`
-      ],
-      correctAnswerIndex: 0,
-      explanation: `Systematic evaluation of ${c1} relative to ${c2} ensures resilient, predictable outcomes in practical environments.`,
-      hint: `Focus on disciplined validation and metric tracking.`
-    }
-
-    if (isFinalAssessment) {
-      setFinalQuizzes((prev) => {
-        const next = [...prev]
-        next[quizNum - 1] = fresh
-        return next
-      })
-      setFinalAnswers((prev) => ({
-        ...prev,
-        [quizNum]: { selected: null, correct: false, wrong: [] }
-      }))
-    } else if (quizNum === 1) {
-      setQuiz1(fresh)
-      setSelectedOpt1(null)
-      setCorrect1(false)
-      setWrong1([])
-    } else {
-      setQuiz2(fresh)
-      setSelectedOpt2(null)
-      setCorrect2(false)
-      setWrong2([])
-    }
-  }, [node, isFinalAssessment])
-
-  // Handle AI question regeneration with robust context & fallback
-  const handleRegenerateQuiz = async (quizNum: number) => {
-    if (!node || isRegenerating) return
+  const handleRegenerateQuiz = async () => {
+    if (!node || !topic?.topicId || isRegenerating) return
     setIsRegenerating(true)
-
-    const topicTitle = topic?.title || "Study Material"
-    const summaryText = node.summary || node.lessonContent?.paragraphs?.join(" ") || "Core subject material and concepts."
-    const conceptsText = (node.keyConcepts || []).join(", ")
-    const analogyText = node.lessonContent?.analogy || ""
-    const currentQ = isFinalAssessment
-      ? finalQuizzes[quizNum - 1]?.question
-      : (quizNum === 1 ? quiz1?.question : quiz2?.question)
-
-    // Guaranteed > 80 chars for Zod validation (min 30/50 chars)
-    const contextText = `Topic: ${topicTitle}. Concept Section: ${node.title}. Summary: ${summaryText}. Analogy: ${analogyText}. Key Concepts: ${conceptsText}. Please generate a new multiple-choice question testing understanding of this concept.`
-
     try {
-      const res = await generateQuiz(
-        contextText,
-        1,
-        "multiple-choice",
-        node.title,
-        true,
-        undefined,
-        undefined,
-        node.title,
-        currentQ ? [currentQ] : []
-      )
-
-      if (res?.data && res.data.length > 0) {
-        const item: any = res.data[0]
-        const rawAns = item.correctAnswer !== undefined ? item.correctAnswer : item.answer
-        let ansIdx = 0
-        if (typeof rawAns === "number") ansIdx = rawAns
-        else if (typeof rawAns === "string" && /^[0-3]$/.test(rawAns)) ansIdx = parseInt(rawAns, 10)
-        else if (typeof rawAns === "string" && /^[a-d]$/i.test(rawAns)) ansIdx = rawAns.toLowerCase().charCodeAt(0) - 97
-        else if (Array.isArray(item.options)) {
-          const match = item.options.findIndex((opt: string) => opt.toLowerCase().trim() === String(rawAns).toLowerCase().trim())
-          if (match !== -1) ansIdx = match
-        }
-
-        const freshQuiz: QuizData = {
-          question: item.question || item.content || "Check your understanding:",
-          options: item.options && item.options.length === 4 ? item.options : ["Option A", "Option B", "Option C", "Option D"],
-          correctAnswerIndex: ansIdx,
-          explanation: item.knowledgeDeepDive || item.explanation || "Great work! This reinforces the core concept.",
-          hint: item.hint || "Review the key concepts and analogy."
-        }
-
-        if (isFinalAssessment) {
-          setFinalQuizzes((prev) => {
-            const next = [...prev]
-            next[quizNum - 1] = freshQuiz
-            return next
-          })
-          setFinalAnswers((prev) => ({
-            ...prev,
-            [quizNum]: { selected: null, correct: false, wrong: [] }
-          }))
-        } else if (quizNum === 1) {
-          setQuiz1(freshQuiz)
-          setSelectedOpt1(null)
-          setCorrect1(false)
-          setWrong1([])
-        } else {
-          setQuiz2(freshQuiz)
-          setSelectedOpt2(null)
-          setCorrect2(false)
-          setWrong2([])
-        }
-      } else {
-        generateLocalVariant(quizNum)
-      }
-    } catch (err) {
-      console.warn("[LessonLoop] AI question regeneration failed, using local variant:", err)
-      generateLocalVariant(quizNum)
-    } finally {
-      setIsRegenerating(false)
-    }
+      const response = await fetch("/api/study-path/" + encodeURIComponent(topic.topicId) + "/node/" + node.id + "/regenerate", { method: "POST", headers: { "Content-Type": "application/json" } })
+      const payload = await response.json()
+      if (!response.ok || !payload?.node) throw new Error(payload?.message || "Quiz regeneration failed")
+      const fresh = payload.node as LearningNode
+      const saved = localStorage.getItem("studyhelp_active_topic")
+      if (saved) { const stored: StudyPathTopic = JSON.parse(saved); stored.nodes = stored.nodes.map((item) => item.id === node.id ? { ...item, ...fresh } : item); localStorage.setItem("studyhelp_active_topic", JSON.stringify(stored)) }
+      setQuiz1(fresh.quiz || null); setSelectedOpt1(null); setCorrect1(false); setWrong1([])
+    } catch (error) { console.error("[LessonLoop] Node regeneration failed:", error) }
+    finally { setIsRegenerating(false) }
   }
 
   if (!node || !currentSlide) {
@@ -558,10 +364,10 @@ function LessonLoopContent() {
     activeCorrect = currentAns.correct
     activeWrong = currentAns.wrong
   } else {
-    activeQuiz = qNum === 1 ? quiz1 : quiz2
-    activeSelected = qNum === 1 ? selectedOpt1 : selectedOpt2
-    activeCorrect = qNum === 1 ? correct1 : correct2
-    activeWrong = qNum === 1 ? wrong1 : wrong2
+    activeQuiz = quiz1
+    activeSelected = selectedOpt1
+    activeCorrect = correct1
+    activeWrong = wrong1
   }
 
   const showCorrect = currentSlide.type === "quiz" && activeCorrect
@@ -584,7 +390,7 @@ function LessonLoopContent() {
 
   // Determine if NEXT is disabled
   const isNextDisabled =
-    currentSlide.type === "quiz" && (!activeCorrect || activeSelected === null)
+    currentSlide.type === "quiz" && Boolean(activeQuiz) && (!activeCorrect || activeSelected === null)
 
   const handlePrev = () => {
     if (slideIdx > 0) {
@@ -633,7 +439,6 @@ function LessonLoopContent() {
                 {slides.map((_, i) => (
                   <div
                     key={i}
-                    className="ll-seg"
                     className={`ll-seg ${i <= slideIdx ? "active" : ""}`}
                   />
                 ))}
@@ -672,9 +477,14 @@ function LessonLoopContent() {
                     </div>
                   </div>
 
-                  <p className="ll-assessment-desc">
-                    {node.summary || "Complete all 10 questions to prove mastery across every concept and finish this study path."}
+                  <p className={`ll-assessment-desc${summaryExpanded ? " expanded" : " clamped"}`}>
+                    {node.summary}
                   </p>
+                  {node.summary && node.summary.split(/\s+/).length > 35 && (
+                    <button type="button" className="ll-read-more" onClick={() => setSummaryExpanded((value) => !value)}>
+                      {summaryExpanded ? "Read less" : "Read more"}
+                    </button>
+                  )}
 
                   <div className="ll-source-note" style={{ marginTop: 8 }}>
                     <span className="ll-note-icon">💡</span>
@@ -700,10 +510,15 @@ function LessonLoopContent() {
                     <span className="ll-source-meta">Section #{node.id}</span>
                   </div>
                   <div className="ll-source-quote-box">
-                    <p className="ll-source-text">
-                      "{node.summary || lc?.paragraphs?.[0] || 'Original source material section for this concept.'}"
+                    <p className={`ll-source-text${summaryExpanded ? " expanded" : " clamped"}`}>
+                      "{node.summary || lc?.paragraphs?.[0] || 'Summary unavailable.'}"
                     </p>
                   </div>
+                  {node.summary && node.summary.split(/\s+/).length > 35 && (
+                    <button type="button" className="ll-read-more" onClick={() => setSummaryExpanded((value) => !value)}>
+                      {summaryExpanded ? "Read less" : "Read more"}
+                    </button>
+                  )}
                   <div className="ll-source-note">
                     <span className="ll-note-icon">💡</span>
                     <span className="ll-note-text">Click <strong>NEXT</strong> to see our AI breakdown with analogies and key concepts.</span>
@@ -753,7 +568,7 @@ function LessonLoopContent() {
                         <p key={i} className="ll-para">{p}</p>
                       ))
                     ) : (
-                      <p className="ll-para">{node.summary || "Further exploration and practical implications."}</p>
+                      <p className="ll-para">{node.summary || ""}</p>
                     )}
                   </div>
                 )}
@@ -774,12 +589,12 @@ function LessonLoopContent() {
                       <circle cx="8" cy="15" r="4" />
                       <path d="M11 12l9-9M16 7l3 3M14 9l2 2" />
                     </svg>
-                    <span className="ll-key-label" style={{ fontSize: 14 }}>KEY CONCEPTS TO MASTER</span>
+                  <span className="ll-key-label" style={{ fontSize: 14 }}>KEY CONCEPTS TO MASTER</span>
                   </div>
                   {(lc?.keyConcepts || node.keyConcepts || [node.title]).map((kc, i) => (
-                    <div key={i} className="ll-key-item" style={{ padding: "16px" }}>
+                    <div key={i} className="ll-key-item" style={{ padding: "12px 14px" }}>
                       <div className="ll-key-num">{i + 1}</div>
-                      <span className="ll-key-text" style={{ fontSize: 18 }}>{kc}</span>
+                      <span className="ll-key-text">{kc}</span>
                     </div>
                   ))}
                 </div>
@@ -795,7 +610,7 @@ function LessonLoopContent() {
                     <button
                       type="button"
                       className={`ll-btn-regen ${isRegenerating ? "spinning" : ""}`}
-                      onClick={() => handleRegenerateQuiz(qNum)}
+                      onClick={() => handleRegenerateQuiz()}
                       disabled={isRegenerating}
                       title="Generate a brand new related question"
                     >
@@ -805,7 +620,7 @@ function LessonLoopContent() {
                   </div>
 
                   <h1 className="ll-question" style={{ marginTop: 6 }}>
-                    {activeQuiz?.question ?? "Check your understanding of this concept."}
+                    {activeQuiz?.question ?? "Quiz unavailable, tap Regenerate"}
                   </h1>
                 </div>
 
