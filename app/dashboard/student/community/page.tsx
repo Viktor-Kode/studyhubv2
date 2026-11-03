@@ -19,7 +19,7 @@ export default function CommunityPage() {
   const [timeframe, setTimeframe] = useState<'today' | 'lifetime'>('today')
   const [leaderboard, setLeaderboard] = useState<BoardRow[]>([])
   const [myRank, setMyRank] = useState(0)
-  const [myWeeklyXP, setMyWeeklyXP] = useState(0)
+  const [myDisplayXP, setMyDisplayXP] = useState(0)
   const [lbLoading, setLbLoading] = useState(true)
 
   const loadBoard = useCallback(async () => {
@@ -30,7 +30,7 @@ export default function CommunityPage() {
       const d = res.data as { leaderboard: BoardRow[]; myRank: number; myDisplayXP: number }
       setLeaderboard(d.leaderboard || [])
       setMyRank(d.myRank || 0)
-      setMyWeeklyXP(d.myDisplayXP ?? 0)
+      setMyDisplayXP(d.myDisplayXP || 0)
     } catch (e) {
       console.error(e)
     } finally {
@@ -121,9 +121,8 @@ export default function CommunityPage() {
                 leaderboard={leaderboard}
                 lbLoading={lbLoading}
                 myRank={myRank}
-                myWeeklyXP={myWeeklyXP}
+                myDisplayXP={myDisplayXP}
                 progress={progress}
-                progLoading={progLoading}
                 user={user}
               />
             )}

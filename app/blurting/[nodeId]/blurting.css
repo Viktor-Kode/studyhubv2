@@ -72,3 +72,77 @@
   .recall-analysis-columns { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .recall-spinner, .recall-button-spinner { animation: none; } }
+
+.recall-page {
+  --recall-bg: #f6f7fb;
+  --recall-card: #fff;
+  --recall-soft: #f1f3f9;
+  --recall-border: #e2e6ef;
+  --recall-text: #172033;
+  --recall-muted: #64748b;
+  --recall-faint: #8491a5;
+  --recall-purple: #6d28d9;
+  --recall-purple-soft: #f3edff;
+  --recall-purple-text: #5b21b6;
+  --recall-green: #15803d;
+  --recall-green-soft: #effcf5;
+  --recall-amber: #b45309;
+  --recall-amber-soft: #fff7e8;
+  background: var(--recall-bg);
+  color: var(--recall-text);
+}
+:root.dark .recall-page {
+  --recall-bg: #0a0e1a;
+  --recall-card: #111a2e;
+  --recall-soft: #0e1525;
+  --recall-border: #202b40;
+  --recall-text: #f1f5f9;
+  --recall-muted: #94a3b8;
+  --recall-faint: #64748b;
+  --recall-purple: #8b5cf6;
+  --recall-purple-soft: #1b2440;
+  --recall-purple-text: #ddd6fe;
+  --recall-green: #34d399;
+  --recall-green-soft: #122d34;
+  --recall-amber: #fbbf24;
+  --recall-amber-soft: #2c2414;
+}
+.recall-back,
+.recall-tabs,
+.recall-content,
+.recall-error button,
+.recall-card-controls > button,
+.recall-analysis-columns section {
+  border-color: var(--recall-border);
+  background: var(--recall-card);
+}
+.recall-back, .recall-card-controls > button, .recall-error button { color: var(--recall-text); }
+.recall-back:hover { border-color: var(--recall-purple); color: var(--recall-purple); }
+.recall-heading > span, .recall-section-heading p, .recall-card-hint { color: var(--recall-muted); }
+.recall-heading h1, .recall-section-heading h2, .recall-empty h1 { color: var(--recall-text); }
+.recall-tabs { background: var(--recall-soft); }
+.recall-tabs button { color: var(--recall-muted); }
+.recall-tabs button.selected { background: var(--recall-purple-soft); color: var(--recall-purple-text); }
+.recall-tabs button span { background: color-mix(in srgb, var(--recall-purple) 14%, transparent); color: var(--recall-purple-text); }
+.recall-section-heading > span, .recall-card-label { color: var(--recall-purple); }
+.recall-state { color: var(--recall-muted); }
+.recall-spinner { border-color: var(--recall-border); border-top-color: var(--recall-purple); }
+.recall-flashcard {
+  border-color: var(--recall-border);
+  background: linear-gradient(145deg, var(--recall-card), var(--recall-soft));
+  color: var(--recall-text);
+}
+.recall-flashcard.flipped { border-color: color-mix(in srgb, var(--recall-green) 50%, var(--recall-border)); background: var(--recall-green-soft); }
+.recall-flashcard.flipped .recall-card-label, .recall-covered h3 svg { color: var(--recall-green); }
+.recall-card-controls > button:hover { border-color: var(--recall-purple); }
+.recall-dots button { background: var(--recall-faint); }
+.recall-dots button.current { background: var(--recall-purple); }
+.summary-mode textarea { border-color: var(--recall-border); background: var(--recall-bg); color: var(--recall-text); }
+.summary-mode textarea::placeholder, .recall-summary-actions > span { color: var(--recall-faint); }
+.recall-summary-actions button, .recall-empty button { background: var(--recall-purple); }
+.recall-analysis-error { color: #dc2626; }
+.recall-feedback { border-color: color-mix(in srgb, var(--recall-purple) 30%, transparent); background: var(--recall-purple-soft); color: var(--recall-purple-text); }
+.recall-analysis-columns section { background: var(--recall-soft); }
+.recall-analysis-columns h3 { color: var(--recall-text); }
+.recall-missing h3 svg { color: var(--recall-amber); }
+.recall-analysis-columns ul, .recall-analysis-columns section > p { color: var(--recall-muted); }

@@ -383,10 +383,10 @@ export async function reviewFlashcard(payload) {
 export async function getStudyPathChallenge(topicId) {
   if (!topicId) throw new Error('topicId is required');
   try {
-    const res = await apiClient.get(`/study-path/${encodeURIComponent(topicId)}/challenge`);
+    const res = await apiClient.get(`/api/study-path/${encodeURIComponent(topicId)}/challenge`);
     return res.data;
   } catch (err) {
-    const fb = await apiClient.get(`/api/study-path/${encodeURIComponent(topicId)}/challenge`);
+    const fb = await apiClient.get(`/api/backend/study-path/${encodeURIComponent(topicId)}/challenge`);
     return fb.data;
   }
 }
@@ -399,10 +399,10 @@ export async function getStudyPathChallenge(topicId) {
 export async function submitStudyPathChallenge(topicId, answers) {
   if (!topicId) throw new Error('topicId is required');
   try {
-    const res = await apiClient.post(`/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
+    const res = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
     return res.data;
   } catch (err) {
-    const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
+    const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
     return fb.data;
   }
 }
@@ -414,10 +414,10 @@ export async function submitStudyPathChallenge(topicId, answers) {
 export async function retryStudyPathChallenge(topicId) {
   if (!topicId) throw new Error('topicId is required');
   try {
-    const res = await apiClient.post(`/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
+    const res = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
     return res.data;
   } catch (err) {
-    const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
+    const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
     return fb.data;
   }
 }

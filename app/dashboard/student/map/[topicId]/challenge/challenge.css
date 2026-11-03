@@ -582,3 +582,75 @@
   50% { transform: scale(1.4); opacity: 1; }
   100% { transform: scale(0.2); opacity: 0; }
 }
+
+.unit-challenge-page {
+  --challenge-bg: #f6f7fb;
+  --challenge-card: #fff;
+  --challenge-soft: #f1f3f9;
+  --challenge-border: #e2e6ef;
+  --challenge-text: #172033;
+  --challenge-muted: #64748b;
+  --challenge-faint: #8491a5;
+  --challenge-selected-bg: #eff6ff;
+  --challenge-selected-border: #60a5fa;
+  --challenge-selected-text: #1d4ed8;
+  --challenge-correct-bg: #effcf5;
+  --challenge-correct-border: #86efac;
+  --challenge-correct-text: #15803d;
+  --challenge-wrong-bg: #fff1f2;
+  --challenge-wrong-border: #fda4af;
+  --challenge-wrong-text: #be123c;
+  background: var(--challenge-bg);
+  color: var(--challenge-text);
+}
+:root.dark .unit-challenge-page {
+  --challenge-bg: #0b101b;
+  --challenge-card: #111a2e;
+  --challenge-soft: #0f172a;
+  --challenge-border: #1e293b;
+  --challenge-text: #f2f5fa;
+  --challenge-muted: #94a3b8;
+  --challenge-faint: #64748b;
+  --challenge-selected-bg: #172554;
+  --challenge-selected-border: #38bdf8;
+  --challenge-selected-text: #93c5fd;
+  --challenge-correct-bg: rgba(34, 197, 94, .15);
+  --challenge-correct-border: #22c55e;
+  --challenge-correct-text: #86efac;
+  --challenge-wrong-bg: rgba(239, 68, 68, .15);
+  --challenge-wrong-border: #ef4444;
+  --challenge-wrong-text: #fca5a5;
+}
+.unit-challenge-close-btn,
+.unit-challenge-opt-btn,
+.unit-challenge-breakdown-card,
+.unit-challenge-missed-item {
+  border-color: var(--challenge-border);
+  background: var(--challenge-card);
+  color: var(--challenge-text);
+}
+.unit-challenge-close-btn { color: var(--challenge-muted); }
+.unit-challenge-close-btn:hover { background: var(--challenge-soft); border-color: var(--challenge-muted); color: var(--challenge-text); }
+.unit-challenge-seg { background: var(--challenge-border); }
+.unit-challenge-subrow, .unit-challenge-qtype-chip, .unit-challenge-state-desc,
+.unit-challenge-breakdown-row, .unit-challenge-improvement-note { color: var(--challenge-muted); }
+.unit-challenge-question, .unit-challenge-state-title, .unit-challenge-breakdown-row b { color: var(--challenge-text); }
+.unit-challenge-opt-btn:hover:not(:disabled) { border-color: #38bdf8; background: var(--challenge-soft); }
+.unit-challenge-opt-btn.selected { border-color: var(--challenge-selected-border); background: var(--challenge-selected-bg); color: var(--challenge-selected-text); }
+.unit-challenge-opt-btn.correct { border-color: var(--challenge-correct-border) !important; background: var(--challenge-correct-bg) !important; color: var(--challenge-correct-text) !important; }
+.unit-challenge-opt-btn.wrong { border-color: var(--challenge-wrong-border) !important; background: var(--challenge-wrong-bg) !important; color: var(--challenge-wrong-text) !important; }
+.unit-challenge-opt-letter { background: var(--challenge-soft); color: var(--challenge-muted); }
+.unit-challenge-opt-btn.selected .unit-challenge-opt-letter { background: #2563eb; color: #fff; }
+.unit-challenge-opt-btn.correct .unit-challenge-opt-letter { background: #22c55e; color: #052e16; }
+.unit-challenge-opt-btn.wrong .unit-challenge-opt-letter { background: #ef4444; color: #fff; }
+.unit-challenge-footer { background: var(--challenge-bg); border-top-color: var(--challenge-border); }
+.unit-challenge-footer.feedback-correct { background: var(--challenge-correct-bg); border-top-color: var(--challenge-correct-border); }
+.unit-challenge-footer.feedback-wrong { background: var(--challenge-wrong-bg); border-top-color: var(--challenge-wrong-border); }
+.unit-challenge-feedback-title.correct { color: var(--challenge-correct-text); }
+.unit-challenge-feedback-title.wrong, .unit-challenge-missed-title { color: var(--challenge-wrong-text); }
+.unit-challenge-feedback-body { color: var(--challenge-muted); }
+.unit-challenge-action-btn:disabled { background: var(--challenge-border); color: var(--challenge-muted); }
+.unit-challenge-spinner { border-color: var(--challenge-border); border-top-color: #fbbf24; }
+.unit-challenge-breakdown-row b { color: var(--challenge-text); }
+.unit-challenge-improvement-note { border-top-color: var(--challenge-border); }
+.unit-challenge-missed-item:hover { border-color: #38bdf8; background: var(--challenge-soft); }

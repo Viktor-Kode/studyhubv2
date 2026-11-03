@@ -30,7 +30,7 @@ export interface ChallengeQuestion {
   correctAnswerIndex: number
   explanation: string
   sourceNodeIds: number[]
-  type: 'recall' | 'connect' | 'compare' | 'sequence' | 'cause-effect'
+  type: 'recall' | 'connect' | 'compare' | 'sequence' | 'cause-effect' | 'synthesis'
   xp: number
 }
 

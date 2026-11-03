@@ -19,6 +19,7 @@ import {
   submitStudyPathChallenge,
   retryStudyPathChallenge
 } from '@/src/services/api'
+import { progressApi } from '@/lib/api/progressApi'
 import {
   FiX,
   FiZap,
@@ -171,6 +172,74 @@ export default function UnitChallengePlayer() {
     setRevealed(true)
   }
 
+  const updateLocalCaches = (
+    passed: boolean,
+    score: number,
+    attemptXp: number,
+    updatedStudyPath?: StudyPathTopic
+  ) => {
+    try {
+      if (updatedStudyPath) {
+        setTopic(updatedStudyPath)
+        localStorage.setItem('studyhelp_active_topic', JSON.stringify(updatedStudyPath))
+      } else {
+        const cached = localStorage.getItem('studyhelp_active_topic')
+        if (cached) {
+          const parsed = JSON.parse(cached) as StudyPathTopic
+          if (parsed.topicId === topicId) {
+            if (passed) {
+              parsed.completed = true
+              parsed.currentProgress = 100
+              const prevBestScore = parsed.challenge?.bestScore || 0
+              const prevBestXp = parsed.challenge?.bestXp || 0
+              parsed.challenge = {
+                status: 'completed',
+                questionCount: TOTAL_CHALLENGE_QUESTIONS,
+                passMark: CHALLENGE_PASS_MARK,
+                maxXp: MAX_CHALLENGE_XP,
+                bestScore: Math.max(prevBestScore, score),
+                bestXp: Math.max(prevBestXp, attemptXp)
+              }
+            }
+            setTopic(parsed)
+            localStorage.setItem('studyhelp_active_topic', JSON.stringify(parsed))
+          }
+        }
+      }
+
+      const savedStr = localStorage.getItem('studyhelp_saved_topics')
+      if (savedStr) {
+        const savedList = JSON.parse(savedStr) as StudyPathTopic[]
+        if (Array.isArray(savedList)) {
+          const updatedList = savedList.map((item) => {
+            if (item?.topicId === topicId) {
+              if (updatedStudyPath) return updatedStudyPath
+              if (passed) {
+                const prevBestScore = item.challenge?.bestScore || 0
+                const prevBestXp = item.challenge?.bestXp || 0
+                return {
+                  ...item,
+                  completed: true,
+                  currentProgress: 100,
+                  challenge: {
+                    status: 'completed' as const,
+                    questionCount: TOTAL_CHALLENGE_QUESTIONS,
+                    passMark: CHALLENGE_PASS_MARK,
+                    maxXp: MAX_CHALLENGE_XP,
+                    bestScore: Math.max(prevBestScore, score),
+                    bestXp: Math.max(prevBestXp, attemptXp)
+                  }
+                }
+              }
+            }
+            return item
+          })
+          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updatedList))
+        }
+      }
+    } catch { /* ignore local cache failure */ }
+  }
+
   const handleNextQuestion = async () => {
     const updatedAnswers = [...answers, selectedOpt]
     setAnswers(updatedAnswers)
@@ -186,37 +255,30 @@ export default function UnitChallengePlayer() {
         const submissionResult = await submitStudyPathChallenge(topicId, updatedAnswers)
         setResult(submissionResult)
 
-        // Update local cache if available
-        try {
-          const cached = localStorage.getItem('studyhelp_active_topic')
-          if (cached) {
-            const parsed = JSON.parse(cached) as StudyPathTopic
-            if (parsed.topicId === topicId) {
-              if (submissionResult.passed) {
-                parsed.completed = true
-                parsed.currentProgress = 100
-                if (parsed.challenge) {
-                  parsed.challenge.status = 'completed'
-                  parsed.challenge.bestScore = Math.max(parsed.challenge.bestScore || 0, submissionResult.score)
-                  parsed.challenge.bestXp = Math.max(parsed.challenge.bestXp || 0, submissionResult.attemptXp)
-                }
-              }
-              localStorage.setItem('studyhelp_active_topic', JSON.stringify(parsed))
-            }
-          }
-        } catch { /* ignore local cache failure */ }
+        updateLocalCaches(
+          Boolean(submissionResult.passed),
+          submissionResult.score,
+          submissionResult.attemptXp,
+          submissionResult.studyPath as StudyPathTopic | undefined
+        )
+
+        // If XP was awarded, ensure progress API also records it if not practice
+        if (submissionResult.xpAwarded > 0 && !isPracticeMode) {
+          progressApi.award('unit_challenge', { amount: submissionResult.xpAwarded }).catch(() => {})
+        }
       } catch (err) {
         console.error('[Challenge] Submit error:', err)
         // Fallback local calculation if backend fails
         const localScore = updatedAnswers.filter((ans, idx) => ans === questions[idx]?.correctAnswerIndex).length
         const localPassed = localScore >= CHALLENGE_PASS_MARK
+        const earnedXp = isPracticeMode ? 0 : localScore * CHALLENGE_XP_PER_QUESTION
         setResult({
           score: localScore,
           total: TOTAL_CHALLENGE_QUESTIONS,
           passed: localPassed,
           passMark: CHALLENGE_PASS_MARK,
           attemptXp: localScore * CHALLENGE_XP_PER_QUESTION,
-          xpAwarded: isPracticeMode ? 0 : localScore * CHALLENGE_XP_PER_QUESTION,
+          xpAwarded: earnedXp,
           maxXp: MAX_CHALLENGE_XP,
           missedNodeIds: [],
           perQuestion: questions.map((q, idx) => ({
@@ -225,6 +287,16 @@ export default function UnitChallengePlayer() {
             xp: updatedAnswers[idx] === q.correctAnswerIndex ? (q.xp || CHALLENGE_XP_PER_QUESTION) : 0
           }))
         })
+
+        updateLocalCaches(
+          localPassed,
+          localScore,
+          localScore * CHALLENGE_XP_PER_QUESTION
+        )
+
+        if (earnedXp > 0 && !isPracticeMode) {
+          progressApi.award('unit_challenge', { amount: earnedXp }).catch(() => {})
+        }
       } finally {
         setSubmitting(false)
       }
