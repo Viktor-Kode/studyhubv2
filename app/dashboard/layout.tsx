@@ -172,7 +172,6 @@ export default function DashboardLayout({
                             ]
                             const hasOwnBack = [
                                 '/dashboard/settings',
-                                '/dashboard/cbt',
                                 '/dashboard/notes',
                                 '/dashboard/notes-history',
                                 '/dashboard/question-history',

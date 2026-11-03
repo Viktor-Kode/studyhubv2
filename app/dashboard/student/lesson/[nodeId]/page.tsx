@@ -13,20 +13,29 @@ import {
 } from "@/lib/data/studyPath"
 import "../lesson-loop.css"
 import ThemeToggle from "@/components/ThemeToggle"
-import { FiClock, FiArrowLeft, FiArrowRight, FiFileText, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap } from "react-icons/fi"
+import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap } from "react-icons/fi"
 import { updateStudyPathNode } from "@/src/services/api"
 
 interface SlideDef {
   id: string
-  type: "source" | "explanation" | "key_concepts" | "quiz" | "reward" | "assessment_intro"
+  type: "source" | "breakdown" | "key_concepts" | "quiz" | "reward" | "assessment_intro"
   title: string
   badge: string
-  explanationPart?: 1 | 2
+  breakdownPart?: 0 | 1
+  legacyFallback?: boolean
   quizNum?: number
 }
 
 const SEG_ON  = "#2EE59D"
 const SEG_OFF = "#1E293B"
+
+function renderBreakdownText(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**")
+      ? <strong key={index}>{part.slice(2, -2)}</strong>
+      : <span key={index}>{part}</span>
+  )
+}
 
 function resolveNodeAndTopic(nodeIdStr: string): { node: LearningNode | null; topic: StudyPathTopic | null } {
   const id = parseInt(nodeIdStr, 10)
@@ -155,7 +164,7 @@ function LessonLoopContent() {
         setFinalAnswers(initialMap)
       } else {
         setQuiz1(node.quiz || null)
-        setQuiz2(null)
+        setQuiz2(node.quiz2 || null)
         setSelectedOpt1(null)
         setCorrect1(false)
         setWrong1([])
@@ -207,58 +216,35 @@ function LessonLoopContent() {
     }
 
     // ── REGULAR / SUMMARY NODE FLOW ──
-    // 1. Source material excerpt slide
-    list.push({
-      id: "source",
-      type: "source",
-      title: node.title,
-      badge: node.isSummary ? "UNIT SUMMARY" : "SOURCE EXCERPT"
-    })
+    list.push({ id: "source_text", type: "source", title: node.title, badge: "FROM THE DOCUMENT" })
 
-    // 2. Explanation slide(s)
-    const lc = node.lessonContent
-    const isLongExplanation = lc && (lc.paragraphs.length > 1 || (lc.paragraphs.join(" ").length > 320))
-
-    if (isLongExplanation) {
-      list.push({
-        id: "exp_1",
-        type: "explanation",
-        title: node.title,
-        badge: "EXPLANATION · 1/2",
-        explanationPart: 1
-      })
-      list.push({
-        id: "exp_2",
-        type: "explanation",
-        title: node.title,
-        badge: "EXPLANATION · 2/2",
-        explanationPart: 2
-      })
+    const hasBreakdown = Array.isArray(node.breakdown)
+      && node.breakdown.length === 2
+      && node.breakdown.every((slide) => Boolean(slide?.heading && slide?.body))
+    if (hasBreakdown) {
+      list.push({ id: "breakdown_1", type: "breakdown", title: node.title, badge: "CONCEPT BREAKDOWN 1/2", breakdownPart: 0 })
+      list.push({ id: "breakdown_2", type: "breakdown", title: node.title, badge: "CONCEPT BREAKDOWN 2/2", breakdownPart: 1 })
     } else {
-      list.push({
-        id: "exp_all",
-        type: "explanation",
-        title: node.title,
-        badge: node.isSummary ? "COMPREHENSIVE REVIEW" : "CONCEPT BREAKDOWN",
-        explanationPart: 1
-      })
+      list.push({ id: "breakdown_legacy", type: "breakdown", title: node.title, badge: "CONCEPT BREAKDOWN", breakdownPart: 0, legacyFallback: true })
     }
 
-    // 3. KEY CONCEPTS TO MASTER
-    list.push({
-      id: "key_concepts",
-      type: "key_concepts",
-      title: node.title,
-      badge: "KEY CONCEPTS"
-    })
+    list.push({ id: "key_concepts", type: "key_concepts", title: node.title, badge: "KEY CONCEPTS" })
 
-    // 4. Quiz 1 (Core Understanding)
+    // Quiz 1 (Core Understanding)
     list.push({
       id: "quiz_1",
       type: "quiz",
       title: node.title,
       badge: "QUIZ 1/2",
       quizNum: 1
+    })
+
+    list.push({
+      id: "quiz_2",
+      type: "quiz",
+      title: node.title,
+      badge: "QUIZ 2/2",
+      quizNum: 2
     })
 
     // Final Reward
@@ -331,7 +317,9 @@ function LessonLoopContent() {
       const fresh = payload.node as LearningNode
       const saved = localStorage.getItem("studyhelp_active_topic")
       if (saved) { const stored: StudyPathTopic = JSON.parse(saved); stored.nodes = stored.nodes.map((item) => item.id === node.id ? { ...item, ...fresh } : item); localStorage.setItem("studyhelp_active_topic", JSON.stringify(stored)) }
-      setQuiz1(fresh.quiz || null); setSelectedOpt1(null); setCorrect1(false); setWrong1([])
+      setQuiz1(fresh.quiz || null); setQuiz2(fresh.quiz2 || null)
+      setSelectedOpt1(null); setCorrect1(false); setWrong1([])
+      setSelectedOpt2(null); setCorrect2(false); setWrong2([])
     } catch (error) { console.error("[LessonLoop] Node regeneration failed:", error) }
     finally { setIsRegenerating(false) }
   }
@@ -347,7 +335,6 @@ function LessonLoopContent() {
     )
   }
 
-  const lc = node.lessonContent
   const letters = ["A", "B", "C", "D"]
 
   // Active quiz resolution
@@ -364,10 +351,17 @@ function LessonLoopContent() {
     activeCorrect = currentAns.correct
     activeWrong = currentAns.wrong
   } else {
-    activeQuiz = quiz1
-    activeSelected = selectedOpt1
-    activeCorrect = correct1
-    activeWrong = wrong1
+    if (qNum === 2) {
+      activeQuiz = quiz2
+      activeSelected = selectedOpt2
+      activeCorrect = correct2
+      activeWrong = wrong2
+    } else {
+      activeQuiz = quiz1
+      activeSelected = selectedOpt1
+      activeCorrect = correct1
+      activeWrong = wrong1
+    }
   }
 
   const showCorrect = currentSlide.type === "quiz" && activeCorrect
@@ -376,6 +370,8 @@ function LessonLoopContent() {
   const barBorder = showCorrect ? "#1F6F55" : showWrong ? "#7F1D1D" : "#1E2A47"
 
   const xpEarned = node.xp ?? (isFinalAssessment ? 100 : 30)
+  const breakdownSlide = node.breakdown?.[currentSlide.breakdownPart ?? 0]
+  const lessonKeyConcepts = node.keyConcepts || []
 
   const nextNode = useMemo(() => {
     if (!topic?.nodes || !node) return null
@@ -447,8 +443,7 @@ function LessonLoopContent() {
 
             {currentSlide.type !== "reward" && currentSlide.badge && (
               <div className="ll-topbar-subrow">
-                <span className={currentSlide.type === "source" ? "ll-badge-source" : "ll-badge-concept"}>
-                  {currentSlide.type === "source" && <FiFileText size={13} />}
+                <span className="ll-badge-concept">
                   {currentSlide.badge}
                 </span>
               </div>
@@ -456,7 +451,7 @@ function LessonLoopContent() {
           </header>
 
           {/* MAIN */}
-          <main className={`ll-main ${currentSlide.type === "reward" ? "ll-main-reward" : ""} ${(showCorrect || showWrong) ? "ll-main-feedback" : ""}`}>
+          <main className={`ll-main ${currentSlide.type === "reward" ? "ll-main-reward" : ""} ${["source", "breakdown", "key_concepts"].includes(currentSlide.type) ? "ll-main-breakdown" : ""} ${(showCorrect || showWrong) ? "ll-main-feedback" : ""}`}>
 
             {/* ASSESSMENT INTRO SLIDE (FOR 10-QUESTION FINAL ASSESSMENT) */}
             {currentSlide.type === "assessment_intro" && (
@@ -494,110 +489,70 @@ function LessonLoopContent() {
               </div>
             )}
 
-            {/* SLIDE: SOURCE MATERIAL EXCERPT */}
             {currentSlide.type === "source" && (
-              <div className="ll-rise" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                <div className="ll-concept-header">
-                  <h1 className="ll-concept-title">{node.title}</h1>
+              <div className="ll-rise ll-source-screen">
+                <div className="ll-breakdown-header">
+                  <h1 className="ll-breakdown-title">{node.title}</h1>
+                  <div className="ll-breakdown-meta">
+                    <span><FiBookOpen size={15} /> Original material</span>
+                    {node.sourcePages?.length ? <span>Page{node.sourcePages.length > 1 ? "s" : ""} {node.sourcePages.join(", ")}</span> : null}
+                  </div>
                 </div>
-
-                <div className="ll-source-card">
-                  <div className="ll-source-header">
-                    <span className="ll-source-label">
-                      <FiBookOpen size={14} />
-                      {node.isSummary ? "ALL CONCEPTS SYNTHESIS" : "DIRECT FROM UPLOADED MATERIAL"}
-                    </span>
-                    <span className="ll-source-meta">Section #{node.id}</span>
-                  </div>
-                  <div className="ll-source-quote-box">
-                    <p className={`ll-source-text${summaryExpanded ? " expanded" : " clamped"}`}>
-                      "{node.summary || lc?.paragraphs?.[0] || 'Summary unavailable.'}"
-                    </p>
-                  </div>
-                  {node.summary && node.summary.split(/\s+/).length > 35 && (
-                    <button type="button" className="ll-read-more" onClick={() => setSummaryExpanded((value) => !value)}>
-                      {summaryExpanded ? "Read less" : "Read more"}
-                    </button>
+                <section className="ll-breakdown-section">
+                  <h2>From your document</h2>
+                  {node.sourceFacts?.length ? (
+                    <ul className="ll-source-facts">
+                      {node.sourceFacts.map((fact, index) => <li key={`${index}-${fact}`}>{fact}</li>)}
+                    </ul>
+                  ) : (
+                    <p className="ll-breakdown-body">Source wording is unavailable for this lesson.</p>
                   )}
-                  <div className="ll-source-note">
-                    <span className="ll-note-icon">💡</span>
-                    <span className="ll-note-text">Click <strong>NEXT</strong> to see our AI breakdown with analogies and key concepts.</span>
-                  </div>
-                </div>
+                </section>
               </div>
             )}
 
-            {/* SLIDE: EXPLAINED VERSION */}
-            {currentSlide.type === "explanation" && (
-              <div className="ll-rise" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                <div className="ll-concept-header">
-                  <h1 className="ll-concept-title">{node.title}</h1>
+            {/* TWO-SLIDE CONCEPT BREAKDOWN (legacy nodes get a compact one-slide fallback) */}
+            {currentSlide.type === "breakdown" && (
+              <div className="ll-rise ll-breakdown-screen">
+                <div className="ll-breakdown-header">
+                  <h1 className="ll-breakdown-title">{node.title}</h1>
                 </div>
 
-                {/* PART 1: Analogy & Core Idea */}
-                {currentSlide.explanationPart === 1 && (
+                {currentSlide.legacyFallback ? (
                   <>
-                    {lc?.analogy && (
-                      <div className="ll-analogy-card">
-                        <div className="ll-analogy-icon">
-                          <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none"
-                            stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 18h6M10 21h4" />
-                            <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" />
-                          </svg>
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="ll-analogy-label">THINK OF IT LIKE THIS</div>
-                          <p className="ll-analogy-text">{lc.analogy}</p>
-                        </div>
-                      </div>
-                    )}
-                    {lc?.paragraphs && lc.paragraphs.length > 0 && (
-                      <div className="ll-paragraphs">
-                        <p className="ll-para">{lc.paragraphs[0]}</p>
-                      </div>
+                    <section className="ll-breakdown-section">
+                      <h2>Lesson recap</h2>
+                      <p className="ll-breakdown-body">{node.summary || node.lessonContent?.paragraphs?.[0] || "Summary unavailable."}</p>
+                    </section>
+                  </>
+                ) : (
+                  <>
+                    <section className="ll-breakdown-section">
+                      <h2>{breakdownSlide?.heading}</h2>
+                      <p className="ll-breakdown-body">{renderBreakdownText(breakdownSlide?.body || "Explanation unavailable.")}</p>
+                    </section>
+
+                    {currentSlide.breakdownPart === 1 && (
+                      <>
+                        {breakdownSlide?.memoryTip && <div className="ll-memory-tip"><FiZap size={19} /><div><span className="ll-memory-tip-label">MEMORY TIP</span><p>{renderBreakdownText(breakdownSlide.memoryTip)}</p></div></div>}
+                      </>
                     )}
                   </>
                 )}
-
-                {/* PART 2: Deep Dive Paragraphs */}
-                {currentSlide.explanationPart === 2 && (
-                  <div className="ll-paragraphs">
-                    {lc?.paragraphs && lc.paragraphs.length > 1 ? (
-                      lc.paragraphs.slice(1).map((p, i) => (
-                        <p key={i} className="ll-para">{p}</p>
-                      ))
-                    ) : (
-                      <p className="ll-para">{node.summary || ""}</p>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
-            {/* SLIDE: KEY CONCEPTS TO MASTER */}
             {currentSlide.type === "key_concepts" && (
-              <div className="ll-rise" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                <div className="ll-concept-header">
-                  <h1 className="ll-concept-title">{node.title}</h1>
+              <div className="ll-rise ll-key-concepts-screen">
+                <div className="ll-breakdown-header">
+                  <h1 className="ll-breakdown-title">Key concepts</h1>
+                  <div className="ll-breakdown-meta"><span>{node.title}</span></div>
                 </div>
-
-                <div className="ll-key-card" style={{ padding: "24px" }}>
-                  <div className="ll-key-card-header">
-                    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                      stroke="#FFB547" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="8" cy="15" r="4" />
-                      <path d="M11 12l9-9M16 7l3 3M14 9l2 2" />
-                    </svg>
-                  <span className="ll-key-label" style={{ fontSize: 14 }}>KEY CONCEPTS TO MASTER</span>
-                  </div>
-                  {(lc?.keyConcepts || node.keyConcepts || [node.title]).map((kc, i) => (
-                    <div key={i} className="ll-key-item" style={{ padding: "12px 14px" }}>
-                      <div className="ll-key-num">{i + 1}</div>
-                      <span className="ll-key-text">{kc}</span>
-                    </div>
-                  ))}
-                </div>
+                {lessonKeyConcepts.length > 0 ? (
+                  <section className="ll-breakdown-recap ll-key-concepts-list">
+                    {lessonKeyConcepts.map((concept, index) => <div className="ll-breakdown-concept" key={`${index}-${concept}`}><span>{index + 1}</span><p>{concept}</p></div>)}
+                  </section>
+                ) : <p className="ll-breakdown-body">Key concepts are unavailable for this lesson.</p>}
               </div>
             )}
 
@@ -612,7 +567,7 @@ function LessonLoopContent() {
                       className={`ll-btn-regen ${isRegenerating ? "spinning" : ""}`}
                       onClick={() => handleRegenerateQuiz()}
                       disabled={isRegenerating}
-                      title="Generate a brand new related question"
+                      title="Regenerate both lesson questions"
                     >
                       <FiRefreshCw size={13} />
                       <span>{isRegenerating ? "Regenerating..." : "Regenerate"}</span>

@@ -35,7 +35,7 @@ const studentMenuItems = [
   { href: '/dashboard/chat', icon: FaBrain, label: 'AI Assistant' },
   { href: '/dashboard/cgpa', icon: FaCalculator, label: 'CGPA Calculator' },
   { href: '/dashboard/timetable', icon: FaCalendar, label: 'Timetable & Reminders' },
-  { href: '/dashboard/cbt', icon: FaLaptop, label: 'Past Question' },
+  { href: '/dashboard/student/cbt/syllabus', icon: FaLaptop, label: 'Exam Practice' },
 
   { href: '/dashboard/study-planner', icon: FaCalendar, label: 'Study Planner' },
   { href: '/dashboard/analytics', icon: FaChartBar, label: 'Analytics' },

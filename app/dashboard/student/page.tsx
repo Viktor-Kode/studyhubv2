@@ -4,13 +4,13 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import StudySidebar from '@/components/dashboard/StudySidebar'
 import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
-import { apiClient } from '@/lib/api/client'
 import './study-path.css'
+import './dashboard-redesign.css'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { getActiveStudyPath, uploadStudyMaterial, deleteStudyPath } from '@/src/services/api'
+import { firebaseSignOut } from '@/lib/firebase-auth'
 
 import {
   FiCheck,
@@ -18,6 +18,7 @@ import {
   FiPlay,
   FiZap,
   FiBookOpen,
+  FiMap,
   FiFileText,
   FiUser,
   FiCpu,
@@ -25,14 +26,16 @@ import {
   FiAward,
   FiPlus,
   FiX,
-  FiClock,
-  FiLayers,
-  FiArrowRight,
   FiUploadCloud,
   FiEdit3,
   FiLoader,
   FiCheckCircle,
-  FiTrash2
+  FiTrash2,
+  FiUsers,
+  FiPhone,
+  FiMessageCircle,
+  FiLogOut,
+  FiMoreHorizontal
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
@@ -61,13 +64,15 @@ export default function StudentDashboardPage() {
 
   // State
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
-  const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generateStage, setGenerateStage] = useState('')
   const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showTopicMenu, setShowTopicMenu] = useState(false)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
+  const topicMenuRef = useRef<HTMLDivElement>(null)
 
   // New topic input state (upload document or paste text)
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -80,75 +85,25 @@ export default function StudentDashboardPage() {
   const [inputError, setInputError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (!showTopicMenu) return
+    const closeTopicMenu = (event: MouseEvent) => {
+      if (!topicMenuRef.current?.contains(event.target as Node)) setShowTopicMenu(false)
+    }
+    document.addEventListener('mousedown', closeTopicMenu)
+    return () => document.removeEventListener('mousedown', closeTopicMenu)
+  }, [showTopicMenu])
+
   // Real progress state
   const [realStats, setRealStats] = useState({
     streak: 0,
     xp: 0,
     dailyGoalXp: 0,
-    dailyGoalTarget: 50
+    dailyGoalTarget: 50,
+    weekDaysActive: [] as number[],
   })
-
-  // Dynamic path connector line coordinates
-  const containerRef = useRef<HTMLDivElement>(null)
-  const circleRefs = useRef<(HTMLDivElement | null)[]>([])
-  const [lineSegments, setLineSegments] = useState<{
-    id: string
-    x1: number
-    y1: number
-    x2: number
-    y2: number
-    isSolid: boolean
-  }[]>([])
-
-  // Recalculate line coordinates whenever topic changes or container resizes
-  useEffect(() => {
-    const updateLines = () => {
-      if (!containerRef.current || !topic || !topic.nodes) return
-      const containerRect = containerRef.current.getBoundingClientRect()
-      const lines: typeof lineSegments = []
-
-      for (let i = 0; i < topic.nodes.length - 1; i++) {
-        const el1 = circleRefs.current[i]
-        const el2 = circleRefs.current[i + 1]
-        if (!el1 || !el2) continue
-
-        const r1 = el1.getBoundingClientRect()
-        const r2 = el2.getBoundingClientRect()
-
-        const isSolid = topic.nodes[i].status === 'completed'
-
-        lines.push({
-          id: `line-${topic.nodes[i].id}-${topic.nodes[i + 1].id}`,
-          x1: r1.left - containerRect.left + r1.width / 2,
-          y1: r1.top - containerRect.top + r1.height / 2,
-          x2: r2.left - containerRect.left + r2.width / 2,
-          y2: r2.top - containerRect.top + r2.height / 2,
-          isSolid
-        })
-      }
-      setLineSegments(lines)
-    }
-
-    // Call immediately and after DOM renders
-    updateLines()
-    const timer1 = setTimeout(updateLines, 40)
-    const timer2 = setTimeout(updateLines, 200)
-
-    window.addEventListener('resize', updateLines)
-
-    let ro: ResizeObserver | null = null
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-      ro = new ResizeObserver(updateLines)
-      ro.observe(containerRef.current)
-    }
-
-    return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-      window.removeEventListener('resize', updateLines)
-      if (ro) ro.disconnect()
-    }
-  }, [topic])
+  const [showGoalPicker, setShowGoalPicker] = useState(false)
+  const [isUpdatingGoal, setIsUpdatingGoal] = useState(false)
 
   // Load active study path: backend first, then localStorage fallback
   useEffect(() => {
@@ -157,31 +112,32 @@ export default function StudentDashboardPage() {
     getActiveStudyPath()
       .then((backendPath) => {
         if (cancelled) return
-        if (backendPath && backendPath.nodes?.length > 0) {
-          setTopic(backendPath)
-          // Keep localStorage in sync
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('studyhelp_active_topic', JSON.stringify(backendPath))
-          }
-        } else {
-          // Fallback to localStorage cache
-          if (typeof window !== 'undefined') {
+        let selectedTopic: StudyPathTopic | null = null
+        if (typeof window !== 'undefined') {
+          try {
             const saved = localStorage.getItem('studyhelp_active_topic')
-            if (saved) {
-              try {
-                setTopic(JSON.parse(saved))
-              } catch { /* ignore */ }
-            }
-          }
+            if (saved) selectedTopic = JSON.parse(saved) as StudyPathTopic
+          } catch { /* ignore malformed local cache */ }
+        }
+
+        // Preserve the topic selected on the study map. Use the backend copy
+        // when it is the same topic so its latest progress is reflected.
+        const activeTopic = selectedTopic
+          ? backendPath?.topicId === selectedTopic.topicId ? backendPath : selectedTopic
+          : backendPath && backendPath.nodes?.length > 0 ? backendPath : null
+
+        setTopic(activeTopic)
+        if (activeTopic && typeof window !== 'undefined') {
+          localStorage.setItem('studyhelp_active_topic', JSON.stringify(activeTopic))
         }
       })
       .catch(() => {
         // Network error — fall back to localStorage silently
         if (!cancelled && typeof window !== 'undefined') {
-          const saved = localStorage.getItem('studyhelp_active_topic')
-          if (saved) {
-            try { setTopic(JSON.parse(saved)) } catch { /* ignore */ }
-          }
+          try {
+            const saved = localStorage.getItem('studyhelp_active_topic')
+            if (saved) setTopic(JSON.parse(saved) as StudyPathTopic)
+          } catch { /* ignore malformed local cache */ }
         }
       })
       .finally(() => {
@@ -190,23 +146,44 @@ export default function StudentDashboardPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Fetch real progress from backend if logged in
-  useEffect(() => {
+  // Fetch real progress from backend if logged in and maintain daily login activity
+  const fetchProgress = useCallback(async () => {
     if (!user?.uid) return
-    progressApi
-      .getMe()
-      .then((res) => {
-        const d = res?.data
-        if (d) {
-          setRealStats((prev) => ({
-            ...prev,
-            streak: typeof d.streak === 'number' ? d.streak : prev.streak,
-            xp: typeof d.xp === 'number' ? d.xp : prev.xp
-          }))
-        }
-      })
-      .catch(() => {})
+    try {
+      // Award daily login if not already awarded today
+      await progressApi.award('daily_login').catch(() => {})
+      const res = await progressApi.getMe()
+      const d = res?.data
+      if (d) {
+        setRealStats({
+          streak: typeof d.streak === 'number' ? d.streak : 0,
+          xp: typeof d.xp === 'number' ? d.xp : 0,
+          dailyGoalXp: typeof d.dailyXP === 'number' ? d.dailyXP : 0,
+          dailyGoalTarget: typeof d.dailyGoalTarget === 'number' && d.dailyGoalTarget > 0 ? d.dailyGoalTarget : 50,
+          weekDaysActive: Array.isArray(d.weekDaysActive) ? d.weekDaysActive : [],
+        })
+      }
+    } catch {
+      // Non-fatal, progress will retain current stats
+    }
   }, [user?.uid])
+
+  useEffect(() => {
+    fetchProgress()
+  }, [fetchProgress])
+
+  const handleSelectGoalTarget = async (target: number) => {
+    setIsUpdatingGoal(true)
+    try {
+      await progressApi.updateDailyGoal(target)
+      setRealStats((prev) => ({ ...prev, dailyGoalTarget: target }))
+      setShowGoalPicker(false)
+    } catch (err) {
+      console.warn('Failed to update daily goal:', err)
+    } finally {
+      setIsUpdatingGoal(false)
+    }
+  }
 
   // Save topic changes
   const saveTopic = (newTopic: StudyPathTopic | null) => {
@@ -266,19 +243,30 @@ export default function StudentDashboardPage() {
     setInputError(null)
     setExtractionLabel(getExtractionLabel(file))
     setExtracting(true)
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     try {
       const text = await extractTextFromFile(file)
       if (!text || text.trim().length < 30) {
-        setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
-        setUploadedFile(null)
-        setExtractedText('')
+        if (isPdf) {
+          setExtractedText('')
+          setInputError(null)
+        } else {
+          setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
+          setUploadedFile(null)
+          setExtractedText('')
+        }
       } else {
         setExtractedText(text)
       }
     } catch (e: any) {
-      setInputError(e?.message || 'Failed to read file.')
-      setUploadedFile(null)
-      setExtractedText('')
+      if (isPdf) {
+        setExtractedText('')
+        setInputError(null)
+      } else {
+        setInputError(e?.message || 'Failed to read file.')
+        setUploadedFile(null)
+        setExtractedText('')
+      }
     } finally {
       setExtracting(false)
       setExtractionLabel('')
@@ -293,9 +281,10 @@ export default function StudentDashboardPage() {
   }, [handleFile])
 
   const sourceText = inputMode === 'upload' ? extractedText : manualText
+  const isPdfUpload = Boolean(uploadedFile && (uploadedFile.type === 'application/pdf' || uploadedFile.name.toLowerCase().endsWith('.pdf')))
   const textReady =
     inputMode === 'upload'
-      ? !!extractedText && !extracting
+      ? (!!extractedText || isPdfUpload) && !extracting
       : manualText.trim().length >= 50
 
   // Handle generation — sends PDF/text to the real backend
@@ -304,6 +293,7 @@ export default function StudentDashboardPage() {
     setInputError(null)
     setGenerateError(null)
     setIsGenerating(true)
+    setGenerateStage('Uploading document...')
     try {
       const title =
         inputMode === 'upload' && uploadedFile
@@ -313,7 +303,7 @@ export default function StudentDashboardPage() {
       let studyPath: StudyPathTopic
       if (inputMode === 'upload' && uploadedFile) {
         // Send file along with client pre-extracted text
-        studyPath = await uploadStudyMaterial(uploadedFile, { title, text: sourceText })
+        studyPath = await uploadStudyMaterial(uploadedFile, { title, text: sourceText, onProgress: (job: any) => setGenerateStage(job?.stage || 'Building map...') })
       } else {
         // Send extracted/pasted text to backend
         studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
@@ -329,591 +319,234 @@ export default function StudentDashboardPage() {
       setGenerateError(err?.message || 'Failed to generate study path. Please try again.')
     } finally {
       setIsGenerating(false)
+      setGenerateStage('')
     }
   }
-
-  // Leaderboard state (real backend data)
-  const [leaderboard, setLeaderboard] = useState<{name: string; xp: number; initials: string}[]>([])
-
-  useEffect(() => {
-    if (!user?.uid) return
-    progressApi.getLeaderboard()
-      .then((res: any) => {
-        const list = res?.data?.leaderboard || res?.data?.leaders || []
-        if (Array.isArray(list) && list.length > 0) {
-          setLeaderboard(list.slice(0, 3).map((u: any) => ({
-            name: u.name || u.displayName || 'Student',
-            xp: typeof u.xp === 'number' ? u.xp : 0,
-            initials: (u.name || u.displayName || 'S')[0].toUpperCase()
-          })))
-        }
-      })
-      .catch(() => {})
-  }, [user?.uid])
 
   // Greeting
   const firstName = user?.name?.split(' ')[0] || 'Student'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
-  // Calculations for desktop zig-zag horizontal percentage offsets
-  // Creates the smooth S-curve shown in the desktop mockup
-  const getNodePosition = (index: number) => {
-    // 8 steps oscillating: left -> center-left -> center -> center-right -> center -> center-left -> left -> center-left
-    const desktopOffsets = [18, 32, 46, 58, 46, 34, 20, 34]
-    return desktopOffsets[index % desktopOffsets.length]
-  }
-
   // Completed count
+  const isTopicComplete = Boolean(topic?.completed || topic?.challenge?.status === 'completed' || topic?.challenge?.passed)
   const completedCount = useMemo(() => {
     if (!topic) return 0
-    return topic.nodes.filter((n) => n.status === 'completed').length
-  }, [topic])
+    const nodeCount = topic.nodes.filter((n) => n.status === 'completed').length
+    return isTopicComplete ? nodeCount + 1 : nodeCount
+  }, [topic, isTopicComplete])
 
-  const totalCount = topic?.nodes.length || 8
+  const totalCount = topic ? topic.nodes.length + 1 : 0
 
-  // Active node (for Resume Learning)
-  const activeNode = useMemo(() => {
-    return topic?.nodes.find((n) => n.status === 'active') || topic?.nodes[0]
-  }, [topic])
+  const goalPercent = Math.min(100, Math.round((realStats.dailyGoalXp / Math.max(realStats.dailyGoalTarget, 1)) * 100))
+  const xpRemaining = Math.max(0, realStats.dailyGoalTarget - realStats.dailyGoalXp)
+  const previewNodes = topic?.nodes.slice(0, 3) || []
+  const pathRemaining = Math.max(0, (topic?.nodes.length || 0) + 1 - previewNodes.length)
+
+  const todayDayIndex = (new Date().getDay() + 6) % 7
+  const weekDays = [
+    { label: 'M', name: 'Mon', index: 0 },
+    { label: 'T', name: 'Tue', index: 1 },
+    { label: 'W', name: 'Wed', index: 2 },
+    { label: 'T', name: 'Thu', index: 3 },
+    { label: 'F', name: 'Fri', index: 4 },
+    { label: 'S', name: 'Sat', index: 5 },
+    { label: 'S', name: 'Sun', index: 6 },
+  ]
 
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
-      <div className="sp-dashboard-root">
-        {/* ── SHARED NAVIGATION ── */}
-        <StudySidebar />
-
-        {/* ── MAIN CONTENT ── */}
-        <main className="sp-main-container">
-          {/* Top Bar */}
-          <header className="sp-topbar">
-            <div>
-              <div className="sp-greeting-sub">{greeting},</div>
-              <h1 className="sp-greeting-name">{firstName}</h1>
-            </div>
-
-            <div className="sp-topbar-pills">
-              {/* Streak Pill */}
-              <div className="sp-stat-pill">
-                <FaFire className="sp-stat-pill-icon" style={{ color: '#f59e0b' }} />
-                <span>{realStats.streak}</span>
+      <div className="sr-page">
+        <div className="sr-frame">
+          <div className="sr-layout">
+            <aside className="sr-sidebar">
+              <Link href="/dashboard/student" className="sr-brand">
+                <span className="sr-logo"><IoSparklesSharp size={22} /></span>
+                <span>StudyHelp</span>
+              </Link>
+              <nav className="sr-nav" aria-label="Main navigation">
+                <Link href="/dashboard/student" className="sr-nav-link active"><FiBookOpen />Home</Link>
+                <Link href="/dashboard/notes-history" className="sr-nav-link"><FiFileText />Notes Library</Link>
+                <Link href="/dashboard/profile" className="sr-nav-link"><FiUser />Profile</Link>
+              </nav>
+              <div className="sr-support">
+                <h2>Support</h2>
+                <Link href="/dashboard/settings?tab=referrals" className="sr-nav-link"><FiUsers />Refer &amp; Earn</Link>
+                <a href="tel:+2349163345794" className="sr-nav-link"><FiPhone />Call Support</a>
+                <a href="https://wa.me/2349163345794" target="_blank" rel="noopener noreferrer" className="sr-nav-link"><FiMessageCircle />WhatsApp Support</a>
+                <button className="sr-nav-link sr-logout" onClick={async () => { await firebaseSignOut(); router.push('/auth/login') }}>
+                  <FiLogOut />Log Out
+                </button>
               </div>
+            </aside>
 
-              {/* XP Pill */}
-              <div className="sp-stat-pill">
-                <FiZap className="sp-stat-pill-icon" style={{ color: '#fbbf24' }} />
-                <span>{realStats.xp.toLocaleString()}</span>
-              </div>
-            </div>
-          </header>
-
-          {/* ── ACTIVE TOPIC CARD OR EMPTY STATE ── */}
-          {topic ? (
-            <section className="sp-topic-card">
-              <div className="sp-topic-card-left">
-                <div className="sp-topic-label">ACTIVE TOPIC</div>
-                <h2 className="sp-topic-title">{topic.title}</h2>
-                <p className="sp-topic-course">{topic.courseCode}</p>
-
-                <div className="sp-topic-progress-wrap">
-                  <div className="sp-topic-play-badge">
-                    <FiPlay size={12} style={{ marginLeft: 2 }} />
+            <div className="sr-main-column">
+              <main className="sr-content">
+                <header className="sr-head">
+                  <div className="sr-hello"><small>{greeting},</small><h1>{firstName}</h1></div>
+                  <div className="sr-pills">
+                    <div className="sr-pill fire"><FaFire /><span>{realStats.streak}</span></div>
+                    <div className="sr-pill xp"><FiZap /><span>{realStats.xp.toLocaleString()}</span></div>
                   </div>
-                  <div className="sp-topic-progress-bar-wrap">
-                    <div className="sp-topic-progress-text">
-                      Lesson {completedCount + 1} of {totalCount} · {completedCount} complete
+                </header>
+
+                {topic ? (
+                  <section className="sr-card sr-topic">
+                    <div className="sr-topic-menu" ref={topicMenuRef}>
+                      <button className="sr-kebab" aria-label="Topic options" aria-expanded={showTopicMenu} onClick={() => setShowTopicMenu((open) => !open)}><FiMoreHorizontal /></button>
+                      {showTopicMenu && <div className="sr-menu"><button onClick={() => { setShowTopicMenu(false); setShowDeleteConfirm(true) }}>Delete topic</button></div>}
                     </div>
-                    <div className="sp-topic-progress-track">
-                      <div
-                        className="sp-topic-progress-fill"
-                        style={{ width: `${Math.round((completedCount / totalCount) * 100)}%` }}
-                      />
+                    <p className="sr-eyebrow">{isTopicComplete ? 'Completed topic' : 'Active topic'}</p>
+                    <h2>{topic.title}</h2>
+                    <p className="sr-topic-code">{topic.courseCode}</p>
+                    <div className="sr-progress-row">
+                      <div className="sr-progress-track"><span style={{ width: `${Math.round((completedCount / Math.max(totalCount, 1)) * 100)}%` }} /></div>
+                      <span>{isTopicComplete ? 'Completed' : `${completedCount} of ${totalCount} complete`}</span>
                     </div>
-                  </div>
-                </div>
-              </div>
+                    <div className="sr-actions">
+                      {isTopicComplete ? (
+                        <>
+                          <button className="sr-btn sr-primary" onClick={openGenerateModal}><FiPlus />New topic</button>
+                          <button className="sr-btn sr-outline" onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`)}>Review map</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="sr-btn sr-primary" onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`)}>RESUME LEARNING <FiPlay fill="currentColor" /></button>
+                          <button className="sr-btn sr-outline" onClick={openGenerateModal}><FiPlus />New topic</button>
+                        </>
+                      )}
+                    </div>
+                  </section>
+                ) : (
+                  <section className="sr-card sr-topic">
+                    <p className="sr-eyebrow">Active topic</p>
+                    <h2>No active topic yet</h2>
+                    <p className="sr-topic-code">Upload your material to build an interactive study path.</p>
+                    <div className="sr-actions"><button className="sr-btn sr-primary" onClick={openGenerateModal}><FiPlus />Create a study path</button></div>
+                  </section>
+                )}
 
-              <div className="sp-topic-card-right">
-                <button
-                  className="sp-btn-resume"
-                  onClick={() => {
-                    const targetTopicId = topic.topicId
-                    router.push(`/dashboard/student/map/${targetTopicId}`)
-                  }}
-                >
-                  <span>RESUME LEARNING</span>
-                  <FiPlay size={14} />
-                </button>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button className="sp-btn-new-topic" onClick={openGenerateModal}>
-                    <FiPlus size={16} />
-                    <span>New Topic</span>
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    title="Delete Topic"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                      color: '#f87171',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      flexShrink: 0
-                    }}
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </section>
-          ) : (
-            <section className="sp-empty-card">
-              <div className="sp-topic-label">GET STARTED</div>
-              <h2 className="sp-topic-title">No Active Topic</h2>
-              <p className="sp-empty-desc">
-                Upload a lecture PDF, textbook chapter, or syllabus to generate your first interactive learning path.
-              </p>
-              <div className="sp-empty-actions">
-                <button className="sp-btn-generate" onClick={openGenerateModal}>
-                  <FiPlus size={18} />
-                  <span>GENERATE STUDY PATH</span>
-                </button>
-                <button className="sp-btn-paste" onClick={openGenerateModal}>
-                  Paste text instead
-                </button>
-              </div>
-            </section>
-          )}
-
-          {/* ── QUICK TOOLS (Prominently Right Under Active Section) ── */}
-          <div className="sp-mobile-tools-wrap" style={{ marginTop: 8 }}>
-            <h3 className="sp-section-heading">QUICK TOOLS</h3>
-            <div className="sp-quick-tools-grid">
-              <Link href="/dashboard/pdf-summary" className="sp-quick-tool-card">
-                <div className="sp-tool-icon-box sp-tool-icon-green">
-                  <FiFileText />
-                </div>
-                <div>
-                  <h4 className="sp-tool-title">Summarise Notes</h4>
-                  <p className="sp-tool-sub">Upload a PDF</p>
-                </div>
-              </Link>
-
-              <Link href="/dashboard/tutor" className="sp-quick-tool-card">
-                <div className="sp-tool-icon-box sp-tool-icon-purple">
-                  <FiCpu />
-                </div>
-                <div>
-                  <h4 className="sp-tool-title">AI Tutor</h4>
-                  <p className="sp-tool-sub">Ask anything</p>
-                </div>
-              </Link>
-
-              <Link href="/dashboard/cbt" className="sp-quick-tool-card">
-                <div className="sp-tool-icon-box sp-tool-icon-gold">
-                  <FiCheckSquare />
-                </div>
-                <div>
-                  <h4 className="sp-tool-title">Question Generator</h4>
-                  <p className="sp-tool-sub">Active recall quiz</p>
-                </div>
-              </Link>
-
-              <Link href="/dashboard/leaderboard" className="sp-quick-tool-card">
-                <div className="sp-tool-icon-box sp-tool-icon-trophy">
-                  <FiAward />
-                </div>
-                <div>
-                  <h4 className="sp-tool-title">Leaderboard</h4>
-                  <p className="sp-tool-sub">Top 5% · Global League</p>
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* ── YOUR PATH SECTION ── */}
-          <section className="sp-path-container">
-            <div className="sp-section-heading">
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                onClick={() => {
-                  if (topic) router.push(`/dashboard/student/map/${topic.topicId}`)
-                }}
-              >
-                <span>YOUR PATH</span>
-                <FiArrowRight size={14} style={{ color: '#22c55e' }} />
-              </div>
-              {topic && (
-                <span
-                  className="sp-fraction"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => router.push(`/dashboard/student/map/${topic.topicId}`)}
-                >
-                  {completedCount} of {totalCount} · View Map
-                </span>
-              )}
-            </div>
-
-            <div className="sp-path-scroll-area">
-              {isLoadingPath ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 0' }}>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} style={{
-                      height: 72,
-                      borderRadius: 16,
-                      background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
-                      backgroundSize: '200% 100%',
-                      animation: 'shimmer 1.4s infinite',
-                      border: '1px solid rgba(255,255,255,0.06)'
-                    }} />
-                  ))}
-                </div>
-              ) : topic ? (
-                <div className="sp-path-interactive" ref={containerRef}>
-
-                  {/* SVG Curve Path Connectors (Both Solid & Broken Lines Connecting the Dots) */}
-                  <svg className="sp-path-svg-canvas" xmlns="http://www.w3.org/2000/svg">
-                    {lineSegments.map((seg) => {
-                      if (seg.isSolid) {
-                        // Solid green line connecting completed nodes
-                        return (
-                          <line
-                            key={seg.id}
-                            x1={seg.x1}
-                            y1={seg.y1}
-                            x2={seg.x2}
-                            y2={seg.y2}
-                            stroke="#22c55e"
-                            strokeWidth="5"
-                            strokeLinecap="round"
-                          />
-                        )
-                      } else {
-                        // Broken / dashed line connecting the dots for upcoming & locked nodes
-                        return (
-                          <line
-                            key={seg.id}
-                            x1={seg.x1}
-                            y1={seg.y1}
-                            x2={seg.x2}
-                            y2={seg.y2}
-                            stroke="#4e6288"
-                            strokeWidth="4"
-                            strokeDasharray="6 8"
-                            strokeLinecap="round"
-                          />
-                        )
-                      }
-                    })}
-                  </svg>
-
-                  {/* Nodes List */}
-                  <div className="sp-path-nodes-list">
-                    {topic.nodes.map((node, i) => {
-                      const isCompleted = node.status === 'completed'
-                      const isActive = node.status === 'active'
-                      const isLocked = node.status === 'locked'
-
-                      return (
-                        <div
-                          key={node.id}
-                          className={`sp-path-row sp-path-row-${i % 8}`}
+                <aside className="sr-card sr-goal">
+                  <div className="sr-goal-top">
+                    <div className="sr-ring" style={{ background: `conic-gradient(var(--sr-green) ${goalPercent * 3.6}deg, var(--sr-track) 0)` }}>
+                      <div>{goalPercent}%</div>
+                    </div>
+                    <div className="sr-goal-top-text">
+                      <div className="sr-goal-header-row">
+                        <p className="sr-eyebrow">Daily goal</p>
+                        <button
+                          type="button"
+                          className="sr-goal-edit-btn"
+                          onClick={() => setShowGoalPicker((prev) => !prev)}
+                          aria-label="Adjust daily goal target"
                         >
-                          <div
-                            className="sp-node-anchor"
-                            onClick={() => {
-                              const targetTopicId = topic.topicId
-                              router.push(`/dashboard/student/map/${targetTopicId}?node=${node.id}`)
-                            }}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            {/* Node Circle */}
-                            <div
-                              ref={(el) => {
-                                circleRefs.current[i] = el
-                              }}
-                              className={`sp-node-circle ${
-                                isCompleted ? 'completed' : isActive ? 'active' : 'locked'
-                              }`}
-                            >
-                              {isActive && <span className="sp-up-next-badge">UP NEXT</span>}
-
-                              {isCompleted ? (
-                                <FiCheck strokeWidth={3} />
-                              ) : isActive ? (
-                                <FiPlay size={18} style={{ marginLeft: 2 }} />
-                              ) : (
-                                <FiLock size={16} />
-                              )}
-                            </div>
-
-                            {/* Node Card */}
-                            <div className={`sp-node-card ${isActive ? 'active' : ''}`}>
-                              <h4 className="sp-node-card-title">{node.title}</h4>
-                              <p className={`sp-node-card-sub ${isCompleted ? 'completed' : ''}`}>
-                                {isCompleted && `Completed · +${node.xp} XP`}
-                                {isActive && `${node.duration} · +${node.xp} XP`}
-                                {isLocked && (node.id === topic.nodes.length ? `Locked · +${node.xp} XP` : 'Locked')}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : (
-                /* Empty State Placeholder Dotted Box */
-                <div className="sp-empty-path-box">
-                  <svg
-                    className="sp-empty-nodes-icon"
-                    width="80"
-                    height="48"
-                    viewBox="0 0 80 48"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  >
-                    <circle cx="16" cy="36" r="10" stroke="currentColor" />
-                    <circle cx="40" cy="14" r="10" stroke="currentColor" />
-                    <circle cx="64" cy="36" r="10" stroke="currentColor" />
-                    <line x1="24" y1="28" x2="32" y2="20" stroke="currentColor" />
-                    <line x1="48" y1="20" x2="56" y2="28" stroke="currentColor" />
-                  </svg>
-                  <p className="sp-empty-path-text">
-                    Your interactive lesson path will appear here once you upload a document.
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-        </main>
-
-        {/* ── RIGHT SIDEBAR (Desktop Widgets) ── */}
-        <aside className="sp-right-sidebar">
-          {/* Daily Goal Widget */}
-          <div className="sp-widget-card">
-            <div className="sp-daily-goal-content">
-              {/* Radial Progress Ring (60%) */}
-              <div className="sp-radial-chart">
-                <svg width="68" height="68" viewBox="0 0 68 68">
-                  <circle
-                    cx="34"
-                    cy="34"
-                    r="28"
-                    stroke="#1e2942"
-                    strokeWidth="6"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="34"
-                    cy="34"
-                    r="28"
-                    stroke="#22c55e"
-                    strokeWidth="6"
-                    fill="transparent"
-                    strokeDasharray={2 * Math.PI * 28}
-                    strokeDashoffset={2 * Math.PI * 28 * (1 - 0.6)}
-                    strokeLinecap="round"
-                    transform="rotate(-90 34 34)"
-                  />
-                </svg>
-                <div className="sp-radial-text">60%</div>
-              </div>
-
-              <div className="sp-daily-goal-info">
-                <h4>DAILY GOAL</h4>
-                <div className="sp-daily-goal-value">
-                  {realStats.dailyGoalXp} / {realStats.dailyGoalTarget} XP
-                </div>
-                <div className="sp-daily-goal-sub">One more lesson to go</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Streak Widget */}
-          <div className="sp-widget-card">
-            <div className="sp-widget-header">
-              <span className="sp-widget-title">STREAK</span>
-              <span className="sp-widget-highlight">{realStats.streak} day streak</span>
-            </div>
-
-            <div className="sp-streak-days-row">
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
-                // Mark days up to the streak count as done (capped at 7)
-                const isDone = i < Math.min(realStats.streak, 7)
-                return (
-                  <div key={i} className="sp-streak-day-item">
-                    <div className={`sp-streak-circle ${isDone ? 'done' : 'pending'}`}>
-                      {isDone && <FiCheck strokeWidth={3} />}
-                    </div>
-                    <span className="sp-streak-day-label">{day}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Global League Leaderboard Widget */}
-          <div className="sp-widget-card">
-            <div className="sp-widget-header">
-              <span className="sp-widget-title">GLOBAL LEAGUE</span>
-            </div>
-
-            <div className="sp-league-list">
-              {leaderboard.length > 0 ? (
-                leaderboard.map((entry, i) => {
-                  const medalClass = i === 0 ? 'sp-league-avatar-gold' : i === 1 ? 'sp-league-avatar-silver' : 'sp-league-avatar-bronze'
-                  return (
-                    <div key={i} className="sp-league-row">
-                      <div className="sp-league-left">
-                        <span className="sp-league-rank-num">{i + 1}</span>
-                        <div className={`sp-league-avatar-badge ${medalClass}`}>{entry.initials}</div>
-                        <span className="sp-league-name">{entry.name}</span>
+                          <FiEdit3 size={11} />
+                          <span>{showGoalPicker ? 'Close' : 'Adjust'}</span>
+                        </button>
                       </div>
-                      <span className="sp-league-xp">{entry.xp.toLocaleString()} XP</span>
+                      <h2>{realStats.dailyGoalXp} / {realStats.dailyGoalTarget} XP</h2>
+                      <p className="sr-muted">
+                        {realStats.dailyGoalXp >= realStats.dailyGoalTarget
+                          ? 'Goal complete today! Nice work!'
+                          : `${xpRemaining} XP to go`}
+                      </p>
                     </div>
-                  )
-                })
-              ) : (
-                <div style={{ color: '#64748b', fontSize: 13, padding: '8px 0' }}>No leaderboard data yet</div>
-              )}
-
-              {/* Current User Row */}
-              <div className="sp-league-row current-user">
-                <div className="sp-league-left">
-                  <span className="sp-league-rank-num">·</span>
-                  <div className="sp-league-avatar-badge sp-league-avatar-green">
-                    {firstName[0].toUpperCase()}
                   </div>
-                  <span className="sp-league-name">You</span>
-                </div>
-                <span className="sp-league-xp">{realStats.xp.toLocaleString()} XP</span>
-              </div>
+
+                  {showGoalPicker && (
+                    <div className="sr-goal-presets" aria-label="Select daily target">
+                      {[20, 30, 50, 100, 150].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          disabled={isUpdatingGoal}
+                          className={`sr-goal-chip ${realStats.dailyGoalTarget === preset ? 'active' : ''}`}
+                          onClick={() => handleSelectGoalTarget(preset)}
+                        >
+                          {preset} XP
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="sr-week">
+                    <p className="sr-eyebrow">This week</p>
+                    <div className="sr-week-row">
+                      {weekDays.map((d) => {
+                        const isToday = d.index === todayDayIndex
+                        const isDone = realStats.weekDaysActive.includes(d.index) || (isToday && realStats.dailyGoalXp > 0)
+                        return (
+                          <div
+                            className={`sr-day ${isToday ? 'today' : ''}`}
+                            key={d.index}
+                            title={`${d.name}: ${isDone ? 'Activity logged' : isToday ? 'Today' : 'No activity yet'}`}
+                          >
+                            <span className={isDone ? 'done' : ''}>
+                              {isDone ? <FiCheck /> : isToday ? '•' : null}
+                            </span>
+                            {d.label}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </aside>
+
+                <section className="sr-tools">
+                  <h2 className="sr-section-title">Quick tools</h2>
+                  <div className="sr-tools-grid">
+                    <Link href="/dashboard/tutor" className="sr-card sr-tool"><span className="sr-tool-icon purple"><FiCpu /></span><span><b>AI Tutor</b><small>Ask anything</small></span></Link>
+                    <Link href="/dashboard/question-bank" className="sr-card sr-tool"><span className="sr-tool-icon orange"><FiCheckSquare /></span><span><b>Question Generation</b><small>Generate questions from a topic</small></span></Link>
+                    <Link href="/dashboard/pdf-summary" className="sr-card sr-tool"><span className="sr-tool-icon green"><FiFileText /></span><span><b>Summarize PDF</b><small>Get key ideas from your PDF</small></span></Link>
+                    <Link href="/dashboard/leaderboard" className="sr-card sr-tool"><span className="sr-tool-icon amber"><FiAward /></span><span><b>Leaderboard</b><small>Global league</small></span></Link>
+                  </div>
+                </section>
+
+                <section className="sr-path">
+                  <div className="sr-path-head"><h2 className="sr-section-title">Your path</h2>{topic && <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`}>{completedCount} of {totalCount} · View map</Link>}</div>
+                  {isLoadingPath ? (
+                    <div className="sr-rail sr-loading" aria-label="Loading your study path">{[0, 1, 2].map((item) => <div className="sr-node" key={item}><span className="sr-node-circle" /><span className="sr-node-card" /></div>)}</div>
+                  ) : isTopicComplete && topic ? (
+                    <div className="sr-card" style={{ padding: '24px', textAlign: 'center', background: 'var(--sr-card)', borderRadius: '16px', border: '1px solid var(--sr-border)' }}>
+                      <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', marginBottom: '8px' }}>
+                        <FiAward size={28} />
+                      </div>
+                      <h3 style={{ margin: '4px 0', fontSize: '18px', fontWeight: 800 }}>Topic Completed!</h3>
+                      <p style={{ margin: '4px 0 16px', color: 'var(--sr-muted)', fontSize: '14px' }}>
+                        You passed the Unit Challenge. All {topic.nodes.length} lessons and overview questions are complete.
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                        <button className="sr-btn sr-primary" onClick={openGenerateModal}><FiPlus />New topic</button>
+                        <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`} className="sr-btn sr-outline" style={{ display: 'inline-flex', alignItems: 'center' }}>Review map</Link>
+                      </div>
+                    </div>
+                  ) : topic && previewNodes.length ? (
+                    <div className="sr-rail">
+                      {previewNodes.map((node) => {
+                        const active = node.status === 'active'
+                        const done = node.status === 'completed'
+                        return <button key={node.id} className={`sr-node ${active ? 'active' : done ? 'done' : 'locked'}`} onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}?node=${node.id}`)}>
+                          <span className="sr-node-circle">{done ? <FiCheck /> : active ? <FiPlay fill="currentColor" /> : <FiLock />}</span>
+                          <span className="sr-node-card">{active && <span className="sr-up-next">Up next</span>}<b>{node.title}</b><small>{node.duration}{active ? ` · +${node.xp} XP` : ''}</small></span>
+                        </button>
+                      })}
+                    </div>
+                  ) : (
+                    <div className="sr-empty-path"><IoSparklesSharp /><p>Your interactive lesson path will appear here once you upload a document.</p><button className="sr-btn sr-outline" onClick={openGenerateModal}>Upload material</button></div>
+                  )}
+                  {!isLoadingPath && topic && !isTopicComplete && pathRemaining > 0 && <p className="sr-more">+ {pathRemaining} more · <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`}>View map</Link></p>}
+                </section>
+              </main>
+
+              <nav className="sr-tabbar" aria-label="Mobile navigation">
+                <Link href="/dashboard/student" className="active"><FiBookOpen />Home</Link>
+                <Link href={`/dashboard/student/map/${encodeURIComponent(topic?.topicId || 'default')}`}><FiMap />Map</Link>
+                <Link href="/dashboard/notes-history"><FiFileText />Notes</Link>
+                <Link href="/dashboard/profile"><FiUser />Profile</Link>
+              </nav>
             </div>
           </div>
-        </aside>
-
-        {/* ── NODE DETAIL MODAL ── */}
-        {selectedNode && (
-          <div className="sp-modal-overlay" onClick={() => setSelectedNode(null)}>
-            <div className="sp-modal-box" onClick={(e) => e.stopPropagation()}>
-              <div className="sp-modal-header">
-                <div>
-                  <span
-                    className={`sp-modal-badge ${
-                      selectedNode.status === 'completed'
-                        ? 'completed'
-                        : selectedNode.status === 'active'
-                        ? 'active'
-                        : 'locked'
-                    }`}
-                  >
-                    {selectedNode.status === 'completed' && 'Completed'}
-                    {selectedNode.status === 'active' && 'Up Next'}
-                    {selectedNode.status === 'locked' && 'Locked'}
-                  </span>
-                  <h3 className="sp-modal-title">{selectedNode.title}</h3>
-                </div>
-                <button
-                  className="sp-modal-close-btn"
-                  onClick={() => setSelectedNode(null)}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              <div className="sp-modal-meta-row">
-                <div className="sp-modal-meta-item">
-                  <FiClock />
-                  <span>{selectedNode.duration}</span>
-                </div>
-                <div className="sp-modal-meta-item">
-                  <FiZap style={{ color: '#fbbf24' }} />
-                  <span>+{selectedNode.xp} XP</span>
-                </div>
-              </div>
-
-              <p className="sp-modal-summary">{selectedNode.summary}</p>
-
-              {selectedNode.keyConcepts && selectedNode.keyConcepts.length > 0 && (
-                <div>
-                  <div className="sp-modal-concepts-title">Key Concepts</div>
-                  <div className="sp-modal-concepts-tags">
-                    {selectedNode.keyConcepts.map((concept, idx) => (
-                      <span key={idx} className="sp-modal-tag">
-                        {concept}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.status === 'completed' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
-                  <button
-                    className="sp-modal-btn-primary"
-                    onClick={() => {
-                      const id = selectedNode.id
-                      setSelectedNode(null)
-                      router.push(`/dashboard/student/lesson/${id}`)
-                    }}
-                  >
-                    <FiPlay />
-                    <span>Review Concept</span>
-                  </button>
-                  <button
-                    className="sp-modal-btn-primary"
-                    style={{
-                      background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-                      color: '#FFFFFF',
-                      boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
-                    }}
-                    onClick={() => {
-                      const id = selectedNode.id
-                      const tId = topic?.topicId
-                      setSelectedNode(null)
-                      router.push(`/vault/${tId}?nodeId=${id}`)
-                    }}
-                  >
-                    <FiZap />
-                    <span>Active Recall</span>
-                  </button>
-                </div>
-              ) : selectedNode.status === 'active' ? (
-                <button
-                  className="sp-modal-btn-primary"
-                  onClick={() => {
-                    const id = selectedNode.id
-                    setSelectedNode(null)
-                    router.push(`/dashboard/student/lesson/${id}`)
-                  }}
-                >
-                  <FiPlay />
-                  <span>Start Learning</span>
-                </button>
-              ) : (
-                <button
-                  className="sp-btn-paste"
-                  style={{ width: '100%', opacity: 0.7 }}
-                  disabled
-                >
-                  Complete previous lessons to unlock
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
+        </div>
         {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}
         {showGenerateModal && (
           <div className="sp-modal-overlay" onClick={closeGenerateModal}>
@@ -962,7 +595,7 @@ export default function StudentDashboardPage() {
                     onDrop={handleDrop}
                     onClick={() => !extracting && fileInputRef.current?.click()}
                     className={`sp-dropzone ${isDragging ? 'dragging' : ''} ${
-                      uploadedFile && extractedText ? 'done' : ''
+                      uploadedFile && (extractedText || isPdfUpload) ? 'done' : ''
                     }`}
                   >
                     <input
@@ -978,7 +611,7 @@ export default function StudentDashboardPage() {
                         <FiLoader className="animate-spin sp-dropzone-loader" />
                         <p className="sp-dropzone-title">{extractionLabel}</p>
                       </>
-                    ) : uploadedFile && extractedText ? (
+                    ) : uploadedFile && (extractedText || isPdfUpload) ? (
                       <>
                         <div className="sp-dropzone-icon done">
                           <FiCheckCircle />
@@ -986,7 +619,7 @@ export default function StudentDashboardPage() {
                         <div>
                           <p className="sp-dropzone-title sp-dropzone-file">{uploadedFile.name}</p>
                           <p className="sp-dropzone-sub">
-                            {extractedText.length.toLocaleString()} characters extracted
+                            {extractedText ? `${extractedText.length.toLocaleString()} characters extracted` : 'Text and visual slides will be analyzed'}
                           </p>
                         </div>
                         <button
@@ -1066,7 +699,7 @@ export default function StudentDashboardPage() {
                 {isGenerating ? (
                   <>
                     <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Analysing with AI...</span>
+                    <span>{generateStage || 'Analyzing slides...'}</span>
                   </>
                 ) : (
                   <>

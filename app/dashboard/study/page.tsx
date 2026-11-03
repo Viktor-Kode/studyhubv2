@@ -51,7 +51,7 @@ const STUDY_TOOLS = [
     iconBg: 'var(--blue-bg)',
     title: 'Past Questions (CBT)',
     description: 'Real WAEC, JAMB, NECO past exam questions by subject & year',
-    href: '/dashboard/cbt',
+    href: '/dashboard/student/cbt/syllabus',
   },
   {
     id: 'tutor',
@@ -204,7 +204,7 @@ export default function StudyPage() {
                 {lastSession.subtitle}
               </p>
               <Link
-                href="/dashboard/cbt"
+                href="/dashboard/cbt/study"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

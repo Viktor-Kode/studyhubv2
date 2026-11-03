@@ -16,7 +16,7 @@ function getSteps(user: AppUser) {
       description: isUni
         ? `Practice ${user.onboarding?.subjects?.[0] || 'your course'} questions`
         : `Practice ${subj} past questions`,
-      link: '/dashboard/cbt',
+      link: '/dashboard/student/cbt/syllabus',
       done: user.progress?.hasCompletedCBT,
       cta: 'Start Practice →',
       color: '#5B4CF5',

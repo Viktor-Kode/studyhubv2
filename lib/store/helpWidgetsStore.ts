@@ -112,17 +112,3 @@ export const useHelpWidgetsStore = create<HelpWidgetsState>((set, get) => ({
   },
 }))
 
-/** Load preferences from GET /users/me when logged in (overrides localStorage per-field when server sends booleans). */
-export async function fetchAndApplyHelpWidgetPreferences() {
-  try {
-    const { getFirebaseToken } = await import('@/lib/store/authStore')
-    const token = await getFirebaseToken()
-    if (!token) return
-    const { apiClient } = await import('@/lib/api/client')
-    const res = await apiClient.get('/users/me')
-    const prefs = res.data?.data?.user?.preferences
-    useHelpWidgetsStore.getState().applyServerPreferences(prefs)
-  } catch {
-    /* ignore */
-  }
-}

@@ -42,7 +42,7 @@ const GOAL_OPTIONS: GoalOption[] = [
     icon: FiBook,
     title: 'Browse past questions',
     description: 'WAEC, JAMB, NECO',
-    href: '/dashboard/cbt',
+    href: '/dashboard/student/cbt/syllabus',
   },
 ]
 

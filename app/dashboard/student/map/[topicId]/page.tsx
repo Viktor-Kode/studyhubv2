@@ -1,1068 +1,487 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import {
-  type LearningNode,
-  type StudyPathTopic
-} from '@/lib/data/studyPath'
-import '../../study-path.css'
+import { type LearningNode, type StudyPathTopic } from '@/lib/data/studyPath'
+import { getStudyPath, getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getNodeStatuses, prepareStudyPathNode, retryStudyPathNode } from '@/src/services/api'
+import { ArrowLeft, ChevronDown, Check, LockKeyhole, Play, MoreHorizontal, ArrowRight, Trophy, Upload, X, Clock3, Zap, Loader2, RotateCw } from 'lucide-react'
 import '../map.css'
-import { extractTextFromFile } from '@/lib/utils/extraction'
-import { getStudyPath, getActiveStudyPath, getUserStudyPaths, uploadStudyMaterial, deleteStudyPath } from '@/src/services/api'
 
-import {
-  FiArrowLeft,
-  FiChevronDown,
-  FiCheck,
-  FiLock,
-  FiPlay,
-  FiZap,
-  FiClock,
-  FiAward,
-  FiX,
-  FiPlus,
-  FiUploadCloud,
-  FiEdit3,
-  FiLoader,
-  FiCheckCircle,
-  FiTrash2
-} from 'react-icons/fi'
-import { IoSparklesSharp } from 'react-icons/io5'
-
-type InputMode = 'upload' | 'text'
-
-// Human-friendly label shown while a document is being read
-function getExtractionLabel(file: File): string {
-  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'Scanning image with OCR...'
-  if (ext === '.pdf') return 'Extracting PDF pages...'
-  if (ext === '.docx') return 'Reading Word document...'
-  if (ext === '.pptx' || ext === '.ppt') return 'Extracting presentation text...'
-  return 'Reading document...'
+function minutesFor(node: LearningNode): number {
+  const match = String(node.duration || '').match(/\d+/)
+  return match ? Number(match[0]) : 0
 }
 
-function StudyPathMapContent() {
+function mapStatus(status: LearningNode['status']): 'active' | 'locked' | 'done' {
+  return status === 'completed' ? 'done' : status
+}
+
+function LoadingPath() {
+  return (
+    <main className="study-map-path study-map-loading" aria-label="Loading study map">
+      {[0, 1, 2, 3, 4].map((item) => (
+        <div className="study-map-skeleton" key={item}>
+          <span className="study-map-skeleton-circle" />
+          <span className="study-map-skeleton-card" />
+        </div>
+      ))}
+    </main>
+  )
+}
+
+function EmptyPath({ onUpload }: { onUpload: () => void }) {
+  return (
+    <main className="study-map-path study-map-empty">
+      <div className="study-map-empty-card">
+        <h2>No study nodes yet</h2>
+        <p>Upload material to create your study map.</p>
+        <button className="study-map-start" onClick={onUpload}>
+          <Upload size={17} /> Upload material
+        </button>
+      </div>
+    </main>
+  )
+}
+
+function MapNode({
+  node,
+  status,
+  side,
+  onStart,
+  onPreview,
+  onRetry,
+  elementRef,
+}: {
+  node: LearningNode
+  status: 'active' | 'locked' | 'done'
+  side: 'right' | 'left'
+  onStart: (id: number) => void
+  onPreview: (node: LearningNode) => void
+  onRetry: (id: number) => void
+  elementRef: (element: HTMLElement | null) => void
+}) {
+  const contentStatus = node.contentStatus || 'ready'
+
+  if (contentStatus === 'generating') {
+    return (
+      <section ref={elementRef} className={`study-map-node generating ${side}`} aria-label={`${node.title}, generating`}>
+        <span className="study-map-circle" aria-hidden="true">
+          <Loader2 size={22} className="animate-spin" />
+        </span>
+        <span className="study-map-card">
+          <span className="study-map-tag generating">
+            <Loader2 size={12} className="animate-spin" /> PREPARING...
+          </span>
+          <span className="study-map-node-title">{node.title}</span>
+          <span className="study-map-meta">AI generating lesson & quiz...</span>
+        </span>
+      </section>
+    )
+  }
+
+  if (contentStatus === 'failed') {
+    return (
+      <section ref={elementRef} className={`study-map-node locked ${side}`} aria-label={`${node.title}, failed`}>
+        <span className="study-map-circle" aria-hidden="true" style={{ borderColor: 'var(--map-danger)', color: 'var(--map-danger)' }}>
+          <RotateCw size={20} />
+        </span>
+        <span className="study-map-card">
+          <span className="study-map-tag failed">FAILED</span>
+          <span className="study-map-node-title">{node.title}</span>
+          <span className="study-map-meta">Could not generate lesson</span>
+          <button className="study-map-retry-btn" type="button" onClick={() => onRetry(node.id)}>
+            <RotateCw size={14} /> Retry
+          </button>
+        </span>
+      </section>
+    )
+  }
+
+  const isPending = contentStatus === 'pending'
+
+  const content = (
+    <>
+      <span className="study-map-circle" aria-hidden="true">
+        {status === 'active' ? <Play size={24} fill="currentColor" strokeWidth={1.5} /> : status === 'done' ? <Check size={25} strokeWidth={3} /> : <LockKeyhole size={20} strokeWidth={2} />}
+      </span>
+      <span className="study-map-card">
+        {status === 'active' && <span className="study-map-tag">{isPending ? 'READY TO PREPARE' : 'UP NEXT'}</span>}
+        <span className="study-map-node-title">{node.title}</span>
+        <span className="study-map-meta">
+          {status === 'active' ? `${minutesFor(node)} min · +${node.xp ?? 0} XP` : `${minutesFor(node)} min`}
+        </span>
+        {status === 'active' && (
+          <button className="study-map-start" type="button" onClick={() => onStart(node.id)}>
+            START <ArrowRight size={17} strokeWidth={3} />
+          </button>
+        )}
+      </span>
+    </>
+  )
+
+  if (status === 'locked' || isPending) {
+    return <section ref={elementRef} className={`study-map-node locked ${side}`} aria-label={`${node.title}, locked`}>{content}</section>
+  }
+  if (status === 'done') {
+    return (
+      <button ref={elementRef as (element: HTMLButtonElement | null) => void} type="button" className={`study-map-node done ${side}`} onClick={() => onPreview(node)} aria-label={`Preview ${node.title}`}>
+        {content}
+      </button>
+    )
+  }
+  return (
+    <section ref={elementRef} className={`study-map-node active ${side}`} aria-label={`${node.title}, up next`}>
+      <span className="study-map-circle" aria-hidden="true"><Play size={24} fill="currentColor" strokeWidth={1.5} /></span>
+      <span className="study-map-card study-map-card-clickable">
+        <button className="study-map-card-open" type="button" aria-label={`Preview ${node.title}`} onClick={() => onPreview(node)} />
+        <span className="study-map-tag">UP NEXT</span>
+        <span className="study-map-node-title">{node.title}</span>
+        <span className="study-map-meta">{minutesFor(node)} min · +{node.xp ?? 0} XP</span>
+        <button className="study-map-start" type="button" onClick={(event) => { event.stopPropagation(); onStart(node.id) }}>
+          START <ArrowRight size={17} strokeWidth={3} />
+        </button>
+      </span>
+    </section>
+  )
+}
+
+function StudyMapContent() {
   const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const rawParamId = params?.topicId as string
-  const topicId = rawParamId && rawParamId !== 'default' ? rawParamId : ''
-
-  // Topic State
+  const rawTopicId = params?.topicId as string | undefined
+  const topicId = rawTopicId && rawTopicId !== 'default' ? rawTopicId : ''
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
   const [userTopics, setUserTopics] = useState<StudyPathTopic[]>([])
-  const [isLoadingPath, setIsLoadingPath] = useState(true)
-  const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [showNewTopicModal, setShowNewTopicModal] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [topicMenuOpen, setTopicMenuOpen] = useState(false)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [previewNode, setPreviewNode] = useState<LearningNode | null>(null)
+  const nodeElements = useRef(new Map<number, HTMLElement>())
+  const challengeElement = useRef<HTMLElement | null>(null)
+  const switcherRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  // Progressive generation: track node content statuses
+  const [nodeContentStatuses, setNodeContentStatuses] = useState<Record<number, { contentStatus: string; generationError?: string | null }>>({})
+  const [retryingNodeIds, setRetryingNodeIds] = useState<Set<number>>(new Set())
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const allReadyRef = useRef(false)
 
-  // New topic input state (upload document or paste text)
-  const [inputMode, setInputMode] = useState<InputMode>('upload')
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [extractedText, setExtractedText] = useState('')
-  const [manualText, setManualText] = useState('')
-  const [extracting, setExtracting] = useState(false)
-  const [extractionLabel, setExtractionLabel] = useState('')
-  const [isDragging, setIsDragging] = useState(false)
-  const [inputError, setInputError] = useState<string | null>(null)
-  const [generateError, setGenerateError] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Circle refs for dynamic SVG connector lines
-  const containerRef = useRef<HTMLDivElement>(null)
-  const circleRefs = useRef<(HTMLDivElement | null)[]>([])
-  const [lineSegments, setLineSegments] = useState<{
-    id: string
-    x1: number
-    y1: number
-    x2: number
-    y2: number
-    isSolid: boolean
-  }[]>([])
-
-  // Load all user topics for dropdown switcher (no demo data)
   useEffect(() => {
     let cancelled = false
-
-    const loadAllTopics = async () => {
-      const topicMap = new Map<string, StudyPathTopic>()
-
-      // 1. From localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          const rawActive = localStorage.getItem('studyhelp_active_topic')
-          if (rawActive) {
-            const parsed = JSON.parse(rawActive)
-            if (parsed?.topicId && !parsed.topicId.startsWith('csc202') && !parsed.topicId.startsWith('mth201')) {
-              topicMap.set(parsed.topicId, parsed)
-            }
-          }
-          const rawSaved = localStorage.getItem('studyhelp_saved_topics')
-          if (rawSaved) {
-            const list: StudyPathTopic[] = JSON.parse(rawSaved)
-            if (Array.isArray(list)) {
-              list.forEach((t) => {
-                if (t?.topicId && !t.topicId.startsWith('csc202') && !t.topicId.startsWith('mth201')) {
-                  topicMap.set(t.topicId, t)
-                }
-              })
-            }
-          }
-        } catch {}
-      }
-
-      // 2. From Backend
+    setLoading(true)
+    const load = async () => {
       try {
-        const backendList = await getUserStudyPaths()
-        if (Array.isArray(backendList)) {
-          backendList.forEach((t) => {
-            if (t?.topicId && !t.topicId.startsWith('csc202') && !t.topicId.startsWith('mth201')) {
-              topicMap.set(t.topicId, t)
-            }
-          })
+        const result = topicId ? await getStudyPath(topicId) : await getActiveStudyPath()
+        let resolved = result as StudyPathTopic | null
+        if (!resolved && typeof window !== 'undefined') {
+          const active = localStorage.getItem('studyhelp_active_topic')
+          const saved = localStorage.getItem('studyhelp_saved_topics')
+          const choices: StudyPathTopic[] = [
+            ...(active ? [JSON.parse(active) as StudyPathTopic] : []),
+            ...(saved ? JSON.parse(saved) as StudyPathTopic[] : []),
+          ]
+          resolved = choices.find((item) => item?.topicId === topicId || (!topicId && item?.topicId)) || resolved
         }
-      } catch {}
-
-      if (!cancelled) {
-        setUserTopics(Array.from(topicMap.values()))
-      }
-    }
-
-    loadAllTopics()
-    return () => { cancelled = true }
-  }, [topic?.topicId])
-
-  // Load topic: try backend by topicId, then localStorage
-  useEffect(() => {
-    let cancelled = false
-    setIsLoadingPath(true)
-
-    const loadFromLocal = () => {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('studyhelp_active_topic')
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved)
-            if (parsed && (parsed.topicId === topicId || !topicId)) {
-              if (!cancelled) setTopic(parsed)
-              return true
-            }
-          } catch { /* ignore */ }
-        }
-        const rawSaved = localStorage.getItem('studyhelp_saved_topics')
-        if (rawSaved) {
-          try {
-            const list: StudyPathTopic[] = JSON.parse(rawSaved)
-            const found = list.find((t) => t.topicId === topicId || !topicId)
-            if (found) {
-              if (!cancelled) setTopic(found)
-              return true
-            }
-          } catch {}
-        }
-      }
-      return false
-    }
-
-    const backendFetch = topicId
-      ? getStudyPath(topicId)
-      : getActiveStudyPath()
-
-    backendFetch
-      .then((backendPath) => {
-        if (cancelled) return
-        if (backendPath && backendPath.nodes?.length > 0) {
-          setTopic(backendPath)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('studyhelp_active_topic', JSON.stringify(backendPath))
-            try {
-              const rawSaved = localStorage.getItem('studyhelp_saved_topics')
-              const list: StudyPathTopic[] = rawSaved ? JSON.parse(rawSaved) : []
-              const updated = [backendPath, ...list.filter((p) => p.topicId !== backendPath.topicId)]
-              localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
-            } catch {}
-          }
-        } else {
-          const foundLocal = loadFromLocal()
-          if (!foundLocal && !cancelled) setTopic(null)
-        }
-      })
-      .catch(() => {
         if (!cancelled) {
-          const foundLocal = loadFromLocal()
-          if (!foundLocal) setTopic(null)
+          setTopic(resolved)
+          if (resolved?.topicId && typeof window !== 'undefined') {
+            localStorage.setItem('studyhelp_active_topic', JSON.stringify(resolved))
+          }
         }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPath(false)
-      })
-
+      } catch {
+        if (!cancelled) setTopic(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
     return () => { cancelled = true }
   }, [topicId])
 
-  // Active node (UP NEXT) — safe when topic is null during loading
-  const activeNode = useMemo(() => {
-    if (!topic) return null
-    return topic.nodes.find((n) => n.status === 'active') || topic.nodes[0]
-  }, [topic])
-
-  // Auto-select node if requested in URL query (e.g. ?node=4)
   useEffect(() => {
-    const nodeParam = searchParams.get('node')
-    if (nodeParam && topic) {
-      const targetId = parseInt(nodeParam, 10)
-      const target = topic.nodes.find((n) => n.id === targetId)
-      if (target) {
-        setSelectedNode(target)
-      }
-    }
-  }, [searchParams, topic])
-
-  // Completed count and totals
-  const completedCount = useMemo(() => {
-    if (!topic || !topic.nodes) return 0
-    return topic.nodes.filter((n) => n.status === 'completed').length
-  }, [topic])
-
-  const totalCount = topic?.nodes?.length || 0
-
-
-  // Recalculate SVG connector coordinates
-  useEffect(() => {
-    const updateLines = () => {
-      if (!containerRef.current || !topic || !topic.nodes) return
-      const containerRect = containerRef.current.getBoundingClientRect()
-      const newSegments: {
-        id: string
-        x1: number
-        y1: number
-        x2: number
-        y2: number
-        isSolid: boolean
-      }[] = []
-
-      for (let i = 0; i < topic.nodes.length - 1; i++) {
-        const c1 = circleRefs.current[i]
-        const c2 = circleRefs.current[i + 1]
-        if (!c1 || !c2) continue
-
-        const r1 = c1.getBoundingClientRect()
-        const r2 = c2.getBoundingClientRect()
-
-        const x1 = r1.left + r1.width / 2 - containerRect.left
-        const y1 = r1.top + r1.height / 2 - containerRect.top
-        const x2 = r2.left + r2.width / 2 - containerRect.left
-        const y2 = r2.top + r2.height / 2 - containerRect.top
-
-        const node1 = topic.nodes[i]
-        const node2 = topic.nodes[i + 1]
-
-        // Solid green path connects completed nodes; dotted connects upcoming & locked
-        const isSolid =
-          node1.status === 'completed' &&
-          (node2.status === 'completed' || node2.status === 'active')
-
-        newSegments.push({
-          id: `seg-${node1.id}-${node2.id}`,
-          x1,
-          y1,
-          x2,
-          y2,
-          isSolid
-        })
-      }
-
-      setLineSegments(newSegments)
-    }
-
-    const timer = setTimeout(updateLines, 100)
-    window.addEventListener('resize', updateLines)
-
-    let ro: ResizeObserver | null = null
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-      ro = new ResizeObserver(() => updateLines())
-      ro.observe(containerRef.current)
-    }
-
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener('resize', updateLines)
-      if (ro) ro.disconnect()
-    }
-  }, [topic])
-
-  // Open / close the new topic modal
-  const openNewTopicModal = () => {
-    setInputError(null)
-    setShowNewTopicModal(true)
-  }
-
-  const closeNewTopicModal = () => {
-    setShowNewTopicModal(false)
-    setInputError(null)
-  }
-
-
-  // Delete current topic: backend + localStorage
-  const handleDeleteCurrentTopic = async () => {
-    if (!topic?.topicId) return
-    const tid = topic.topicId
-    setIsDeleting(true)
-    try {
-      await deleteStudyPath(tid)
-    } catch { /* ignore backend errors — still remove locally */ }
-
-    if (typeof window !== 'undefined') {
+    let cancelled = false
+    const loadTopics = async () => {
+      const topics = new Map<string, StudyPathTopic>()
       try {
-        const rawActive = localStorage.getItem('studyhelp_active_topic')
-        if (rawActive) {
-          const parsed = JSON.parse(rawActive)
-          if (parsed?.topicId === tid) localStorage.removeItem('studyhelp_active_topic')
+        const active = localStorage.getItem('studyhelp_active_topic')
+        const saved = localStorage.getItem('studyhelp_saved_topics')
+        if (active) {
+          const item = JSON.parse(active) as StudyPathTopic
+          if (item.topicId) topics.set(item.topicId, item)
         }
-        const rawSaved = localStorage.getItem('studyhelp_saved_topics')
-        if (rawSaved) {
-          const list = JSON.parse(rawSaved)
-          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(list.filter((t: any) => t.topicId !== tid)))
+        if (saved) {
+          const items = JSON.parse(saved) as StudyPathTopic[]
+          if (Array.isArray(items)) items.forEach((item) => { if (item?.topicId) topics.set(item.topicId, item) })
         }
-      } catch {}
+      } catch { /* ignore malformed local cache */ }
+      try {
+        const remote = await getUserStudyPaths()
+        if (Array.isArray(remote)) remote.forEach((item: StudyPathTopic) => { if (item?.topicId) topics.set(item.topicId, item) })
+      } catch { /* local topics remain available */ }
+      if (!cancelled) setUserTopics(Array.from(topics.values()))
     }
+    void loadTopics()
+    return () => { cancelled = true }
+  }, [topicId, topic?.topicId])
 
-    const remaining = userTopics.filter((t) => t.topicId !== tid)
-    setUserTopics(remaining)
-    setIsDeleting(false)
-    setShowDeleteConfirm(false)
-
-    if (remaining.length > 0) {
-      router.push(`/dashboard/student/map/${remaining[0].topicId}`)
-    } else {
-      router.push('/dashboard/student')
+  useEffect(() => {
+    const closeMenus = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (!switcherRef.current?.contains(target)) setTopicMenuOpen(false)
+      if (!menuRef.current?.contains(target)) setMoreMenuOpen(false)
     }
-  }
-
-  // File upload & text extraction
-  const handleFile = useCallback(async (file: File) => {
-    const MAX_MB = 50
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setInputError(`File too large. Maximum is ${MAX_MB}MB.`)
-      return
-    }
-    setUploadedFile(file)
-    setExtractedText('')
-    setInputError(null)
-    setExtractionLabel(getExtractionLabel(file))
-    setExtracting(true)
-    try {
-      const text = await extractTextFromFile(file)
-      if (!text || text.trim().length < 30) {
-        setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
-        setUploadedFile(null)
-        setExtractedText('')
-      } else {
-        setExtractedText(text)
-      }
-    } catch (e: any) {
-      setInputError(e?.message || 'Failed to read file.')
-      setUploadedFile(null)
-      setExtractedText('')
-    } finally {
-      setExtracting(false)
-      setExtractionLabel('')
-    }
+    document.addEventListener('mousedown', closeMenus)
+    return () => document.removeEventListener('mousedown', closeMenus)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
-  }, [handleFile])
-
-  const sourceText = inputMode === 'upload' ? extractedText : manualText
-  const textReady =
-    inputMode === 'upload'
-      ? !!extractedText && !extracting
-      : manualText.trim().length >= 50
-
-  // Handle generation — sends PDF/text to the real backend
-  const handleGenerateStudyPath = async () => {
-    if (!textReady) return
-    setInputError(null)
-    setGenerateError(null)
-    setIsGenerating(true)
-    try {
-      const title =
-        inputMode === 'upload' && uploadedFile
-          ? uploadedFile.name.replace(/\.[^/.]+$/, '')
-          : sourceText.split('\n')[0].slice(0, 60).trim() || 'Study Material'
-
-      let studyPath: StudyPathTopic
-      if (inputMode === 'upload' && uploadedFile) {
-        studyPath = await uploadStudyMaterial(uploadedFile, { title })
-      } else {
-        studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
-      }
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
-        try {
-          const rawSaved = localStorage.getItem('studyhelp_saved_topics')
-          const list: StudyPathTopic[] = rawSaved ? JSON.parse(rawSaved) : []
-          const updated = [studyPath, ...list.filter((p) => p.topicId !== studyPath.topicId)]
-          localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
-        } catch {}
-      }
-      setTopic(studyPath)
-      setUserTopics((prev) => [studyPath, ...prev.filter((p) => p.topicId !== studyPath.topicId)])
-      setShowNewTopicModal(false)
-      setUploadedFile(null)
-      setExtractedText('')
-      setManualText('')
-      router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
-    } catch (err: any) {
-      setGenerateError(err?.message || 'Failed to generate study path. Please try again.')
-    } finally {
-      setIsGenerating(false)
+  useEffect(() => {
+    if (!previewNode) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPreviewNode(null)
     }
+    document.addEventListener('keydown', onKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [previewNode])
+
+  const nodes = topic?.nodes || []
+  const completedCount = useMemo(() => nodes.filter((node) => node.status === 'completed').length, [nodes])
+  const isChallengeCompleted = Boolean(topic?.challenge?.status === 'completed' || topic?.challenge?.passed || topic?.completed)
+  const totalCount = nodes.length + 1 // Challenge is part of the displayed map total.
+  const displayCompletedCount = completedCount + (isChallengeCompleted ? 1 : 0)
+  const allDone = nodes.length > 0 && completedCount === nodes.length
+  const activeNode = nodes.find((node) => node.status === 'active')
+  const maxXp = topic?.challenge?.maxXp || 50
+  const bestScore = topic?.challenge?.bestScore ?? 0
+  const bestXp = topic?.challenge?.bestXp ?? 0
+  const setNodeElement = useCallback((id: number, element: HTMLElement | null) => {
+    if (element) nodeElements.current.set(id, element)
+    else nodeElements.current.delete(id)
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+    const target = activeNode ? nodeElements.current.get(activeNode.id) : allDone ? challengeElement.current : null
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [loading, topic, activeNode, allDone])
+
+  // Progressive generation polling – runs while any node is pending/generating
+  const startPolling = useCallback((id: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current)
+    pollingRef.current = setInterval(async () => {
+      if (allReadyRef.current) { clearInterval(pollingRef.current!); pollingRef.current = null; return }
+      try {
+        const statusData = await getNodeStatuses(id)
+        if (!statusData) return
+        const map: Record<number, { contentStatus: string; generationError?: string | null }> = {}
+        for (const n of statusData.nodes) map[n.id] = { contentStatus: n.contentStatus, generationError: n.generationError }
+        setNodeContentStatuses(map)
+        if (statusData.allReady) {
+          allReadyRef.current = true
+          clearInterval(pollingRef.current!); pollingRef.current = null
+          const fresh = await getStudyPath(id)
+          if (fresh) { setTopic(fresh); if (typeof window !== 'undefined') localStorage.setItem('studyhelp_active_topic', JSON.stringify(fresh)) }
+        }
+      } catch { /* ignore transient polling errors */ }
+    }, 3000)
+  }, [])
+
+  useEffect(() => {
+    if (!topicId || loading || !topic) return
+    const hasPending = topic.nodes.some((n) => n.contentStatus === 'pending' || n.contentStatus === 'generating')
+    if (hasPending) { allReadyRef.current = false; startPolling(topicId) }
+    else allReadyRef.current = true
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
+  }, [topicId, loading, topic, startPolling])
+
+  const openLesson = useCallback(async (nodeId: number) => {
+    if (!topic?.topicId) { router.push(`/dashboard/student/lesson/${nodeId}`); return }
+    const node = topic.nodes.find((n) => n.id === nodeId)
+    const cs = nodeContentStatuses[nodeId]?.contentStatus || node?.contentStatus || 'ready'
+    if (cs === 'generating') return // still generating, ignore clicks
+    if (cs === 'pending' || cs === 'failed') {
+      // Priority prepare this node first
+      try {
+        await prepareStudyPathNode(topic.topicId, nodeId, { bufferNext: true })
+      } catch { /* fall through */ }
+    }
+    router.push(`/dashboard/student/lesson/${nodeId}`)
+  }, [topic, nodeContentStatuses, router])
+
+  const handleRetryNode = useCallback(async (nodeId: number) => {
+    if (!topic?.topicId) return
+    setRetryingNodeIds((prev) => new Set(prev).add(nodeId))
+    setNodeContentStatuses((prev) => ({ ...prev, [nodeId]: { contentStatus: 'generating' } }))
+    try {
+      await retryStudyPathNode(topic.topicId, nodeId)
+      allReadyRef.current = false
+      startPolling(topic.topicId)
+    } catch { /* polling will pick up failed state */ }
+    setRetryingNodeIds((prev) => { const next = new Set(prev); next.delete(nodeId); return next })
+  }, [topic, startPolling])
+
+  const deleteTopic = async () => {
+    if (!topic?.topicId || !window.confirm('Delete this topic and all its progress? This cannot be undone.')) return
+    const deletingId = topic.topicId
+    try { await deleteStudyPath(deletingId) } catch { /* clear local copy even if the backend is unavailable */ }
+    try {
+      const active = localStorage.getItem('studyhelp_active_topic')
+      if (active && (JSON.parse(active) as StudyPathTopic).topicId === deletingId) localStorage.removeItem('studyhelp_active_topic')
+      const saved = localStorage.getItem('studyhelp_saved_topics')
+      if (saved) {
+        const remaining = (JSON.parse(saved) as StudyPathTopic[]).filter((item) => item.topicId !== deletingId)
+        localStorage.setItem('studyhelp_saved_topics', JSON.stringify(remaining))
+      }
+    } catch { /* ignore malformed local cache */ }
+    const remainingTopics = userTopics.filter((item) => item.topicId !== deletingId)
+    setUserTopics(remainingTopics)
+    if (remainingTopics[0]) router.push(`/dashboard/student/map/${encodeURIComponent(remainingTopics[0].topicId)}`)
+    else router.push('/dashboard/student')
   }
 
-  // Scroll to active node
-  const handleScrollToFocus = () => {
-    if (!activeNode || !topic) return
-    const idx = topic.nodes.findIndex((n) => n.id === activeNode.id)
-    if (idx !== -1 && circleRefs.current[idx]) {
-      circleRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setSelectedNode(activeNode)
-    }
+  const selectTopic = (item: StudyPathTopic) => {
+    setTopicMenuOpen(false)
+    router.push(`/dashboard/student/map/${encodeURIComponent(item.topicId)}`)
   }
 
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
-      <div className="sm-map-root">
-        {/* Loading skeleton while fetching path from backend */}
-        {isLoadingPath && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 16 }}>
-            <FiLoader size={28} style={{ color: '#22c55e', animation: 'spin 1s linear infinite' }} />
-            <span style={{ color: '#94a3b8', fontSize: 14, fontWeight: 600, letterSpacing: '0.05em' }}>Loading your study path...</span>
-          </div>
-        )}
-        {!isLoadingPath && !topic && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 16 }}>
-            <span style={{ color: '#94a3b8', fontSize: 15 }}>No study path found.</span>
-            <button className="sm-btn-back" onClick={() => router.push('/dashboard/student')} style={{ padding: '10px 24px' }}>← Back to Dashboard</button>
-          </div>
-        )}
-        {!isLoadingPath && topic && (
-          <>
-            <div className="sm-map-container">
-          {/* ── TOP BAR ── */}
-          <header className="sm-topbar">
-            {/* Back button */}
-            <button
-              className="sm-btn-back"
-              onClick={() => router.push('/dashboard/student')}
-              aria-label="Back to Dashboard"
-            >
-              <FiArrowLeft />
+      <div className="study-map-shell">
+        <div className="study-map-frame">
+          <nav className="study-map-bar" aria-label="Study map navigation">
+            <button className="study-map-icon-button" aria-label="Back to dashboard" onClick={() => router.push('/dashboard/student')}>
+              <ArrowLeft size={19} strokeWidth={2.4} />
             </button>
-
-            {/* Course dropdown pill */}
-            <div className="sm-course-pill-wrap">
-              <button
-                className="sm-course-pill"
-                onClick={() => setDropdownOpen((prev) => !prev)}
-              >
-                <span className="sm-course-pill-text">{topic?.courseCode}</span>
-                <FiChevronDown />
+            <div className="study-map-switcher" ref={switcherRef}>
+              <button className="study-map-topic-select" aria-label="Switch topic" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>
+                <span>{topic?.courseCode || topic?.title || 'Study topic'}</span><ChevronDown size={16} strokeWidth={2.5} />
               </button>
-
-              {dropdownOpen && (
-                <div className="sm-course-dropdown-menu">
-                  {/* + New Topic at top of dropdown */}
-                  <div
-                    className="sm-course-dropdown-item sm-course-dropdown-new"
-                    onClick={() => {
-                      setDropdownOpen(false)
-                      openNewTopicModal()
-                    }}
-                  >
-                    <FiPlus size={15} />
-                    <span>+ New Topic</span>
-                  </div>
-
-                  {userTopics.length > 0 && <div className="sm-course-dropdown-divider" />}
-
-                  {userTopics.map((item) => (
-                    <div
-                      key={item.topicId}
-                      className={`sm-course-dropdown-item ${
-                        item.topicId === topic?.topicId ? 'active' : ''
-                      }`}
-                      onClick={() => {
-                        setTopic(item)
-                        setDropdownOpen(false)
-                        router.push(`/dashboard/student/map/${item.topicId}`)
-                      }}
-                    >
-                      <span>{item.title}</span>
-                      <span className="sm-course-dropdown-sub">{item.courseCode}</span>
-                    </div>
-                  ))}
+              {topicMenuOpen && (
+                <div className="study-map-topic-menu" role="menu">
+                  {userTopics.length ? userTopics.map((item) => (
+                    <button key={item.topicId} role="menuitem" className={item.topicId === topic?.topicId ? 'selected' : ''} onClick={() => selectTopic(item)}>
+                      <span>{item.courseCode || item.title}</span><small>{item.title}</small>
+                    </button>
+                  )) : <p className="study-map-menu-empty">No other topics</p>}
                 </div>
               )}
             </div>
+            <div className={`study-map-menu ${moreMenuOpen ? 'open' : ''}`} ref={menuRef}>
+              <button className="study-map-icon-button" aria-label="More options" aria-expanded={moreMenuOpen} onClick={() => setMoreMenuOpen((open) => !open)}>
+                <MoreHorizontal size={20} strokeWidth={2.5} />
+              </button>
+              {moreMenuOpen && <div className="study-map-menu-list"><button className="danger" onClick={() => { setMoreMenuOpen(false); void deleteTopic() }}>Delete topic</button></div>}
+            </div>
+          </nav>
 
-            {/* Progress fraction & mini-bar */}
-            <div className="sm-progress-indicator">
-              <span className="sm-progress-fraction">
-                {completedCount} / {totalCount}
+          <header className="study-map-head">
+            {topic?.courseCode && <p className="study-map-course">{topic.courseCode}</p>}
+            <h1>{topic?.title || 'Study map'}</h1>
+            <div className="study-map-progress" aria-label={`${displayCompletedCount} of ${totalCount} complete`}>
+              <span className="study-map-track">
+                <span className="study-map-fill" style={{ width: `${totalCount ? (displayCompletedCount / totalCount) * 100 : 0}%` }} />
               </span>
-              <div className="sm-progress-bar-track">
-                <div
-                  className="sm-progress-bar-fill"
-                  style={{
-                    width: `${Math.round((completedCount / totalCount) * 100)}%`
-                  }}
-                />
-              </div>
+              <b>{displayCompletedCount} / {totalCount}</b>
             </div>
           </header>
 
-          {/* ── HERO HEADING ── */}
-          <section className="sm-hero-section">
-            <h1 className="sm-hero-title">{topic.title}</h1>
-            <p className="sm-hero-subtitle">{topic.courseCode}</p>
-
-            {activeNode && (
-              <button className="sm-focus-pill" onClick={handleScrollToFocus}>
-                <FiPlay className="sm-focus-icon" />
-                <span>
-                  Current Focus: Node {activeNode.id} · {activeNode.title}
-                </span>
-              </button>
-            )}
-          </section>
-
-          {/* ── WINDING INTERACTIVE PATH ── */}
-          <section className="sm-path-area" ref={containerRef}>
-            {/* SVG Connector Lines */}
-            <svg className="sm-svg-canvas" xmlns="http://www.w3.org/2000/svg">
-              {lineSegments.map((seg) => {
-                if (seg.isSolid) {
-                  return (
-                    <line
-                      key={seg.id}
-                      x1={seg.x1}
-                      y1={seg.y1}
-                      x2={seg.x2}
-                      y2={seg.y2}
-                      stroke="#22c55e"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                    />
-                  )
-                } else {
-                  return (
-                    <line
-                      key={seg.id}
-                      x1={seg.x1}
-                      y1={seg.y1}
-                      x2={seg.x2}
-                      y2={seg.y2}
-                      stroke="#4e6288"
-                      strokeWidth="4"
-                      strokeDasharray="6 8"
-                      strokeLinecap="round"
-                    />
-                  )
-                }
-              })}
-            </svg>
-
-            {/* Nodes Trail */}
-            <div className="sm-nodes-flow">
-              {(topic?.nodes || []).map((node, i) => {
-                const isCompleted = node.status === 'completed'
-                const isActive = node.status === 'active'
-                const isLocked = node.status === 'locked'
-                const isUnitChallenge = i === topic.nodes.length - 1
-
-                // Layout alignment classes
-                // Node 0: row-0 (circle left, card right)
-                // Node 1: row-1 (circle left, card right)
-                // Node 2: row-2 (circle right, card left -> reverse)
-                // Node 3: row-3 (circle right, card left -> reverse)
-                // Node 4: row-4 (circle center-right, card left -> reverse)
-                // Node 5: row-5 (circle center-left, card right)
-                // Node 6: row-6 (circle left, card right)
-                // Node 7: row-7 (centered, column layout for Unit Challenge)
-                const isReversed = i === 2 || i === 3 || i === 4
-
+          {loading ? <LoadingPath /> : !topic || nodes.length === 0 ? (
+            <EmptyPath onUpload={() => router.push('/dashboard/student')} />
+          ) : (
+            <main className="study-map-path">
+              {nodes.map((node, index) => {
+                const previousUnit = index > 0 ? nodes[index - 1].unit?.trim() : undefined
+                const currentUnit = node.unit?.trim()
+                const showUnit = Boolean(currentUnit && currentUnit !== previousUnit)
+                const status = mapStatus(node.status)
+                // Merge live poll status over the DB value for real-time updates
+                const liveStatus = nodeContentStatuses[node.id]
+                const mergedNode: LearningNode = liveStatus
+                  ? { ...node, contentStatus: liveStatus.contentStatus as LearningNode['contentStatus'], generationError: liveStatus.generationError ?? undefined }
+                  : node
                 return (
-                  <div
-                    key={node.id}
-                    className={`sm-node-row sm-node-row-${i % 8}`}
-                  >
-                    <div
-                      className={`sm-node-combo ${
-                        isUnitChallenge ? 'column' : isReversed ? 'reverse' : ''
-                      }`}
-                      onClick={() => setSelectedNode(node)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      {/* Circle Element */}
-                      {isUnitChallenge ? (
-                        <div
-                          ref={(el) => {
-                            circleRefs.current[i] = el
-                          }}
-                          className="sm-trophy-circle"
-                        >
-                          <FiAward className="sm-trophy-icon" />
-                          <div className="sm-trophy-lock-badge">
-                            <FiLock />
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          ref={(el) => {
-                            circleRefs.current[i] = el
-                          }}
-                          className={`sm-circle ${
-                            isCompleted ? 'completed' : isActive ? 'active' : 'locked'
-                          }`}
-                        >
-                          {isCompleted ? (
-                            <FiCheck strokeWidth={3} />
-                          ) : isActive ? (
-                            <FiPlay style={{ marginLeft: 3 }} />
-                          ) : (
-                            <FiLock />
-                          )}
-                        </div>
-                      )}
-
-                      {/* Card Element */}
-                      {isUnitChallenge ? (
-                        <div className="sm-challenge-card">
-                          <h4 className="sm-challenge-title">UNIT CHALLENGE</h4>
-                          <p className="sm-challenge-sub">Locked · +{node.xp} XP</p>
-                        </div>
-                      ) : (
-                        <div className={`sm-node-card ${isActive ? 'active' : ''}`}>
-                          {isActive && (
-                            <div className="sm-node-card-upnext">UP NEXT</div>
-                          )}
-                          <h4 className="sm-node-card-title">{node.title}</h4>
-                          <p className="sm-node-card-sub">
-                            {isCompleted && (
-                              <>
-                                <span className="sm-badge-xp-green">+{node.xp} XP</span>
-                                <span>Completed</span>
-                              </>
-                            )}
-                            {isActive && <span>{node.duration} · +{node.xp} XP</span>}
-                            {isLocked && <span>Locked · {node.duration}</span>}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                  <div key={node.id} className="study-map-entry">
+                    {showUnit && <div className="study-map-unit">{currentUnit}</div>}
+                    <MapNode
+                      node={mergedNode}
+                      status={status}
+                      side={index % 2 === 0 ? 'right' : 'left'}
+                      onStart={openLesson}
+                      onPreview={setPreviewNode}
+                      onRetry={handleRetryNode}
+                      elementRef={(element) => setNodeElement(node.id, element)}
+                    />
                   </div>
                 )
               })}
-            </div>
-          </section>
-
-          {/* ── BOTTOM ACTIONS ── */}
-          <div className="sm-bottom-actions">
-            <button
-              type="button"
-              className="sm-btn-delete-topic"
-              onClick={() => setShowDeleteConfirm(true)}
-              aria-label="Delete this topic"
-            >
-              <FiTrash2 size={15} />
-              <span>Delete Topic</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ── NODE DETAIL MODAL ── */}
-        {selectedNode && (
-          <div className="sm-modal-overlay" onClick={() => setSelectedNode(null)}>
-            <div className="sm-modal-box" onClick={(e) => e.stopPropagation()}>
-              <div className="sm-modal-header">
-                <div>
-                  <span
-                    className={`sm-modal-badge ${
-                      selectedNode.status === 'completed'
-                        ? 'completed'
-                        : selectedNode.status === 'active'
-                        ? 'active'
-                        : 'locked'
-                    }`}
-                  >
-                    {selectedNode.status === 'completed' && 'Completed'}
-                    {selectedNode.status === 'active' && 'Up Next'}
-                    {selectedNode.status === 'locked' && 'Locked'}
+              {isChallengeCompleted ? (
+                <button
+                  ref={(element) => { challengeElement.current = element }}
+                  type="button"
+                  className="study-map-node challenge completed available"
+                  aria-label={`Unit challenge passed, ${bestScore} of 10, ${bestXp} XP`}
+                  onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}/challenge`)}
+                >
+                  <span className="study-map-circle" aria-hidden="true"><Trophy size={24} strokeWidth={2.2} /></span>
+                  <span className="study-map-card">
+                    <span className="study-map-node-title">Unit challenge</span>
+                    <span className="study-map-meta">Passed · {bestScore}/10 · {bestXp} XP</span>
                   </span>
-                  <h3 className="sm-modal-title">{selectedNode.title}</h3>
-                </div>
-                <button
-                  className="sm-modal-close-btn"
-                  onClick={() => setSelectedNode(null)}
-                  aria-label="Close"
-                >
-                  <FiX />
                 </button>
-              </div>
-
-              <div className="sm-modal-meta-row">
-                <div className="sm-modal-meta-item">
-                  <FiClock />
-                  <span>{selectedNode.duration}</span>
-                </div>
-                <div className="sm-modal-meta-item">
-                  <FiZap style={{ color: '#fbbf24' }} />
-                  <span>+{selectedNode.xp} XP</span>
-                </div>
-              </div>
-
-              <p className="sm-modal-summary">{selectedNode.summary}</p>
-
-              {selectedNode.keyConcepts && selectedNode.keyConcepts.length > 0 && (
-                <div>
-                  <div className="sm-modal-concepts-title">Key Concepts</div>
-                  <div className="sm-modal-concepts-tags">
-                    {selectedNode.keyConcepts.map((concept, idx) => (
-                      <span key={idx} className="sm-modal-tag">
-                        {concept}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.status === 'active' ? (
+              ) : allDone ? (
                 <button
-                  className="sm-modal-btn-purple"
-                  onClick={() => {
-                    const id = selectedNode.id
-                    setSelectedNode(null)
-                    router.push(`/dashboard/student/lesson/${id}`)
-                  }}
+                  ref={(element) => { challengeElement.current = element }}
+                  type="button"
+                  className="study-map-node challenge available active"
+                  aria-label="Start the 10 question unit challenge"
+                  onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}/challenge`)}
                 >
-                  <FiPlay />
-                  <span>Start Learning</span>
+                  <span className="study-map-circle" aria-hidden="true"><Trophy size={24} strokeWidth={2.2} /></span>
+                  <span className="study-map-card">
+                    <span className="study-map-node-title">Unit challenge</span>
+                    <span className="study-map-meta">10 questions · overview · up to {maxXp} XP</span>
+                  </span>
                 </button>
-              ) : selectedNode.status === 'completed' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
-                  <button
-                    className="sm-modal-btn-primary"
-                    onClick={() => {
-                      const id = selectedNode.id
-                      setSelectedNode(null)
-                      router.push(`/dashboard/student/lesson/${id}`)
-                    }}
-                  >
-                    <FiPlay />
-                    <span>Review Concept</span>
-                  </button>
-                  <button
-                    className="sm-modal-btn-purple"
-                    style={{
-                      background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-                      boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
-                    }}
-                    onClick={() => {
-                      const id = selectedNode.id
-                      setSelectedNode(null)
-                      router.push(`/vault/${topic?.topicId || topicId}?nodeId=${id}`)
-                    }}
-                  >
-                    <FiZap />
-                    <span>Active Recall</span>
-                  </button>
-                </div>
               ) : (
-                <button className="sm-modal-btn-locked" disabled>
-                  <FiLock />
-                  <span>Complete previous nodes to unlock</span>
-                </button>
+                <section
+                  ref={(element) => { challengeElement.current = element }}
+                  className="study-map-node challenge locked"
+                  aria-label="Unit challenge, locked until all lessons are complete"
+                >
+                  <span className="study-map-circle" aria-hidden="true"><LockKeyhole size={20} strokeWidth={2} /></span>
+                  <span className="study-map-card">
+                    <span className="study-map-node-title">Unit challenge</span>
+                    <span className="study-map-meta">Complete all nodes first</span>
+                  </span>
+                </section>
               )}
+            </main>
+          )}
+          {previewNode && (
+            <div className="study-map-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewNode(null) }}>
+              <section className="study-map-preview" role="dialog" aria-modal="true" aria-labelledby="study-map-preview-title">
+                <button type="button" className="study-map-preview-close" aria-label="Close lesson preview" onClick={() => setPreviewNode(null)}><X size={19} /></button>
+                <p className={`study-map-preview-eyebrow ${previewNode.status === 'completed' ? 'completed' : ''}`}>{previewNode.status === 'completed' ? 'COMPLETED LESSON' : 'UP NEXT'}</p>
+                <h2 id="study-map-preview-title">{previewNode.title}</h2>
+                <div className="study-map-preview-meta"><span><Clock3 size={15} />{minutesFor(previewNode)} min</span><span><Zap size={15} />+{previewNode.xp ?? 0} XP</span></div>
+                {previewNode.summary?.trim() && <p className="study-map-preview-summary">{previewNode.summary.trim()}</p>}
+                <div className="study-map-preview-actions">
+                  <button className="study-map-preview-primary" onClick={() => openLesson(previewNode.id)}><Play size={16} fill="currentColor" /> Start Learning</button>
+                  {previewNode.status === 'completed' && <button className="study-map-preview-secondary" onClick={() => router.push(`/blurting/${previewNode.id}`)}>Active Recall <ArrowRight size={16} /></button>}
+                </div>
+              </section>
             </div>
-          </div>
-        )}
-          </>
-        )}
-
-        
-        {/* ── DELETE TOPIC CONFIRMATION POPUP ── */}
-        {showDeleteConfirm && topic && (
-          <div className="sm-modal-overlay" onClick={() => !isDeleting && setShowDeleteConfirm(false)}>
-            <div className="sm-modal-box" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-              <div className="sm-modal-header" style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    color: '#ef4444',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <FiTrash2 size={20} />
-                  </div>
-                  <h3 className="sm-modal-title" style={{ fontSize: 18 }}>Delete this topic?</h3>
-                </div>
-                <button
-                  className="sm-modal-close-btn"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeleting}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              <p className="sm-modal-summary" style={{ marginBottom: 24, fontSize: 14 }}>
-                Are you sure you want to delete <strong style={{ color: 'inherit' }}>&ldquo;{topic.title}&rdquo;</strong>? All learning nodes and saved progress will be permanently removed.
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <button
-                  type="button"
-                  className="sm-modal-btn-locked"
-                  style={{ cursor: 'pointer', color: 'inherit' }}
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteCurrentTopic}
-                  disabled={isDeleting}
-                  style={{
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    padding: 14,
-                    borderRadius: 12,
-                    border: 'none',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    transition: 'all 0.18s ease',
-                    opacity: isDeleting ? 0.7 : 1
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
-                >
-                  {isDeleting ? (
-                    <>
-                      <FiLoader style={{ animation: 'spin 1s linear infinite' }} size={16} />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiTrash2 size={16} />
-                      <span>Delete</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}
-        {showNewTopicModal && (
-          <div className="sp-modal-overlay" onClick={closeNewTopicModal}>
-            <div className="sp-modal-box sp-modal-box-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="sp-modal-header">
-                <div>
-                  <h3 className="sp-modal-title">New Topic</h3>
-                  <p className="sp-tool-sub" style={{ marginTop: 4 }}>
-                    Upload a document or paste text to generate your study path.
-                  </p>
-                </div>
-                <button
-                  className="sp-modal-close-btn"
-                  onClick={closeNewTopicModal}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              {/* Mode Tabs */}
-              <div className="sp-input-tabs">
-                <button
-                  className={`sp-input-tab ${inputMode === 'upload' ? 'active' : ''}`}
-                  onClick={() => setInputMode('upload')}
-                >
-                  <FiUploadCloud /> Upload Document
-                </button>
-                <button
-                  className={`sp-input-tab ${inputMode === 'text' ? 'active' : ''}`}
-                  onClick={() => setInputMode('text')}
-                >
-                  <FiEdit3 /> Paste Text
-                </button>
-              </div>
-
-              {/* Upload Mode */}
-              {inputMode === 'upload' && (
-                <div>
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      setIsDragging(true)
-                    }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={() => !extracting && fileInputRef.current?.click()}
-                    className={`sp-dropzone ${isDragging ? 'dragging' : ''} ${
-                      uploadedFile && extractedText ? 'done' : ''
-                    }`}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="sp-hidden-input"
-                      accept=".pdf,.docx,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.webp"
-                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                    />
-
-                    {extracting ? (
-                      <>
-                        <FiLoader className="animate-spin sp-dropzone-loader" />
-                        <p className="sp-dropzone-title">{extractionLabel}</p>
-                      </>
-                    ) : uploadedFile && extractedText ? (
-                      <>
-                        <div className="sp-dropzone-icon done">
-                          <FiCheckCircle />
-                        </div>
-                        <div>
-                          <p className="sp-dropzone-title sp-dropzone-file">{uploadedFile.name}</p>
-                          <p className="sp-dropzone-sub">
-                            {extractedText.length.toLocaleString()} characters extracted
-                          </p>
-                        </div>
-                        <button
-                          className="sp-dropzone-remove"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setUploadedFile(null)
-                            setExtractedText('')
-                          }}
-                        >
-                          <FiX /> Remove file
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="sp-dropzone-icon">
-                          <FiUploadCloud />
-                        </div>
-                        <div>
-                          <p className="sp-dropzone-title">Drop your document here</p>
-                          <p className="sp-dropzone-sub">
-                            or click to browse &mdash; PDF, Word, PPT, Images (max 50 MB)
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <p className="sp-dropzone-hint">
-                    Supports PDF, DOCX, PPTX, TXT, and images (JPG, PNG)
-                  </p>
-                </div>
-              )}
-
-              {/* Paste Text Mode */}
-              {inputMode === 'text' && (
-                <div>
-                  <label className="sp-input-label">Your Content</label>
-                  <textarea
-                    value={manualText}
-                    onChange={(e) => setManualText(e.target.value)}
-                    rows={8}
-                    placeholder="Paste your lecture notes, textbook excerpt, or study material here... (minimum 50 characters)"
-                    className="sp-modal-textarea"
-                  />
-                  <p
-                    className={`sp-char-count ${
-                      manualText.trim().length < 50 ? 'warn' : 'ok'
-                    }`}
-                  >
-                    {manualText.trim().length} / 50 min characters
-                  </p>
-                </div>
-              )}
-
-              {inputError && <p className="sp-input-error">{inputError}</p>}
-
-              {generateError && (
-                <div style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#fca5a5',
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  marginTop: 4
-                }}>
-                  ⚠️ {generateError}
-                </div>
-              )}
-
-              <button
-                className="sp-btn-generate sp-generate-full"
-                onClick={handleGenerateStudyPath}
-                disabled={!textReady || isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Analysing with AI...</span>
-                  </>
-                ) : (
-                  <>
-                    <IoSparklesSharp />
-                    <span>Generate Study Path</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   )
 }
 
 export default function StudyPathMapPage() {
-  return (
-    <Suspense fallback={<div className="sm-map-root" />}>
-      <StudyPathMapContent />
-    </Suspense>
-  )
+  return <StudyMapContent />
 }
-

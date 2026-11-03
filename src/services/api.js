@@ -45,8 +45,8 @@ apiClient.interceptors.request.use(async (config) => {
  * Sends FormData with user's uploaded PDF file and returns structured JSON study path
  * 
  * @param {File | FormData} fileOrFormData - Uploaded PDF file or existing FormData
- * @param {Object} [options] - Optional additional fields: { title, text, userId }
- * @returns {Promise<Object>} Structured JSON study path
+ * @param {Object} [options] - Optional additional fields: { title, text, userId, onProgress }
+ * @returns {Promise<Object>} Structured JSON study path after the background job completes
  */
 export async function uploadStudyMaterial(fileOrFormData, options = {}) {
   let formData;
@@ -68,23 +68,38 @@ export async function uploadStudyMaterial(fileOrFormData, options = {}) {
     throw new Error('A PDF file or extracted text must be provided.');
   }
 
-  try {
-    // Primary path: /api/generate-path (works via Next.js route or proxy to Express)
-    const response = await apiClient.post('/api/generate-path', formData);
-    const data = response.data;
-    const studyPath = data.studyPath || data.path || data;
-    return studyPath;
-  } catch (primaryErr) {
-    console.warn('[api] /api/generate-path call failed, trying /api/backend/generate-path fallback:', primaryErr.message);
-    try {
-      const fallbackResponse = await apiClient.post('/api/backend/generate-path', formData);
-      const data = fallbackResponse.data;
-      return data.studyPath || data.path || data;
-    } catch (fallbackErr) {
-      const msg = fallbackErr?.response?.data?.message || primaryErr?.response?.data?.message || fallbackErr?.message || 'Failed to process PDF and generate study path.';
-      throw new Error(msg);
-    }
+  const response = await apiClient.post('/api/generate-path', formData);
+  const jobId = response.data?.jobId;
+  if (!jobId) {
+    const studyPath = response.data?.studyPath || response.data?.path;
+    if (studyPath) return studyPath;
+    throw new Error(response.data?.message || 'The server did not return a study-path job ID.');
   }
+
+  options.onProgress?.({ status: 'queued', stage: 'Queued for processing', done: 0, total: 0 });
+  const deadline = Date.now() + 55 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let statusResponse;
+    try {
+      statusResponse = await apiClient.get(`/api/jobs/${encodeURIComponent(jobId)}`);
+    } catch (pollError) {
+      const status = pollError?.response?.status;
+      if (status === 403 || status === 404) {
+        throw new Error(pollError?.response?.data?.message || 'Could not access the study-path job.');
+      }
+      options.onProgress?.({ status: 'queued', stage: 'Reconnecting to study-path generation...', done: 0, total: 0 });
+      continue;
+    }
+    const job = statusResponse.data;
+    options.onProgress?.(job);
+    if (job?.status === 'done') {
+      if (!job.studyPath) throw new Error('The study map completed, but its data was not returned. Please reopen your dashboard.');
+      return job.studyPath;
+    }
+    if (job?.status === 'error') throw new Error(job.message || 'Study path generation failed.');
+  }
+  throw new Error('Study path generation is taking longer than expected. Check your dashboard again shortly.');
 }
 
 // Alias for convenience
@@ -153,6 +168,74 @@ export async function getStudyPath(topicId) {
 }
 
 /**
+ * Fetch progressive generation statuses for all nodes in a topic
+ *
+ * @param {string} topicId
+ * @returns {Promise<{ topicId: string, nodes: Array, allReady: boolean, challengeReady: boolean, challengeStatus: string }|null>}
+ */
+export async function getNodeStatuses(topicId) {
+  if (!topicId) return null;
+  try {
+    const response = await apiClient.get(`/api/study-path/${encodeURIComponent(topicId)}/nodes/status`);
+    return response.data || null;
+  } catch (err) {
+    try {
+      const fb = await apiClient.get(`/api/backend/study-path/${encodeURIComponent(topicId)}/nodes/status`);
+      return fb.data || null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
+ * Priority prepare/generate a specific node and trigger rolling buffer
+ *
+ * @param {string} topicId
+ * @param {number|string} nodeId
+ * @param {{ bufferNext?: boolean }} options
+ * @returns {Promise<Object>}
+ */
+export async function prepareStudyPathNode(topicId, nodeId, options = { bufferNext: true }) {
+  if (!topicId || !nodeId) throw new Error('topicId and nodeId are required');
+  try {
+    const response = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
+    return response.data?.node || null;
+  } catch (err) {
+    try {
+      const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
+      return fb.data?.node || null;
+    } catch (fbErr) {
+      console.error('[api] Failed to prepare study path node:', fbErr.message);
+      throw fbErr;
+    }
+  }
+}
+
+/**
+ * Retry failed node generation
+ *
+ * @param {string} topicId
+ * @param {number|string} nodeId
+ * @returns {Promise<Object>}
+ */
+export async function retryStudyPathNode(topicId, nodeId) {
+  if (!topicId || !nodeId) throw new Error('topicId and nodeId are required');
+  try {
+    const response = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
+    return response.data?.node || null;
+  } catch (err) {
+    try {
+      const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
+      return fb.data?.node || null;
+    } catch (fbErr) {
+      console.error('[api] Failed to retry study path node:', fbErr.message);
+      throw fbErr;
+    }
+  }
+}
+
+/**
  * Update node status on a study path
  * 
  * @param {string} topicId 
@@ -170,6 +253,25 @@ export async function updateStudyPathNode(topicId, nodeId, status) {
     } catch (fbErr) {
       console.error('[api] Failed to update node status:', fbErr.message);
       throw fbErr;
+    }
+  }
+}
+
+/** Analyze a learner's typed recall against one lesson's summary and concepts. */
+export async function analyzeStudyPathNodeSummary(topicId, nodeId, summary) {
+  if (!topicId) throw new Error('topicId is required');
+  const path = `/api/study-path/${encodeURIComponent(topicId)}/node/${nodeId}/analyze-summary`;
+  try {
+    const response = await apiClient.post(path, { summary });
+    return response.data;
+  } catch (err) {
+    try {
+      const fallbackPath = `/api/backend/study-path/${encodeURIComponent(topicId)}/node/${nodeId}/analyze-summary`;
+      const response = await apiClient.post(fallbackPath, { summary });
+      return response.data;
+    } catch (fallbackError) {
+      const message = fallbackError?.response?.data?.message || err?.response?.data?.message || fallbackError?.message || 'Could not analyze this summary.';
+      throw new Error(message);
     }
   }
 }
@@ -274,6 +376,52 @@ export async function reviewFlashcard(payload) {
   }
 }
 
+/**
+ * Get unit challenge questions for topic
+ * @param {string} topicId
+ */
+export async function getStudyPathChallenge(topicId) {
+  if (!topicId) throw new Error('topicId is required');
+  try {
+    const res = await apiClient.get(`/study-path/${encodeURIComponent(topicId)}/challenge`);
+    return res.data;
+  } catch (err) {
+    const fb = await apiClient.get(`/api/study-path/${encodeURIComponent(topicId)}/challenge`);
+    return fb.data;
+  }
+}
+
+/**
+ * Submit answers for unit challenge
+ * @param {string} topicId
+ * @param {Array<number|null>} answers
+ */
+export async function submitStudyPathChallenge(topicId, answers) {
+  if (!topicId) throw new Error('topicId is required');
+  try {
+    const res = await apiClient.post(`/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
+    return res.data;
+  } catch (err) {
+    const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/submit`, { answers });
+    return fb.data;
+  }
+}
+
+/**
+ * Retry unit challenge: clears current set and generates fresh set
+ * @param {string} topicId
+ */
+export async function retryStudyPathChallenge(topicId) {
+  if (!topicId) throw new Error('topicId is required');
+  try {
+    const res = await apiClient.post(`/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
+    return res.data;
+  } catch (err) {
+    const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/challenge/retry`, {});
+    return fb.data;
+  }
+}
+
 const api = {
   uploadStudyMaterial,
   generatePath,
@@ -281,7 +429,11 @@ const api = {
   getUserStudyPaths,
   getStudyPath,
   updateStudyPathNode,
+  analyzeStudyPathNodeSummary,
   deleteStudyPath,
+  getStudyPathChallenge,
+  submitStudyPathChallenge,
+  retryStudyPathChallenge,
   getFlashcards,
   getFlashcardDecks,
   generateFlashcards,

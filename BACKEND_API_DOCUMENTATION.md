@@ -707,7 +707,7 @@ Generate the questions in JSON format.
 ### AI Service Options
 - OpenAI GPT-4 or GPT-3.5-turbo
 - Anthropic Claude
-- Google Gemini
+- DeepSeek
 - Any other LLM service
 
 ### Required AI Capabilities

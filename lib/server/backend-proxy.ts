@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server'
  */
 function proxyTimeoutMs(pathAfterApi: string): number {
   const p = pathAfterApi.toLowerCase()
-  if (p.startsWith('ai/') || p.includes('generate') || p.startsWith('pdf-cbt') || p.includes('library/documents') || p.includes('library/proxy-pdf')) {
+  if (p.startsWith('ai/') || p.includes('generate') || p.includes('challenge') || p.startsWith('pdf-cbt') || p.includes('library/documents') || p.includes('library/proxy-pdf')) {
     return 115_000
   }
   // Default: 60 s
