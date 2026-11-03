@@ -50,6 +50,7 @@ apiClient.interceptors.request.use(
       url.includes('/teacher') ||
       url.includes('/teacher-tools') ||
       url.includes('/generate-topic-questions') ||
+      url.includes('/challenge') ||
       url.includes('/community/upload-image')
     ) {
       config.timeout = 120000 // 2 minutes

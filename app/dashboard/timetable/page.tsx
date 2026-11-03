@@ -4,7 +4,6 @@
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import StudyReminders from '@/components/dashboard/StudyReminders'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function TimetablePage() {
   return (
@@ -23,7 +22,6 @@ export default function TimetablePage() {
         </div>
 
         <StudyReminders />
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )

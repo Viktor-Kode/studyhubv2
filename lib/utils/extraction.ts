@@ -30,7 +30,8 @@ import { PDF_WORKER_PUBLIC_PATH } from '@/lib/utils/pdfWorkerSrc';
  */
 export const extractTextFromPDFClient = async (file: File): Promise<string> => {
     try {
-        const pdfjsLib = await import('pdfjs-dist');
+        const imported = await import('pdfjs-dist');
+        const pdfjsLib: any = (imported as any).getDocument ? imported : ((imported as any).default ?? imported);
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_PUBLIC_PATH;
 

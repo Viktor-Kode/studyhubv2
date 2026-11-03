@@ -4,7 +4,6 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import ProgressAnalytics from '@/components/dashboard/ProgressAnalytics'
 import { FiBarChart2 } from 'react-icons/fi'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 export default function AnalyticsPage() {
   return (
@@ -27,7 +26,6 @@ export default function AnalyticsPage() {
           </p>
         </div>
         <ProgressAnalytics />
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )

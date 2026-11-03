@@ -79,7 +79,7 @@ export default function SyllabusStudyPage() {
 
   useEffect(() => {
     if (user && user.plan?.type === 'free') {
-      router.replace('/dashboard/cbt')
+      router.replace('/dashboard/student')
       showUpgrade('cbt')
     }
   }, [user, router, showUpgrade])
@@ -107,7 +107,7 @@ export default function SyllabusStudyPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-[#F7F8FA] dark:bg-slate-950 py-6 px-4">
         <div className="max-w-4xl mx-auto space-y-6">
-          <BackButton label="Back to CBT" href="/dashboard/cbt" />
+          <BackButton label="Back to dashboard" href="/dashboard/student" />
 
           {step === 'pick' && (
             <>

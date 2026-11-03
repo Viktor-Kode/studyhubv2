@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
-import { fetchAndApplyHelpWidgetPreferences, useHelpWidgetsStore } from '@/lib/store/helpWidgetsStore'
+import { useHelpWidgetsStore } from '@/lib/store/helpWidgetsStore'
 import HelpChatbot from './HelpChatbot'
 import HelpButton from '../tour/HelpButton'
 import OnboardingTour from '../tour/OnboardingTour'
@@ -20,22 +20,10 @@ export default function HelpWidgetLayer() {
   const [tourSteps, setTourSteps] = useState([])
 
   const autoStartedRef = useRef(false)
-  const prefsSyncedRef = useRef(false)
 
   useEffect(() => {
     initFromStorage()
   }, [initFromStorage])
-
-  useEffect(() => {
-    if (isLoading) return
-    if (!isAuthenticated) {
-      prefsSyncedRef.current = false
-      return
-    }
-    if (prefsSyncedRef.current) return
-    prefsSyncedRef.current = true
-    void fetchAndApplyHelpWidgetPreferences()
-  }, [isAuthenticated, isLoading])
 
   const startTourForCurrentPath = () => {
     const steps = getTourStepsForPathname(pathname)

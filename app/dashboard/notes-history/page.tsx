@@ -6,7 +6,6 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import NotesHistory from '@/components/dashboard/NotesHistory'
 import { FiFileText } from 'react-icons/fi'
 import BackButton from '@/components/BackButton'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 
 function NotesHistoryContent() {
     const searchParams = useSearchParams()
@@ -42,7 +41,6 @@ function NotesHistoryContent() {
             }>
                 <NotesHistory />
             </Suspense>
-            <BottomNav />
         </div>
     )
 }

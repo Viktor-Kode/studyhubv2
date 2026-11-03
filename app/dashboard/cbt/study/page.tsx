@@ -41,7 +41,7 @@ export default function StudyModePage() {
 
   useEffect(() => {
     if (user && user.plan?.type === 'free') {
-      router.replace('/dashboard/cbt')
+      router.replace('/dashboard/student')
       showUpgrade('cbt')
     }
   }, [user, router, showUpgrade])
@@ -207,7 +207,7 @@ export default function StudyModePage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950/95 py-6 px-4 flex flex-col items-center">
         <div className="w-full max-w-3xl space-y-6">
-          <BackButton label="Back to CBT" href="/dashboard/cbt" />
+          <BackButton label="Back to exam practice" href="/dashboard/student/cbt/syllabus" />
 
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
@@ -247,11 +247,11 @@ export default function StudyModePage() {
             <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-center space-y-3">
               <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error}</p>
               <Link
-                href="/dashboard/cbt"
+                href="/dashboard/student/cbt/syllabus"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white transition"
               >
                 <FiHome className="text-sm" />
-                Go back to CBT setup
+                Go back to exam practice
               </Link>
             </div>
           )}
@@ -326,11 +326,11 @@ export default function StudyModePage() {
                   Retry session
                 </button>
                 <Link
-                  href="/dashboard/cbt"
+                href="/dashboard/student/cbt/syllabus"
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 transition"
                 >
                   <FiHome className="text-sm" />
-                  Back to CBT
+                  Back to exam practice
                 </Link>
               </div>
             </div>

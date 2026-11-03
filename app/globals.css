@@ -9195,4 +9195,59 @@ html {
     padding: 16px;
   }
 }
-
+
+
+
+/* Global Theme Toggle Button */
+.studyhelp-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #6366f1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  flex-shrink: 0;
+}
+
+.studyhelp-theme-toggle:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.dark .studyhelp-theme-toggle {
+  background: #141c2e;
+  border-color: #1f2b45;
+  color: #facc15;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .studyhelp-theme-toggle:hover {
+  background: #1d273f;
+  border-color: #2c3c5f;
+}
+
+.studyhelp-theme-toggle .theme-toggle-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+}
+
+.studyhelp-theme-toggle:hover .theme-toggle-icon-wrap {
+  transform: rotate(15deg);
+}
+
+.studyhelp-theme-toggle .theme-icon-moon {
+  color: #6366f1;
+}
+
+.studyhelp-theme-toggle .theme-icon-sun {
+  color: #facc15;
+}

@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2, FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
-import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview } from '@/lib/api/quizApi'
+import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview, extractDocumentText } from '@/lib/api/quizApi'
 import { cbtApi } from '@/lib/api/cbt'
 import { apiClient } from '@/lib/api/client'
 import { getFirebaseToken } from '@/lib/store/authStore'
@@ -672,7 +672,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       setExtractionHint(getExtractionLabel(file))
-      const parsedText = await extractTextFromFile(file)
+      const parsedText = await extractDocumentText(file)
 
       if (parsedText && parsedText.trim().length > 0) {
         setExtractedText(parsedText)

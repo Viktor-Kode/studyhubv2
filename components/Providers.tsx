@@ -72,6 +72,29 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
+            // In dev the SW caches /_next/static chunks, which carry no content
+            // hash, so edits appear stuck on the old build. Skip it in dev and
+            // clear anything a previous run registered.
+            if (process.env.NODE_ENV !== 'production') {
+                navigator.serviceWorker
+                    .getRegistrations()
+                    .then((regs) => regs.forEach((reg) => reg.unregister()))
+                    .catch(() => {})
+                if (typeof caches !== 'undefined') {
+                    caches
+                        .keys()
+                        .then((keys) =>
+                            Promise.all(
+                                keys
+                                    .filter((key) => key.startsWith('studyhelp-'))
+                                    .map((key) => caches.delete(key))
+                            )
+                        )
+                        .catch(() => {})
+                }
+                return
+            }
+
             window.addEventListener('load', function () {
                 navigator.serviceWorker.register('/sw.js').then(
                     function (registration) {

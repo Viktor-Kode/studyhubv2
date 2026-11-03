@@ -81,7 +81,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 /** Offline shells — bump version when cache strategy or precache list changes */
-const CACHE_VERSION = 'studyhelp-v2';
+const CACHE_VERSION = 'studyhelp-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -206,7 +206,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(cacheFirst(event.request, RUNTIME_CACHE));
+    // Network-first: these chunk URLs are not content-hashed in dev, so
+    // cache-first would keep serving stale JS/CSS after a code change.
+    event.respondWith(networkFirstSameOrigin(event.request, RUNTIME_CACHE));
     return;
   }
 

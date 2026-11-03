@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 function getThemeCookie(): 'light' | 'dark' {
-  if (typeof document === 'undefined') return 'dark'
+  if (typeof document === 'undefined') return 'light'
   const match = document.cookie.match(/(^| )theme=([^;]+)/)
   const val = match ? decodeURIComponent(match[2]) : null
   return val === 'light' ? 'light' : 'dark'
@@ -20,7 +20,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>()((set) => ({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => set((state) => {
     const next = state.theme === 'light' ? 'dark' : 'light'
     setThemeCookie(next)

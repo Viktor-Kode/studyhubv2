@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import BottomNav from '@/components/dashboard/MobileBottomNav'
 import { useAuthStore } from '@/lib/store/authStore'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { FiMessageSquare } from 'react-icons/fi'
@@ -116,7 +115,6 @@ export default function CommunityPage() {
           </Link>
         </div>
 
-        <BottomNav />
       </div>
     </ProtectedRoute>
   )

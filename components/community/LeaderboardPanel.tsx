@@ -1,6 +1,6 @@
 'use client'
 
-import { Trophy, Sparkles, Clock } from 'lucide-react'
+import { Trophy, Zap } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { ProgressPayload } from '@/hooks/useProgress'
 import type { AppUser } from '@/lib/types/auth'
@@ -13,8 +13,9 @@ export type BoardRow = {
   name: string
   avatar?: string | null
   examType?: string | null
-  weeklyXP: number
-  totalXP: number
+  dailyXP?: number
+  weeklyXP?: number
+  totalXP?: number
   level: number
   levelName: string
   streak: number
@@ -30,10 +31,67 @@ type Props = {
   leaderboard: BoardRow[]
   lbLoading: boolean
   myRank: number
-  myWeeklyXP: number
+  myDisplayXP: number
   progress: ProgressPayload | null
-  progLoading: boolean
   user: AppUser | null
+}
+
+const numberFormat = new Intl.NumberFormat()
+
+function displayName(name: string) {
+  return name?.trim() || 'Anonymous student'
+}
+
+function avatarFallback(name: string) {
+  return displayName(name).slice(0, 1).toUpperCase()
+}
+
+function Avatar({ row, large = false }: { row: BoardRow; large?: boolean }) {
+  return (
+    <div className={`lb-v2-avatar-wrap ${large ? 'lb-v2-avatar-wrap--large' : ''}`}>
+      {row.avatar ? (
+        // The API supplies profile URLs that may be hosted outside the app.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="lb-v2-avatar" src={row.avatar} alt={`${displayName(row.name)} avatar`} />
+      ) : (
+        <div className="lb-v2-avatar lb-v2-avatar-fallback" aria-label={`${displayName(row.name)} avatar`}>
+          {avatarFallback(row.name)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function scoreFor(row: BoardRow, timeframe: TimeframeMode) {
+  return row.displayXP ?? (timeframe === 'today' ? row.dailyXP : row.totalXP) ?? 0
+}
+
+function PodiumCard({ row, place, timeframe }: { row: BoardRow; place: number; timeframe: TimeframeMode }) {
+  const xp = scoreFor(row, timeframe)
+  const placeClass = place === 1 ? '1st' : place === 2 ? '2nd' : '3rd'
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: place * 0.05 }}
+      className={`lb-v2-podium-card lb-v2-podium-card--${placeClass} ${row.isMe ? 'is-me' : ''}`}
+    >
+      <span className="lb-v2-rank-badge">#{row.rank || place}</span>
+      {place === 1 && <Trophy className="lb-v2-crown" size={24} fill="currentColor" aria-label="First place" />}
+      <Avatar row={row} large={place === 1} />
+      <div className="lb-v2-name">{displayName(row.name)}{row.isMe ? ' · You' : ''}</div>
+      <span className="lb-v2-podium-level">{row.levelName || `Level ${row.level || 1}`}</span>
+      <span className="lb-v2-xp-badge"><Zap size={14} fill="currentColor" /> {numberFormat.format(xp)} XP</span>
+      {row.badges?.length > 0 && (
+        <div className="lb-v2-badges-row" aria-label="Recent badges">
+          {row.badges.slice(0, 3).map((badge) => (
+            <span key={badge.id} className="lb-v2-badge-mini" title={badge.name}>{badge.icon || '🏅'}</span>
+          ))}
+        </div>
+      )}
+      <div className={`lb-v2-podium-bar lb-v2-podium-bar--${placeClass}`} aria-label={`${place} place`}>{place}</div>
+    </motion.article>
+  )
 }
 
 export default function LeaderboardPanel({
@@ -42,44 +100,107 @@ export default function LeaderboardPanel({
   leaderboard,
   lbLoading,
   myRank,
-  myWeeklyXP,
+  myDisplayXP,
   progress,
-  progLoading,
   user,
 }: Props) {
+  const rows = [...leaderboard].sort((a, b) => a.rank - b.rank).slice(0, 10)
+  const topRows = rows.slice(0, 3)
+  const limit = 10
+  const showPinnedYou = Boolean(user && myRank > 10 && !rows.some((row) => row.isMe))
+
   return (
     <div className="lb-v2-container">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="flex flex-col items-center justify-center text-center py-20 px-6 bg-slate-900/60 border border-slate-800 rounded-3xl backdrop-blur-xl shadow-2xl my-4"
-      >
-        <div className="relative mb-6">
-          <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse" />
-          <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center shadow-xl">
-            <Trophy className="w-10 h-10 text-amber-400" />
+      <div className="lb-v2-heading-row">
+        <div>
+          <h2 className="lb-v2-list-header">Top 10 students</h2>
+          <p className="lb-v2-subtitle">Daily and all time rankings, based on XP earned.</p>
+        </div>
+        <div className="lb-v2-tabs" role="group" aria-label="Leaderboard timeframe">
+              {(['today', 'lifetime'] as const).map((period) => (
+            <button
+              key={period}
+              type="button"
+              className={`lb-v2-tab ${timeframe === period ? 'active' : ''}`}
+              aria-pressed={timeframe === period}
+              onClick={() => setTimeframe(period)}
+            >
+              {period === 'today' ? 'Today' : 'All Time'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {lbLoading ? (
+        <div className="lb-v2-loading" aria-label="Loading leaderboard" aria-busy="true">
+          <div className="lb-v2-podium">
+            {[1, 2, 3].map((item) => <div className="lb-v2-skeleton-podium" key={item} />)}
+          </div>
+          <div className="lb-v2-grid">
+            {[1, 2, 3, 4].map((item) => <div className="lb-v2-skeleton-row" key={item} />)}
           </div>
         </div>
-
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest mb-4">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Coming Soon</span>
+      ) : rows.length === 0 ? (
+        <div className="lb-v2-empty">
+          <div className="lb-v2-empty-icon"><Trophy size={28} /></div>
+          <h3>No rankings yet</h3>
+          <p>{timeframe === 'today' ? 'Earn XP today to appear on the daily leaderboard.' : 'Students will appear here as they earn XP.'}</p>
         </div>
+      ) : (
+        <>
+          {topRows.length > 0 && (
+            <section className="lb-v2-podium" aria-label="Top three students">
+              {topRows.map((row) => <PodiumCard key={row.userId} row={row} place={row.rank} timeframe={timeframe} />)}
+            </section>
+          )}
 
-        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-3">
-          Leaderboard Rankings Coming Soon!
-        </h2>
+          {rows.length > 0 && (
+            <section aria-labelledby="lb-v2-list-title">
+              <h3 id="lb-v2-list-title" className="lb-v2-list-header">Rankings</h3>
+              <div className="lb-v2-table" role="table" aria-label="Top 10 student rankings">
+                <div className="lb-v2-table-head" role="row">
+                  <span role="columnheader">Rank</span><span role="columnheader">Student &amp; level</span><span role="columnheader">Points</span>
+                </div>
+              <div className="lb-v2-grid">
+                {rows.map((row) => {
+                  const xp = scoreFor(row, timeframe)
+                  return (
+                    <article key={row.userId} role="row" className={`lb-v2-row ${row.isMe ? 'is-me' : ''}`}>
+                      <span className="lb-v2-row-rank" role="cell">{row.rank}</span>
+                      <Avatar row={row} />
+                      <div className="lb-v2-row-info" role="cell">
+                        <div className="lb-v2-row-name">{displayName(row.name)}{row.isMe ? ' · You' : ''}</div>
+                        <div className="lb-v2-row-xp">{row.levelName || `Level ${row.level || 1}`}</div>
+                      </div>
+                      {row.badges?.[0] && <span className="lb-v2-row-badge" title={row.badges[0].name}>{row.badges[0].icon || '🏅'}</span>}
+                      <span className="lb-v2-row-score" role="cell">{numberFormat.format(xp)}</span>
+                    </article>
+                  )
+                })}
+                {showPinnedYou && user && (
+                  <article role="row" className="lb-v2-row lb-v2-row--you">
+                    <span className="lb-v2-row-rank" role="cell">{myRank}</span>
+                    <div className="lb-v2-avatar-wrap">
+                      {user.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img className="lb-v2-avatar" src={user.avatar} alt={`${user.name} avatar`} />
+                      ) : <div className="lb-v2-avatar lb-v2-avatar-fallback">{avatarFallback(user.name)}</div>}
+                    </div>
+                    <div className="lb-v2-row-info" role="cell">
+                      <div className="lb-v2-row-name">You</div>
+                      <div className="lb-v2-row-xp">{progress?.levelName || `Level ${progress?.level ?? 1}`}</div>
+                    </div>
+                    <span className="lb-v2-row-score" role="cell">{numberFormat.format(myDisplayXP)}</span>
+                  </article>
+                )}
+              </div>
+              </div>
+            </section>
+          )}
+          <p className="lb-v2-cap-note">Showing the top {limit} · Refreshes every minute</p>
+        </>
+      )}
 
-        <p className="text-slate-400 max-w-md text-sm font-medium leading-relaxed mb-6">
-          We're finalizing the national student leaderboard. Soon you will be able to compete with peers across Nigeria, track your weekly rank, and win exclusive rewards.
-        </p>
-
-        <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-800/60 px-4 py-2 rounded-xl border border-slate-700/50">
-          <Clock className="w-3.5 h-3.5 text-amber-400" />
-          <span>Check back in the next update</span>
-        </div>
-      </motion.div>
     </div>
   )
 }

@@ -6,6 +6,8 @@ export const progressApi = {
   getProgress: () => apiClient.get('/progress/me'),
   award: (action: string, metadata?: Record<string, unknown>) =>
     apiClient.post('/progress/award', { action, metadata }),
-  getLeaderboard: (params?: { filter?: string; subject?: string }) =>
+  updateDailyGoal: (dailyGoalTarget: number) =>
+    apiClient.put('/progress/goal', { dailyGoalTarget }),
+  getLeaderboard: (params?: { timeframe?: 'today' | 'lifetime' }) =>
     apiClient.get('/progress/leaderboard', { params }),
 }
