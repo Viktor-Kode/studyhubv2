@@ -8,12 +8,13 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import './study-path.css'
 import './dashboard-redesign.css'
-import { getActiveStudyPath, deleteStudyPath } from '@/src/services/api'
+import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath } from '@/src/services/api'
 import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 
 import {
   FiCheck,
+  FiChevronDown,
   FiLock,
   FiPlay,
   FiZap,
@@ -52,6 +53,9 @@ export default function StudentDashboardPage() {
 
   // State
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
+  const [allTopics, setAllTopics] = useState<StudyPathTopic[]>([])
+  const [showTopicSwitcher, setShowTopicSwitcher] = useState(false)
+  const topicSwitcherRef = useRef<HTMLDivElement>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -68,6 +72,17 @@ export default function StudentDashboardPage() {
     return () => document.removeEventListener('mousedown', closeTopicMenu)
   }, [showTopicMenu])
 
+  useEffect(() => {
+    if (!showTopicSwitcher) return
+    const closeSwitcher = (event: MouseEvent) => {
+      if (!topicSwitcherRef.current?.contains(event.target as Node)) {
+        setShowTopicSwitcher(false)
+      }
+    }
+    document.addEventListener('mousedown', closeSwitcher)
+    return () => document.removeEventListener('mousedown', closeSwitcher)
+  }, [showTopicSwitcher])
+
   // Real progress state
   const [realStats, setRealStats] = useState({
     streak: 0,
@@ -79,46 +94,52 @@ export default function StudentDashboardPage() {
   const [showGoalPicker, setShowGoalPicker] = useState(false)
   const [isUpdatingGoal, setIsUpdatingGoal] = useState(false)
 
-  // Load active study path: backend first, then localStorage fallback
-  useEffect(() => {
-    let cancelled = false
+  // Load topics: backend first, then localStorage fallback
+  const loadTopics = useCallback(async () => {
     setIsLoadingPath(true)
-    getActiveStudyPath()
-      .then((backendPath) => {
-        if (cancelled) return
-        let selectedTopic: StudyPathTopic | null = null
-        if (typeof window !== 'undefined') {
-          try {
-            const saved = localStorage.getItem('studyhelp_active_topic')
-            if (saved) selectedTopic = JSON.parse(saved) as StudyPathTopic
-          } catch { /* ignore malformed local cache */ }
-        }
+    try {
+      const [backendPaths, activeBackend] = await Promise.all([
+        getUserStudyPaths().catch(() => [] as StudyPathTopic[]),
+        getActiveStudyPath().catch(() => null),
+      ])
 
-        // Preserve the topic selected on the study map. Use the backend copy
-        // when it is the same topic so its latest progress is reflected.
-        const activeTopic = selectedTopic
-          ? backendPath?.topicId === selectedTopic.topicId ? backendPath : selectedTopic
-          : backendPath && backendPath.nodes?.length > 0 ? backendPath : null
+      let localSaved: StudyPathTopic[] = []
+      let localActive: StudyPathTopic | null = null
+      if (typeof window !== 'undefined') {
+        try {
+          const rawSaved = localStorage.getItem('studyhelp_saved_topics')
+          if (rawSaved) localSaved = JSON.parse(rawSaved)
+          const rawActive = localStorage.getItem('studyhelp_active_topic')
+          if (rawActive) localActive = JSON.parse(rawActive)
+        } catch {}
+      }
 
-        setTopic(activeTopic)
-        if (activeTopic && typeof window !== 'undefined') {
-          localStorage.setItem('studyhelp_active_topic', JSON.stringify(activeTopic))
-        }
-      })
-      .catch(() => {
-        // Network error — fall back to localStorage silently
-        if (!cancelled && typeof window !== 'undefined') {
-          try {
-            const saved = localStorage.getItem('studyhelp_active_topic')
-            if (saved) setTopic(JSON.parse(saved) as StudyPathTopic)
-          } catch { /* ignore malformed local cache */ }
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPath(false)
-      })
-    return () => { cancelled = true }
+      const map = new Map<string, StudyPathTopic>()
+      if (Array.isArray(backendPaths)) {
+        backendPaths.forEach((p) => { if (p?.topicId) map.set(p.topicId, p) })
+      }
+      if (Array.isArray(localSaved)) {
+        localSaved.forEach((p) => { if (p?.topicId && !map.has(p.topicId)) map.set(p.topicId, p) })
+      }
+      if (activeBackend?.topicId) map.set(activeBackend.topicId, activeBackend)
+      if (localActive?.topicId && !map.has(localActive.topicId)) map.set(localActive.topicId, localActive)
+
+      const merged = Array.from(map.values())
+      setAllTopics(merged)
+
+      const selected = (localActive && map.get(localActive.topicId)) || localActive || activeBackend || (merged.length > 0 ? merged[0] : null)
+      setTopic(selected)
+      if (selected && typeof window !== 'undefined') {
+        localStorage.setItem('studyhelp_active_topic', JSON.stringify(selected))
+      }
+    } finally {
+      setIsLoadingPath(false)
+    }
   }, [])
+
+  useEffect(() => {
+    loadTopics()
+  }, [loadTopics])
 
   // Fetch real progress from backend if logged in and maintain daily login activity
   const fetchProgress = useCallback(async () => {
@@ -165,10 +186,21 @@ export default function StudentDashboardPage() {
     if (typeof window !== 'undefined') {
       if (newTopic) {
         localStorage.setItem('studyhelp_active_topic', JSON.stringify(newTopic))
+        setAllTopics((prev) => {
+          const exists = prev.some((t) => t.topicId === newTopic.topicId)
+          const updated = exists
+            ? prev.map((t) => (t.topicId === newTopic.topicId ? newTopic : t))
+            : [newTopic, ...prev]
+          try {
+            localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
+          } catch {}
+          return updated
+        })
       } else {
         localStorage.removeItem('studyhelp_active_topic')
       }
     }
+  }
   }
 
   // Delete active topic
@@ -241,7 +273,16 @@ export default function StudentDashboardPage() {
           <div className="sr-layout">
             <aside className="sr-sidebar">
               <Link href="/dashboard/student" className="sr-brand">
-                <span className="sr-logo"><IoSparklesSharp size={22} /></span>
+                <div style={{ width: 38, height: 38, borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--sr-border)', flexShrink: 0, boxShadow: '0 2px 8px rgba(109,59,242,0.12)' }}>
+                  <Image
+                    src="/apple-touch-icon.png"
+                    alt="StudyHelp"
+                    width={38}
+                    height={38}
+                    priority
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
                 <span>StudyHelp</span>
               </Link>
               <nav className="sr-nav" aria-label="Main navigation">
@@ -276,7 +317,67 @@ export default function StudentDashboardPage() {
                       <button className="sr-kebab" aria-label="Topic options" aria-expanded={showTopicMenu} onClick={() => setShowTopicMenu((open) => !open)}><FiMoreHorizontal /></button>
                       {showTopicMenu && <div className="sr-menu"><button onClick={() => { setShowTopicMenu(false); setShowDeleteConfirm(true) }}>Delete topic</button></div>}
                     </div>
-                    <p className="sr-eyebrow">{isTopicComplete ? 'Completed topic' : 'Active topic'}</p>
+                    <div className="sr-topic-header-row">
+                      <p className="sr-eyebrow">{isTopicComplete ? 'Completed topic' : 'Active topic'}</p>
+                      {allTopics.length > 1 && (
+                        <div className="sr-topic-switcher-wrap" ref={topicSwitcherRef}>
+                          <button
+                            type="button"
+                            className="sr-topic-switch-btn"
+                            onClick={() => setShowTopicSwitcher((open) => !open)}
+                            aria-expanded={showTopicSwitcher}
+                            title="Switch study topic"
+                          >
+                            <span>Switch topic ({allTopics.length})</span>
+                            <FiChevronDown className={`sr-switch-chevron ${showTopicSwitcher ? 'open' : ''}`} />
+                          </button>
+                          {showTopicSwitcher && (
+                            <div className="sr-topic-dropdown-menu">
+                              <div className="sr-dropdown-title">Your Topics</div>
+                              <div className="sr-dropdown-list">
+                                {allTopics.map((t) => {
+                                  const isActiveTopic = t.topicId === topic.topicId
+                                  const isDone = Boolean(t.completed || t.challenge?.status === 'completed' || t.challenge?.passed)
+                                  const nodeDoneCount = t.nodes?.filter((n) => n.status === 'completed').length || 0
+                                  const totalNodes = (t.nodes?.length || 0) + 1
+                                  return (
+                                    <button
+                                      key={t.topicId}
+                                      type="button"
+                                      className={`sr-dropdown-item ${isActiveTopic ? 'selected' : ''}`}
+                                      onClick={() => {
+                                        saveTopic(t)
+                                        setShowTopicSwitcher(false)
+                                      }}
+                                    >
+                                      <div className="sr-dropdown-item-info">
+                                        <b className="sr-dropdown-item-title">{t.title}</b>
+                                        <span className="sr-dropdown-item-meta">
+                                          {t.courseCode ? `${t.courseCode} · ` : ''}
+                                          {isDone ? 'Completed' : `${nodeDoneCount}/${totalNodes} complete`}
+                                        </span>
+                                      </div>
+                                      {isActiveTopic && <span className="sr-active-tag">Active</span>}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                              <button
+                                type="button"
+                                className="sr-dropdown-add-btn"
+                                onClick={() => {
+                                  setShowTopicSwitcher(false)
+                                  openGenerateModal()
+                                }}
+                              >
+                                <FiPlus size={14} />
+                                <span>Add new topic</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <h2>{topic.title}</h2>
                     <p className="sr-topic-code">{topic.courseCode}</p>
                     <div className="sr-progress-row">

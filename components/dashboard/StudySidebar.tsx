@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -47,8 +49,15 @@ export default function StudySidebar() {
     <>
       <aside className="sp-sidebar">
         <Link href="/dashboard/student" className="sp-logo-wrap">
-          <div className="sp-logo-icon">
-            <IoSparklesSharp size={20} />
+          <div className="sp-logo-icon" style={{ overflow: 'hidden', borderRadius: '10px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Image
+              src="/apple-touch-icon.png"
+              alt="StudyHelp"
+              width={34}
+              height={34}
+              priority
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <span className="sp-logo-text">StudyHelp</span>
         </Link>

@@ -108,6 +108,12 @@ export default function CreateStudyPathModal({ onClose }: { onClose: () => void 
         : await uploadStudyMaterial(null as any, { text: sourceText, title })
 
       localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
+      try {
+        const raw = localStorage.getItem('studyhelp_saved_topics')
+        const list = raw ? JSON.parse(raw) : []
+        const updated = [studyPath, ...list.filter((t) => t?.topicId !== studyPath.topicId)]
+        localStorage.setItem('studyhelp_saved_topics', JSON.stringify(updated))
+      } catch {}
       onClose()
       router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
     } catch (error: unknown) {
