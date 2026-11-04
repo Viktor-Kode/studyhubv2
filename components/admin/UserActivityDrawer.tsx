@@ -57,6 +57,18 @@ const DAY_TAB_LABELS: Record<string, string> = {
   sessions: 'Sessions',
   payments: 'Payments',
   routes: 'Pages / Routes',
+  studyMaps: 'Study Maps',
+}
+
+type StudyMapActivity = {
+  success?: boolean
+  maps: Array<{
+    topicId: string; title: string; courseCode?: string; currentProgress: number; completed: boolean; isActive: boolean
+    nodeCount: number; createdAt?: string; updatedAt?: string
+    nodes: Array<{ id: number; title: string; status: string; contentStatus?: string; sourcePages?: number[] }>
+    challenge?: { status?: string; attempts?: Array<{ score: number; total: number; passed: boolean; takenAt: string; missedNodeIds?: number[] }> }
+  }>
+  interactions: Array<{ type: string; title: string; subtitle?: string; metadata?: Record<string, unknown>; createdAt: string }>
 }
 
 function dayKindClass(kind: string): string {
@@ -133,6 +145,10 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
     total: number
   } | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
+  const [studyMapData, setStudyMapData] = useState<StudyMapActivity | null>(null)
+  const [studyMapLoading, setStudyMapLoading] = useState(false)
+  const [studyMapError, setStudyMapError] = useState('')
+  const [studyMapRefreshKey, setStudyMapRefreshKey] = useState(0)
 
   useEffect(() => {
     const fetchUserActivity = async () => {
@@ -163,6 +179,18 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
   useEffect(() => {
     if (activeTab === 'routes') loadRoutes()
   }, [activeTab, loadRoutes])
+
+  useEffect(() => {
+    if (activeTab !== 'studyMaps') return
+    let cancelled = false
+    setStudyMapLoading(true)
+    setStudyMapError('')
+    apiClient.get<StudyMapActivity>(`/admin/users/${userId}/study-maps`)
+      .then((res) => { if (!cancelled && res.data?.success) setStudyMapData(res.data) })
+      .catch(() => { if (!cancelled) setStudyMapError('Could not load study map activity.') })
+      .finally(() => { if (!cancelled) setStudyMapLoading(false) })
+    return () => { cancelled = true }
+  }, [userId, activeTab, studyMapRefreshKey])
 
   useEffect(() => {
     if (activeTab !== 'daylog') return
@@ -264,7 +292,7 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
             </div>
 
             <div className="drawer-tabs">
-              {(['overview', 'daylog', 'cbt', 'sessions', 'payments', 'routes'] as const).map((t) => (
+              {(['overview', 'daylog', 'cbt', 'sessions', 'payments', 'routes', 'studyMaps'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -589,6 +617,39 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
                         </div>
                       ))}
                     </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'studyMaps' && (
+              <div className="drawer-content">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Map size={16} style={{ color: '#6366f1' }} />
+                  <h4 style={{ margin: 0 }}>Study map progress &amp; interactions</h4>
+                  <button type="button" onClick={() => setStudyMapRefreshKey((key) => key + 1)} style={{ marginLeft: 'auto', fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Refresh</button>
+                </div>
+                {studyMapLoading ? <p className="empty-state">Loading study maps…</p> : studyMapError ? <p className="empty-state">{studyMapError}</p> : !studyMapData ? <p className="empty-state">No study map data available.</p> : (
+                  <>
+                    {!studyMapData.maps.length && <p className="empty-state">This user has not created a study map yet.</p>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                      {studyMapData.maps.map((map) => {
+                        const completed = map.nodes.filter((node) => node.status === 'completed').length
+                        return <section key={map.topicId} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, background: '#f8fafc' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{ flex: 1 }}><strong style={{ color: '#1e293b', fontSize: 14 }}>{map.title}</strong><div style={{ color: '#64748b', fontSize: 11, marginTop: 3 }}>{map.courseCode || 'Study Map'} · {map.isActive ? 'Active' : 'Archived'} · Updated {map.updatedAt ? formatDistanceToNow(new Date(map.updatedAt), { addSuffix: true }) : '—'}</div></div>
+                            <span style={{ color: '#4f46e5', fontWeight: 700, fontSize: 12 }}>{completed}/{map.nodeCount} nodes</span>
+                          </div>
+                          <div style={{ height: 5, background: '#e2e8f0', borderRadius: 9, margin: '10px 0' }}><div style={{ width: `${map.nodeCount ? Math.round(completed / map.nodeCount * 100) : 0}%`, height: '100%', background: '#10b981', borderRadius: 9 }} /></div>
+                          <div style={{ display: 'grid', gap: 5 }}>
+                            {map.nodes.map((node) => <div key={node.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: '#475569', padding: '5px 0', borderTop: '1px solid #e2e8f0' }}><span>{node.id}. {node.title}{node.sourcePages?.length ? <span style={{ color: '#94a3b8' }}> · p. {node.sourcePages.join(', ')}</span> : null}</span><span style={{ flexShrink: 0 }}>{node.status}{node.contentStatus === 'failed' ? ' · content failed' : ''}</span></div>)}
+                          </div>
+                          {(map.challenge?.attempts?.length ?? 0) > 0 && <p style={{ fontSize: 11, color: '#475569', margin: '10px 0 0' }}>Challenge attempts: {map.challenge!.attempts!.map((attempt) => `${attempt.score}/${attempt.total}${attempt.passed ? ' ✓' : ''} (${format(new Date(attempt.takenAt), 'MMM d, HH:mm')})`).join(' · ')}</p>}
+                        </section>
+                      })}
+                    </div>
+                    <h4>Recent interactions</h4>
+                    {!studyMapData.interactions.length ? <p className="empty-state">No study map interactions recorded yet. New opens and completions will appear here.</p> : <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{studyMapData.interactions.map((event, index) => <div key={`${event.type}-${event.createdAt}-${index}`} className="activity-row"><div className="activity-row-left"><span className="activity-subject">{event.title}</span><span className="activity-meta">{event.subtitle}{event.metadata?.mapTitle ? ` · ${String(event.metadata.mapTitle)}` : ''}</span></div><span className="activity-date">{format(new Date(event.createdAt), 'MMM d · HH:mm')}</span></div>)}</div>}
                   </>
                 )}
               </div>
