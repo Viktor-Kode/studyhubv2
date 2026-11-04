@@ -309,7 +309,21 @@ function StudyMapContent() {
     if (cs === 'pending' || cs === 'failed') {
       // Priority prepare this node first
       try {
-        await prepareStudyPathNode(topic.topicId, nodeId, { bufferNext: true })
+        const preparedNode = await prepareStudyPathNode(topic.topicId, nodeId, { bufferNext: true })
+        if (preparedNode) {
+          // The lesson reads its initial content from localStorage. Keep that
+          // cache in sync with the freshly generated node before navigating.
+          const preparedTopic = {
+            ...topic,
+            nodes: topic.nodes.map((item) => item.id === nodeId ? { ...item, ...preparedNode } : item),
+          }
+          setTopic(preparedTopic)
+          setNodeContentStatuses((previous) => ({
+            ...previous,
+            [nodeId]: { contentStatus: preparedNode.contentStatus || 'ready' },
+          }))
+          localStorage.setItem('studyhelp_active_topic', JSON.stringify(preparedTopic))
+        }
       } catch { /* fall through */ }
     }
     router.push(`/dashboard/student/lesson/${nodeId}`)
