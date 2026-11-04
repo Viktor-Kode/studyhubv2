@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -200,7 +201,6 @@ export default function StudentDashboardPage() {
         localStorage.removeItem('studyhelp_active_topic')
       }
     }
-  }
   }
 
   // Delete active topic
