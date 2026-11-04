@@ -500,60 +500,85 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Interactive Phone Mockup */}
+          {/* Interactive Phone Mockup — Exact Student Dashboard Preview */}
           <div className="ph">
-            <div className="ps">
+            <div className="ps mock-dash-screen">
+              {/* Dynamic Island / Notch */}
               <div className="pn" />
-              <div className="pt">
-                <small>YOUR LECTURE DECK · 52 PAGES</small>
-                <b>Cell Biology</b>
-              </div>
-              <div className="pk">
-                <small>TURN THE DECK INTO A STUDY PLAN</small>
-                <div className="hero-transform">
-                  <span><b>52</b><small>slides</small></span>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                  <span><b>Study map</b><small>topics + practice</small></span>
+{/* Dashboard Header with Greeting & Real Streak/XP Pills */}
+              <div className="mock-dash-head">
+                <div className="mock-dash-user">
+                  <small>Good afternoon,</small>
+                  <b>Viktor 👋</b>
                 </div>
-                <small style={{ marginTop: '8px' }}>Built around the material you uploaded</small>
-              </div>
-              <div className="pa">
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="6" cy="6" r="3" />
-                      <circle cx="18" cy="9" r="3" />
-                      <path d="M6 9v6M9 9h9" />
+                <div className="mock-dash-pills">
+                  <div className="mock-dash-pill fire" title="12-day streak">
+                    <svg viewBox="0 0 24 24" className="mock-pill-icon" fill="currentColor">
+                      <path d="M12 23c-4.97 0-9-4.03-9-9 0-4.5 3.5-7.5 5.5-10.5C9.5 2 10.5 1 11 1c.5 1 1.5 2 2.5 3.5 2 3 5.5 6 5.5 10.5 0 4.97-4.03 9-9 9z" />
                     </svg>
-                  </i>
-                  Study map
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="m8 12 3 3 5-6" />
+                    <span>12</span>
+                  </div>
+                  <div className="mock-dash-pill xp" title="1,450 XP">
+                    <svg viewBox="0 0 24 24" className="mock-pill-icon" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
-                  </i>
-                  Practice questions
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <rect x="3" y="6" width="18" height="12" rx="2" />
-                    </svg>
-                  </i>
-                  Flashcards
+                    <span>1,450</span>
+                  </div>
                 </div>
               </div>
-              <div className="pc">
-                <div>
-                  <b>Next: Membrane transport</b>
-                  <br />
-                  <small>Review a topic, then test your recall</small>
+
+              {/* Exact Active Topic Card with "RESUME LEARNING" */}
+              <div className="mock-topic-card">
+                <div className="mock-topic-top">
+                  <span className="mock-eyebrow">
+                    <span className="mock-live-dot" /> ACTIVE TOPIC
+                  </span>
+                  <span className="mock-kebab">•••</span>
                 </div>
-                <small style={{ color: '#6D3BF2', fontWeight: 700 }}>Start →</small>
+                <h3 className="mock-topic-title">Cell Biology & Genetics</h3>
+                <p className="mock-topic-code">BIO 101 · 8 Modules Mapped</p>
+                <div className="mock-progress-wrap">
+                  <div className="mock-track">
+                    <span style={{ width: '65%' }} />
+                  </div>
+                  <span className="mock-progress-num">4 of 6 complete</span>
+                </div>
+                <div className="mock-actions">
+                  <div className="mock-btn-resume">
+                    <span>RESUME LEARNING</span>
+                    <svg viewBox="0 0 24 24" className="mock-play-ico" fill="currentColor">
+                      <polygon points="6 4 18 12 6 20 6 4" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Up-Next Node preview from the real study rail */}
+              <div className="mock-node-preview">
+                <div className="mock-node-circle active">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="7 4 19 12 7 20 7 4" />
+                  </svg>
+                </div>
+                <div className="mock-node-content">
+                  <span className="mock-node-tag">UP NEXT · NODE 5</span>
+                  <b>Cell Membrane & Transport</b>
+                  <small>Lesson &amp; Quiz · +50 XP</small>
+                </div>
+              </div>
+
+              {/* Daily goal mini tracker */}
+              <div className="mock-goal-bar">
+                <div className="mock-goal-ring">
+                  <span>70%</span>
+                </div>
+                <div className="mock-goal-info">
+                  <div className="mock-goal-head">
+                    <small>DAILY GOAL</small>
+                    <b>35 / 50 XP</b>
+                  </div>
+                  <p>15 XP to complete today&apos;s goal</p>
+                </div>
               </div>
             </div>
           </div>
@@ -585,7 +610,7 @@ export default function Home() {
       </div>
 
       {/* Sound Familiar Section */}
-      <section className="sec tint">
+      <section className="sec tint sound-familiar-sec">
         <svg
           className="ico"
           style={{ left: '4%', top: '40px', width: '56px', height: '56px' }}
@@ -625,19 +650,28 @@ export default function Home() {
           <div className="k">Sound familiar?</div>
           <h2 className="h2">We&apos;ve all been there</h2>
           <p className="lead">Studying messy slides shouldn&apos;t be this stressful.</p>
-          <div className="g3">
-            <div className="card">
-              <div className="ic v">01</div>
-              <h3>PDF & slide overload</h3>
+          <div className="g3 sound-familiar-grid">
+            <div className="card sound-card">
+              <div className="sound-badge-row">
+                <span className="sound-pill pill-red">01</span>
+                <span className="sound-sub-label">Information Trap</span>
+              </div>
+              <h3>PDF &amp; slide overload</h3>
               <p>You have 100+ pages of lecturer slides and PDFs, but no idea what will actually show up in the exam.</p>
             </div>
-            <div className="card">
-              <div className="ic">02</div>
+            <div className="card sound-card">
+              <div className="sound-badge-row">
+                <span className="sound-pill pill-amber">02</span>
+                <span className="sound-sub-label">No Structure</span>
+              </div>
               <h3>No structured roadmap</h3>
               <p>Randomly skimming materials leaves knowledge gaps, panic right before test day, and low recall.</p>
             </div>
-            <div className="card">
-              <div className="ic v">03</div>
+            <div className="card sound-card">
+              <div className="sound-badge-row">
+                <span className="sound-pill pill-purple">03</span>
+                <span className="sound-sub-label">Low Momentum</span>
+              </div>
               <h3>Zero motivation alone</h3>
               <p>Passive reading puts you to sleep. Without progress milestones, streaks, or peer ranks, procrastination wins.</p>
             </div>
@@ -700,46 +734,116 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How it works Section */}
+      {/* How it works Section — Interactive Zigzag Study Map */}
       <section className="sec tint" id="how-it-works">
         <div className="w">
           <div className="k">Fast · AI-powered · Gamified</div>
-          <h2 className="h2">Simple 3-step process</h2>
-          <p className="lead">From raw notes to top of the leaderboard in 3 steps.</p>
-          <div className="g3">
-            <div className="card">
-              <span className="bn">1</span>
-              <div className="num">1</div>
-              <h3>Upload your PDF</h3>
-              <p>Drop your course slides, handouts, or textbook chapters right into the platform.</p>
-              <div className="mini">
-                biochemistry_lectures.pdf · Uploaded
-                <div className="bar">
-                  <i style={{ width: '100%' }} />
+          <h2 className="h2">The 3-step study roadmap</h2>
+          <p className="lead">Watch how your raw PDF turns into an interactive path to the top of the leaderboard.</p>
+
+          <div className="zigzag-study-map">
+            {/* SVG Connecting Zigzag Path */}
+            <svg className="zigzag-svg" viewBox="0 0 100 420" preserveAspectRatio="none" aria-hidden="true">
+              <path
+                d="M 28 40 Q 80 110, 72 190 T 28 360"
+                fill="none"
+                stroke="url(#zigzag-grad)"
+                strokeWidth="4"
+                strokeDasharray="8 8"
+                className="zigzag-svg-trail"
+              />
+              <defs>
+                <linearGradient id="zigzag-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#8b5cf6" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Node 1: Completed State */}
+            <div className="zigzag-node-row left">
+              <div className="zigzag-circle-wrap">
+                <div className="zigzag-circle done" title="Step 1: Upload Complete">
+                  <svg viewBox="0 0 24 24" className="zigzag-check-ico" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="zigzag-step-num">01</span>
+              </div>
+              <div className="zigzag-card done-card">
+                <div className="zigzag-card-header">
+                  <span className="zigzag-node-tag tag-done">STEP 01 · COMPLETE</span>
+                  <span className="zigzag-chip chip-green">100% Extracted</span>
+                </div>
+                <h3>Upload your PDF or notes</h3>
+                <p>Drop your course slides, handouts, or textbook chapters right into the platform. Text and topics are extracted in seconds.</p>
+                <div className="zigzag-file-badge">
+                  <svg viewBox="0 0 24 24" className="zigzag-mini-ico" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  <span>biochemistry_lectures.pdf · 12.4 MB</span>
                 </div>
               </div>
             </div>
-            <div className="card">
-              <span className="bn">2</span>
-              <div className="num">2</div>
-              <h3>AI Maps Your Path & Questions</h3>
-              <p>Our AI analyzes the material, builds an interactive roadmap, and creates tailored CBT practice questions.</p>
-              <div className="mini">
-                10 Study Nodes & 60 Questions Mapped
-                <div className="bar">
-                  <i style={{ width: '100%' }} />
+
+            {/* Node 2: Active Up-Next with Animated Pulsing Play Button */}
+            <div className="zigzag-node-row right">
+              <div className="zigzag-card active-card">
+                <div className="zigzag-card-header">
+                  <span className="zigzag-node-tag tag-active">
+                    <span className="mock-live-dot" /> STEP 02 · ACTIVE NODE
+                  </span>
+                  <span className="zigzag-chip chip-purple">AI Generator</span>
+                </div>
+                <h3>AI Maps Your Path &amp; Generates Quizzes</h3>
+                <p>Our AI analyzes the material, builds an interactive roadmap, and creates tailored CBT practice questions.</p>
+                <div className="zigzag-active-footer">
+                  <div className="zigzag-start-btn">
+                    <span>START LESSON</span>
+                    <svg viewBox="0 0 24 24" className="zigzag-play-ico" fill="currentColor">
+                      <polygon points="6 4 18 12 6 20 6 4" />
+                    </svg>
+                  </div>
+                  <span className="zigzag-node-stat">10 Nodes Mapped · 60 Questions</span>
                 </div>
               </div>
+              <div className="zigzag-circle-wrap">
+                <div className="zigzag-circle active" title="Step 2: Start Practice">
+                  <div className="zigzag-pulse-ring" />
+                  <svg viewBox="0 0 24 24" className="zigzag-play-icon-center" fill="currentColor">
+                    <polygon points="7 4 19 12 7 20 7 4" />
+                  </svg>
+                </div>
+                <span className="zigzag-step-num">02</span>
+              </div>
             </div>
-            <div className="card">
-              <span className="bn">3</span>
-              <div className="num">3</div>
-              <h3>Learn, Quiz & Earn XP</h3>
-              <p>Pass topic quizzes, earn XP, protect your streak, and climb the university leaderboard.</p>
-              <div className="mini">
-                +150 XP · Rank #3 on Leaderboard
-                <div className="bar">
-                  <i style={{ width: '85%' }} />
+
+            {/* Node 3: Final Goal / Leaderboard Trophy */}
+            <div className="zigzag-node-row left">
+              <div className="zigzag-circle-wrap">
+                <div className="zigzag-circle challenge" title="Step 3: Trophy & Leaderboard">
+                  <svg viewBox="0 0 24 24" className="zigzag-trophy-ico" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                    <path d="M4 22h16M10 14.66V17c0 .55-.45 1-1 1H7M14 14.66V17c0 .55.45 1 1 1h2" />
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+                  </svg>
+                </div>
+                <span className="zigzag-step-num">03</span>
+              </div>
+              <div className="zigzag-card challenge-card">
+                <div className="zigzag-card-header">
+                  <span className="zigzag-node-tag tag-amber">STEP 03 · FINAL MASTERY</span>
+                  <span className="zigzag-chip chip-amber">+150 XP</span>
+                </div>
+                <h3>Learn, Quiz &amp; Earn XP</h3>
+                <p>Pass topic quizzes, earn XP, protect your streak, and climb the university leaderboard.</p>
+                <div className="zigzag-xp-rank-badge">
+                  <div className="zigzag-rank-pill">
+                    <span>Rank #3 on Leaderboard</span>
+                    <b>Top 5% Student</b>
+                  </div>
                 </div>
               </div>
             </div>
