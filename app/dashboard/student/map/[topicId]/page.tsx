@@ -306,26 +306,50 @@ function StudyMapContent() {
     const node = topic.nodes.find((n) => n.id === nodeId)
     const cs = nodeContentStatuses[nodeId]?.contentStatus || node?.contentStatus || 'ready'
     if (cs === 'generating') return // still generating, ignore clicks
+
+    let lessonTopic = topic
     if (cs === 'pending' || cs === 'failed') {
       // Priority prepare this node first
       try {
         const preparedNode = await prepareStudyPathNode(topic.topicId, nodeId, { bufferNext: true })
         if (preparedNode) {
-          // The lesson reads its initial content from localStorage. Keep that
-          // cache in sync with the freshly generated node before navigating.
-          const preparedTopic = {
+          lessonTopic = {
             ...topic,
             nodes: topic.nodes.map((item) => item.id === nodeId ? { ...item, ...preparedNode } : item),
           }
-          setTopic(preparedTopic)
+          setTopic(lessonTopic)
           setNodeContentStatuses((previous) => ({
             ...previous,
             [nodeId]: { contentStatus: preparedNode.contentStatus || 'ready' },
           }))
-          localStorage.setItem('studyhelp_active_topic', JSON.stringify(preparedTopic))
+          localStorage.setItem('studyhelp_active_topic', JSON.stringify(lessonTopic))
         }
       } catch { /* fall through */ }
     }
+
+    const openedNode = lessonTopic.nodes.find((item) => item.id === nodeId)
+    const hasCompleteLessonContent = Boolean(
+      openedNode?.summary?.trim()
+      && openedNode.sourceFacts?.length
+      && openedNode.keyConcepts?.length
+      && openedNode.breakdown?.some((slide) => slide?.body?.trim()),
+    )
+
+    // Status polling can mark this node ready before the map refreshes its
+    // cached topic (the map cache is refreshed only when every node is ready).
+    // Refresh the topic when this cached lesson is still just an outline.
+    if (!hasCompleteLessonContent) {
+      try {
+        const freshTopic = await getStudyPath(topic.topicId)
+        const freshNode = freshTopic?.nodes.find((item) => item.id === nodeId)
+        if (freshTopic && freshNode) {
+          lessonTopic = freshTopic
+          setTopic(freshTopic)
+          localStorage.setItem('studyhelp_active_topic', JSON.stringify(freshTopic))
+        }
+      } catch { /* keep the best available local copy */ }
+    }
+
     router.push(`/dashboard/student/lesson/${nodeId}`)
   }, [topic, nodeContentStatuses, router])
 
