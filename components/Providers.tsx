@@ -154,6 +154,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     useEffect(() => {
         if (!isAuthenticated || !pathname) return
+        const logId = new URLSearchParams(window.location.search).get('n')
+        if (!logId) return
+        apiClient.post('/notifications/track', { logId }).then(() => {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('n')
+            window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+        }).catch(() => {})
+    }, [pathname, isAuthenticated])
+
+    useEffect(() => {
+        if (!isAuthenticated || !pathname) return
         // Build a human-readable label from the pathname
         const segments = pathname.split('/').filter(Boolean)
         const label = segments.length === 0

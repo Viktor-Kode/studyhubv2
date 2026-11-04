@@ -277,6 +277,7 @@ function LessonLoopContent() {
 
     // Update active topic in localStorage
     if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("studyhelp:first-node-completed"))
       try {
         const saved = localStorage.getItem("studyhelp_active_topic")
         if (saved) {

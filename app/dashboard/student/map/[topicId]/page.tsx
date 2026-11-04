@@ -161,6 +161,7 @@ function StudyMapContent() {
   const [previewNode, setPreviewNode] = useState<LearningNode | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const nodeElements = useRef(new Map<number, HTMLElement>())
+  const autoOpenedNodeRef = useRef('')
   const challengeElement = useRef<HTMLElement | null>(null)
   const switcherRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -301,7 +302,7 @@ function StudyMapContent() {
     return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
   }, [topicId, loading, topic, startPolling])
 
-  const openLesson = useCallback(async (nodeId: number) => {
+  const openLesson = useCallback(async (nodeId: number, trackingId?: string) => {
     if (!topic?.topicId) { router.push(`/dashboard/student/lesson/${nodeId}`); return }
     const node = topic.nodes.find((n) => n.id === nodeId)
     const cs = nodeContentStatuses[nodeId]?.contentStatus || node?.contentStatus || 'ready'
@@ -350,8 +351,21 @@ function StudyMapContent() {
       } catch { /* keep the best available local copy */ }
     }
 
-    router.push(`/dashboard/student/lesson/${nodeId}`)
+    router.push(`/dashboard/student/lesson/${nodeId}${trackingId ? `?n=${encodeURIComponent(trackingId)}` : ''}`)
   }, [topic, nodeContentStatuses, router])
+
+  useEffect(() => {
+    if (!topic || loading || typeof window === 'undefined') return
+    const query = new URLSearchParams(window.location.search)
+    const requestedNodeId = Number(query.get('node'))
+    if (!Number.isInteger(requestedNodeId)) return
+    const requestedNode = topic.nodes.find((node) => node.id === requestedNodeId)
+    if (!requestedNode || requestedNode.status !== 'active') return
+    const requestKey = `${topic.topicId}:${requestedNodeId}`
+    if (autoOpenedNodeRef.current === requestKey) return
+    autoOpenedNodeRef.current = requestKey
+    void openLesson(requestedNodeId, query.get('n') || undefined)
+  }, [topic, loading, openLesson])
 
   const handleRetryNode = useCallback(async (nodeId: number) => {
     if (!topic?.topicId) return

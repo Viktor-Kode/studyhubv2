@@ -252,8 +252,14 @@ export default function StudentDashboardPage() {
 
   const goalPercent = Math.min(100, Math.round((realStats.dailyGoalXp / Math.max(realStats.dailyGoalTarget, 1)) * 100))
   const xpRemaining = Math.max(0, realStats.dailyGoalTarget - realStats.dailyGoalXp)
-  const previewNodes = topic?.nodes.slice(0, 3) || []
-  const pathRemaining = Math.max(0, (topic?.nodes.length || 0) + 1 - previewNodes.length)
+  const nextNodeIndex = topic?.nodes.findIndex((node) => node.status !== 'completed') ?? -1
+  const previewStart = nextNodeIndex > 0 ? nextNodeIndex - 1 : 0
+  const previewNodes = topic && nextNodeIndex >= 0
+    ? topic.nodes.slice(previewStart, Math.min(topic.nodes.length, nextNodeIndex + 2))
+    : []
+  const pathRemaining = topic
+    ? Math.max(0, topic.nodes.length - (previewStart + previewNodes.length) + 1)
+    : 0
 
   const todayDayIndex = (new Date().getDay() + 6) % 7
   const weekDays = [
@@ -511,6 +517,13 @@ export default function StudentDashboardPage() {
                           <span className="sr-node-card">{active && <span className="sr-up-next">Up next</span>}<b>{node.title}</b><small>{node.duration}{active ? ` · +${node.xp} XP` : ''}</small></span>
                         </button>
                       })}
+                    </div>
+                  ) : topic && !isTopicComplete ? (
+                    <div className="sr-card" style={{ padding: '24px', textAlign: 'center', background: 'var(--sr-card)', borderRadius: '16px', border: '1px solid var(--sr-border)' }}>
+                      <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', marginBottom: '8px' }}><FiAward size={26} /></div>
+                      <h3 style={{ margin: '4px 0', fontSize: '18px', fontWeight: 800 }}>Your Unit Challenge is next</h3>
+                      <p style={{ margin: '4px 0 16px', color: 'var(--sr-muted)', fontSize: '14px' }}>You’ve completed every lesson in {topic.title}. Take the challenge when you’re ready.</p>
+                      <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}/challenge`} className="sr-btn sr-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FiPlay fill="currentColor" />Start Unit Challenge</Link>
                     </div>
                   ) : (
                     <div className="sr-empty-path"><IoSparklesSharp /><p>Your interactive lesson path will appear here once you upload a document.</p><button className="sr-btn sr-outline" onClick={openGenerateModal}>Upload material</button></div>

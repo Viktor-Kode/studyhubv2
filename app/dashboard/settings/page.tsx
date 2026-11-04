@@ -312,21 +312,37 @@ function AccountSection({ user, onSaved }: any) {
 
 function NotificationsSection({ user, onSaved }: any) {
     const [prefs, setPrefs] = useState<any>({
-        streakReminder: true,
-        cbtResults: true,
-        goalReminder: true,
-        planExpiry: true,
+        studyReminders: false,
+        emailStudyReminders: false,
+        weeklyDigest: false,
+        reminderTime: '18:00',
+        timezone: 'Africa/Lagos',
     })
     const [loading, setLoading] = useState(false)
     const [pushEnabled, setPushEnabled] = useState(false)
+    const [emailUnsubscribed, setEmailUnsubscribed] = useState(false)
 
     useEffect(() => {
         apiClient.get('/settings').then(res => {
-            if (res.data?.notificationPrefs) setPrefs(res.data.notificationPrefs)
+            setEmailUnsubscribed(Boolean(res.data?.notificationStatus?.emailUnsubscribed))
+            if (res.data?.notificationPrefs) {
+                const detectedZone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Africa/Lagos'
+                setPrefs((current: any) => ({
+                    ...current,
+                    ...res.data.notificationPrefs,
+                    timezone: res.data.timezoneDetected ? res.data.notificationPrefs.timezone : detectedZone,
+                }))
+            }
         })
 
         if (typeof window !== 'undefined' && 'Notification' in window) {
-            setPushEnabled(Notification.permission === 'granted')
+            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then((registration) => registration.pushManager.getSubscription())
+                    .then((subscription) => setPushEnabled(Boolean(subscription)))
+                    .catch(() => setPushEnabled(false))
+            } else {
+                setPushEnabled(false)
+            }
         }
     }, [])
 
@@ -381,11 +397,14 @@ function NotificationsSection({ user, onSaved }: any) {
                     applicationServerKey: urlBase64ToUint8Array(vapidKey)
                 });
 
-                // Save to backend
-                await apiClient.post('/notifications/subscribe', subscription);
                 setPushEnabled(true);
                 toast.success('Subscription saved!');
             }
+
+            await apiClient.post('/notifications/subscribe', {
+                subscription,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || prefs.timezone,
+            });
 
             // Step 3 — Send test notification
             await apiClient.post('/notifications/test-push');
@@ -430,27 +449,41 @@ function NotificationsSection({ user, onSaved }: any) {
                 </div>
             </div>
 
-            <h4 className="font-bold text-sm mb-4 text-gray-400 uppercase tracking-wider">Other Alerts</h4>
-            <div className="space-y-4">
-                {[
-                    { key: 'streakReminder', label: 'Daily Streak Reminder', desc: 'Stay on track with daily alerts' },
-                    { key: 'cbtResults', label: 'Quiz Results', desc: 'Get your scores via notification' },
-                    { key: 'goalReminder', label: 'Goal Reminders', desc: 'Updates on your study targets' },
-                    { key: 'planExpiry', label: 'Plan Expiry', desc: 'Alerts before your sub runs out' },
-                ].map(item => (
-                    <div key={item.key} className="v3-toggle">
-                        <div>
-                            <p className="font-bold text-sm">{item.label}</p>
-                            <p className="text-xs text-gray-500">{item.desc}</p>
-                        </div>
-                        <button
-                            onClick={() => toggle(item.key)}
-                            className={`w-11 h-6 rounded-full transition-colors relative ${prefs[item.key] ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs[item.key] ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
+            <h4 className="font-bold text-sm mb-4 text-gray-400 uppercase tracking-wider">Study routine</h4>
+            <div className="space-y-4 mb-8">
+                <div className="v3-toggle p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl">
+                    <div>
+                        <p className="font-bold text-slate-900 dark:text-white">Next-step reminder</p>
+                        <p className="text-xs text-gray-500">At most once a week while you’re away, with a specific unfinished lesson. Enable push below or choose email backup.</p>
                     </div>
-                ))}
+                    <button type="button" role="switch" aria-checked={Boolean(prefs.studyReminders)} onClick={() => toggle('studyReminders')} className={`w-11 h-6 rounded-full transition-colors relative ${prefs.studyReminders ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.studyReminders ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+                <label className="block p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
+                    <span className="font-bold text-sm">Reminder time</span>
+                    <span className="block text-xs text-gray-500 mt-1">Uses your local time ({prefs.timezone || 'Africa/Lagos'}).</span>
+                    <input type="time" value={prefs.reminderTime || '18:00'} onChange={(event) => setPrefs((current: any) => ({ ...current, reminderTime: event.target.value }))} className="mt-3 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+                </label>
+                <div className="v3-toggle">
+                    <div>
+                        <p className="font-bold text-sm">Email reminder backup</p>
+                        <p className="text-xs text-gray-500">Email the same next step only when push isn’t available.</p>
+                    </div>
+                    <button type="button" role="switch" aria-checked={Boolean(prefs.emailStudyReminders)} disabled={emailUnsubscribed} onClick={() => toggle('emailStudyReminders')} className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-40 ${prefs.emailStudyReminders ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.emailStudyReminders ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+                <div className="v3-toggle">
+                    <div>
+                        <p className="font-bold text-sm">Weekly progress recap</p>
+                        <p className="text-xs text-gray-500">A short email with completed lessons, active days, XP, and your next step.</p>
+                    </div>
+                    <button type="button" role="switch" aria-checked={Boolean(prefs.weeklyDigest)} disabled={emailUnsubscribed} onClick={() => toggle('weeklyDigest')} className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-40 ${prefs.weeklyDigest ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.weeklyDigest ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+                {emailUnsubscribed && <p className="text-xs text-amber-600 dark:text-amber-400">Email notifications are unsubscribed for this account, so email reminders and recaps are disabled.</p>}
             </div>
 
             <button onClick={save} disabled={loading} className="v3-btn-primary mt-8 w-full md:w-auto">
