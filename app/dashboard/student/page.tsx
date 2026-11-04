@@ -8,8 +8,8 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import './study-path.css'
 import './dashboard-redesign.css'
-import { extractTextFromFile } from '@/lib/utils/extraction'
-import { getActiveStudyPath, uploadStudyMaterial, deleteStudyPath } from '@/src/services/api'
+import { getActiveStudyPath, deleteStudyPath } from '@/src/services/api'
+import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 
 import {
@@ -28,10 +28,8 @@ import {
   FiAward,
   FiPlus,
   FiX,
-  FiUploadCloud,
   FiEdit3,
   FiLoader,
-  FiCheckCircle,
   FiTrash2,
   FiUsers,
   FiPhone,
@@ -48,18 +46,6 @@ import {
 
 export type { LearningNode, StudyPathTopic }
 
-type InputMode = 'upload' | 'text'
-
-// Human-friendly label shown while a document is being read
-function getExtractionLabel(file: File): string {
-  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'Scanning image with OCR...'
-  if (ext === '.pdf') return 'Extracting PDF pages...'
-  if (ext === '.docx') return 'Reading Word document...'
-  if (ext === '.pptx' || ext === '.ppt') return 'Extracting presentation text...'
-  return 'Reading document...'
-}
-
 export default function StudentDashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
@@ -67,25 +53,11 @@ export default function StudentDashboardPage() {
   // State
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generateStage, setGenerateStage] = useState('')
   const [isLoadingPath, setIsLoadingPath] = useState(true)
-  const [generateError, setGenerateError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showTopicMenu, setShowTopicMenu] = useState(false)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
   const topicMenuRef = useRef<HTMLDivElement>(null)
-
-  // New topic input state (upload document or paste text)
-  const [inputMode, setInputMode] = useState<InputMode>('upload')
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [extractedText, setExtractedText] = useState('')
-  const [manualText, setManualText] = useState('')
-  const [extracting, setExtracting] = useState(false)
-  const [extractionLabel, setExtractionLabel] = useState('')
-  const [isDragging, setIsDragging] = useState(false)
-  const [inputError, setInputError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!showTopicMenu) return
@@ -224,105 +196,11 @@ export default function StudentDashboardPage() {
 
   // Open / close the new topic modal
   const openGenerateModal = () => {
-    setInputError(null)
     setShowGenerateModal(true)
   }
 
   const closeGenerateModal = () => {
     setShowGenerateModal(false)
-    setInputError(null)
-  }
-
-  // ── File upload & text extraction ──────────────────────────────────────────
-  const handleFile = useCallback(async (file: File) => {
-    const MAX_MB = 50
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setInputError(`File too large. Maximum is ${MAX_MB}MB.`)
-      return
-    }
-    setUploadedFile(file)
-    setExtractedText('')
-    setInputError(null)
-    setExtractionLabel(getExtractionLabel(file))
-    setExtracting(true)
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-    try {
-      const text = await extractTextFromFile(file)
-      if (!text || text.trim().length < 30) {
-        if (isPdf) {
-          setExtractedText('')
-          setInputError(null)
-        } else {
-          setInputError('Could not extract readable text from this file. Please try a different file or paste text manually.')
-          setUploadedFile(null)
-          setExtractedText('')
-        }
-      } else {
-        setExtractedText(text)
-      }
-    } catch (e: any) {
-      if (isPdf) {
-        setExtractedText('')
-        setInputError(null)
-      } else {
-        setInputError(e?.message || 'Failed to read file.')
-        setUploadedFile(null)
-        setExtractedText('')
-      }
-    } finally {
-      setExtracting(false)
-      setExtractionLabel('')
-    }
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
-  }, [handleFile])
-
-  const sourceText = inputMode === 'upload' ? extractedText : manualText
-  const isPdfUpload = Boolean(uploadedFile && (uploadedFile.type === 'application/pdf' || uploadedFile.name.toLowerCase().endsWith('.pdf')))
-  const textReady =
-    inputMode === 'upload'
-      ? (!!extractedText || isPdfUpload) && !extracting
-      : manualText.trim().length >= 50
-
-  // Handle generation — sends PDF/text to the real backend
-  const handleGenerateStudyPath = async () => {
-    if (!textReady) return
-    setInputError(null)
-    setGenerateError(null)
-    setIsGenerating(true)
-    setGenerateStage('Uploading document...')
-    try {
-      const title =
-        inputMode === 'upload' && uploadedFile
-          ? uploadedFile.name.replace(/\.[^/.]+$/, '')
-          : sourceText.split('\n')[0].slice(0, 60).trim() || 'Study Material'
-
-      let studyPath: StudyPathTopic
-      if (inputMode === 'upload' && uploadedFile) {
-        // Send file along with client pre-extracted text
-        studyPath = await uploadStudyMaterial(uploadedFile, { title, text: sourceText, onProgress: (job: any) => setGenerateStage(job?.stage || 'Building map...') })
-      } else {
-        // Send extracted/pasted text to backend
-        studyPath = await uploadStudyMaterial(null as any, { text: sourceText, title })
-      }
-
-      saveTopic(studyPath)
-      setShowGenerateModal(false)
-      setUploadedFile(null)
-      setExtractedText('')
-      setManualText('')
-      router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
-    } catch (err: any) {
-      setGenerateError(err?.message || 'Failed to generate study path. Please try again.')
-    } finally {
-      setIsGenerating(false)
-      setGenerateStage('')
-    }
   }
 
   // Greeting
@@ -550,170 +428,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </div>
-        {/* ── NEW TOPIC MODAL (upload document or paste text) ── */}
-        {showGenerateModal && (
-          <div className="sp-modal-overlay" onClick={closeGenerateModal}>
-            <div className="sp-modal-box sp-modal-box-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="sp-modal-header">
-                <div>
-                  <h3 className="sp-modal-title">New Topic</h3>
-                  <p className="sp-tool-sub" style={{ marginTop: 4 }}>
-                    Upload a document or paste text to generate your study path.
-                  </p>
-                </div>
-                <button
-                  className="sp-modal-close-btn"
-                  onClick={closeGenerateModal}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              {/* Mode Tabs */}
-              <div className="sp-input-tabs">
-                <button
-                  className={`sp-input-tab ${inputMode === 'upload' ? 'active' : ''}`}
-                  onClick={() => setInputMode('upload')}
-                >
-                  <FiUploadCloud /> Upload Document
-                </button>
-                <button
-                  className={`sp-input-tab ${inputMode === 'text' ? 'active' : ''}`}
-                  onClick={() => setInputMode('text')}
-                >
-                  <FiEdit3 /> Paste Text
-                </button>
-              </div>
-
-              {/* Upload Mode */}
-              {inputMode === 'upload' && (
-                <div>
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      setIsDragging(true)
-                    }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={() => !extracting && fileInputRef.current?.click()}
-                    className={`sp-dropzone ${isDragging ? 'dragging' : ''} ${
-                      uploadedFile && (extractedText || isPdfUpload) ? 'done' : ''
-                    }`}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="sp-hidden-input"
-                      accept=".pdf,.docx,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.webp"
-                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                    />
-
-                    {extracting ? (
-                      <>
-                        <FiLoader className="animate-spin sp-dropzone-loader" />
-                        <p className="sp-dropzone-title">{extractionLabel}</p>
-                      </>
-                    ) : uploadedFile && (extractedText || isPdfUpload) ? (
-                      <>
-                        <div className="sp-dropzone-icon done">
-                          <FiCheckCircle />
-                        </div>
-                        <div>
-                          <p className="sp-dropzone-title sp-dropzone-file">{uploadedFile.name}</p>
-                          <p className="sp-dropzone-sub">
-                            {extractedText ? `${extractedText.length.toLocaleString()} characters extracted` : 'Text and visual slides will be analyzed'}
-                          </p>
-                        </div>
-                        <button
-                          className="sp-dropzone-remove"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setUploadedFile(null)
-                            setExtractedText('')
-                          }}
-                        >
-                          <FiX /> Remove file
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="sp-dropzone-icon">
-                          <FiUploadCloud />
-                        </div>
-                        <div>
-                          <p className="sp-dropzone-title">Drop your document here</p>
-                          <p className="sp-dropzone-sub">
-                            or click to browse &mdash; PDF, Word, PPT, Images (max 50 MB)
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <p className="sp-dropzone-hint">
-                    Supports PDF, DOCX, PPTX, TXT, and images (JPG, PNG)
-                  </p>
-                </div>
-              )}
-
-              {/* Paste Text Mode */}
-              {inputMode === 'text' && (
-                <div>
-                  <label className="sp-input-label">Your Content</label>
-                  <textarea
-                    value={manualText}
-                    onChange={(e) => setManualText(e.target.value)}
-                    rows={8}
-                    placeholder="Paste your lecture notes, textbook excerpt, or study material here... (minimum 50 characters)"
-                    className="sp-modal-textarea"
-                  />
-                  <p
-                    className={`sp-char-count ${
-                      manualText.trim().length < 50 ? 'warn' : 'ok'
-                    }`}
-                  >
-                    {manualText.trim().length} / 50 min characters
-                  </p>
-                </div>
-              )}
-
-              {inputError && <p className="sp-input-error">{inputError}</p>}
-
-              {generateError && (
-                <div style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#fca5a5',
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  marginTop: 4
-                }}>
-                  ⚠️ {generateError}
-                </div>
-              )}
-
-              <button
-                className="sp-btn-generate sp-generate-full"
-                onClick={handleGenerateStudyPath}
-                disabled={!textReady || isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>{generateStage || 'Analyzing slides...'}</span>
-                  </>
-                ) : (
-                  <>
-                    <IoSparklesSharp />
-                    <span>Generate Study Path</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
+        {showGenerateModal && <CreateStudyPathModal onClose={closeGenerateModal} />}
         {/* ── DELETE TOPIC CONFIRMATION MODAL ── */}
         {showDeleteConfirm && topic && (
           <div className="sp-modal-overlay" onClick={() => !isDeletingTopic && setShowDeleteConfirm(false)}>

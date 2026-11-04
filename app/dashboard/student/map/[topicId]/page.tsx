@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { type LearningNode, type StudyPathTopic } from '@/lib/data/studyPath'
 import { getStudyPath, getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getNodeStatuses, prepareStudyPathNode, retryStudyPathNode } from '@/src/services/api'
+import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
 import { ArrowLeft, ChevronDown, Check, LockKeyhole, Play, MoreHorizontal, ArrowRight, Trophy, Upload, X, Clock3, Zap, Loader2, RotateCw } from 'lucide-react'
+import '../../study-path.css'
 import '../map.css'
 
 function minutesFor(node: LearningNode): number {
@@ -157,6 +159,7 @@ function StudyMapContent() {
   const [topicMenuOpen, setTopicMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [previewNode, setPreviewNode] = useState<LearningNode | null>(null)
+  const [showUploadModal, setShowUploadModal] = useState(false)
   const nodeElements = useRef(new Map<number, HTMLElement>())
   const challengeElement = useRef<HTMLElement | null>(null)
   const switcherRef = useRef<HTMLDivElement>(null)
@@ -390,7 +393,7 @@ function StudyMapContent() {
           </header>
 
           {loading ? <LoadingPath /> : !topic || nodes.length === 0 ? (
-            <EmptyPath onUpload={() => router.push('/dashboard/student')} />
+            <EmptyPath onUpload={() => setShowUploadModal(true)} />
           ) : (
             <main className="study-map-path">
               {nodes.map((node, index) => {
@@ -476,6 +479,7 @@ function StudyMapContent() {
               </section>
             </div>
           )}
+          {showUploadModal && <CreateStudyPathModal onClose={() => setShowUploadModal(false)} />}
         </div>
       </div>
     </ProtectedRoute>
