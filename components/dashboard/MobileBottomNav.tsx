@@ -125,7 +125,7 @@ export default function BottomNav() {
         borderTop: '1px solid var(--border-subtle)',
         justifyContent: 'space-around',
         alignItems: 'flex-end',
-        paddingTop: 10,
+        paddingTop: 12,
         paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
         zIndex: 100,
         transform: (visible && !modalOpen) ? 'translateY(0)' : 'translateY(100%)',
@@ -155,25 +155,25 @@ export default function BottomNav() {
             >
               <div
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   borderRadius: 16,
                   background: 'var(--purple-deep)',
                   boxShadow: '0 0 16px rgba(91,33,246,0.5)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 22,
+                  fontSize: 24,
                   color: '#ffffff',
                   marginTop: -10,
                   transition: 'transform 0.15s ease',
                 }}
               >
-                <Icon size={22} />
+                <Icon size={24} />
               </div>
               <span
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
@@ -204,8 +204,8 @@ export default function BottomNav() {
           >
             <div
               style={{
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 borderRadius: 12,
                 background: active ? 'var(--purple-bg)' : 'transparent',
                 display: 'flex',
@@ -216,7 +216,7 @@ export default function BottomNav() {
                 transition: 'background 0.18s ease',
               }}
             >
-              <Icon size={20} />
+              <Icon size={22} />
               {item.hasDot && (
                 <span
                   style={{
@@ -234,7 +234,7 @@ export default function BottomNav() {
             </div>
             <span
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',

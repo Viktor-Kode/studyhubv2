@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  FiBookOpen,
+  FiHome,
+  FiMap,
   FiFileText,
+  FiBarChart2,
   FiUser,
   FiUsers,
   FiPhone,
@@ -16,8 +18,10 @@ import { firebaseSignOut } from '@/lib/firebase-auth'
 import './study-nav.css'
 
 const NAV_ITEMS = [
-  { href: '/dashboard/student', label: 'Home', icon: FiBookOpen },
-  { href: '/dashboard/notes-history', label: 'Notes Library', icon: FiFileText },
+  { href: '/dashboard/student/map/default', label: 'Map', icon: FiMap },
+  { href: '/dashboard/notes-history', label: 'Notes', icon: FiFileText },
+  { href: '/dashboard/student', label: 'Home', icon: FiHome },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: FiBarChart2 },
   { href: '/dashboard/profile', label: 'Profile', icon: FiUser }
 ]
 
@@ -30,6 +34,7 @@ export default function StudySidebar() {
   const isActive = (href: string) => {
     // Home should only light up on the home route, not every student subpage
     if (href === '/dashboard/student') return pathname === href
+    if (href === '/dashboard/student/map/default') return pathname.includes('/dashboard/student/map')
     return pathname === href || pathname.startsWith(href + '/')
   }
 
@@ -59,7 +64,7 @@ export default function StudySidebar() {
                     className={`sp-nav-item ${isActive(item.href) ? 'active' : ''}`}
                   >
                     <Icon className="sp-nav-icon" />
-                    <span>{item.label}</span>
+                    <span>{item.label === 'Notes' ? 'Notes Library' : item.label}</span>
                   </Link>
                 </li>
               )
@@ -112,7 +117,7 @@ export default function StudySidebar() {
               className={`sp-bottom-nav-item ${isActive(item.href) ? 'active' : ''}`}
             >
               <Icon className="sp-bottom-nav-icon" />
-              <span>{item.label === 'Notes Library' ? 'Notes' : item.label}</span>
+              <span>{item.label}</span>
             </Link>
           )
         })}

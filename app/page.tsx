@@ -464,14 +464,14 @@ export default function Home() {
         <div className="w hg">
           <div className="ht">
             <h1 className="h1">
-              The tool behind every <span className="gt">first class</span>
+              Stop drowning in lecture slides. <span className="gt">Study what matters.</span>
             </h1>
             <p className="sub">
-              Upload your course PDF or notes. Our AI analyzes your material, maps out an interactive study path, generates tailored practice questions, and helps you earn XP to climb the student leaderboard.
+              Turn your course PDFs into a clear study map, active-recall questions, and flashcards—so you know what to focus on before your next exam.
             </p>
             <div className="acts">
               <Link className="btn hb1" href="/auth/signup">
-                Start free
+                Build my study plan
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
@@ -486,16 +486,16 @@ export default function Home() {
             </div>
             <div className="stats">
               <div>
-                <b>200+</b>
-                <span>students studying smarter</span>
+                <b>Study map</b>
+                <span>built from your PDF</span>
               </div>
               <div>
-                <b>AI Path</b>
-                <span>from your PDF upload</span>
+                <b>Key topics</b>
+                <span>laid out in order</span>
               </div>
               <div>
-                <b>XP & Rank</b>
-                <span>student leaderboard</span>
+                <b>Practice</b>
+                <span>questions and flashcards</span>
               </div>
             </div>
           </div>
@@ -505,27 +505,19 @@ export default function Home() {
             <div className="ps">
               <div className="pn" />
               <div className="pt">
-                <small>SCHOLAR · LEVEL 4</small>
-                <b>Hi, Viktor</b>
+                <small>YOUR LECTURE DECK · 52 PAGES</small>
+                <b>Cell Biology</b>
               </div>
               <div className="pk">
-                <small>Daily Streak · Leaderboard</small>
-                <b>1,450 XP · Rank #3</b>
-                <div className="bar">
-                  <i style={{ width: '75%' }} />
+                <small>TURN THE DECK INTO A STUDY PLAN</small>
+                <div className="hero-transform">
+                  <span><b>52</b><small>slides</small></span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  <span><b>Study map</b><small>topics + practice</small></span>
                 </div>
-                <small style={{ marginTop: '8px' }}>50 XP to reach Rank #2</small>
+                <small style={{ marginTop: '8px' }}>Built around the material you uploaded</small>
               </div>
               <div className="pa">
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <path d="M14 2v6h6" />
-                    </svg>
-                  </i>
-                  Upload PDF
-                </div>
                 <div>
                   <i>
                     <svg viewBox="0 0 24 24">
@@ -535,7 +527,7 @@ export default function Home() {
                       <path d="M6 9v6M9 9h9" />
                     </svg>
                   </i>
-                  Study Path
+                  Study map
                 </div>
                 <div>
                   <i>
@@ -544,26 +536,7 @@ export default function Home() {
                       <path d="m8 12 3 3 5-6" />
                     </svg>
                   </i>
-                  CBT Quizzes
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                      <path d="M4 22h16M10 14.66V17c0 .55-.45 1-1 1H7M14 14.66V17c0 .55.45 1 1 1h2" />
-                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
-                    </svg>
-                  </i>
-                  Leaderboard
-                </div>
-                <div>
-                  <i>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
-                    </svg>
-                  </i>
-                  Active Recall
+                  Practice questions
                 </div>
                 <div>
                   <i>
@@ -576,11 +549,11 @@ export default function Home() {
               </div>
               <div className="pc">
                 <div>
-                  <b>Study Path: Cell Bio</b>
+                  <b>Next: Membrane transport</b>
                   <br />
-                  <small>Node 3 · 10 Questions Ready</small>
+                  <small>Review a topic, then test your recall</small>
                 </div>
-                <small style={{ color: '#6D3BF2', fontWeight: 700 }}>+60 XP</small>
+                <small style={{ color: '#6D3BF2', fontWeight: 700 }}>Start →</small>
               </div>
             </div>
           </div>
@@ -878,13 +851,13 @@ export default function Home() {
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" />
           </svg>
           <h2 className="h2" style={{ color: '#fff', marginTop: 0 }}>
-            Ready to join 200+ students?
+            Ready to make your lecture notes easier to study?
           </h2>
           <p style={{ maxWidth: '520px', margin: '0 auto 28px', fontSize: '18px' }}>
-            Stop struggling and start studying smarter. It takes less than 30 seconds to get started.
+            Turn your next lecture PDF into a study plan you can start using right away.
           </p>
           <Link className="btn" href="/auth/signup">
-            Start free now
+            Build my study plan
           </Link>
           <p style={{ margin: '20px 0 0', fontSize: '14px', opacity: 0.9 }}>
             No credit card required · Instant access · Cancel anytime

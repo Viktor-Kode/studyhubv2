@@ -18,8 +18,10 @@ import {
   FiPlay,
   FiZap,
   FiBookOpen,
+  FiHome,
   FiMap,
   FiFileText,
+  FiBarChart2,
   FiUser,
   FiCpu,
   FiCheckSquare,
@@ -539,9 +541,10 @@ export default function StudentDashboardPage() {
               </main>
 
               <nav className="sr-tabbar" aria-label="Mobile navigation">
-                <Link href="/dashboard/student" className="active"><FiBookOpen />Home</Link>
                 <Link href={`/dashboard/student/map/${encodeURIComponent(topic?.topicId || 'default')}`}><FiMap />Map</Link>
                 <Link href="/dashboard/notes-history"><FiFileText />Notes</Link>
+                <Link href="/dashboard/student" className="active"><FiHome />Home</Link>
+                <Link href="/dashboard/analytics"><FiBarChart2 />Analytics</Link>
                 <Link href="/dashboard/profile"><FiUser />Profile</Link>
               </nav>
             </div>
