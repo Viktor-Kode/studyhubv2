@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Script from 'next/script'
-import { Download, Menu, X } from 'lucide-react'
+import { Download, Menu, MessageCircle, X } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import { usePWA } from '@/hooks/usePWA'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -191,6 +191,7 @@ export default function Home() {
             <Link href="#features">Features</Link>
             <Link href="#how-it-works">How it works</Link>
             <Link href="#pricing">Pricing</Link>
+            <a href="https://whatsapp.com/channel/0029Vb7Yxet4yltKzNUNoF3U" target="_blank" rel="noopener noreferrer">WhatsApp channel</a>
           </nav>
 
           {/* Desktop Action Buttons */}
@@ -264,6 +265,15 @@ export default function Home() {
                 >
                   Pricing
                 </Link>
+                <a
+                  href="https://whatsapp.com/channel/0029Vb7Yxet4yltKzNUNoF3U"
+                  className="mobile-nav-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  WhatsApp channel
+                </a>
               </nav>
 
               <div className="mobile-menu-divider" />
@@ -966,6 +976,57 @@ export default function Home() {
           <p style={{ margin: '20px 0 0', fontSize: '14px', opacity: 0.9 }}>
             No credit card required · Instant access · Cancel anytime
           </p>
+        </div>
+      </section>
+
+      {/* WhatsApp community */}
+      <section aria-labelledby="whatsapp-channel-title" style={{ padding: '12px 20px 64px' }}>
+        <div style={{
+          maxWidth: 960,
+          margin: '0 auto',
+          padding: 'clamp(24px, 5vw, 44px)',
+          borderRadius: 24,
+          border: '1px solid rgba(147, 51, 234, 0.28)',
+          background: 'linear-gradient(135deg, rgba(109, 59, 242, 0.14), rgba(10, 13, 26, 0.96) 58%)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 28,
+        }}>
+          <div style={{ flex: '1 1 360px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#a78bfa', fontWeight: 700, marginBottom: 12 }}>
+              <MessageCircle size={20} aria-hidden="true" />
+              <span>StudyHelp on WhatsApp</span>
+            </div>
+            <h2 id="whatsapp-channel-title" style={{ color: '#fff', fontSize: 'clamp(24px, 4vw, 34px)', lineHeight: 1.2, margin: '0 0 10px' }}>
+              Stay in the loop. Study smarter.
+            </h2>
+            <p style={{ color: '#aab2c5', margin: 0, lineHeight: 1.7 }}>
+              Join our channel for product updates, practical study tips, and news about new features.
+            </p>
+          </div>
+          <a
+            href="https://whatsapp.com/channel/0029Vb7Yxet4yltKzNUNoF3U"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              borderRadius: 14,
+              padding: '14px 22px',
+              background: '#25D366',
+              color: '#062b17',
+              fontWeight: 800,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <MessageCircle size={19} aria-hidden="true" />
+            Join WhatsApp channel
+          </a>
         </div>
       </section>
 
