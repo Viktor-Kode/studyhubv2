@@ -5,15 +5,33 @@
 
 
 :root {
+  /* Semantic Tokens for Tailwind & Components */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #EEF2FF;
+  --accent-foreground: #4338CA;
+  --ring: #4F46E5;
+
   /* Legacy tokens — kept for non-student pages */
   --color-text-primary: #0F172A;
   --color-text-secondary: #334155;
-  --color-text-muted: #475569;
+  --color-text-muted: #64748B;
   --color-text-inverse: #F8FAFC;
   --color-bg-primary: #FFFFFF;
   --color-bg-secondary: #F8FAFC;
-  --color-brand: #5B4CF5;
-  --color-brand-hover: #4C3FE0;
+  --color-brand: #4F46E5;
+  --color-brand-hover: #4338CA;
 
   /* ── UNIFIED DESIGN TOKENS (Light Mode Default) ── */
   --bg: #F8FAFC;
@@ -24,51 +42,72 @@
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #64748B;
-  --purple: #6366F1;
-  --purple-deep: #4F46E5;
+  --purple: #4F46E5;
+  --purple-deep: #4338CA;
   --purple-bg: #EEF2FF;
   --purple-border: #C7D2FE;
   --amber: #D97706;
   --amber-bg: #FFFBEB;
   --amber-border: #FDE68A;
-  --green: #16A34A;
+  --green: #15803D;
+  --green-bg: #F0FDF4;
+  --green-border: #BBF7D0;
   --red: #DC2626;
   --blue-bg: #EFF6FF;
-  --green-bg: #F0FDF4;
   --amber-bg-dark: #FEF3C7;
 }
 
 .dark {
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #E2E8F0;
-  --color-text-muted: #CBD5E1;
+  /* Semantic Tokens for Tailwind & Components (Dark Mode) */
+  --background: #0F172A;
+  --foreground: #F1F5F9;
+  --card: #1E293B;
+  --card-foreground: #F1F5F9;
+  --popover: #1E293B;
+  --popover-foreground: #F1F5F9;
+  --primary: #6366F1;
+  --primary-hover: #818CF8;
+  --primary-foreground: #FFFFFF;
+  --secondary: #334155;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E2548;
+  --accent-foreground: #C7D2FE;
+  --ring: #6366F1;
+
+  /* Legacy tokens — dark */
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
   --color-text-inverse: #0F172A;
-  --color-bg-primary: #0B1220;
-  --color-bg-secondary: #070F1E;
-  --color-brand: #7C70FF;
-  --color-brand-hover: #9288FF;
+  --color-bg-primary: #1E293B;
+  --color-bg-secondary: #0F172A;
+  --color-brand: #6366F1;
+  --color-brand-hover: #818CF8;
 
   /* ── UNIFIED DESIGN TOKENS (Dark Mode Override) ── */
-  --bg: #070F1E;
-  --surface: #0F172A;
-  --surface-2: #1E293B;
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --surface-2: #334155;
   --border: #334155;
   --border-subtle: #1E293B;
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
-  --purple: #818CF8;
-  --purple-deep: #6366F1;
-  --purple-bg: #1E1B4B;
-  --purple-border: #3730A3;
+  --purple: #6366F1;
+  --purple-deep: #4F46E5;
+  --purple-bg: #1E2548;
+  --purple-border: #313D6A;
   --amber: #F59E0B;
-  --amber-bg: #451A03;
-  --amber-border: #78350F;
-  --green: #4ADE80;
-  --red: #EF4444;
-  --blue-bg: #1E3A8A;
-  --green-bg: #14532D;
-  --amber-bg-dark: #78350F;
+  --amber-bg: #2B2115;
+  --amber-border: #573B18;
+  --green: #22C55E;
+  --green-bg: #143525;
+  --green-border: #1F523A;
+  --red: #F87171;
+  --blue-bg: #1B2A4A;
+  --amber-bg-dark: #3E2C14;
 }
 
 /* ─── PURPLE BACKGROUND CONTENT SAFETY RULE ─── */
@@ -158,7 +197,7 @@ img, video, iframe {
 }
 
 .dark select option {
-  background: #111827;
+  background: #1E293B;
   color: #F9FAFB;
 }
 
@@ -196,8 +235,8 @@ img, video, iframe {
 
 .back-button:hover {
   background: #ffffff;
-  border-color: rgba(91, 76, 245, 0.3);
-  color: #5B4CF5;
+  border-color: rgba(79, 70, 229, 0.3);
+  color: #4F46E5;
   transform: translateX(-4px);
   box-shadow: 0 10px 15px -3px rgba(91, 76, 245, 0.1), 0 4px 6px -2px rgba(91, 76, 245, 0.05);
 }
@@ -223,7 +262,9 @@ img, video, iframe {
     overflow-x: hidden;
   }
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors;
+    @apply bg-background text-foreground transition-colors;
+    background-color: var(--bg);
+    color: var(--text-primary);
     overflow-x: hidden;
     max-width: 100vw;
     padding-top: env(safe-area-inset-top);
@@ -9222,15 +9263,15 @@ html {
 }
 
 .dark .studyhelp-theme-toggle {
-  background: #141c2e;
-  border-color: #1f2b45;
+  background: #1e293b;
+  border-color: #334155;
   color: #facc15;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .dark .studyhelp-theme-toggle:hover {
-  background: #1d273f;
-  border-color: #2c3c5f;
+  background: #334155;
+  border-color: #475569;
 }
 
 .studyhelp-theme-toggle .theme-toggle-icon-wrap {
