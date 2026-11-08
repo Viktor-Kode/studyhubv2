@@ -9,8 +9,9 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import './study-path.css'
 import './dashboard-redesign.css'
-import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath } from '@/src/services/api'
+import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getStudyMapCount } from '@/src/services/api'
 import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
+import FirstPathModal from '@/components/dashboard/FirstPathModal'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 
 import {
@@ -58,6 +59,7 @@ export default function StudentDashboardPage() {
   const [showTopicSwitcher, setShowTopicSwitcher] = useState(false)
   const topicSwitcherRef = useRef<HTMLDivElement>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [showFirstPathModal, setShowFirstPathModal] = useState(false)
   const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showTopicMenu, setShowTopicMenu] = useState(false)
@@ -99,9 +101,10 @@ export default function StudentDashboardPage() {
   const loadTopics = useCallback(async () => {
     setIsLoadingPath(true)
     try {
-      const [backendPaths, activeBackend] = await Promise.all([
+      const [backendPaths, activeBackend, countStatus] = await Promise.all([
         getUserStudyPaths().catch(() => [] as StudyPathTopic[]),
         getActiveStudyPath().catch(() => null),
+        getStudyMapCount(user?.uid).catch(() => ({ count: 0, hasStudyMaps: false })),
       ])
 
       let localSaved: StudyPathTopic[] = []
@@ -130,6 +133,22 @@ export default function StudentDashboardPage() {
 
       const selected = (localActive && map.get(localActive.topicId)) || localActive || activeBackend || (merged.length > 0 ? merged[0] : null)
       setTopic(selected)
+
+      const mapCount = typeof user?.studyMapCount === 'number'
+        ? user.studyMapCount
+        : countStatus?.count ?? (Array.isArray(backendPaths) ? backendPaths.length : 0)
+
+      if (mapCount === 0 && merged.length === 0) {
+        let isDismissed = false
+        if (typeof window !== 'undefined') {
+          try {
+            isDismissed = sessionStorage.getItem('studyhelp_first_path_modal_dismissed') === 'true'
+          } catch {}
+        }
+        if (!isDismissed) {
+          setShowFirstPathModal(true)
+        }
+      }
       if (selected && typeof window !== 'undefined') {
         localStorage.setItem('studyhelp_active_topic', JSON.stringify(selected))
       }
@@ -543,6 +562,16 @@ export default function StudentDashboardPage() {
           </div>
         </div>
         {showGenerateModal && <CreateStudyPathModal onClose={closeGenerateModal} />}
+        {showFirstPathModal && (
+          <FirstPathModal
+            isOpen={showFirstPathModal}
+            onClose={() => {
+              setShowFirstPathModal(false)
+              loadTopics()
+            }}
+            onSkip={() => setShowFirstPathModal(false)}
+          />
+        )}
         {/* ── DELETE TOPIC CONFIRMATION MODAL ── */}
         {showDeleteConfirm && topic && (
           <div className="sp-modal-overlay" onClick={() => !isDeletingTopic && setShowDeleteConfirm(false)}>

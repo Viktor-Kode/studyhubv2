@@ -147,6 +147,35 @@ export async function getUserStudyPaths() {
 }
 
 /**
+ * Check existing study map count and status for authenticated user
+ * 
+ * @param {string} [userId]
+ * @returns {Promise<{ count: number, hasStudyMaps: boolean }>}
+ */
+export async function getStudyMapCount(userId = null) {
+  try {
+    const params = userId ? { userId } : {};
+    const res = await apiClient.get('/api/study-path/count', { params });
+    const count = typeof res.data?.count === 'number' ? res.data.count : 0;
+    return {
+      count,
+      hasStudyMaps: Boolean(res.data?.hasStudyMaps ?? count > 0)
+    };
+  } catch (err) {
+    try {
+      const fb = await apiClient.get('/api/backend/study-path/count', { params: userId ? { userId } : {} });
+      const count = typeof fb.data?.count === 'number' ? fb.data.count : 0;
+      return {
+        count,
+        hasStudyMaps: Boolean(fb.data?.hasStudyMaps ?? count > 0)
+      };
+    } catch {
+      return { count: 0, hasStudyMaps: false };
+    }
+  }
+}
+
+/**
  * Fetch a specific study path by its topicId
  * 
  * @param {string} topicId 
@@ -427,6 +456,7 @@ const api = {
   generatePath,
   getActiveStudyPath,
   getUserStudyPaths,
+  getStudyMapCount,
   getStudyPath,
   updateStudyPathNode,
   analyzeStudyPathNodeSummary,
