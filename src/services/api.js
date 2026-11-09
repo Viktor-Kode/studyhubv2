@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getFirebaseToken } from '@/lib/store/authStore';
+import { openPaywallModal } from '@/lib/upgradeHandler';
 
 // Base URL configuration:
 // In browser: uses internal relative Next.js API or configured backend URL
@@ -40,6 +41,20 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Response interceptor: intercept 403 PAYWALL_TRIGGERED globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 403) {
+      const data = error.response?.data;
+      if (data?.error === 'PAYWALL_TRIGGERED' || data?.code === 'PAYWALL_TRIGGERED' || data?.showUpgrade) {
+        openPaywallModal('study_map');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 /**
  * 1. Upload function: POST /api/generate-path
  * Sends FormData with user's uploaded PDF file and returns structured JSON study path
@@ -68,7 +83,25 @@ export async function uploadStudyMaterial(fileOrFormData, options = {}) {
     throw new Error('A PDF file or extracted text must be provided.');
   }
 
-  const response = await apiClient.post('/api/generate-path', formData);
+  let response;
+  try {
+    response = await apiClient.post('/api/generate-path', formData);
+  } catch (postError) {
+    const status = postError?.response?.status;
+    const errCode = postError?.response?.data?.code || postError?.response?.data?.error;
+    if (status === 403 && (errCode === 'PAYWALL_TRIGGERED' || postError?.response?.data?.showUpgrade)) {
+      openPaywallModal('study_map');
+      const err = new Error(postError?.response?.data?.message || 'Free lifetime limit of 3 study maps reached.');
+      err.name = 'PaywallError';
+      err.code = 'PAYWALL_TRIGGERED';
+      err.isPaywall = true;
+      err.status = 403;
+      err.response = postError.response;
+      throw err;
+    }
+    throw postError;
+  }
+
   const jobId = response.data?.jobId;
   if (!jobId) {
     const studyPath = response.data?.studyPath || response.data?.path;
@@ -85,6 +118,17 @@ export async function uploadStudyMaterial(fileOrFormData, options = {}) {
       statusResponse = await apiClient.get(`/api/jobs/${encodeURIComponent(jobId)}`);
     } catch (pollError) {
       const status = pollError?.response?.status;
+      const errCode = pollError?.response?.data?.code || pollError?.response?.data?.error;
+      if (status === 403 && (errCode === 'PAYWALL_TRIGGERED' || pollError?.response?.data?.showUpgrade)) {
+        openPaywallModal('study_map');
+        const err = new Error(pollError?.response?.data?.message || 'Free lifetime limit of 3 study maps reached.');
+        err.name = 'PaywallError';
+        err.code = 'PAYWALL_TRIGGERED';
+        err.isPaywall = true;
+        err.status = 403;
+        err.response = pollError.response;
+        throw err;
+      }
       if (status === 403 || status === 404) {
         throw new Error(pollError?.response?.data?.message || 'Could not access the study-path job.');
       }

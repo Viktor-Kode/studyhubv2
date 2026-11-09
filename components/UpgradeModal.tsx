@@ -13,6 +13,7 @@ const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   postutme: { title: 'Unlock Post-UTME Practice', desc: 'Post-UTME past questions require a paid plan.' },
   quiz: { title: "You've used your 3 free question sets", desc: "Upgrade to generate unlimited quiz sets from any material." },
   library: { title: 'Library Limit Reached', desc: 'Free users can upload up to 2 documents. Upgrade for unlimited storage.' },
+  study_map: { title: "You've used your 3 free study maps", desc: 'Upgrade to create unlimited study maps and master every topic effortlessly.' },
   default: { title: 'Upgrade to Continue', desc: 'This feature is available on paid plans.' }
 }
 
@@ -40,7 +41,7 @@ export default function UpgradeModal({
   const msg = FEATURE_MESSAGES[feature] || FEATURE_MESSAGES.default
   const displayTitle = title ?? msg.title
   const displayDesc = message ?? msg.desc
-  const isGeneratorFlow = ['quiz', 'flashcard', 'notes', 'ai'].includes(feature)
+  const isGeneratorFlow = ['quiz', 'flashcard', 'notes', 'ai', 'study_map'].includes(feature)
   const showPlanCards = !title && !message && !isGeneratorFlow
 
   const goToPricing = (plan?: string) => {
@@ -54,6 +55,7 @@ export default function UpgradeModal({
       if (feature === 'flashcard') return 'Upgrade & Generate Flashcards'
       if (feature === 'notes') return 'Upgrade & Unlock Unlimited Notes'
       if (feature === 'ai') return 'Upgrade & Unlock Unlimited AI Chats'
+      if (feature === 'study_map') return 'Upgrade & Create Unlimited Study Maps'
       return 'Upgrade & Continue'
   }
 

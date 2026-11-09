@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { uploadStudyMaterial } from '@/src/services/api'
+import { openPaywallModal } from '@/lib/upgradeHandler'
 import { useAuthStore } from '@/lib/store/authStore'
 import {
   FiCheckCircle,
@@ -407,6 +408,21 @@ export default function FirstPathModal({
       const firstNodeId = studyPath.nodes?.[0]?.id ?? 1
       router.push(`/dashboard/student/lesson/${firstNodeId}`)
     } catch (err: unknown) {
+      const errorObj = err as any
+      const isPaywall =
+        errorObj?.code === 'PAYWALL_TRIGGERED' ||
+        errorObj?.isPaywall ||
+        errorObj?.response?.status === 403 ||
+        errorObj?.response?.data?.error === 'PAYWALL_TRIGGERED' ||
+        errorObj?.response?.data?.code === 'PAYWALL_TRIGGERED' ||
+        errorObj?.message === 'PAYWALL_TRIGGERED'
+
+      if (isPaywall) {
+        openPaywallModal('study_map')
+        onClose()
+        return
+      }
+
       console.error('[FirstPathModal] Generation error:', err)
       setError(err instanceof Error ? err.message : 'Failed to generate study path. Please retry.')
     } finally {
