@@ -98,7 +98,15 @@ function LessonLoopContent() {
   const router = useRouter()
   const nodeId = (params?.nodeId as string) ?? ""
 
-  const { node, topic } = useMemo(() => resolveNodeAndTopic(nodeId), [nodeId])
+  const [{ node, topic }, setNodeAndTopic] = useState<{ node: LearningNode | null; topic: StudyPathTopic | null }>({ node: null, topic: null })
+  const [mounted, setMounted] = useState(false)
+
+  // Resolve node after mount so localStorage is available (avoids SSR hydration
+  // mismatch that causes sourceFacts / breakdown to appear empty on first render)
+  useEffect(() => {
+    setNodeAndTopic(resolveNodeAndTopic(nodeId))
+    setMounted(true)
+  }, [nodeId])
 
   // Determine if this is the final 10-question assessment node
   const isFinalAssessment = useMemo(() => {
@@ -325,6 +333,21 @@ function LessonLoopContent() {
     finally { setIsRegenerating(false) }
   }
 
+  const nextNode = useMemo(() => {
+    if (!topic?.nodes || !node) return null
+    const idx = topic.nodes.findIndex((n) => n.id === node.id)
+    if (idx !== -1 && idx + 1 < topic.nodes.length) {
+      return topic.nodes[idx + 1]
+    }
+    return topic.nodes.find((n) => n.id === node.id + 1) || null
+  }, [topic, node])
+
+  // ── All hooks are above this line. Early returns are safe from here. ──
+
+  if (!mounted) {
+    return <div className="ll-root" />
+  }
+
   if (!node || !currentSlide) {
     return (
       <div className="ll-root" style={{ alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -373,16 +396,6 @@ function LessonLoopContent() {
   const xpEarned = node.xp ?? (isFinalAssessment ? 100 : 30)
   const breakdownSlide = node.breakdown?.[currentSlide.breakdownPart ?? 0]
   const lessonKeyConcepts = node.keyConcepts || []
-
-  const nextNode = useMemo(() => {
-    if (!topic?.nodes || !node) return null
-    const idx = topic.nodes.findIndex((n) => n.id === node.id)
-    if (idx !== -1 && idx + 1 < topic.nodes.length) {
-      return topic.nodes[idx + 1]
-    }
-    return topic.nodes.find((n) => n.id === node.id + 1) || null
-  }, [topic, node])
-
   const nextNodeTitle = node.nextNodeTitle || nextNode?.title || (nextNode ? `Lesson ${nextNode.id}` : null)
 
   // Determine if NEXT is disabled

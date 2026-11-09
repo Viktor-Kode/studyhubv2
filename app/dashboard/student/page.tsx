@@ -583,14 +583,6 @@ export default function StudentDashboardPage() {
                     Are you sure you want to delete &ldquo;{topic.title}&rdquo;? All learning nodes and progress for this topic will be removed.
                   </p>
                 </div>
-                <button
-                  className="sp-modal-close-btn"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeletingTopic}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
                 <button
