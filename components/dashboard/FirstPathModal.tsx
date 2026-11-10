@@ -391,6 +391,7 @@ export default function FirstPathModal({
       // Save active topic in localStorage so lesson view can access it instantly
       if (typeof window !== 'undefined') {
         localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
+        localStorage.setItem('studyhelp_claim_topic_id', studyPath.topicId)
         try {
           const raw = localStorage.getItem('studyhelp_saved_topics')
           const list = raw ? JSON.parse(raw) : []

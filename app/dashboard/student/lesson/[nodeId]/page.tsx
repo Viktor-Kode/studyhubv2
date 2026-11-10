@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, Suspense, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import GuestSignupModal from "@/components/GuestSignupModal"
+import { useAuthStore } from "@/lib/store/authStore"
 import {
   DEFAULT_TOPIC,
   SAMPLE_TOPICS,
@@ -144,6 +146,8 @@ function LessonLoopContent() {
   const [xp, setXp] = useState(2510)
   const [streak, setStreak] = useState(12)
   const [hasCompleted, setHasCompleted] = useState(false)
+  const [signupModalOpen, setSignupModalOpen] = useState(false)
+  const { isAuthenticated } = useAuthStore()
 
   // Read stored user stats
   useEffect(() => {
@@ -419,6 +423,10 @@ function LessonLoopContent() {
     } else {
       // Finished Reward Slide
       if (nextNode) {
+        if (!isAuthenticated && nextNode.id >= 2) {
+          setSignupModalOpen(true)
+          return
+        }
         router.push(`/dashboard/student/lesson/${nextNode.id}`)
       } else {
         router.push(topic?.topicId ? `/dashboard/student/map/${topic.topicId}` : "/dashboard/student")
@@ -427,7 +435,7 @@ function LessonLoopContent() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["student", "teacher"]}>
+    <ProtectedRoute allowedRoles={["student", "teacher"]} allowGuest={true}>
       <div className="ll-root">
         <div className="ll-container">
 
@@ -512,6 +520,16 @@ function LessonLoopContent() {
                     {node.sourcePages?.length ? <span>Page{node.sourcePages.length > 1 ? "s" : ""} {node.sourcePages.join(", ")}</span> : null}
                   </div>
                 </div>
+                {node.slideImage && (
+                  <div className="my-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-black/5 dark:bg-black/20 flex justify-center">
+                    <img
+                      src={node.slideImage}
+                      alt={`${node.title} original slide`}
+                      className="max-h-64 w-auto object-contain rounded-lg"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <section className="ll-breakdown-section">
                   <h2>From your document</h2>
                   {node.sourceFacts?.length ? (
@@ -793,6 +811,21 @@ function LessonLoopContent() {
                 </button>
               </div>
             </footer>
+          )}
+
+          {/* Guest signup interception */}
+          {signupModalOpen && (
+            <GuestSignupModal
+              isOpen={signupModalOpen}
+              onClose={() => setSignupModalOpen(false)}
+              topicId={topic?.topicId || ""}
+              nodeId={nextNode?.id || 2}
+              onSuccess={() => {
+                if (nextNode) {
+                  router.push(`/dashboard/student/lesson/${nextNode.id}`)
+                }
+              }}
+            />
           )}
 
         </div>

@@ -69,6 +69,7 @@ export interface LearningNode {
   xp: number
   duration: string
   unit?: string
+  slideImage?: string
   summary: string
   breakdown?: LessonBreakdownSlide[]
   sourceFacts?: string[]

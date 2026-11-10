@@ -56,6 +56,29 @@ export default function LoginPage() {
         try {
             const user = await loginWithEmail(formData.email, formData.password)
             setUser(user)
+
+            // Claim anonymous study path if exists
+            if (typeof window !== 'undefined') {
+                const anonId = localStorage.getItem('studyhelp_anon_session_id')
+                let claimTopicId = localStorage.getItem('studyhelp_claim_topic_id')
+                if (!claimTopicId) {
+                    try {
+                        const raw = localStorage.getItem('studyhelp_active_topic')
+                        if (raw) claimTopicId = JSON.parse(raw)?.topicId
+                    } catch {}
+                }
+                if (anonId && claimTopicId) {
+                    try {
+                        const { claimAnonymousStudyPath } = await import('@/services/studyPathApi')
+                        await claimAnonymousStudyPath(claimTopicId, anonId)
+                        localStorage.removeItem('studyhelp_anon_session_id')
+                        localStorage.removeItem('studyhelp_claim_topic_id')
+                    } catch (claimErr) {
+                        console.warn('[Login] Anonymous study path claim notice:', claimErr)
+                    }
+                }
+            }
+
             await refreshUser()
             if (user.role === 'admin') {
                 router.push('/dashboard/admin')
@@ -99,6 +122,28 @@ export default function LoginPage() {
                             console.log('[Referral] Applied referral code for Google Sign-In successfully')
                         } catch (refErr) {
                             console.error('[Referral] Failed to apply referral code for Google Sign-In:', refErr)
+                        }
+                    }
+                }
+
+                // Claim anonymous study path if exists
+                if (typeof window !== 'undefined') {
+                    const anonId = localStorage.getItem('studyhelp_anon_session_id')
+                    let claimTopicId = localStorage.getItem('studyhelp_claim_topic_id')
+                    if (!claimTopicId) {
+                        try {
+                            const raw = localStorage.getItem('studyhelp_active_topic')
+                            if (raw) claimTopicId = JSON.parse(raw)?.topicId
+                        } catch {}
+                    }
+                    if (anonId && claimTopicId) {
+                        try {
+                            const { claimAnonymousStudyPath } = await import('@/services/studyPathApi')
+                            await claimAnonymousStudyPath(claimTopicId, anonId)
+                            localStorage.removeItem('studyhelp_anon_session_id')
+                            localStorage.removeItem('studyhelp_claim_topic_id')
+                        } catch (claimErr) {
+                            console.warn('[Login] Anonymous study path claim notice:', claimErr)
                         }
                     }
                 }

@@ -418,7 +418,7 @@ export default function StudentDashboardPage() {
                       ) : (
                         <>
                           <button className="sr-btn sr-primary" onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`)}>RESUME LEARNING <FiPlay fill="currentColor" /></button>
-                          <button className="sr-btn sr-outline" onClick={openGenerateModal}><FiPlus />New topic</button>
+                          <button className="sr-btn sr-create-path" onClick={openGenerateModal}><FiPlus aria-hidden="true" />Create Study Path</button>
                         </>
                       )}
                     </div>

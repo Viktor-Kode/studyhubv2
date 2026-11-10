@@ -109,6 +109,9 @@ export default function CreateStudyPathModal({ onClose }: { onClose: () => void 
         : await uploadStudyMaterial(null as any, { text: sourceText, title })
 
       localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
+      if (studyPath.topicId) {
+        localStorage.setItem('studyhelp_claim_topic_id', studyPath.topicId)
+      }
       try {
         const raw = localStorage.getItem('studyhelp_saved_topics')
         const list = raw ? JSON.parse(raw) : []

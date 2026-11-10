@@ -6,6 +6,8 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { type LearningNode, type StudyPathTopic } from '@/lib/data/studyPath'
 import { getStudyPath, getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getNodeStatuses, prepareStudyPathNode, retryStudyPathNode } from '@/src/services/api'
 import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
+import GuestSignupModal from '@/components/GuestSignupModal'
+import { useAuthStore } from '@/lib/store/authStore'
 import { ArrowLeft, ChevronDown, Check, LockKeyhole, Play, MoreHorizontal, ArrowRight, Trophy, Upload, X, Clock3, Zap, Loader2, RotateCw } from 'lucide-react'
 import '../../study-path.css'
 import '../map.css'
@@ -54,6 +56,7 @@ function MapNode({
   onPreview,
   onRetry,
   elementRef,
+  isGatedGuestNode = false,
 }: {
   node: LearningNode
   status: 'active' | 'locked' | 'done'
@@ -62,6 +65,7 @@ function MapNode({
   onPreview: (node: LearningNode) => void
   onRetry: (id: number) => void
   elementRef: (element: HTMLElement | null) => void
+  isGatedGuestNode?: boolean
 }) {
   const contentStatus = node.contentStatus || 'ready'
 
@@ -94,6 +98,37 @@ function MapNode({
           <span className="study-map-meta">Could not generate lesson</span>
           <button className="study-map-retry-btn" type="button" onClick={() => onRetry(node.id)}>
             <RotateCw size={14} /> Retry
+          </button>
+        </span>
+      </section>
+    )
+  }
+
+  if (isGatedGuestNode) {
+    return (
+      <section
+        ref={elementRef}
+        className={`study-map-node locked ${side}`}
+        style={{ cursor: 'pointer' }}
+        onClick={() => onStart(node.id)}
+        aria-label={`${node.title}, sign up to unlock`}
+      >
+        <span className="study-map-circle" aria-hidden="true" style={{ borderColor: '#f59e0b', color: '#f59e0b', backgroundColor: '#fffbeb' }}>
+          <LockKeyhole size={20} strokeWidth={2} />
+        </span>
+        <span className="study-map-card" style={{ borderColor: '#fcd34d', backgroundColor: '#fffdf5' }}>
+          <span className="study-map-tag" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+            SIGN UP TO UNLOCK
+          </span>
+          <span className="study-map-node-title">{node.title}</span>
+          <span className="study-map-meta">{minutesFor(node)} min · +{node.xp ?? 0} XP</span>
+          <button
+            className="study-map-start"
+            type="button"
+            style={{ backgroundColor: '#f59e0b', color: '#ffffff' }}
+            onClick={(e) => { e.stopPropagation(); onStart(node.id); }}
+          >
+            UNLOCK <ArrowRight size={17} strokeWidth={3} />
           </button>
         </span>
       </section>
@@ -151,6 +186,7 @@ function MapNode({
 function StudyMapContent() {
   const params = useParams()
   const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
   const rawTopicId = params?.topicId as string | undefined
   const topicId = rawTopicId && rawTopicId !== 'default' ? rawTopicId : ''
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
@@ -160,6 +196,8 @@ function StudyMapContent() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [previewNode, setPreviewNode] = useState<LearningNode | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [signupModalOpen, setSignupModalOpen] = useState(false)
+  const [pendingGateNodeId, setPendingGateNodeId] = useState<number | null>(null)
   const nodeElements = useRef(new Map<number, HTMLElement>())
   const autoOpenedNodeRef = useRef('')
   const challengeElement = useRef<HTMLElement | null>(null)
@@ -308,11 +346,23 @@ function StudyMapContent() {
     const cs = nodeContentStatuses[nodeId]?.contentStatus || node?.contentStatus || 'ready'
     if (cs === 'generating') return // still generating, ignore clicks
 
+    // Guest security boundary interception on client & server
+    if (!isAuthenticated && nodeId >= 2) {
+      setPendingGateNodeId(nodeId)
+      setSignupModalOpen(true)
+      return
+    }
+
     let lessonTopic = topic
     if (cs === 'pending' || cs === 'failed') {
       // Priority prepare this node first
       try {
         const preparedNode = await prepareStudyPathNode(topic.topicId, nodeId, { bufferNext: true })
+        if ((preparedNode as any)?.requireSignup) {
+          setPendingGateNodeId(nodeId)
+          setSignupModalOpen(true)
+          return
+        }
         if (preparedNode) {
           lessonTopic = {
             ...topic,
@@ -369,15 +419,26 @@ function StudyMapContent() {
 
   const handleRetryNode = useCallback(async (nodeId: number) => {
     if (!topic?.topicId) return
+    if (!isAuthenticated && nodeId >= 2) {
+      setPendingGateNodeId(nodeId)
+      setSignupModalOpen(true)
+      return
+    }
     setRetryingNodeIds((prev) => new Set(prev).add(nodeId))
     setNodeContentStatuses((prev) => ({ ...prev, [nodeId]: { contentStatus: 'generating' } }))
     try {
-      await retryStudyPathNode(topic.topicId, nodeId)
+      const res = await retryStudyPathNode(topic.topicId, nodeId)
+      if ((res as any)?.requireSignup) {
+        setPendingGateNodeId(nodeId)
+        setSignupModalOpen(true)
+        setNodeContentStatuses((prev) => ({ ...prev, [nodeId]: { contentStatus: 'failed' } }))
+        return
+      }
       allReadyRef.current = false
       startPolling(topic.topicId)
     } catch { /* polling will pick up failed state */ }
     setRetryingNodeIds((prev) => { const next = new Set(prev); next.delete(nodeId); return next })
-  }, [topic, startPolling])
+  }, [topic, isAuthenticated, startPolling])
 
   const deleteTopic = async () => {
     if (!topic?.topicId || !window.confirm('Delete this topic and all its progress? This cannot be undone.')) return
@@ -404,7 +465,7 @@ function StudyMapContent() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['student', 'teacher']}>
+    <ProtectedRoute allowedRoles={['student', 'teacher']} allowGuest={true}>
       <div className="study-map-shell">
         <div className="study-map-frame">
           <nav className="study-map-bar" aria-label="Study map navigation">
@@ -458,6 +519,7 @@ function StudyMapContent() {
                 const mergedNode: LearningNode = liveStatus
                   ? { ...node, contentStatus: liveStatus.contentStatus as LearningNode['contentStatus'], generationError: liveStatus.generationError ?? undefined }
                   : node
+                const isGatedGuestNode = !isAuthenticated && node.id >= 2
                 return (
                   <div key={node.id} className="study-map-entry">
                     {showUnit && <div className="study-map-unit">{currentUnit}</div>}
@@ -469,6 +531,7 @@ function StudyMapContent() {
                       onPreview={setPreviewNode}
                       onRetry={handleRetryNode}
                       elementRef={(element) => setNodeElement(node.id, element)}
+                      isGatedGuestNode={isGatedGuestNode}
                     />
                   </div>
                 )
@@ -523,6 +586,16 @@ function StudyMapContent() {
                 <p className={`study-map-preview-eyebrow ${previewNode.status === 'completed' ? 'completed' : ''}`}>{previewNode.status === 'completed' ? 'COMPLETED LESSON' : 'UP NEXT'}</p>
                 <h2 id="study-map-preview-title">{previewNode.title}</h2>
                 <div className="study-map-preview-meta"><span><Clock3 size={15} />{minutesFor(previewNode)} min</span><span><Zap size={15} />+{previewNode.xp ?? 0} XP</span></div>
+                {previewNode.slideImage && (
+                  <div className="study-map-preview-slide my-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black/5 flex justify-center">
+                    <img
+                      src={previewNode.slideImage}
+                      alt={`${previewNode.title} slide`}
+                      className="max-h-52 w-auto object-contain rounded-md"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 {previewNode.summary?.trim() && <p className="study-map-preview-summary">{previewNode.summary.trim()}</p>}
                 <div className="study-map-preview-actions">
                   <button className="study-map-preview-primary" onClick={() => openLesson(previewNode.id)}><Play size={16} fill="currentColor" /> Start Learning</button>
@@ -532,6 +605,19 @@ function StudyMapContent() {
             </div>
           )}
           {showUploadModal && <CreateStudyPathModal onClose={() => setShowUploadModal(false)} />}
+          {signupModalOpen && (
+            <GuestSignupModal
+              isOpen={signupModalOpen}
+              onClose={() => setSignupModalOpen(false)}
+              topicId={topic?.topicId || topicId}
+              nodeId={pendingGateNodeId || 2}
+              onSuccess={() => {
+                if (pendingGateNodeId) {
+                  void openLesson(pendingGateNodeId)
+                }
+              }}
+            />
+          )}
         </div>
       </div>
     </ProtectedRoute>
