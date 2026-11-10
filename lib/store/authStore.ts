@@ -79,6 +79,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
           referralCode: u.referralCode ?? prev?.referralCode,
           phone: u.phone ?? prev?.phone ?? null,
           phoneNumber: u.phoneNumber ?? prev?.phoneNumber ?? null,
+          studyMapCount: typeof u.studyMapCount === 'number' ? u.studyMapCount : prev?.studyMapCount,
+          hasStudyMaps: typeof u.hasStudyMaps === 'boolean' ? u.hasStudyMaps : prev?.hasStudyMaps,
         }
         set({ user: merged, isAuthenticated: true, isBackendSynced: true })
         const { useHelpWidgetsStore } = await import('@/lib/store/helpWidgetsStore')

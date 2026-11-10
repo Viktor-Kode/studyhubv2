@@ -129,8 +129,8 @@ apiClient.interceptors.response.use(
     // Auto-show upgrade modal on 403 paywall responses
     if (error.response?.status === 403) {
       const data = error.response?.data
-      if (data?.showUpgrade || data?.upgradeRequired || data?.code) {
-        triggerUpgradeModal(data?.code || 'default')
+      if (data?.showUpgrade || data?.upgradeRequired || data?.code || data?.error === 'PAYWALL_TRIGGERED') {
+        triggerUpgradeModal(data?.code || data?.error || 'default')
         return Promise.reject(error)
       }
     }

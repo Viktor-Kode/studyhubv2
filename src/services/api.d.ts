@@ -21,6 +21,8 @@ export declare function getActiveStudyPath(): Promise<StudyPathTopic | null>;
 
 export declare function getUserStudyPaths(): Promise<StudyPathTopic[]>;
 
+export declare function getStudyMapCount(userId?: string | null): Promise<{ count: number; hasStudyMaps: boolean }>;
+
 export declare function getStudyPath(topicId: string): Promise<StudyPathTopic | null>;
 
 export declare function getNodeStatuses(topicId: string): Promise<{

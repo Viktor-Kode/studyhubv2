@@ -52,6 +52,8 @@ export async function proxyBackend(req: NextRequest, pathAfterApi: string): Prom
   }
   const auth = req.headers.get('authorization')
   if (auth) headers.authorization = auth
+  const anonSessionId = req.headers.get('x-anonymous-session-id')
+  if (anonSessionId) headers['x-anonymous-session-id'] = anonSessionId
 
   // Multipart and other binary bodies must not go through .text() — that corrupts uploads.
   let body: ArrayBuffer | undefined

@@ -57,4 +57,6 @@ export interface AppUser {
     referralCode?: string
     phone?: string | null
     phoneNumber?: string | null
+    studyMapCount?: number
+    hasStudyMaps?: boolean
 }

@@ -10,6 +10,8 @@ interface ProtectedRouteProps {
   children: React.ReactNode
   /** If provided, only users with one of these roles can view the content */
   allowedRoles?: AppRole[]
+  /** If true, unauthenticated guest visitors can view the page */
+  allowGuest?: boolean
 }
 
 /**
@@ -17,7 +19,7 @@ interface ProtectedRouteProps {
  * Waits for Firebase's onAuthStateChanged (via Zustand) to settle before
  * deciding to render, redirect, or show a role-mismatch redirect.
  */
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles, allowGuest = false }: ProtectedRouteProps) {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useAuthStore()
 
@@ -25,6 +27,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     if (isLoading) return // still waiting for Firebase
 
     if (!isAuthenticated || !user) {
+      if (allowGuest) return // guests allowed
       router.replace('/auth/login')
       return
     }
@@ -32,7 +35,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       router.replace(user.role === 'admin' ? '/dashboard/admin' : '/dashboard/student')
     }
-  }, [isLoading, isAuthenticated, user, allowedRoles, router])
+  }, [isLoading, isAuthenticated, user, allowedRoles, allowGuest, router])
 
   // Show spinner while waiting for auth state
   if (isLoading) {
@@ -46,8 +49,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     )
   }
 
-  // Don't render children until we confirm auth + role
-  if (!isAuthenticated || !user) return null
+  // Don't render children until we confirm auth + role, unless guests are allowed
+  if (!isAuthenticated || !user) {
+    if (allowGuest) return <>{children}</>
+    return null
+  }
   if (allowedRoles && !allowedRoles.includes(user.role)) return null
 
   return <>{children}</>

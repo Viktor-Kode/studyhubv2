@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuthStore } from '@/lib/store/authStore'
 import { progressApi } from '@/lib/api/progressApi'
 import './study-path.css'
 import './dashboard-redesign.css'
-import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath } from '@/src/services/api'
+import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getStudyMapCount } from '@/src/services/api'
 import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
+import FirstPathModal from '@/components/dashboard/FirstPathModal'
 import { firebaseSignOut } from '@/lib/firebase-auth'
 
 import {
@@ -57,6 +59,7 @@ export default function StudentDashboardPage() {
   const [showTopicSwitcher, setShowTopicSwitcher] = useState(false)
   const topicSwitcherRef = useRef<HTMLDivElement>(null)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [showFirstPathModal, setShowFirstPathModal] = useState(false)
   const [isLoadingPath, setIsLoadingPath] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showTopicMenu, setShowTopicMenu] = useState(false)
@@ -98,9 +101,10 @@ export default function StudentDashboardPage() {
   const loadTopics = useCallback(async () => {
     setIsLoadingPath(true)
     try {
-      const [backendPaths, activeBackend] = await Promise.all([
+      const [backendPaths, activeBackend, countStatus] = await Promise.all([
         getUserStudyPaths().catch(() => [] as StudyPathTopic[]),
         getActiveStudyPath().catch(() => null),
+        getStudyMapCount(user?.uid).catch(() => ({ count: 0, hasStudyMaps: false })),
       ])
 
       let localSaved: StudyPathTopic[] = []
@@ -129,6 +133,22 @@ export default function StudentDashboardPage() {
 
       const selected = (localActive && map.get(localActive.topicId)) || localActive || activeBackend || (merged.length > 0 ? merged[0] : null)
       setTopic(selected)
+
+      const mapCount = typeof user?.studyMapCount === 'number'
+        ? user.studyMapCount
+        : countStatus?.count ?? (Array.isArray(backendPaths) ? backendPaths.length : 0)
+
+      if (mapCount === 0 && merged.length === 0) {
+        let isDismissed = false
+        if (typeof window !== 'undefined') {
+          try {
+            isDismissed = sessionStorage.getItem('studyhelp_first_path_modal_dismissed') === 'true'
+          } catch {}
+        }
+        if (!isDismissed) {
+          setShowFirstPathModal(true)
+        }
+      }
       if (selected && typeof window !== 'undefined') {
         localStorage.setItem('studyhelp_active_topic', JSON.stringify(selected))
       }
@@ -251,8 +271,14 @@ export default function StudentDashboardPage() {
 
   const goalPercent = Math.min(100, Math.round((realStats.dailyGoalXp / Math.max(realStats.dailyGoalTarget, 1)) * 100))
   const xpRemaining = Math.max(0, realStats.dailyGoalTarget - realStats.dailyGoalXp)
-  const previewNodes = topic?.nodes.slice(0, 3) || []
-  const pathRemaining = Math.max(0, (topic?.nodes.length || 0) + 1 - previewNodes.length)
+  const nextNodeIndex = topic?.nodes.findIndex((node) => node.status !== 'completed') ?? -1
+  const previewStart = nextNodeIndex > 0 ? nextNodeIndex - 1 : 0
+  const previewNodes = topic && nextNodeIndex >= 0
+    ? topic.nodes.slice(previewStart, Math.min(topic.nodes.length, nextNodeIndex + 2))
+    : []
+  const pathRemaining = topic
+    ? Math.max(0, topic.nodes.length - (previewStart + previewNodes.length) + 1)
+    : 0
 
   const todayDayIndex = (new Date().getDay() + 6) % 7
   const weekDays = [
@@ -392,7 +418,7 @@ export default function StudentDashboardPage() {
                       ) : (
                         <>
                           <button className="sr-btn sr-primary" onClick={() => router.push(`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`)}>RESUME LEARNING <FiPlay fill="currentColor" /></button>
-                          <button className="sr-btn sr-outline" onClick={openGenerateModal}><FiPlus />New topic</button>
+                          <button className="sr-btn sr-create-path" onClick={openGenerateModal}><FiPlus aria-hidden="true" />Create Study Path</button>
                         </>
                       )}
                     </div>
@@ -511,6 +537,13 @@ export default function StudentDashboardPage() {
                         </button>
                       })}
                     </div>
+                  ) : topic && !isTopicComplete ? (
+                    <div className="sr-card" style={{ padding: '24px', textAlign: 'center', background: 'var(--sr-card)', borderRadius: '16px', border: '1px solid var(--sr-border)' }}>
+                      <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', marginBottom: '8px' }}><FiAward size={26} /></div>
+                      <h3 style={{ margin: '4px 0', fontSize: '18px', fontWeight: 800 }}>Your Unit Challenge is next</h3>
+                      <p style={{ margin: '4px 0 16px', color: 'var(--sr-muted)', fontSize: '14px' }}>You’ve completed every lesson in {topic.title}. Take the challenge when you’re ready.</p>
+                      <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}/challenge`} className="sr-btn sr-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FiPlay fill="currentColor" />Start Unit Challenge</Link>
+                    </div>
                   ) : (
                     <div className="sr-empty-path"><IoSparklesSharp /><p>Your interactive lesson path will appear here once you upload a document.</p><button className="sr-btn sr-outline" onClick={openGenerateModal}>Upload material</button></div>
                   )}
@@ -529,6 +562,16 @@ export default function StudentDashboardPage() {
           </div>
         </div>
         {showGenerateModal && <CreateStudyPathModal onClose={closeGenerateModal} />}
+        {showFirstPathModal && (
+          <FirstPathModal
+            isOpen={showFirstPathModal}
+            onClose={() => {
+              setShowFirstPathModal(false)
+              loadTopics()
+            }}
+            onSkip={() => setShowFirstPathModal(false)}
+          />
+        )}
         {/* ── DELETE TOPIC CONFIRMATION MODAL ── */}
         {showDeleteConfirm && topic && (
           <div className="sp-modal-overlay" onClick={() => !isDeletingTopic && setShowDeleteConfirm(false)}>
@@ -540,14 +583,6 @@ export default function StudentDashboardPage() {
                     Are you sure you want to delete &ldquo;{topic.title}&rdquo;? All learning nodes and progress for this topic will be removed.
                   </p>
                 </div>
-                <button
-                  className="sp-modal-close-btn"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeletingTopic}
-                  aria-label="Close"
-                >
-                  <FiX />
-                </button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
                 <button

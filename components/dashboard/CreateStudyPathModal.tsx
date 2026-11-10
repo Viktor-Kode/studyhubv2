@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { extractTextFromFile } from '@/lib/utils/extraction'
 import { uploadStudyMaterial } from '@/src/services/api'
+import { openPaywallModal } from '@/lib/upgradeHandler'
 import {
   FiCheckCircle,
   FiEdit3,
@@ -108,6 +109,9 @@ export default function CreateStudyPathModal({ onClose }: { onClose: () => void 
         : await uploadStudyMaterial(null as any, { text: sourceText, title })
 
       localStorage.setItem('studyhelp_active_topic', JSON.stringify(studyPath))
+      if (studyPath.topicId) {
+        localStorage.setItem('studyhelp_claim_topic_id', studyPath.topicId)
+      }
       try {
         const raw = localStorage.getItem('studyhelp_saved_topics')
         const list = raw ? JSON.parse(raw) : []
@@ -117,6 +121,21 @@ export default function CreateStudyPathModal({ onClose }: { onClose: () => void 
       onClose()
       router.push(`/dashboard/student/map/${encodeURIComponent(studyPath.topicId)}`)
     } catch (error: unknown) {
+      const err = error as any
+      const isPaywall =
+        err?.code === 'PAYWALL_TRIGGERED' ||
+        err?.isPaywall ||
+        err?.response?.status === 403 ||
+        err?.response?.data?.error === 'PAYWALL_TRIGGERED' ||
+        err?.response?.data?.code === 'PAYWALL_TRIGGERED' ||
+        err?.message === 'PAYWALL_TRIGGERED'
+
+      if (isPaywall) {
+        openPaywallModal('study_map')
+        onClose()
+        return
+      }
+
       setGenerateError(error instanceof Error ? error.message : 'Failed to generate study path. Please try again.')
     } finally {
       setIsGenerating(false)

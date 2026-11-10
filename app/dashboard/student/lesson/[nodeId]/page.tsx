@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, Suspense, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import GuestSignupModal from "@/components/GuestSignupModal"
+import { useAuthStore } from "@/lib/store/authStore"
 import {
   DEFAULT_TOPIC,
   SAMPLE_TOPICS,
@@ -98,7 +100,15 @@ function LessonLoopContent() {
   const router = useRouter()
   const nodeId = (params?.nodeId as string) ?? ""
 
-  const { node, topic } = useMemo(() => resolveNodeAndTopic(nodeId), [nodeId])
+  const [{ node, topic }, setNodeAndTopic] = useState<{ node: LearningNode | null; topic: StudyPathTopic | null }>({ node: null, topic: null })
+  const [mounted, setMounted] = useState(false)
+
+  // Resolve node after mount so localStorage is available (avoids SSR hydration
+  // mismatch that causes sourceFacts / breakdown to appear empty on first render)
+  useEffect(() => {
+    setNodeAndTopic(resolveNodeAndTopic(nodeId))
+    setMounted(true)
+  }, [nodeId])
 
   // Determine if this is the final 10-question assessment node
   const isFinalAssessment = useMemo(() => {
@@ -136,6 +146,8 @@ function LessonLoopContent() {
   const [xp, setXp] = useState(2510)
   const [streak, setStreak] = useState(12)
   const [hasCompleted, setHasCompleted] = useState(false)
+  const [signupModalOpen, setSignupModalOpen] = useState(false)
+  const { isAuthenticated } = useAuthStore()
 
   // Read stored user stats
   useEffect(() => {
@@ -277,6 +289,7 @@ function LessonLoopContent() {
 
     // Update active topic in localStorage
     if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("studyhelp:first-node-completed"))
       try {
         const saved = localStorage.getItem("studyhelp_active_topic")
         if (saved) {
@@ -322,6 +335,21 @@ function LessonLoopContent() {
       setSelectedOpt2(null); setCorrect2(false); setWrong2([])
     } catch (error) { console.error("[LessonLoop] Node regeneration failed:", error) }
     finally { setIsRegenerating(false) }
+  }
+
+  const nextNode = useMemo(() => {
+    if (!topic?.nodes || !node) return null
+    const idx = topic.nodes.findIndex((n) => n.id === node.id)
+    if (idx !== -1 && idx + 1 < topic.nodes.length) {
+      return topic.nodes[idx + 1]
+    }
+    return topic.nodes.find((n) => n.id === node.id + 1) || null
+  }, [topic, node])
+
+  // ── All hooks are above this line. Early returns are safe from here. ──
+
+  if (!mounted) {
+    return <div className="ll-root" />
   }
 
   if (!node || !currentSlide) {
@@ -372,16 +400,6 @@ function LessonLoopContent() {
   const xpEarned = node.xp ?? (isFinalAssessment ? 100 : 30)
   const breakdownSlide = node.breakdown?.[currentSlide.breakdownPart ?? 0]
   const lessonKeyConcepts = node.keyConcepts || []
-
-  const nextNode = useMemo(() => {
-    if (!topic?.nodes || !node) return null
-    const idx = topic.nodes.findIndex((n) => n.id === node.id)
-    if (idx !== -1 && idx + 1 < topic.nodes.length) {
-      return topic.nodes[idx + 1]
-    }
-    return topic.nodes.find((n) => n.id === node.id + 1) || null
-  }, [topic, node])
-
   const nextNodeTitle = node.nextNodeTitle || nextNode?.title || (nextNode ? `Lesson ${nextNode.id}` : null)
 
   // Determine if NEXT is disabled
@@ -405,6 +423,10 @@ function LessonLoopContent() {
     } else {
       // Finished Reward Slide
       if (nextNode) {
+        if (!isAuthenticated && nextNode.id >= 2) {
+          setSignupModalOpen(true)
+          return
+        }
         router.push(`/dashboard/student/lesson/${nextNode.id}`)
       } else {
         router.push(topic?.topicId ? `/dashboard/student/map/${topic.topicId}` : "/dashboard/student")
@@ -413,7 +435,7 @@ function LessonLoopContent() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["student", "teacher"]}>
+    <ProtectedRoute allowedRoles={["student", "teacher"]} allowGuest={true}>
       <div className="ll-root">
         <div className="ll-container">
 
@@ -498,6 +520,16 @@ function LessonLoopContent() {
                     {node.sourcePages?.length ? <span>Page{node.sourcePages.length > 1 ? "s" : ""} {node.sourcePages.join(", ")}</span> : null}
                   </div>
                 </div>
+                {node.slideImage && (
+                  <div className="my-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-black/5 dark:bg-black/20 flex justify-center">
+                    <img
+                      src={node.slideImage}
+                      alt={`${node.title} original slide`}
+                      className="max-h-64 w-auto object-contain rounded-lg"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <section className="ll-breakdown-section">
                   <h2>From your document</h2>
                   {node.sourceFacts?.length ? (
@@ -779,6 +811,21 @@ function LessonLoopContent() {
                 </button>
               </div>
             </footer>
+          )}
+
+          {/* Guest signup interception */}
+          {signupModalOpen && (
+            <GuestSignupModal
+              isOpen={signupModalOpen}
+              onClose={() => setSignupModalOpen(false)}
+              topicId={topic?.topicId || ""}
+              nodeId={nextNode?.id || 2}
+              onSuccess={() => {
+                if (nextNode) {
+                  router.push(`/dashboard/student/lesson/${nextNode.id}`)
+                }
+              }}
+            />
           )}
 
         </div>

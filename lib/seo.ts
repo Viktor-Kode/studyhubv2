@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 const siteName = 'StudyHelp'
-const defaultTitle = 'StudyHelp – AI-Powered CBT Practice for Nigerian University Students'
+const defaultTitle = 'StudyHelp – AI Study Tools for University Students'
 const defaultDescription =
-  'Turn your lecturer notes into CBT practice questions instantly. StudyHelp is the #1 AI-powered study platform for JAMB, WAEC, NECO & Post-UTME — with real-time analytics, past questions, and an AI study tutor.'
+  'Turn lecture PDFs and notes into guided study maps, clear lesson summaries, and personalized practice questions. Plan your study sessions, track your progress, and learn with an AI tutor.'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.studyhelp.site'
 const defaultImage = `${siteUrl}/og-image.png`
 

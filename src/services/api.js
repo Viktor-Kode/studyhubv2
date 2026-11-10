@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getFirebaseToken } from '@/lib/store/authStore';
+import { openPaywallModal } from '@/lib/upgradeHandler';
 
 // Base URL configuration:
 // In browser: uses internal relative Next.js API or configured backend URL
@@ -18,16 +19,30 @@ export const apiClient = axios.create({
   timeout: 120000 // 2 minutes for AI and PDF parsing
 });
 
-// Attach Firebase bearer token dynamically
+// Attach Firebase/JWT bearer token dynamically and guest session ID
 apiClient.interceptors.request.use(async (config) => {
   try {
-    const token = await getFirebaseToken();
+    let token = null;
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('studyhelp_auth_token');
+    }
+    if (!token) {
+      token = await getFirebaseToken();
+    }
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (err) {
     console.warn('[apiClient] Could not attach auth token:', err?.message);
+  }
+
+  if (typeof window !== 'undefined') {
+    const anonId = localStorage.getItem('studyhelp_anon_session_id');
+    if (anonId) {
+      config.headers = config.headers || {};
+      config.headers['x-anonymous-session-id'] = anonId;
+    }
   }
 
   // Ensure multipart boundary is handled properly by axios/browser
@@ -39,6 +54,20 @@ apiClient.interceptors.request.use(async (config) => {
 
   return config;
 });
+
+// Response interceptor: intercept 403 PAYWALL_TRIGGERED globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 403) {
+      const data = error.response?.data;
+      if (data?.error === 'PAYWALL_TRIGGERED' || data?.code === 'PAYWALL_TRIGGERED' || data?.showUpgrade) {
+        openPaywallModal('study_map');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 /**
  * 1. Upload function: POST /api/generate-path
@@ -68,7 +97,42 @@ export async function uploadStudyMaterial(fileOrFormData, options = {}) {
     throw new Error('A PDF file or extracted text must be provided.');
   }
 
-  const response = await apiClient.post('/api/generate-path', formData);
+  let response;
+  try {
+    response = await apiClient.post('/api/study-paths', formData);
+  } catch (postError) {
+    if (postError?.response?.status === 404) {
+      try {
+        response = await apiClient.post('/api/generate-path', formData);
+      } catch (fallbackError) {
+        postError = fallbackError;
+      }
+    }
+    const status = postError?.response?.status;
+    const errCode = postError?.response?.data?.code || postError?.response?.data?.error;
+    if (status === 403 && (errCode === 'PAYWALL_TRIGGERED' || postError?.response?.data?.showUpgrade)) {
+      openPaywallModal('study_map');
+      const err = new Error(postError?.response?.data?.message || 'Free lifetime limit of 3 study maps reached.');
+      err.name = 'PaywallError';
+      err.code = 'PAYWALL_TRIGGERED';
+      err.isPaywall = true;
+      err.status = 403;
+      err.response = postError.response;
+      throw err;
+    }
+    if (!response) throw postError;
+  }
+
+  // 1. FAST-PATH: Instant cache hit (<500ms) - render complete roadmap immediately without polling!
+  if (response.data?.cached && (response.data?.studyPath || response.data?.path)) {
+    return response.data.studyPath || response.data.path;
+  }
+
+  // 2. Persist server-issued anonymousSessionId if returned
+  if (response.data?.anonymousSessionId && typeof window !== 'undefined') {
+    localStorage.setItem('studyhelp_anon_session_id', response.data.anonymousSessionId);
+  }
+
   const jobId = response.data?.jobId;
   if (!jobId) {
     const studyPath = response.data?.studyPath || response.data?.path;
@@ -79,12 +143,35 @@ export async function uploadStudyMaterial(fileOrFormData, options = {}) {
   options.onProgress?.({ status: 'queued', stage: 'Queued for processing', done: 0, total: 0 });
   const deadline = Date.now() + 55 * 60 * 1000;
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     let statusResponse;
     try {
-      statusResponse = await apiClient.get(`/api/jobs/${encodeURIComponent(jobId)}`);
+      statusResponse = await apiClient.get(`/api/generate-path/jobs/${encodeURIComponent(jobId)}`);
     } catch (pollError) {
+      if (pollError?.response?.status === 404) {
+        try {
+          statusResponse = await apiClient.get(`/api/jobs/${encodeURIComponent(jobId)}`);
+        } catch {
+          // Check if active map completed before job expired
+          try {
+            const activeRes = await apiClient.get('/api/study-paths/active');
+            if (activeRes.data?.studyPath) return activeRes.data.studyPath;
+          } catch { /* ignore */ }
+          throw new Error('Study path job expired. Please check your existing maps before retrying.');
+        }
+      }
       const status = pollError?.response?.status;
+      const errCode = pollError?.response?.data?.code || pollError?.response?.data?.error;
+      if (status === 403 && (errCode === 'PAYWALL_TRIGGERED' || pollError?.response?.data?.showUpgrade)) {
+        openPaywallModal('study_map');
+        const err = new Error(pollError?.response?.data?.message || 'Free lifetime limit of 3 study maps reached.');
+        err.name = 'PaywallError';
+        err.code = 'PAYWALL_TRIGGERED';
+        err.isPaywall = true;
+        err.status = 403;
+        err.response = pollError.response;
+        throw err;
+      }
       if (status === 403 || status === 404) {
         throw new Error(pollError?.response?.data?.message || 'Could not access the study-path job.');
       }
@@ -147,6 +234,35 @@ export async function getUserStudyPaths() {
 }
 
 /**
+ * Check existing study map count and status for authenticated user
+ * 
+ * @param {string} [userId]
+ * @returns {Promise<{ count: number, hasStudyMaps: boolean }>}
+ */
+export async function getStudyMapCount(userId = null) {
+  try {
+    const params = userId ? { userId } : {};
+    const res = await apiClient.get('/api/study-path/count', { params });
+    const count = typeof res.data?.count === 'number' ? res.data.count : 0;
+    return {
+      count,
+      hasStudyMaps: Boolean(res.data?.hasStudyMaps ?? count > 0)
+    };
+  } catch (err) {
+    try {
+      const fb = await apiClient.get('/api/backend/study-path/count', { params: userId ? { userId } : {} });
+      const count = typeof fb.data?.count === 'number' ? fb.data.count : 0;
+      return {
+        count,
+        hasStudyMaps: Boolean(fb.data?.hasStudyMaps ?? count > 0)
+      };
+    } catch {
+      return { count: 0, hasStudyMaps: false };
+    }
+  }
+}
+
+/**
  * Fetch a specific study path by its topicId
  * 
  * @param {string} topicId 
@@ -199,13 +315,19 @@ export async function getNodeStatuses(topicId) {
 export async function prepareStudyPathNode(topicId, nodeId, options = { bufferNext: true }) {
   if (!topicId || !nodeId) throw new Error('topicId and nodeId are required');
   try {
-    const response = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
+    const response = await apiClient.post(`/api/study-paths/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
     return response.data?.node || null;
   } catch (err) {
+    if (err?.response?.status === 403 && err?.response?.data?.requireSignup) {
+      return { requireSignup: true, anonymousSessionId: err.response.data.anonymousSessionId, message: err.response.data.message };
+    }
     try {
-      const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
+      const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/prepare`, options);
       return fb.data?.node || null;
     } catch (fbErr) {
+      if (fbErr?.response?.status === 403 && fbErr?.response?.data?.requireSignup) {
+        return { requireSignup: true, anonymousSessionId: fbErr.response.data.anonymousSessionId, message: fbErr.response.data.message };
+      }
       console.error('[api] Failed to prepare study path node:', fbErr.message);
       throw fbErr;
     }
@@ -222,13 +344,19 @@ export async function prepareStudyPathNode(topicId, nodeId, options = { bufferNe
 export async function retryStudyPathNode(topicId, nodeId) {
   if (!topicId || !nodeId) throw new Error('topicId and nodeId are required');
   try {
-    const response = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
+    const response = await apiClient.post(`/api/study-paths/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
     return response.data?.node || null;
   } catch (err) {
+    if (err?.response?.status === 403 && err?.response?.data?.requireSignup) {
+      return { requireSignup: true, message: err.response.data.message };
+    }
     try {
-      const fb = await apiClient.post(`/api/backend/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
+      const fb = await apiClient.post(`/api/study-path/${encodeURIComponent(topicId)}/nodes/${nodeId}/retry`);
       return fb.data?.node || null;
     } catch (fbErr) {
+      if (fbErr?.response?.status === 403 && fbErr?.response?.data?.requireSignup) {
+        return { requireSignup: true, message: fbErr.response.data.message };
+      }
       console.error('[api] Failed to retry study path node:', fbErr.message);
       throw fbErr;
     }
@@ -427,6 +555,7 @@ const api = {
   generatePath,
   getActiveStudyPath,
   getUserStudyPaths,
+  getStudyMapCount,
   getStudyPath,
   updateStudyPathNode,
   analyzeStudyPathNodeSummary,

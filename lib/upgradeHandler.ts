@@ -17,9 +17,18 @@ export function triggerUpgradeModal(codeOrFeature?: string) {
       FLASHCARD_LIMIT_REACHED: 'flashcard',
       NOTE_LIMIT_REACHED: 'notes',
       QUIZ_LIMIT_REACHED: 'quiz',
+      PAYWALL_TRIGGERED: 'study_map',
+      STUDY_MAP_LIMIT_REACHED: 'study_map',
       SUBSCRIPTION_EXPIRED: 'default'
     }
     const feature = featureMap[codeOrFeature || ''] || codeOrFeature || 'default'
     upgradeHandler(feature)
   }
+}
+
+/**
+ * Open the upgrade paywall modal specifically for lifetime study map limits or other paywall triggers.
+ */
+export function openPaywallModal(feature: string = 'study_map') {
+  triggerUpgradeModal(feature)
 }
