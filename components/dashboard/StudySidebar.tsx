@@ -1,44 +1,26 @@
 'use client'
 
 import Image from 'next/image'
-
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  FiHome,
-  FiMap,
-  FiFileText,
-  FiBarChart2,
-  FiUser,
   FiUsers,
   FiPhone,
   FiLogOut
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
-import { IoSparklesSharp } from 'react-icons/io5'
 import { firebaseSignOut } from '@/lib/firebase-auth'
+import {
+  DASHBOARD_NAV_ITEMS,
+  isNavItemActive,
+  SUPPORT_CALL_URL,
+  SUPPORT_WHATSAPP_URL
+} from './navConfig'
 import './study-nav.css'
-
-const NAV_ITEMS = [
-  { href: '/dashboard/student/map/default', label: 'Map', icon: FiMap },
-  { href: '/dashboard/notes-history', label: 'Notes', icon: FiFileText },
-  { href: '/dashboard/student', label: 'Home', icon: FiHome },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: FiBarChart2 },
-  { href: '/dashboard/profile', label: 'Profile', icon: FiUser }
-]
-
-const SUPPORT_PHONE = '+2349163345794'
 
 export default function StudySidebar() {
   const pathname = usePathname()
   const router = useRouter()
-
-  const isActive = (href: string) => {
-    // Home should only light up on the home route, not every student subpage
-    if (href === '/dashboard/student') return pathname === href
-    if (href === '/dashboard/student/map/default') return pathname.includes('/dashboard/student/map')
-    return pathname === href || pathname.startsWith(href + '/')
-  }
 
   const handleLogout = async () => {
     await firebaseSignOut()
@@ -47,9 +29,20 @@ export default function StudySidebar() {
 
   return (
     <>
-      <aside className="sp-sidebar">
+      {/* DESKTOP SIDEBAR (Visible only on screens > 1024px) */}
+      <aside className="sp-sidebar" aria-label="Desktop sidebar">
         <Link href="/dashboard/student" className="sp-logo-wrap">
-          <div className="sp-logo-icon" style={{ overflow: 'hidden', borderRadius: '10px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            className="sp-logo-icon"
+            style={{
+              overflow: 'hidden',
+              borderRadius: '10px',
+              background: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <Image
               src="/apple-touch-icon.png"
               alt="StudyHelp"
@@ -62,15 +55,17 @@ export default function StudySidebar() {
           <span className="sp-logo-text">StudyHelp</span>
         </Link>
 
-        <nav>
+        <nav aria-label="Desktop navigation">
           <ul className="sp-nav-list">
-            {NAV_ITEMS.map((item) => {
+            {DASHBOARD_NAV_ITEMS.map((item) => {
               const Icon = item.icon
+              const active = isNavItemActive(item.href, pathname)
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`sp-nav-item ${isActive(item.href) ? 'active' : ''}`}
+                    className={`sp-nav-item ${active ? 'active' : ''}`}
+                    aria-current={active ? 'page' : undefined}
                   >
                     <Icon className="sp-nav-icon" />
                     <span>{item.label === 'Notes' ? 'Notes Library' : item.label}</span>
@@ -89,13 +84,13 @@ export default function StudySidebar() {
             <span>Refer &amp; Earn</span>
           </Link>
 
-          <a href={`tel:${SUPPORT_PHONE}`} className="sp-nav-support-link">
+          <a href={SUPPORT_CALL_URL} className="sp-nav-support-link">
             <FiPhone className="sp-nav-support-icon call" />
             <span>Call Support</span>
           </a>
 
           <a
-            href={`https://wa.me/${SUPPORT_PHONE.replace('+', '')}`}
+            href={SUPPORT_WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="sp-nav-support-link"
@@ -116,14 +111,17 @@ export default function StudySidebar() {
         </div>
       </aside>
 
-      <nav className="sp-bottom-nav">
-        {NAV_ITEMS.map((item) => {
+      {/* MOBILE BOTTOM NAVIGATION BAR (Visible only on screens <= 1024px) */}
+      <nav className="sp-bottom-nav" aria-label="Mobile navigation">
+        {DASHBOARD_NAV_ITEMS.map((item) => {
           const Icon = item.icon
+          const active = isNavItemActive(item.href, pathname)
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`sp-bottom-nav-item ${isActive(item.href) ? 'active' : ''}`}
+              className={`sp-bottom-nav-item ${active ? 'active' : ''}`}
+              aria-current={active ? 'page' : undefined}
             >
               <Icon className="sp-bottom-nav-icon" />
               <span>{item.label}</span>

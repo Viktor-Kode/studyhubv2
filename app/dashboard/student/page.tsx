@@ -295,40 +295,8 @@ export default function StudentDashboardPage() {
     <ProtectedRoute allowedRoles={['student', 'teacher']}>
       <div className="sr-page">
         <div className="sr-frame">
-          <div className="sr-layout">
-            <aside className="sr-sidebar">
-              <Link href="/dashboard/student" className="sr-brand">
-                <div style={{ width: 38, height: 38, borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--sr-border)', flexShrink: 0, boxShadow: '0 2px 8px rgba(109,59,242,0.12)' }}>
-                  <Image
-                    src="/apple-touch-icon.png"
-                    alt="StudyHelp"
-                    width={38}
-                    height={38}
-                    priority
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
-                </div>
-                <span>StudyHelp</span>
-              </Link>
-              <nav className="sr-nav" aria-label="Main navigation">
-                <Link href="/dashboard/student" className="sr-nav-link active"><FiBookOpen />Home</Link>
-                <Link href="/dashboard/notes-history" className="sr-nav-link"><FiFileText />Notes Library</Link>
-                <Link href="/dashboard/profile" className="sr-nav-link"><FiUser />Profile</Link>
-              </nav>
-              <div className="sr-support">
-                <h2>Support</h2>
-                <Link href="/dashboard/settings?tab=referrals" className="sr-nav-link"><FiUsers />Refer &amp; Earn</Link>
-                <a href="tel:+2349163345794" className="sr-nav-link"><FiPhone />Call Support</a>
-                <a href="https://wa.me/2349163345794" target="_blank" rel="noopener noreferrer" className="sr-nav-link"><FiMessageCircle />WhatsApp Support</a>
-                <button className="sr-nav-link sr-logout" onClick={async () => { await firebaseSignOut(); router.push('/auth/login') }}>
-                  <FiLogOut />Log Out
-                </button>
-              </div>
-            </aside>
-
-            <div className="sr-main-column">
-              <main className="sr-content">
-                <header className="sr-head">
+          <main className="sr-content">
+            <header className="sr-head">
                   <div className="sr-hello"><small>{greeting},</small><h1>{firstName}</h1></div>
                   <div className="sr-pills">
                     <div className="sr-pill fire"><FaFire /><span>{realStats.streak}</span></div>
@@ -549,17 +517,7 @@ export default function StudentDashboardPage() {
                   )}
                   {!isLoadingPath && topic && !isTopicComplete && pathRemaining > 0 && <p className="sr-more">+ {pathRemaining} more · <Link href={`/dashboard/student/map/${encodeURIComponent(topic.topicId)}`}>View map</Link></p>}
                 </section>
-              </main>
-
-              <nav className="sr-tabbar" aria-label="Mobile navigation">
-                <Link href={`/dashboard/student/map/${encodeURIComponent(topic?.topicId || 'default')}`}><FiMap />Map</Link>
-                <Link href="/dashboard/notes-history"><FiFileText />Notes</Link>
-                <Link href="/dashboard/student" className="active"><FiHome />Home</Link>
-                <Link href="/dashboard/analytics"><FiBarChart2 />Analytics</Link>
-                <Link href="/dashboard/profile"><FiUser />Profile</Link>
-              </nav>
-            </div>
-          </div>
+          </main>
         </div>
         {showGenerateModal && <CreateStudyPathModal onClose={closeGenerateModal} />}
         {showFirstPathModal && (

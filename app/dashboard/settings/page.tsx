@@ -7,7 +7,12 @@ import {
     Users, Copy, Award, Share2
 } from 'lucide-react'
 import { MdSchool, MdQuiz } from 'react-icons/md'
-import { FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle, FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw } from 'react-icons/fi'
+import {
+    FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle,
+    FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw,
+    FiPhone, FiLogOut, FiChevronRight, FiArrowLeft
+} from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import BackButton from '@/components/BackButton'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -18,13 +23,34 @@ import { useRouter } from 'next/navigation'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 import { toast } from 'react-hot-toast'
 import { getOfflineStorageUsage, getOfflineItemsSummary, clearAllOfflineData } from '@/lib/utils/offlineDb'
+import { SUPPORT_CALL_URL, SUPPORT_WHATSAPP_URL } from '@/components/dashboard/navConfig'
 import './settings-v3.css'
 
 type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals' | 'offline'
 
+interface SectionMeta {
+    id: TabType
+    label: string
+    subtitle: string
+    icon: React.ComponentType<{ className?: string; size?: number }>
+}
+
+const SETTINGS_SECTIONS: SectionMeta[] = [
+    { id: 'profile', label: 'Profile', subtitle: 'Manage your name, school, and study profile', icon: FiUser },
+    { id: 'account', label: 'Account', subtitle: 'Security, email address, password, and session', icon: FiShield },
+    { id: 'notifications', label: 'Notifications', subtitle: 'Study reminders, email alerts, and schedules', icon: FiBell },
+    { id: 'appearance', label: 'Appearance', subtitle: 'Dark mode and dashboard display theme', icon: Palette },
+    { id: 'referrals', label: 'Referrals', subtitle: 'Invite classmates and earn free StudyHelp Pro access', icon: Users },
+    { id: 'help', label: 'Help', subtitle: 'Reach the team, call, WhatsApp, or browse guides', icon: FiHelpCircle },
+    { id: 'offline', label: 'Offline', subtitle: 'Manage cached courses, lessons, and storage', icon: FiWifiOff },
+]
+
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<TabType>('profile')
+    const [mobileActiveTab, setMobileActiveTab] = useState<TabType | null>(null)
+    const [showLogoutModal, setShowLogoutModal] = useState(false)
     const { user, refreshUser } = useAuthStore()
+    const router = useRouter()
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -32,6 +58,7 @@ export default function SettingsPage() {
             const tab = params.get('tab') as TabType
             if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals', 'offline'].includes(tab)) {
                 setActiveTab(tab)
+                setMobileActiveTab(tab)
             }
         }
     }, [])
@@ -41,74 +68,241 @@ export default function SettingsPage() {
         toast.success('Settings updated successfully')
     }
 
+    const currentSectionMeta = SETTINGS_SECTIONS.find(
+        (s) => s.id === (mobileActiveTab || activeTab)
+    )
+
+    // Shared section content renderer to guarantee zero duplication
+    const renderSectionContent = (tab: TabType) => {
+        switch (tab) {
+            case 'profile':
+                return <ProfileSection user={user} onSaved={handleSaved} />
+            case 'account':
+                return (
+                    <AccountSection
+                        user={user}
+                        onSaved={handleSaved}
+                        onLogoutClick={() => setShowLogoutModal(true)}
+                    />
+                )
+            case 'notifications':
+                return <NotificationsSection user={user} onSaved={handleSaved} />
+            case 'appearance':
+                return <AppearanceSection onSaved={handleSaved} />
+            case 'referrals':
+                return <ReferralSection />
+            case 'help':
+                return <HelpSection onSaved={handleSaved} />
+            case 'offline':
+                return <OfflineSection />
+            default:
+                return null
+        }
+    }
+
     return (
         <ProtectedRoute>
             <div className="settings-v3-container">
-                <div className="mb-4">
-                    <BackButton label="Back" href="/dashboard/student" />
+                {/* ═════════════════════════════════════════════════════════
+                    MOBILE SETTINGS VIEW (Visible on screens <= 1024px)
+                    ═════════════════════════════════════════════════════════ */}
+                <div className="settings-mobile-container">
+                    {mobileActiveTab === null ? (
+                        /* Mobile Settings List View (matches mockup screen 1) */
+                        <div>
+                            <div className="mb-4">
+                                <BackButton label="Back" href="/dashboard/student" />
+                            </div>
+
+                            <header className="mb-6">
+                                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
+                                    Settings
+                                </h1>
+                                <p className="text-xs font-medium text-slate-400">
+                                    Manage your account and app preferences
+                                </p>
+                            </header>
+
+                            {/* 7 Section rows with Icon + Label + Chevron */}
+                            <div className="settings-rows-group">
+                                {SETTINGS_SECTIONS.map((section) => {
+                                    const Icon = section.icon
+                                    return (
+                                        <button
+                                            key={section.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveTab(section.id)
+                                                setMobileActiveTab(section.id)
+                                            }}
+                                            className="settings-row-item"
+                                        >
+                                            <div className="settings-row-left">
+                                                <span className="settings-row-icon">
+                                                    <Icon size={18} />
+                                                </span>
+                                                <span className="settings-row-label">{section.label}</span>
+                                            </div>
+                                            <FiChevronRight className="settings-row-chevron" />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Support group */}
+                            <div className="mb-6">
+                                <h3 className="settings-group-title">Support</h3>
+                                <div className="settings-rows-group">
+                                    <a href={SUPPORT_CALL_URL} className="settings-row-item">
+                                        <div className="settings-row-left">
+                                            <span className="settings-row-icon text-blue-500">
+                                                <FiPhone size={18} />
+                                            </span>
+                                            <span className="settings-row-label">Call support</span>
+                                        </div>
+                                        <FiChevronRight className="settings-row-chevron" />
+                                    </a>
+
+                                    <a
+                                        href={SUPPORT_WHATSAPP_URL}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="settings-row-item"
+                                    >
+                                        <div className="settings-row-left">
+                                            <span className="settings-row-icon text-green-500">
+                                                <FaWhatsapp size={18} />
+                                            </span>
+                                            <span className="settings-row-label">WhatsApp support</span>
+                                        </div>
+                                        <FiChevronRight className="settings-row-chevron" />
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Red Log Out button at bottom */}
+                            <div className="pt-2 pb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLogoutModal(true)}
+                                    className="settings-mobile-logout-btn"
+                                >
+                                    <FiLogOut size={18} />
+                                    <span>Log out</span>
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Mobile Section Detail View (matches mockup screen 2) */
+                        <div>
+                            <div className="mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileActiveTab(null)}
+                                    className="settings-mobile-back-btn"
+                                >
+                                    <FiArrowLeft size={16} />
+                                    <span>Settings</span>
+                                </button>
+                            </div>
+
+                            <header className="mb-6">
+                                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
+                                    {currentSectionMeta?.label || 'Settings'}
+                                </h1>
+                                <p className="text-xs font-medium text-slate-400">
+                                    {currentSectionMeta?.subtitle}
+                                </p>
+                            </header>
+
+                            <div>{renderSectionContent(mobileActiveTab)}</div>
+                        </div>
+                    )}
                 </div>
 
-                <header className="mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-black text-black dark:text-white tracking-tight mb-1">
-                        Settings
-                    </h1>
-                    <p className="text-sm font-medium text-slate-400">Manage your account and app preferences</p>
-                </header>
+                {/* ═════════════════════════════════════════════════════════
+                    DESKTOP SETTINGS VIEW (Visible on screens > 1024px)
+                    ═════════════════════════════════════════════════════════ */}
+                <div className="settings-desktop-container">
+                    <div className="mb-4">
+                        <BackButton label="Back" href="/dashboard/student" />
+                    </div>
 
-                <nav className="settings-tabs no-scrollbar">
-                    <button
-                        onClick={() => setActiveTab('profile')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'profile' ? 'active' : ''}`}
-                    >
-                        <FiUser /> Profile
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('account')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'account' ? 'active' : ''}`}
-                    >
-                        <FiShield /> Account
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('notifications')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'notifications' ? 'active' : ''}`}
-                    >
-                        <FiBell /> Notifications
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('appearance')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'appearance' ? 'active' : ''}`}
-                    >
-                        <Palette className="w-4 h-4" /> Appearance
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('referrals')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'referrals' ? 'active' : ''}`}
-                    >
-                        <Users className="w-4 h-4" /> Referrals
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('help')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'help' ? 'active' : ''}`}
-                    >
-                        <FiHelpCircle /> Help
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('offline')}
-                        className={`settings-tab flex items-center gap-2 ${activeTab === 'offline' ? 'active' : ''}`}
-                    >
-                        <FiWifiOff size={14} /> Offline
-                    </button>
-                </nav>
+                    <header className="mb-6">
+                        <h1 className="text-2xl sm:text-3xl font-black text-black dark:text-white tracking-tight mb-1">
+                            Settings
+                        </h1>
+                        <p className="text-sm font-medium text-slate-400">
+                            Manage your account and app preferences
+                        </p>
+                    </header>
 
-                <main className="max-w-4xl">
-                    {activeTab === 'profile' && <ProfileSection user={user} onSaved={handleSaved} />}
-                    {activeTab === 'account' && <AccountSection user={user} onSaved={handleSaved} />}
-                    {activeTab === 'notifications' && <NotificationsSection user={user} onSaved={handleSaved} />}
-                    {activeTab === 'appearance' && <AppearanceSection onSaved={handleSaved} />}
-                    {activeTab === 'referrals' && <ReferralSection />}
-                    {activeTab === 'help' && <HelpSection onSaved={handleSaved} />}
-                    {activeTab === 'offline' && <OfflineSection />}
-                </main>
+                    <nav className="settings-tabs no-scrollbar" aria-label="Settings tabs">
+                        {SETTINGS_SECTIONS.map((section) => {
+                            const Icon = section.icon
+                            const active = activeTab === section.id
+                            return (
+                                <button
+                                    key={section.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(section.id)}
+                                    className={`settings-tab flex items-center gap-2 ${active ? 'active' : ''}`}
+                                >
+                                    <Icon size={16} /> {section.label}
+                                </button>
+                            )
+                        })}
+                    </nav>
+
+                    <main className="max-w-4xl">
+                        {renderSectionContent(activeTab)}
+                    </main>
+                </div>
+
+                {/* ═════════════════════════════════════════════════════════
+                    LOG OUT CONFIRMATION MODAL
+                    ═════════════════════════════════════════════════════════ */}
+                {showLogoutModal && (
+                    <div
+                        className="settings-modal-overlay"
+                        onClick={() => setShowLogoutModal(false)}
+                    >
+                        <div
+                            className="settings-modal-card"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4 mx-auto">
+                                <FiLogOut size={22} />
+                            </div>
+                            <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-2">
+                                Log Out
+                            </h3>
+                            <p className="text-xs text-center text-slate-400 mb-6">
+                                Are you sure you want to log out of your StudyHelp account?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLogoutModal(false)}
+                                    className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 dark:border-gray-700 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setShowLogoutModal(false)
+                                        await firebaseSignOut()
+                                        router.push('/auth/login')
+                                    }}
+                                    className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors"
+                                >
+                                    Log Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </ProtectedRoute>
     )
@@ -241,7 +435,7 @@ function ProfileSection({ user, onSaved }: any) {
     )
 }
 
-function AccountSection({ user, onSaved }: any) {
+function AccountSection({ user, onSaved, onLogoutClick }: any) {
     const isGoogle = user?.provider === 'google' || user?.providerData?.[0]?.providerId === 'google.com'
     const [loading, setLoading] = useState(false)
 
@@ -306,6 +500,20 @@ function AccountSection({ user, onSaved }: any) {
                     </button>
                 </div>
             )}
+
+            {/* Red Log Out button at the bottom of Account section with confirmation */}
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+                <h4 className="font-bold text-red-600 dark:text-red-400 mb-1">Session Management</h4>
+                <p className="text-sm text-gray-500 mb-4">Log out of your StudyHelp account on this device.</p>
+                <button
+                    type="button"
+                    onClick={onLogoutClick}
+                    className="settings-logout-btn"
+                >
+                    <FiLogOut size={16} />
+                    <span>Log Out</span>
+                </button>
+            </div>
         </div>
     )
 }
@@ -537,7 +745,47 @@ function HelpSection({ onSaved }: any) {
 
     return (
         <div className="settings-card">
-            <h3 className="text-xl font-bold mb-6">Help & Support</h3>
+            <h3 className="text-xl font-bold mb-1">Help & Support</h3>
+            <p className="text-sm text-slate-400 mb-6">Reach the team or browse answers.</p>
+
+            {/* Direct Support Channels (Call & WhatsApp) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <a
+                    href={SUPPORT_CALL_URL}
+                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-white/5 hover:border-blue-500/50 transition-all flex items-center gap-3.5 no-underline group"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                        <FiPhone size={20} />
+                    </div>
+                    <div>
+                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-blue-500 transition-colors">
+                            Call support
+                        </div>
+                        <div className="text-xs text-slate-400">
+                            +234 916 334 5794
+                        </div>
+                    </div>
+                </a>
+
+                <a
+                    href={SUPPORT_WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-white/5 hover:border-green-500/50 transition-all flex items-center gap-3.5 no-underline group"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
+                        <FaWhatsapp size={20} />
+                    </div>
+                    <div>
+                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-green-500 transition-colors">
+                            WhatsApp support
+                        </div>
+                        <div className="text-xs text-slate-400">
+                            Chat directly with our team
+                        </div>
+                    </div>
+                </a>
+            </div>
 
             <div className="space-y-4">
                 <div className="v3-toggle">
@@ -566,12 +814,19 @@ function HelpSection({ onSaved }: any) {
                 </div>
             </div>
 
-            <div className="mt-8 p-6 bg-blue-500/5 rounded-2xl flex items-center justify-between">
+            <div className="mt-8 p-6 bg-purple-500/5 border border-purple-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h4 className="font-bold">Need more help?</h4>
-                    <p className="text-xs text-gray-500">Our support team is available 24/7</p>
+                    <h4 className="font-bold text-slate-900 dark:text-white">Have feedback or need answers?</h4>
+                    <p className="text-xs text-slate-400">Our support desk is available to help every student succeed.</p>
                 </div>
-                <button className="v3-btn-primary px-6 py-2 text-sm">Contact Us</button>
+                <a
+                    href={SUPPORT_WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="v3-btn-primary px-6 py-2 text-sm whitespace-nowrap inline-flex items-center justify-center text-center no-underline"
+                >
+                    Contact Support
+                </a>
             </div>
         </div>
     )

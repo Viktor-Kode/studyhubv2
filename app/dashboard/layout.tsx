@@ -135,11 +135,11 @@ export default function DashboardLayout({
     const isTutorPage = pathname === '/dashboard/tutor'
     const isChatPage = pathname === '/dashboard/chat'
     const isAdminPage = pathname.startsWith('/dashboard/admin')
-    const isStudentDashboard = pathname === '/dashboard/student'
     const isMapPage = pathname.includes('/map')
     const isLessonPage = pathname.includes('/lesson')
+    const isStudentDashboard = pathname === '/dashboard/student'
 
-    if (isTutorPage || isChatPage || isAdminPage || isStudentDashboard || isMapPage || isLessonPage) {
+    if (isTutorPage || isChatPage || isAdminPage || isMapPage || isLessonPage) {
         return (
             <div className="min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
                 <ProtectedRoute>
@@ -163,7 +163,7 @@ export default function DashboardLayout({
                         </div>
                     )}
                     <ReminderBanner />
-                    <div className="p-3 sm:p-5 md:p-6 w-full max-w-full min-w-0 box-border overflow-hidden">
+                    <div className={`${isStudentDashboard ? 'p-0' : 'p-3 sm:p-5 md:p-6'} w-full max-w-full min-w-0 box-border overflow-hidden`}>
                         {(() => {
                             const noGlobalBack = [
                                 '/dashboard',

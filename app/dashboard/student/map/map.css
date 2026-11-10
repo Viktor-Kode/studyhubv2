@@ -197,35 +197,63 @@
 .study-map-topic-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .study-map-topic-menu, .study-map-menu-list {
   position: absolute;
-  top: 46px;
-  z-index: 30;
-  min-width: 200px;
-  padding: 6px;
+  top: 48px;
+  z-index: 50;
+  min-width: 220px;
+  padding: 8px;
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #111a2e;
-  box-shadow: 0 12px 30px rgba(0,0,0,.5);
+  box-shadow: 0 16px 40px rgba(0,0,0,.6);
 }
-.study-map-topic-menu { left: 0; max-height: min(60vh, 360px); overflow-y: auto; }
+.study-map-topic-menu {
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
 .study-map-topic-menu button, .study-map-menu-list button {
   display: flex;
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   padding: 10px 12px;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: #94a3b8;
   text-align: left;
   font-size: 14px;
   font-weight: 600;
+  transition: all 0.15s ease;
 }
-.study-map-topic-menu button > span,
-.study-map-topic-menu button > small { min-width: 0; overflow-wrap: anywhere; }
-.study-map-topic-menu button:hover, .study-map-topic-menu button.selected, .study-map-menu-list button:hover { background: rgba(255,255,255,.05); color: #fff; }
-.study-map-topic-menu small { color: #64748b; font-size: 11px; }
+.study-map-topic-menu button > span {
+  display: block;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+.study-map-topic-menu button > small {
+  display: block;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+.study-map-topic-menu button:hover, .study-map-topic-menu button.selected, .study-map-menu-list button:hover {
+  background: rgba(124,58,237,.18);
+  border-color: rgba(124,58,237,.35);
+  color: #fff;
+}
 .study-map-menu-empty { padding: 10px 12px; color: #94a3b8; font-size: 13px; }
 .study-map-progress { display: flex; width: min(100%, 520px); align-items: center; gap: 12px; margin: 20px auto 0; }
 .study-map-track { display: block; height: 9px; flex: 1; overflow: hidden; border-radius: 999px; background: var(--map-track); }
@@ -449,13 +477,15 @@
 }
 @media (max-width: 520px) {
   .study-map-topic-menu {
-    right: auto;
-    left: 50%;
-    width: 100vw;
-    min-width: 0;
-    max-width: 100vw;
+    position: fixed;
+    top: 56px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    max-height: 70vh;
+    transform: none;
     box-sizing: border-box;
-    transform: translateX(-50%);
   }
   .study-map-modal-backdrop { align-items: end; padding: 0; }
   .study-map-preview {
