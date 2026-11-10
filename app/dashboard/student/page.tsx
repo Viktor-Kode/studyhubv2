@@ -201,7 +201,6 @@ export default function StudentDashboardPage() {
       }
     }
   }
-  }
 
   // Delete active topic
   const handleDeleteActiveTopic = async () => {
