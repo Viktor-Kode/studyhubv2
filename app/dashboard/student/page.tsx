@@ -77,13 +77,22 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     if (!showTopicSwitcher) return
+    document.body.classList.add('sr-topic-sheet-open')
     const closeSwitcher = (event: MouseEvent) => {
       if (!topicSwitcherRef.current?.contains(event.target as Node)) {
         setShowTopicSwitcher(false)
       }
     }
     document.addEventListener('mousedown', closeSwitcher)
-    return () => document.removeEventListener('mousedown', closeSwitcher)
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowTopicSwitcher(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.classList.remove('sr-topic-sheet-open')
+      document.removeEventListener('mousedown', closeSwitcher)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
   }, [showTopicSwitcher])
 
   // Real progress state
@@ -325,7 +334,15 @@ export default function StudentDashboardPage() {
                             <FiChevronDown className={`sr-switch-chevron ${showTopicSwitcher ? 'open' : ''}`} />
                           </button>
                           {showTopicSwitcher && (
-                            <div className="sr-topic-dropdown-menu">
+                            <>
+                              <button
+                                type="button"
+                                className="sr-topic-sheet-backdrop"
+                                aria-label="Close topic selector"
+                                onClick={() => setShowTopicSwitcher(false)}
+                              />
+                            <div className="sr-topic-dropdown-menu" role="dialog" aria-modal="true" aria-label="Your topics">
+                              <div className="sr-topic-sheet-handle" aria-hidden="true" />
                               <div className="sr-dropdown-title">Your Topics</div>
                               <div className="sr-dropdown-list">
                                 {allTopics.map((t) => {
@@ -367,6 +384,7 @@ export default function StudentDashboardPage() {
                                 <span>Add new topic</span>
                               </button>
                             </div>
+                            </>
                           )}
                         </div>
                       )}

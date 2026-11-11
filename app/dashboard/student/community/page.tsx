@@ -42,6 +42,29 @@ export default function CommunityPage() {
     void loadBoard()
   }, [loadBoard])
 
+  // Hydrate chosen avatar if missing from current authStore state
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = localStorage.getItem('studyhelp_avatar')
+    if (stored && !user?.avatar) {
+      useAuthStore.setState((state) => ({
+        user: state.user ? { ...state.user, avatar: stored } : null
+      }))
+    } else if (!user?.avatar) {
+      import('@/lib/api/client').then(({ apiClient }) => {
+        apiClient.get('/settings').then((res) => {
+          const av = res.data?.profile?.avatar
+          if (av) {
+            localStorage.setItem('studyhelp_avatar', av)
+            useAuthStore.setState((state) => ({
+              user: state.user ? { ...state.user, avatar: av } : null
+            }))
+          }
+        }).catch(() => {})
+      })
+    }
+  }, [user?.avatar])
+
   useEffect(() => {
     const t = setInterval(() => void loadBoard(), 60000)
     return () => clearInterval(t)

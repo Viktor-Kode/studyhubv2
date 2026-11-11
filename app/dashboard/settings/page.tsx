@@ -1,16 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
-    User, Mail, Bell, Moon, Sun, Trash2, LogOut, Camera, Check,
-    ChevronRight, Shield, LifeBuoy, Settings, HelpCircle, Palette,
-    Users, Copy, Award, Share2
+    Moon, Sun, Check, Palette, Users, Copy, Award, Share2,
+    ShieldCheck, Lock, BellRing, Sparkles
 } from 'lucide-react'
 import { MdSchool, MdQuiz } from 'react-icons/md'
 import {
-    FiGrid, FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle,
-    FiLayout, FiWifiOff, FiDownload, FiTrash2, FiRefreshCw,
-    FiPhone, FiLogOut, FiChevronRight, FiArrowLeft
+    FiBookOpen, FiUser, FiBell, FiShield, FiHelpCircle,
+    FiPhone, FiLogOut, FiChevronRight, FiArrowLeft, FiMail,
+    FiClock, FiAlertCircle, FiCheck
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -22,17 +21,16 @@ import { apiClient } from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 import { useHelpWidgets } from '@/hooks/useHelpWidgets'
 import { toast } from 'react-hot-toast'
-import { getOfflineStorageUsage, getOfflineItemsSummary, clearAllOfflineData } from '@/lib/utils/offlineDb'
 import { SUPPORT_CALL_URL, SUPPORT_WHATSAPP_URL } from '@/components/dashboard/navConfig'
 import './settings-v3.css'
 
-type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals' | 'offline'
+type TabType = 'profile' | 'account' | 'notifications' | 'appearance' | 'help' | 'referrals'
 
 interface SectionMeta {
     id: TabType
     label: string
     subtitle: string
-    icon: React.ComponentType<{ className?: string; size?: number }>
+    icon: React.ComponentType<{ className?: string; size?: number | string }>
 }
 
 const SETTINGS_SECTIONS: SectionMeta[] = [
@@ -42,7 +40,6 @@ const SETTINGS_SECTIONS: SectionMeta[] = [
     { id: 'appearance', label: 'Appearance', subtitle: 'Dark mode and dashboard display theme', icon: Palette },
     { id: 'referrals', label: 'Referrals', subtitle: 'Invite classmates and earn free StudyHelp Pro access', icon: Users },
     { id: 'help', label: 'Help', subtitle: 'Reach the team, call, WhatsApp, or browse guides', icon: FiHelpCircle },
-    { id: 'offline', label: 'Offline', subtitle: 'Manage cached courses, lessons, and storage', icon: FiWifiOff },
 ]
 
 export default function SettingsPage() {
@@ -56,7 +53,7 @@ export default function SettingsPage() {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search)
             const tab = params.get('tab') as TabType
-            if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals', 'offline'].includes(tab)) {
+            if (tab && ['profile', 'account', 'notifications', 'appearance', 'help', 'referrals'].includes(tab)) {
                 setActiveTab(tab)
                 setMobileActiveTab(tab)
             }
@@ -93,8 +90,6 @@ export default function SettingsPage() {
                 return <ReferralSection />
             case 'help':
                 return <HelpSection onSaved={handleSaved} />
-            case 'offline':
-                return <OfflineSection />
             default:
                 return null
         }
@@ -108,7 +103,7 @@ export default function SettingsPage() {
                     ═════════════════════════════════════════════════════════ */}
                 <div className="settings-mobile-container">
                     {mobileActiveTab === null ? (
-                        /* Mobile Settings List View (matches mockup screen 1) */
+                        /* Mobile Settings List View */
                         <div>
                             <div className="mb-4">
                                 <BackButton label="Back" href="/dashboard/student" />
@@ -123,7 +118,7 @@ export default function SettingsPage() {
                                 </p>
                             </header>
 
-                            {/* 7 Section rows with Icon + Label + Chevron */}
+                            {/* Section rows with Icon + Label + Chevron */}
                             <div className="settings-rows-group">
                                 {SETTINGS_SECTIONS.map((section) => {
                                     const Icon = section.icon
@@ -193,7 +188,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     ) : (
-                        /* Mobile Section Detail View (matches mockup screen 2) */
+                        /* Mobile Section Detail View */
                         <div>
                             <div className="mb-4">
                                 <button
@@ -229,7 +224,7 @@ export default function SettingsPage() {
                     </div>
 
                     <header className="mb-6">
-                        <h1 className="text-2xl sm:text-3xl font-black text-black dark:text-white tracking-tight mb-1">
+                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
                             Settings
                         </h1>
                         <p className="text-sm font-medium text-slate-400">
@@ -308,9 +303,120 @@ export default function SettingsPage() {
     )
 }
 
-// ─── Sections ────────────────────────────────────────────────────────────────
+// ─── Reusable Rock-Solid Toggle Switch ───────────────────────────────────────
+
+function Toggle({
+    checked,
+    onChange,
+    disabled = false,
+    ariaLabel,
+}: {
+    checked: boolean
+    onChange?: () => void
+    disabled?: boolean
+    ariaLabel?: string
+}) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            onClick={onChange}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-40 disabled:cursor-not-allowed ${
+                checked ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700'
+            }`}
+        >
+            <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    checked ? 'translate-x-5' : 'translate-x-0'
+                }`}
+            />
+        </button>
+    )
+}
+
+// ─── Avatar Presets (Curated selection for students) ─────────────────────────
+
+const AVATAR_PRESETS = [
+    { id: 'felix', label: 'Felix', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix&backgroundColor=b6e3f4' },
+    { id: 'aneka', label: 'Aneka', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aneka&backgroundColor=ffd5dc' },
+    { id: 'caleb', label: 'Caleb', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Caleb&backgroundColor=d1d4f9' },
+    { id: 'luna', label: 'Luna', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Luna&backgroundColor=ffdfbf' },
+    { id: 'george', label: 'George', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=George&backgroundColor=c0aede' },
+    { id: 'daisy', label: 'Daisy', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Daisy&backgroundColor=b6e3f4' },
+    { id: 'spark', label: 'Spark', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Spark&backgroundColor=d1d4f9' },
+    { id: 'nova', label: 'Nova', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Nova&backgroundColor=ffd5dc' },
+]
+
+const INSTITUTION_CSV_URLS = [
+    'https://raw.githubusercontent.com/reality-farouqk/nigeria-tertiary-institutions-api/main/data/nigerian_universities_faculties.csv',
+    'https://raw.githubusercontent.com/reality-farouqk/nigeria-tertiary-institutions-api/main/data/nigerian_polytechnics_schools.csv',
+    'https://raw.githubusercontent.com/reality-farouqk/nigeria-tertiary-institutions-api/main/data/nigerian_colleges_of_education_schools.csv',
+]
+
+let institutionNamesRequest: Promise<string[]> | null = null
+
+function parseInstitutionNames(csv: string): string[] {
+    const rows: string[][] = []
+    let row: string[] = []
+    let cell = ''
+    let quoted = false
+
+    for (let i = 0; i < csv.length; i += 1) {
+        const char = csv[i]
+        if (char === '"') {
+            if (quoted && csv[i + 1] === '"') {
+                cell += '"'
+                i += 1
+            } else {
+                quoted = !quoted
+            }
+        } else if (char === ',' && !quoted) {
+            row.push(cell)
+            cell = ''
+        } else if ((char === '\n' || char === '\r') && !quoted) {
+            if (char === '\r' && csv[i + 1] === '\n') i += 1
+            row.push(cell)
+            if (row.some((value) => value.trim())) rows.push(row)
+            row = []
+            cell = ''
+        } else {
+            cell += char
+        }
+    }
+    if (cell || row.length) {
+        row.push(cell)
+        rows.push(row)
+    }
+
+    const headers = rows[0]?.map((value) => value.replace(/^\uFEFF/, '').trim().toLowerCase()) || []
+    const nameIndex = headers.findIndex((value) => value === 'university name' || value === 'institution name')
+    if (nameIndex < 0) return []
+    return rows.slice(1).map((values) => values[nameIndex]?.trim()).filter((value): value is string => Boolean(value))
+}
+
+function loadInstitutionNames(): Promise<string[]> {
+    if (!institutionNamesRequest) {
+        institutionNamesRequest = Promise.all(INSTITUTION_CSV_URLS.map(async (url) => {
+            const response = await fetch(url)
+            if (!response.ok) throw new Error('Unable to load school suggestions')
+            return parseInstitutionNames(await response.text())
+        })).then((lists) => Array.from(new Set(lists.flat())).sort((a, b) => a.localeCompare(b)))
+            .catch((error) => {
+                institutionNamesRequest = null
+                throw error
+            })
+    }
+    return institutionNamesRequest
+}
+
+// ─── Profile Section ─────────────────────────────────────────────────────────
 
 function ProfileSection({ user, onSaved }: any) {
+    const defaultAvatar = user?.avatar || AVATAR_PRESETS[0].url
     const [form, setForm] = useState({
         displayName: user?.name || '',
         phone: '',
@@ -319,8 +425,32 @@ function ProfileSection({ user, onSaved }: any) {
         courseOfStudy: user?.courseOfStudy || '',
     })
     const [loading, setLoading] = useState(false)
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null)
-    const fileRef = useRef<HTMLInputElement>(null)
+    const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar)
+    const [institutionNames, setInstitutionNames] = useState<string[]>([])
+    const [schoolSuggestionsOpen, setSchoolSuggestionsOpen] = useState(false)
+    const [schoolSuggestionsLoading, setSchoolSuggestionsLoading] = useState(false)
+    const [schoolSuggestionsError, setSchoolSuggestionsError] = useState(false)
+
+    useEffect(() => {
+        if (!schoolSuggestionsOpen || form.schoolName.trim().length < 2 || institutionNames.length) return
+        let active = true
+        setSchoolSuggestionsError(false)
+        setSchoolSuggestionsLoading(true)
+        loadInstitutionNames()
+            .then((names) => { if (active) setInstitutionNames(names) })
+            .catch(() => {
+                if (active) {
+                    setInstitutionNames([])
+                    setSchoolSuggestionsError(true)
+                }
+            })
+            .finally(() => { if (active) setSchoolSuggestionsLoading(false) })
+        return () => { active = false }
+    }, [schoolSuggestionsOpen, form.schoolName, institutionNames.length])
+
+    const matchingInstitutions = form.schoolName.trim().length >= 2
+        ? institutionNames.filter((name) => name.toLowerCase().includes(form.schoolName.trim().toLowerCase())).slice(0, 7)
+        : []
 
     useEffect(() => {
         const load = async () => {
@@ -334,24 +464,32 @@ function ProfileSection({ user, onSaved }: any) {
                     classLevel: p.classLevel || '',
                     courseOfStudy: p.courseOfStudy || '',
                 })
-                setAvatarPreview(p.avatar || user?.avatar || null)
+                if (p.avatar) {
+                    setAvatarPreview(p.avatar)
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('studyhelp_avatar', p.avatar)
+                    }
+                    useAuthStore.setState((state) => ({
+                        user: state.user ? { ...state.user, avatar: p.avatar } : null
+                    }))
+                } else if (user?.avatar) {
+                    setAvatarPreview(user.avatar)
+                }
             } catch { }
         }
         load()
     }, [user?.uid])
 
-    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        const reader = new FileReader()
-        reader.onloadend = () => setAvatarPreview(reader.result as string)
-        reader.readAsDataURL(file)
-    }
-
     const handleSave = async () => {
         setLoading(true)
         try {
             await apiClient.put('/settings', { profile: { ...form, avatar: avatarPreview } })
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('studyhelp_avatar', avatarPreview)
+            }
+            useAuthStore.setState((state) => ({
+                user: state.user ? { ...state.user, avatar: avatarPreview, name: form.displayName || state.user.name } : null
+            }))
             onSaved()
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to save profile')
@@ -361,79 +499,194 @@ function ProfileSection({ user, onSaved }: any) {
     }
 
     return (
-        <div className="settings-card">
-            <div className="flex flex-col items-center mb-8">
-                <div className="v3-avatar-wrapper">
-                    {avatarPreview ? (
-                        <img src={avatarPreview} className="v3-avatar-img" alt="Profile" />
-                    ) : (
-                        <div className="v3-avatar-placeholder">{form.displayName[0] || 'U'}</div>
-                    )}
-                    <div className="v3-avatar-edit" onClick={() => fileRef.current?.click()}>
-                        <Camera size={16} />
+        <div className="settings-clean-section space-y-8">
+            {/* Redesigned Profile Header (Avatar selected for them, no file upload) */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-200/70 dark:border-white/10">
+                <div className="relative shrink-0">
+                    <img
+                        src={avatarPreview}
+                        className="w-24 h-24 rounded-2xl ring-4 ring-purple-500/20 shadow-md object-cover bg-gradient-to-br from-indigo-500/10 to-purple-500/10"
+                        alt="Profile avatar"
+                    />
+                    <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-600 text-white shadow-sm flex items-center gap-1">
+                        <Sparkles size={10} /> Avatar
                     </div>
                 </div>
-                <input ref={fileRef} type="file" hidden accept="image/*" onChange={handleAvatarChange} />
-                <h3 className="text-xl font-bold">{form.displayName || 'Student'}</h3>
-                <p className="text-sm text-gray-500">{user?.email}</p>
+
+                <div className="flex-1 text-center sm:text-left">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+                        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                            {form.displayName || 'Student'}
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                            {user?.role === 'teacher' ? 'Teacher' : 'Student'}
+                        </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        {user?.email}
+                    </p>
+
+                    {/* Avatar selection presets */}
+                    <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Select your avatar
+                        </p>
+                        <div className="avatar-presets-scroll">
+                            {AVATAR_PRESETS.map((item) => {
+                                const isSelected = avatarPreview === item.url
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        title={item.label}
+                                        onClick={() => {
+                                            setAvatarPreview(item.url)
+                                            if (typeof window !== 'undefined') {
+                                                localStorage.setItem('studyhelp_avatar', item.url)
+                                            }
+                                            useAuthStore.setState((state) => ({
+                                                user: state.user ? { ...state.user, avatar: item.url } : null
+                                            }))
+                                        }}
+                                        className={`avatar-preset-btn ${isSelected ? 'active' : ''}`}
+                                    >
+                                        <img src={item.url} alt={item.label} className="avatar-preset-img" />
+                                        {isSelected && (
+                                            <span className="avatar-preset-check">
+                                                <FiCheck size={11} />
+                                            </span>
+                                        )}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="settings-group">
-                    <label className="settings-label">Display Name</label>
+            {/* Redesigned Form Fields (Borderless & Clean) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                        <FiUser className="text-purple-500" size={14} /> Display Name
+                    </label>
                     <input
-                        className="settings-input-v3"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm font-medium"
                         value={form.displayName}
-                        onChange={e => setForm({ ...form, displayName: e.target.value })}
+                        onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+                        placeholder="Your full name"
                     />
                 </div>
-                <div className="settings-group">
-                    <label className="settings-label">Phone Number</label>
+
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                        <FiPhone className="text-purple-500" size={14} /> Phone Number
+                    </label>
                     <input
-                        className="settings-input-v3"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm font-medium"
                         value={form.phone}
-                        onChange={e => setForm({ ...form, phone: e.target.value })}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         placeholder="e.g. 08012345678"
                     />
                 </div>
-                <div className="settings-group">
-                    <label className="settings-label">School Name</label>
-                    <input
-                        className="settings-input-v3"
-                        value={form.schoolName}
-                        onChange={e => setForm({ ...form, schoolName: e.target.value })}
-                    />
+
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                        <MdSchool className="text-purple-500" size={15} /> School Name
+                    </label>
+                    <div className="relative">
+                        <input
+                            className="w-full px-4 py-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm font-medium"
+                            value={form.schoolName}
+                            onChange={(e) => setForm({ ...form, schoolName: e.target.value })}
+                            onFocus={() => setSchoolSuggestionsOpen(true)}
+                            onBlur={() => setSchoolSuggestionsOpen(false)}
+                            placeholder="Type your school name or select a suggestion"
+                            autoComplete="off"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={schoolSuggestionsOpen && matchingInstitutions.length > 0}
+                            aria-controls="school-name-suggestions"
+                        />
+                        {schoolSuggestionsOpen && form.schoolName.trim().length >= 2 && (
+                            <div id="school-name-suggestions" role="listbox" className="absolute z-30 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                                {matchingInstitutions.map((name) => (
+                                    <button
+                                        key={name}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={name === form.schoolName}
+                                        className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-purple-50 focus:bg-purple-50 focus:outline-none dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+                                        onPointerDown={(event) => event.preventDefault()}
+                                        onClick={() => {
+                                            setForm({ ...form, schoolName: name })
+                                            setSchoolSuggestionsOpen(false)
+                                        }}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                                {!schoolSuggestionsLoading && matchingInstitutions.length === 0 && (
+                                    <p className="px-3 py-2.5 text-sm text-slate-500">
+                                        {schoolSuggestionsError
+                                            ? 'Suggestions could not be loaded. You can still enter your school name.'
+                                            : 'No match found. You can keep your school name as typed.'}
+                                    </p>
+                                )}
+                                {schoolSuggestionsLoading && <p className="px-3 py-2.5 text-sm text-slate-500">Loading school suggestions…</p>}
+                            </div>
+                        )}
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Choose a suggestion or enter any school name yourself.</p>
                 </div>
-                <div className="settings-group">
-                    <label className="settings-label">Class / Level</label>
+
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                        <MdQuiz className="text-purple-500" size={15} /> Class / Level
+                    </label>
                     <input
-                        className="settings-input-v3"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm font-medium"
                         value={form.classLevel}
-                        onChange={e => setForm({ ...form, classLevel: e.target.value })}
+                        onChange={(e) => setForm({ ...form, classLevel: e.target.value })}
+                        placeholder="e.g. SS3, 100L, Post-UTME"
                     />
                 </div>
-                <div className="settings-group md:col-span-2">
-                    <label className="settings-label">Course of Study (Optional)</label>
+
+                <div className="md:col-span-2">
+                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                        <FiBookOpen className="text-purple-500" size={14} /> Course of Study (Optional)
+                    </label>
                     <input
-                        className="settings-input-v3"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm font-medium"
                         value={form.courseOfStudy}
-                        onChange={e => setForm({ ...form, courseOfStudy: e.target.value })}
+                        onChange={(e) => setForm({ ...form, courseOfStudy: e.target.value })}
+                        placeholder="e.g. Medicine, Computer Science, Law"
                     />
                 </div>
             </div>
 
-            <div className="mt-8">
+            {/* Save Button */}
+            <div className="pt-2">
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="v3-btn-primary w-full md:w-auto"
+                    className="v3-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 min-w-[200px]"
                 >
-                    {loading ? 'Saving Changes...' : 'Save Profile Changes'}
+                    {loading ? (
+                        <>Saving Changes...</>
+                    ) : (
+                        <>
+                            <Check size={18} />
+                            <span>Save Profile Changes</span>
+                        </>
+                    )}
                 </button>
             </div>
         </div>
     )
 }
+
+// ─── Account & Security Section ──────────────────────────────────────────────
 
 function AccountSection({ user, onSaved, onLogoutClick }: any) {
     const isGoogle = user?.provider === 'google' || user?.providerData?.[0]?.providerId === 'google.com'
@@ -446,7 +699,7 @@ function AccountSection({ user, onSaved, onLogoutClick }: any) {
             const { auth } = await import('@/lib/firebase')
             const { sendPasswordResetEmail } = await import('firebase/auth')
             await sendPasswordResetEmail(auth, user.email)
-            toast.success('Reset email sent!')
+            toast.success('Password reset link sent to your email!')
         } catch (err: any) {
             toast.error('Error: ' + err.message)
         } finally {
@@ -455,68 +708,124 @@ function AccountSection({ user, onSaved, onLogoutClick }: any) {
     }
 
     return (
-        <div className="settings-card">
-            <h3 className="text-xl font-bold mb-6">Account & Security</h3>
+        <div className="settings-clean-section space-y-6">
+            <header className="pb-4 border-b border-slate-200/70 dark:border-white/10">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                    Account & Security
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    Manage your authentication details, security, and active session
+                </p>
+            </header>
 
-            <div className="settings-group">
-                <label className="settings-label">Email Address</label>
-                <div className="settings-input-v3 bg-gray-50/50 dark:bg-white/5 opacity-80 flex items-center justify-between">
-                    <span>{user?.email}</span>
-                    <Check className="text-green-500 w-4 h-4" />
+            <div className="space-y-4">
+                {/* Email Address */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                            <FiMail size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Email Address
+                            </p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {user?.email || 'No email provided'}
+                            </p>
+                        </div>
+                    </div>
+                    <span className="self-start sm:self-center inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                        <Check size={13} /> Verified
+                    </span>
                 </div>
-            </div>
 
-            <div className="settings-group">
-                <label className="settings-label">Authentication Method</label>
-                <div className="flex items-center gap-3 p-4 bg-gray-50/50 dark:bg-white/5 rounded-xl">
-                    {isGoogle ? (
-                        <>
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                {/* Authentication Method */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            {isGoogle ? (
+                                <img
+                                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                                    className="w-5 h-5"
+                                    alt="Google"
+                                />
+                            ) : (
+                                <ShieldCheck size={18} />
+                            )}
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Authentication Method
+                            </p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {isGoogle ? 'Google Account OAuth' : 'Email & Secure Password'}
+                            </p>
+                        </div>
+                    </div>
+                    <span className="self-start sm:self-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        Connected
+                    </span>
+                </div>
+
+                {/* Password Management (if password login) */}
+                {!isGoogle && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                        <div className="flex items-start gap-3.5">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <Lock size={18} />
                             </div>
-                            <span className="font-bold">Google Account</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                                <Mail size={16} />
+                            <div>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">
+                                    Password
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                                    Want to change your password? We will send a secure link directly to your email address.
+                                </p>
                             </div>
-                            <span className="font-bold">Email & Password</span>
-                        </>
-                    )}
-                </div>
-            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handlePasswordReset}
+                            disabled={loading}
+                            className="v3-btn-outline whitespace-nowrap self-start sm:self-center text-xs px-4 py-2"
+                        >
+                            {loading ? 'Sending Link...' : 'Send Reset Link'}
+                        </button>
+                    </div>
+                )}
 
-            {!isGoogle && (
-                <div className="mt-8 p-6 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
-                    <h4 className="font-bold mb-2">Password</h4>
-                    <p className="text-sm text-gray-500 mb-4">Want to change your password? We'll send you a secure link.</p>
-                    <button
-                        onClick={handlePasswordReset}
-                        disabled={loading}
-                        className="v3-btn-outline"
-                    >
-                        {loading ? 'Sending...' : 'Send Reset Link'}
-                    </button>
+                {/* Session Management & Logout */}
+                <div className="pt-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-red-500/5 dark:bg-red-500/10 border border-red-500/20">
+                        <div className="flex items-start gap-3.5">
+                            <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <FiLogOut size={18} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-red-600 dark:text-red-400 mb-0.5">
+                                    Session Management
+                                </h4>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Log out of your StudyHelp account on this device.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onLogoutClick}
+                            className="settings-logout-btn self-start sm:self-center"
+                        >
+                            <FiLogOut size={16} />
+                            <span>Log Out</span>
+                        </button>
+                    </div>
                 </div>
-            )}
-
-            {/* Red Log Out button at the bottom of Account section with confirmation */}
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-                <h4 className="font-bold text-red-600 dark:text-red-400 mb-1">Session Management</h4>
-                <p className="text-sm text-gray-500 mb-4">Log out of your StudyHelp account on this device.</p>
-                <button
-                    type="button"
-                    onClick={onLogoutClick}
-                    className="settings-logout-btn"
-                >
-                    <FiLogOut size={16} />
-                    <span>Log Out</span>
-                </button>
             </div>
         </div>
     )
 }
+
+// ─── Notification Preferences Section ────────────────────────────────────────
 
 function NotificationsSection({ user, onSaved }: any) {
     const [prefs, setPrefs] = useState<any>({
@@ -575,7 +884,6 @@ function NotificationsSection({ user, onSaved }: any) {
         }
 
         try {
-            // Step 1 — Check permission
             if (Notification.permission === 'default') {
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') return;
@@ -588,7 +896,6 @@ function NotificationsSection({ user, onSaved }: any) {
 
             setLoading(true);
 
-            // Step 2 — Subscribe if not already subscribed
             const registration = await navigator.serviceWorker.ready;
             let subscription = await registration.pushManager.getSubscription();
 
@@ -614,7 +921,6 @@ function NotificationsSection({ user, onSaved }: any) {
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || prefs.timezone,
             });
 
-            // Step 3 — Send test notification
             await apiClient.post('/notifications/test-push');
             toast.success('Test notification sent!');
         } catch (err: any) {
@@ -626,77 +932,166 @@ function NotificationsSection({ user, onSaved }: any) {
     }
 
     return (
-        <div className="settings-card">
-            <h3 className="text-xl font-bold mb-6">Notification Preferences</h3>
+        <div className="settings-clean-section space-y-6">
+            <header className="pb-4 border-b border-slate-200/70 dark:border-white/10">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                    Notification Preferences
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    Control how and when StudyHelp sends you study reminders and performance digests
+                </p>
+            </header>
 
-            <div className="space-y-4 mb-8">
-                <div className="v3-toggle p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
-                    <div>
-                        <p className="font-bold text-slate-900 dark:text-white">Study Reminders</p>
-                        <p className="text-xs text-gray-500">Get push notifications for study sessions and goals</p>
+            {/* Push Notifications Card */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/20">
+                    <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <BellRing size={18} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
+                                Study Reminders & Push Alerts
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Receive instant push notifications for planned study sessions, streaks, and goals
+                            </p>
+                        </div>
                     </div>
-                    <button
-                        onClick={pushEnabled ? undefined : handleTestPush}
+                    <Toggle
+                        checked={pushEnabled}
+                        onChange={pushEnabled ? undefined : handleTestPush}
                         disabled={pushEnabled}
-                        className={`w-11 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}
-                    >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${pushEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                        ariaLabel="Enable push notifications"
+                    />
                 </div>
 
-                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
-                    <p className="font-bold text-sm mb-2">Test Your Setup</p>
-                    <p className="text-xs text-gray-500 mb-4">Make sure you can receive notifications on this device.</p>
+                {/* Test Push Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                    <div>
+                        <p className="font-bold text-sm text-slate-900 dark:text-white">
+                            Test Your Setup
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Verify this device can successfully display StudyHelp notifications.
+                        </p>
+                    </div>
                     <button
+                        type="button"
                         onClick={handleTestPush}
                         disabled={loading}
-                        className={`w-full py-3 px-4 rounded-xl font-bold transition-all active:scale-[0.98] ${pushEnabled ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                        className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                            pushEnabled
+                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}
                     >
                         {loading ? 'Sending...' : pushEnabled ? 'Send Test Notification' : 'Enable Notifications First'}
                     </button>
                 </div>
             </div>
 
-            <h4 className="font-bold text-sm mb-4 text-gray-400 uppercase tracking-wider">Study routine</h4>
-            <div className="space-y-4 mb-8">
-                <div className="v3-toggle p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl">
-                    <div>
-                        <p className="font-bold text-slate-900 dark:text-white">Next-step reminder</p>
-                        <p className="text-xs text-gray-500">At most once a week while you’re away, with a specific unfinished lesson. Enable push below or choose email backup.</p>
+            {/* Study Routine Section */}
+            <div>
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
+                    Study Routine & Alerts
+                </h4>
+
+                <div className="space-y-3">
+                    {/* Next-step reminder */}
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                        <div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
+                                Next-step reminder
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                At most once a week while you’re away, highlighting a specific unfinished lesson.
+                            </p>
+                        </div>
+                        <Toggle
+                            checked={Boolean(prefs.studyReminders)}
+                            onChange={() => toggle('studyReminders')}
+                            ariaLabel="Toggle next-step reminder"
+                        />
                     </div>
-                    <button type="button" role="switch" aria-checked={Boolean(prefs.studyReminders)} onClick={() => toggle('studyReminders')} className={`w-11 h-6 rounded-full transition-colors relative ${prefs.studyReminders ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.studyReminders ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-                <label className="block p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
-                    <span className="font-bold text-sm">Reminder time</span>
-                    <span className="block text-xs text-gray-500 mt-1">Uses your local time ({prefs.timezone || 'Africa/Lagos'}).</span>
-                    <input type="time" value={prefs.reminderTime || '18:00'} onChange={(event) => setPrefs((current: any) => ({ ...current, reminderTime: event.target.value }))} className="mt-3 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
-                </label>
-                <div className="v3-toggle">
-                    <div>
-                        <p className="font-bold text-sm">Email reminder backup</p>
-                        <p className="text-xs text-gray-500">Email the same next step only when push isn’t available.</p>
+
+                    {/* Reminder time */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                                <FiClock size={16} />
+                            </div>
+                            <div>
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">
+                                    Daily reminder time
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Local timezone ({prefs.timezone || 'Africa/Lagos'})
+                                </p>
+                            </div>
+                        </div>
+                        <input
+                            type="time"
+                            value={prefs.reminderTime || '18:00'}
+                            onChange={(event) => setPrefs((current: any) => ({ ...current, reminderTime: event.target.value }))}
+                            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30 self-start sm:self-auto"
+                        />
                     </div>
-                    <button type="button" role="switch" aria-checked={Boolean(prefs.emailStudyReminders)} disabled={emailUnsubscribed} onClick={() => toggle('emailStudyReminders')} className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-40 ${prefs.emailStudyReminders ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.emailStudyReminders ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-                <div className="v3-toggle">
-                    <div>
-                        <p className="font-bold text-sm">Weekly progress recap</p>
-                        <p className="text-xs text-gray-500">A short email with completed lessons, active days, XP, and your next step.</p>
+
+                    {/* Email reminder backup */}
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                        <div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
+                                Email reminder backup
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Send the next study step to your email inbox when push notifications are not delivered.
+                            </p>
+                        </div>
+                        <Toggle
+                            checked={Boolean(prefs.emailStudyReminders)}
+                            onChange={() => toggle('emailStudyReminders')}
+                            disabled={emailUnsubscribed}
+                            ariaLabel="Toggle email reminder backup"
+                        />
                     </div>
-                    <button type="button" role="switch" aria-checked={Boolean(prefs.weeklyDigest)} disabled={emailUnsubscribed} onClick={() => toggle('weeklyDigest')} className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-40 ${prefs.weeklyDigest ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs.weeklyDigest ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+
+                    {/* Weekly progress recap */}
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50">
+                        <div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
+                                Weekly progress recap
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Summary email with completed lessons, active days, XP gained, and recommended next steps.
+                            </p>
+                        </div>
+                        <Toggle
+                            checked={Boolean(prefs.weeklyDigest)}
+                            onChange={() => toggle('weeklyDigest')}
+                            disabled={emailUnsubscribed}
+                            ariaLabel="Toggle weekly progress recap"
+                        />
+                    </div>
+
+                    {emailUnsubscribed && (
+                        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
+                            <FiAlertCircle size={14} className="shrink-0" />
+                            <span>Email alerts are unsubscribed for this account. Email reminders and recaps are paused.</span>
+                        </div>
+                    )}
                 </div>
-                {emailUnsubscribed && <p className="text-xs text-amber-600 dark:text-amber-400">Email notifications are unsubscribed for this account, so email reminders and recaps are disabled.</p>}
             </div>
 
-            <button onClick={save} disabled={loading} className="v3-btn-primary mt-8 w-full md:w-auto">
-                {loading ? 'Saving...' : 'Update Notification Settings'}
-            </button>
+            <div className="pt-2">
+                <button
+                    onClick={save}
+                    disabled={loading}
+                    className="v3-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 min-w-[200px]"
+                >
+                    {loading ? 'Saving...' : 'Update Notification Settings'}
+                </button>
+            </div>
         </div>
     )
 }
@@ -711,6 +1106,8 @@ function urlBase64ToUint8Array(base64String: string) {
     }
     return outputArray;
 }
+
+// ─── Appearance Section ──────────────────────────────────────────────────────
 
 function AppearanceSection({ onSaved }: any) {
     const { theme, setTheme } = useThemeStore()
@@ -739,6 +1136,8 @@ function AppearanceSection({ onSaved }: any) {
         </div>
     )
 }
+
+// ─── Help Section ────────────────────────────────────────────────────────────
 
 function HelpSection({ onSaved }: any) {
     const { tourButtonVisible, chatbotVisible, setTourHidden, setChatbotHidden } = useHelpWidgets()
@@ -831,6 +1230,8 @@ function HelpSection({ onSaved }: any) {
         </div>
     )
 }
+
+// ─── Referral Section ────────────────────────────────────────────────────────
 
 function ReferralSection() {
     const [stats, setStats] = useState<any>({
@@ -941,239 +1342,6 @@ function ReferralSection() {
                         Share on WhatsApp
                     </button>
                 </div>
-            </div>
-        </div>
-    )
-}
-
-// ─── Offline Section ──────────────────────────────────────────────────────────
-
-function OfflineSection() {
-    const { user } = useAuthStore()
-    const isPro = user?.plan?.type && user.plan.type !== 'free'
-
-    const [storageUsage, setStorageUsage] = useState<{ bytes: number; formatted: string } | null>(null)
-    const [summary, setSummary] = useState<{
-        questionsCount: number
-        flashcardsCount: number
-        plannerTasksCount: number
-        pendingSyncCount: number
-    } | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [isClearing, setIsClearing] = useState(false)
-    const [confirmClear, setConfirmClear] = useState(false)
-    const [isOnline, setIsOnline] = useState(true)
-
-    const loadMetrics = async () => {
-        setIsLoading(true)
-        try {
-            const [usage, items] = await Promise.all([
-                getOfflineStorageUsage(),
-                getOfflineItemsSummary()
-            ])
-            setStorageUsage(usage)
-            setSummary(items)
-        } catch (err) {
-            console.error('Failed to load offline metrics:', err)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        setIsOnline(navigator.onLine)
-        const update = () => setIsOnline(navigator.onLine)
-        window.addEventListener('online', update)
-        window.addEventListener('offline', update)
-        loadMetrics()
-        return () => {
-            window.removeEventListener('online', update)
-            window.removeEventListener('offline', update)
-        }
-    }, [])
-
-    const handleClearAll = async () => {
-        if (!confirmClear) {
-            setConfirmClear(true)
-            return
-        }
-        setIsClearing(true)
-        try {
-            await clearAllOfflineData()
-            setSummary({ questionsCount: 0, flashcardsCount: 0, plannerTasksCount: 0, pendingSyncCount: 0 })
-            setStorageUsage({ bytes: 0, formatted: '0 B' })
-            setConfirmClear(false)
-            toast.success('All offline data cleared.')
-            await loadMetrics()
-        } catch (err) {
-            toast.error('Failed to clear offline data.')
-        } finally {
-            setIsClearing(false)
-        }
-    }
-
-    const storeItems = [
-        {
-            label: 'CBT Questions',
-            count: summary?.questionsCount ?? 0,
-            icon: '📝',
-            color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
-        },
-        {
-            label: 'Flashcards',
-            count: summary?.flashcardsCount ?? 0,
-            icon: '🃏',
-            color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20',
-        },
-        {
-            label: 'Planner Tasks',
-            count: summary?.plannerTasksCount ?? 0,
-            icon: '📅',
-            color: 'text-green-600 bg-green-50 dark:bg-green-900/20',
-        },
-        {
-            label: 'Pending Sync',
-            count: summary?.pendingSyncCount ?? 0,
-            icon: '🔄',
-            color: summary?.pendingSyncCount
-                ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
-                : 'text-gray-500 bg-gray-50 dark:bg-gray-800',
-        },
-    ]
-
-    return (
-        <div className="settings-section space-y-8">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-                        <FiWifiOff className="text-amber-500" /> Offline Mode
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-                        Manage your locally cached study data. Data is stored in your browser's IndexedDB and syncs automatically when you reconnect.
-                    </p>
-                </div>
-                {/* Status pill */}
-                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${isOnline
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                    }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`} />
-                    {isOnline ? 'Online' : 'Offline'}
-                </span>
-            </div>
-
-            {!isPro && (
-                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 flex items-start gap-3">
-                    <span className="text-2xl flex-shrink-0">⭐</span>
-                    <div>
-                        <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Pro Feature</p>
-                        <p className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
-                            Offline mode is a Pro-exclusive feature. Upgrade to study without internet access.
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Storage usage */}
-            <div className="settings-card p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-widest">Storage Usage</h3>
-                    <button
-                        onClick={loadMetrics}
-                        disabled={isLoading}
-                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all text-gray-400 hover:text-blue-500"
-                        title="Refresh metrics"
-                    >
-                        <FiRefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-                    </button>
-                </div>
-
-                {isLoading ? (
-                    <div className="flex items-center gap-3 text-gray-400 py-4">
-                        <FiRefreshCw size={16} className="animate-spin" />
-                        <span className="text-sm">Loading storage data...</span>
-                    </div>
-                ) : (
-                    <>
-                        {/* Total */}
-                        <div className="mb-6">
-                            <div className="flex items-end gap-2 mb-2">
-                                <span className="text-3xl font-black text-gray-900 dark:text-white">{storageUsage?.formatted ?? '—'}</span>
-                                <span className="text-sm text-gray-400 mb-1">used by this app</span>
-                            </div>
-                            {/* Simple visual bar */}
-                            <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-700"
-                                    style={{
-                                        width: `${Math.min(((storageUsage?.bytes ?? 0) / (50 * 1024 * 1024)) * 100, 100)}%`
-                                    }}
-                                />
-                            </div>
-                            <p className="text-[10px] text-gray-400 mt-1">of ~50 MB estimated quota</p>
-                        </div>
-
-                        {/* Per-store grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {storeItems.map(item => (
-                                <div key={item.label} className={`flex flex-col items-center text-center p-3 rounded-xl ${item.color}`}>
-                                    <span className="text-2xl mb-1">{item.icon}</span>
-                                    <span className="text-xl font-black">{item.count}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-75">{item.label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {/* Pending sync note */}
-            {(summary?.pendingSyncCount ?? 0) > 0 && (
-                <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 flex items-start gap-3">
-                    <FiRefreshCw className="text-blue-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-bold text-blue-800 dark:text-blue-300 text-sm">
-                            {summary?.pendingSyncCount} item{summary!.pendingSyncCount !== 1 ? 's' : ''} waiting to sync
-                        </p>
-                        <p className="text-blue-700 dark:text-blue-400 text-xs mt-0.5">
-                            These will automatically sync to the server the next time you go online.
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Danger zone */}
-            <div className="settings-card p-6 rounded-2xl bg-white dark:bg-gray-800 border border-red-100 dark:border-red-900/30 shadow-sm">
-                <h3 className="font-bold text-red-600 dark:text-red-400 text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <FiTrash2 size={14} /> Danger Zone
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    This will permanently delete all locally cached questions, flashcards, planner data, and the pending sync queue from this device. Your online data is not affected.
-                </p>
-                <button
-                    onClick={handleClearAll}
-                    disabled={isClearing}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${confirmClear
-                            ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 animate-pulse'
-                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800'
-                        }`}
-                >
-                    {isClearing
-                        ? <><FiRefreshCw className="animate-spin" /> Clearing...</>
-                        : confirmClear
-                            ? <><FiTrash2 /> Confirm — Clear Everything</>
-                            : <><FiTrash2 /> Clear All Offline Data</>
-                    }
-                </button>
-                {confirmClear && !isClearing && (
-                    <button
-                        onClick={() => setConfirmClear(false)}
-                        className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                )}
             </div>
         </div>
     )

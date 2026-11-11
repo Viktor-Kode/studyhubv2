@@ -22,7 +22,6 @@ export type BoardRow = {
   badges: { id: string; name: string; icon: string }[]
   displayXP?: number
 }
-
 type TimeframeMode = 'today' | 'lifetime'
 
 type Props = {
@@ -46,13 +45,28 @@ function avatarFallback(name: string) {
   return displayName(name).slice(0, 1).toUpperCase()
 }
 
-function Avatar({ row, large = false }: { row: BoardRow; large?: boolean }) {
+function Avatar({
+  row,
+  large = false,
+  currentAvatar
+}: {
+  row: BoardRow
+  large?: boolean
+  currentAvatar?: string | null
+}) {
+  const effectiveAvatar = (row.isMe && currentAvatar) ? currentAvatar : row.avatar
+  const isUrl = typeof effectiveAvatar === 'string' && (effectiveAvatar.startsWith('http') || effectiveAvatar.startsWith('data:'))
+  const finalSrc = isUrl
+    ? effectiveAvatar
+    : (row.isMe
+        ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(row.name || 'Felix')}&backgroundColor=b6e3f4`
+        : null)
+
   return (
     <div className={`lb-v2-avatar-wrap ${large ? 'lb-v2-avatar-wrap--large' : ''}`}>
-      {row.avatar ? (
-        // The API supplies profile URLs that may be hosted outside the app.
+      {finalSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="lb-v2-avatar" src={row.avatar} alt={`${displayName(row.name)} avatar`} />
+        <img className="lb-v2-avatar" src={finalSrc} alt={`${displayName(row.name)} avatar`} />
       ) : (
         <div className="lb-v2-avatar lb-v2-avatar-fallback" aria-label={`${displayName(row.name)} avatar`}>
           {avatarFallback(row.name)}
@@ -66,7 +80,17 @@ function scoreFor(row: BoardRow, timeframe: TimeframeMode) {
   return row.displayXP ?? (timeframe === 'today' ? row.dailyXP : row.totalXP) ?? 0
 }
 
-function PodiumCard({ row, place, timeframe }: { row: BoardRow; place: number; timeframe: TimeframeMode }) {
+function PodiumCard({
+  row,
+  place,
+  timeframe,
+  currentAvatar
+}: {
+  row: BoardRow
+  place: number
+  timeframe: TimeframeMode
+  currentAvatar?: string | null
+}) {
   const xp = scoreFor(row, timeframe)
   const placeClass = place === 1 ? '1st' : place === 2 ? '2nd' : '3rd'
   return (
@@ -78,7 +102,7 @@ function PodiumCard({ row, place, timeframe }: { row: BoardRow; place: number; t
     >
       <span className="lb-v2-rank-badge">#{row.rank || place}</span>
       {place === 1 && <Trophy className="lb-v2-crown" size={24} fill="currentColor" aria-label="First place" />}
-      <Avatar row={row} large={place === 1} />
+      <Avatar row={row} large={place === 1} currentAvatar={currentAvatar} />
       <div className="lb-v2-name">{displayName(row.name)}{row.isMe ? ' · You' : ''}</div>
       <span className="lb-v2-podium-level">{row.levelName || `Level ${row.level || 1}`}</span>
       <span className="lb-v2-xp-badge"><Zap size={14} fill="currentColor" /> {numberFormat.format(xp)} XP</span>
@@ -104,7 +128,22 @@ export default function LeaderboardPanel({
   progress,
   user,
 }: Props) {
-  const rows = [...leaderboard].sort((a, b) => a.rank - b.rank).slice(0, 10)
+  // Inject the current user's chosen avatar (from authStore / settings / localStorage) into
+  // their own leaderboard row so it always reflects the profile pick.
+  const storedAvatar = typeof window !== 'undefined' ? localStorage.getItem('studyhelp_avatar') : null
+  const userAvatar = user?.avatar || storedAvatar || null
+  const isAvatarUrl = typeof userAvatar === 'string' &&
+    (userAvatar.startsWith('http') || userAvatar.startsWith('data:'))
+  const resolvedUserAvatar = isAvatarUrl ? userAvatar : null
+
+  const rows = [...leaderboard]
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 10)
+    .map((row) =>
+      row.isMe && resolvedUserAvatar
+        ? { ...row, avatar: resolvedUserAvatar }
+        : row
+    )
   const topRows = rows.slice(0, 3)
   const limit = 10
   const showPinnedYou = Boolean(user && myRank > 10 && !rows.some((row) => row.isMe))
@@ -150,7 +189,15 @@ export default function LeaderboardPanel({
         <>
           {topRows.length > 0 && (
             <section className="lb-v2-podium" aria-label="Top three students">
-              {topRows.map((row) => <PodiumCard key={row.userId} row={row} place={row.rank} timeframe={timeframe} />)}
+              {topRows.map((row) => (
+                <PodiumCard
+                  key={row.userId}
+                  row={row}
+                  place={row.rank}
+                  timeframe={timeframe}
+                  currentAvatar={resolvedUserAvatar}
+                />
+              ))}
             </section>
           )}
 
@@ -167,7 +214,7 @@ export default function LeaderboardPanel({
                   return (
                     <article key={row.userId} role="row" className={`lb-v2-row ${row.isMe ? 'is-me' : ''}`}>
                       <span className="lb-v2-row-rank" role="cell">{row.rank}</span>
-                      <Avatar row={row} />
+                      <Avatar row={row} currentAvatar={resolvedUserAvatar} />
                       <div className="lb-v2-row-info" role="cell">
                         <div className="lb-v2-row-name">{displayName(row.name)}{row.isMe ? ' · You' : ''}</div>
                         <div className="lb-v2-row-xp">{row.levelName || `Level ${row.level || 1}`}</div>
@@ -181,9 +228,9 @@ export default function LeaderboardPanel({
                   <article role="row" className="lb-v2-row lb-v2-row--you">
                     <span className="lb-v2-row-rank" role="cell">{myRank}</span>
                     <div className="lb-v2-avatar-wrap">
-                      {user.avatar ? (
+                      {(resolvedUserAvatar || (user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:')))) ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img className="lb-v2-avatar" src={user.avatar} alt={`${user.name} avatar`} />
+                        <img className="lb-v2-avatar" src={(resolvedUserAvatar || user.avatar)!} alt={`${user.name} avatar`} />
                       ) : <div className="lb-v2-avatar lb-v2-avatar-fallback">{avatarFallback(user.name)}</div>}
                     </div>
                     <div className="lb-v2-row-info" role="cell">

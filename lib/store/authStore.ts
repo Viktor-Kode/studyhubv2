@@ -68,7 +68,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
           institution: u.institution ?? prev?.institution,
           classLevel: u.classLevel ?? prev?.classLevel,
           courseOfStudy: u.courseOfStudy ?? prev?.courseOfStudy,
-          avatar: prev?.avatar,
+          // Backend now returns avatar mirrored from settings.avatar; fall back to Firebase photoURL
+          avatar: u.avatar ?? prev?.avatar,
           provider: prev?.provider,
           preferences: u.preferences ?? prev?.preferences,
           notificationsEnabled: u.notificationsEnabled ?? prev?.notificationsEnabled,
