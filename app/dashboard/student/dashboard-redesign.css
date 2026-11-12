@@ -167,6 +167,37 @@ html.dark .sr-frame {
 .sr-tool-icon.green { background: #dcfce7; color: #16a34a; }
 .sr-tool-icon.orange { background: #ffedd5; color: #ea580c; }
 .sr-tool-icon.amber { background: #fef3c7; color: #d97706; }
+.sr-plan-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sr-border);
+  border-radius: 16px;
+  background: var(--sr-card);
+  box-shadow: var(--sr-shadow);
+}
+.sr-plan-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.sr-plan-label { color: var(--sr-muted); font-size: 11px; font-weight: 700; }
+.sr-plan-copy strong { overflow: hidden; color: var(--sr-text); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.sr-plan-upgrade {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--sr-purple);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.sr-plan-upgrade:hover { opacity: .9; transform: translateY(-1px); }
 html.dark .sr-tool-icon.purple { background: rgba(139,92,246,.18); color: #c4b5fd; }
 html.dark .sr-tool-icon.green { background: rgba(52,211,153,.15); color: #34d399; }
 html.dark .sr-tool-icon.orange { background: rgba(251,146,60,.15); color: #fdba74; }

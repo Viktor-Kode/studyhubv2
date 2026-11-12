@@ -13,6 +13,7 @@ import { getActiveStudyPath, getUserStudyPaths, deleteStudyPath, getStudyMapCoun
 import CreateStudyPathModal from '@/components/dashboard/CreateStudyPathModal'
 import FirstPathModal from '@/components/dashboard/FirstPathModal'
 import { firebaseSignOut } from '@/lib/firebase-auth'
+import { paymentApi } from '@/lib/api/paymentApi'
 
 import {
   FiCheck,
@@ -38,7 +39,8 @@ import {
   FiPhone,
   FiMessageCircle,
   FiLogOut,
-  FiMoreHorizontal
+  FiMoreHorizontal,
+  FiArrowRight
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
@@ -52,6 +54,7 @@ export type { LearningNode, StudyPathTopic }
 export default function StudentDashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null)
 
   // State
   const [topic, setTopic] = useState<StudyPathTopic | null>(null)
@@ -65,6 +68,20 @@ export default function StudentDashboardPage() {
   const [showTopicMenu, setShowTopicMenu] = useState(false)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
   const topicMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    paymentApi.getStatus()
+      .then((data) => {
+        if (!cancelled && data?.success) {
+          setSubscriptionPlan(data.subscription?.plan || 'free')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSubscriptionPlan('free')
+      })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!showTopicMenu) return
@@ -491,6 +508,15 @@ export default function StudentDashboardPage() {
                     <Link href="/dashboard/question-bank" className="sr-card sr-tool"><span className="sr-tool-icon orange"><FiCheckSquare /></span><span><b>Question Generation</b><small>Generate questions from a topic</small></span></Link>
                     <Link href="/dashboard/pdf-summary" className="sr-card sr-tool"><span className="sr-tool-icon green"><FiFileText /></span><span><b>Summarize PDF</b><small>Get key ideas from your PDF</small></span></Link>
                     <Link href="/dashboard/leaderboard" className="sr-card sr-tool"><span className="sr-tool-icon amber"><FiAward /></span><span><b>Leaderboard</b><small>Global league</small></span></Link>
+                  </div>
+                  <div className="sr-plan-card">
+                    <div className="sr-plan-copy">
+                      <span className="sr-plan-label">Your plan</span>
+                      <strong>{subscriptionPlan === null ? 'Checking…' : subscriptionPlan.toLowerCase() === 'free' ? 'Free' : `${subscriptionPlan.charAt(0).toUpperCase()}${subscriptionPlan.slice(1)} plan`}</strong>
+                    </div>
+                    <Link href="/dashboard/pricing" className="sr-plan-upgrade">
+                      Upgrade <FiArrowRight aria-hidden="true" />
+                    </Link>
                   </div>
                 </section>
 

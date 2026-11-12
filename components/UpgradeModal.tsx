@@ -13,7 +13,7 @@ const FEATURE_MESSAGES: Record<string, { title: string; desc: string }> = {
   postutme: { title: 'Unlock Post-UTME Practice', desc: 'Post-UTME past questions require a paid plan.' },
   quiz: { title: "You've used your 3 free question sets", desc: "Upgrade to generate unlimited quiz sets from any material." },
   library: { title: 'Library Limit Reached', desc: 'Free users can upload up to 2 documents. Upgrade for unlimited storage.' },
-  study_map: { title: "You've used your 3 free study maps", desc: 'Upgrade to create unlimited study maps and master every topic effortlessly.' },
+  study_map: { title: "You've used your 3 free study maps", desc: 'Upgrade for unlimited study maps.' },
   default: { title: 'Upgrade to Continue', desc: 'This feature is available on paid plans.' }
 }
 
@@ -50,15 +50,6 @@ export default function UpgradeModal({
     onClose()
   }
 
-  const getButtonText = () => {
-      if (feature === 'quiz') return 'Upgrade & Unlock Unlimited Quizzes'
-      if (feature === 'flashcard') return 'Upgrade & Generate Flashcards'
-      if (feature === 'notes') return 'Upgrade & Unlock Unlimited Notes'
-      if (feature === 'ai') return 'Upgrade & Unlock Unlimited AI Chats'
-      if (feature === 'study_map') return 'Upgrade & Create Unlimited Study Maps'
-      return 'Upgrade & Continue'
-  }
-
   if (!isOpen) return null
 
   return (
@@ -68,7 +59,7 @@ export default function UpgradeModal({
       role="presentation"
     >
       <div
-        className={`upgrade-modal ${isGeneratorFlow ? 'max-w-md' : ''}`}
+        className={`upgrade-modal ${isGeneratorFlow ? 'upgrade-generator-modal max-w-md' : ''}`}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -92,23 +83,20 @@ export default function UpgradeModal({
         <p className="upgrade-desc text-gray-600 dark:text-gray-400 mt-2 px-4">{displayDesc}</p>
 
         {isGeneratorFlow ? (
-          <div className="flex flex-col gap-4 mt-8 px-2 w-full">
+          <div className="flex flex-col gap-4 mt-6 px-0 w-full">
             <button
               type="button"
               onClick={() => goToPricing('monthly')}
-              className="w-full py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 transform transition hover:scale-[1.02] active:scale-[0.98] group"
+              className="upgrade-generator-cta w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 transform transition hover:scale-[1.02] active:scale-[0.98] group"
             >
-              <span className="text-lg">{getButtonText()}</span>
+              <span>Upgrade now</span>
               <FiArrowRight className="text-2xl group-hover:translate-x-1 transition-transform" />
             </button>
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em]">
-                UNLIMITED AI + PAST QUESTIONS + ANALYTICS
-              </p>
+            <div className="flex flex-col items-center gap-1">
               <button 
                 type="button"
                 onClick={onClose} 
-                className="text-sm text-gray-400 dark:text-gray-500 font-bold hover:text-gray-600 dark:hover:text-gray-300 transition"
+                className="upgrade-later-btn text-sm text-gray-400 dark:text-gray-500 font-bold hover:text-gray-600 dark:hover:text-gray-300 transition"
               >
                  Maybe later
               </button>
