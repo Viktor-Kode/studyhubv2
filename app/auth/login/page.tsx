@@ -10,8 +10,7 @@ import {
     FiAlertCircle, FiLoader
 } from 'react-icons/fi'
 import { FaGoogle } from 'react-icons/fa'
-import RoleSelectionModal from '@/components/RoleSelectionModal'
-import type { AppRole } from '@/lib/types/auth'
+import { saveUserRole } from '@/lib/firebase-auth'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -35,8 +34,6 @@ export default function LoginPage() {
     const [error, setError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [googleLoading, setGoogleLoading] = useState(false)
-    const [showRoleModal, setShowRoleModal] = useState(false)
-    const [pendingFirebaseUser, setPendingFirebaseUser] = useState<any>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -102,9 +99,12 @@ export default function LoginPage() {
             const { appUser, firebaseUser } = await signInWithGoogle()
 
             const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid))
-            if (!profileSnap.exists()) {
-                setPendingFirebaseUser(firebaseUser)
-                setShowRoleModal(true)
+            if (!profileSnap.exists() || !appUser?.role) {
+                const displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
+                await saveUserRole(firebaseUser.uid, 'student', displayName, firebaseUser.email || undefined)
+                setUser(buildAppUser(firebaseUser, 'student'))
+                await refreshUser()
+                router.push('/dashboard/student')
                 return
             }
 
@@ -154,9 +154,6 @@ export default function LoginPage() {
                 } else {
                     router.push('/dashboard/student')
                 }
-            } else {
-                setPendingFirebaseUser(firebaseUser)
-                setShowRoleModal(true)
             }
         } catch (err: any) {
             if (err?.code !== 'auth/popup-closed-by-user') {
@@ -167,43 +164,8 @@ export default function LoginPage() {
         }
     }
 
-    const handleRoleCompleted = async (role: AppRole) => {
-        if (!pendingFirebaseUser) return
-        const appUser = buildAppUser(pendingFirebaseUser, role)
-        setUser(appUser)
-        setShowRoleModal(false)
-
-        // Process referral for Google sign up if they just selected their role
-        if (typeof window !== 'undefined') {
-            const refCode = localStorage.getItem('refCode')
-            if (refCode) {
-                try {
-                    const { apiClient } = await import('@/lib/api/client')
-                    await apiClient.post('/referral/apply', { refCode })
-                    localStorage.removeItem('refCode')
-                    console.log('[Referral] Applied referral code after role completion successfully')
-                } catch (refErr) {
-                    console.error('[Referral] Failed to apply referral code after role completion:', refErr)
-                }
-            }
-        }
-
-        await refreshUser()
-        if (appUser.role === 'admin') {
-            router.push('/dashboard/admin')
-        } else {
-            router.push('/dashboard/student')
-        }
-    }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-            {showRoleModal && pendingFirebaseUser && (
-                <RoleSelectionModal
-                    user={pendingFirebaseUser}
-                    onCompleted={handleRoleCompleted}
-                />
-            )}
             <div className="max-w-md w-full">
 
                 {/* Logo/Header */}

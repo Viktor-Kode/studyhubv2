@@ -15,7 +15,7 @@ import {
 } from "@/lib/data/studyPath"
 import "../lesson-loop.css"
 import ThemeToggle from "@/components/ThemeToggle"
-import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap } from "react-icons/fi"
+import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap, FiMaximize2 } from "react-icons/fi"
 import { updateStudyPathNode } from "@/src/services/api"
 
 interface SlideDef {
@@ -143,11 +143,21 @@ function LessonLoopContent() {
   const [slideIdx, setSlideIdx] = useState(0)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [summaryExpanded, setSummaryExpanded] = useState(false)
+  const [sourceImageExpanded, setSourceImageExpanded] = useState(false)
   const [xp, setXp] = useState(2510)
   const [streak, setStreak] = useState(12)
   const [hasCompleted, setHasCompleted] = useState(false)
   const [signupModalOpen, setSignupModalOpen] = useState(false)
   const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (!sourceImageExpanded) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSourceImageExpanded(false)
+    }
+    window.addEventListener("keydown", closeOnEscape)
+    return () => window.removeEventListener("keydown", closeOnEscape)
+  }, [sourceImageExpanded])
 
   // Read stored user stats
   useEffect(() => {
@@ -521,12 +531,45 @@ function LessonLoopContent() {
                   </div>
                 </div>
                 {node.slideImage && (
-                  <div className="my-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-black/5 dark:bg-black/20 flex justify-center">
+                  <div className="ll-source-image-frame my-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-black/5 dark:bg-black/20 flex justify-center">
                     <img
                       src={node.slideImage}
                       alt={`${node.title} original slide`}
                       className="max-h-64 w-auto object-contain rounded-lg"
                       loading="lazy"
+                    />
+                    <button
+                      type="button"
+                      className="ll-source-image-expand"
+                      onClick={() => setSourceImageExpanded(true)}
+                      aria-label="View image fullscreen"
+                      title="View fullscreen"
+                    >
+                      <FiMaximize2 size={18} />
+                    </button>
+                  </div>
+                )}
+                {node.slideImage && sourceImageExpanded && (
+                  <div
+                    className="ll-source-image-lightbox"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`${node.title} image fullscreen`}
+                    onClick={() => setSourceImageExpanded(false)}
+                  >
+                    <button
+                      type="button"
+                      className="ll-source-image-close"
+                      onClick={() => setSourceImageExpanded(false)}
+                      aria-label="Close fullscreen image"
+                      title="Close fullscreen"
+                    >
+                      <FiX size={22} />
+                    </button>
+                    <img
+                      src={node.slideImage}
+                      alt={`${node.title} original slide`}
+                      onClick={(event) => event.stopPropagation()}
                     />
                   </div>
                 )}

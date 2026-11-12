@@ -1148,6 +1148,43 @@ html:not(.dark) .ll-assessment-desc {
 }
 .ll-source-screen,
 .ll-key-concepts-screen { width: 100%; max-width: 720px; margin: 0 auto; }
+.ll-source-image-frame { position: relative; min-height: 120px; align-items: center; }
+.ll-source-image-expand,
+.ll-source-image-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .82);
+  color: #f8fafc;
+  cursor: pointer;
+}
+.ll-source-image-expand { position: absolute; top: 12px; right: 12px; opacity: .9; }
+.ll-source-image-expand:hover,
+.ll-source-image-close:hover { background: #334155; }
+.ll-source-image-lightbox {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px 24px;
+  background: rgba(2, 6, 23, .96);
+  cursor: zoom-out;
+}
+.ll-source-image-lightbox img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+}
+.ll-source-image-close { position: absolute; top: 16px; right: 16px; }
 .ll-source-facts { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .ll-source-facts li {
   padding: 14px 16px;
