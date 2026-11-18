@@ -145,6 +145,12 @@ interface OnlineUserItem {
   role?: string
 }
 
+interface StudyEngagementStats {
+  active: { sevenDays: number; thirtyDays: number; percentOfUsers: number }
+  studyPaths: { users: number; percentOfUsers: number; rows: Array<{ userId: string; name?: string; email: string; studyPaths: number; nodesCompleted: number; lastActivity: string; plan: string }> }
+  funnel: { signedUp: number; createdStudyPath: number; tookCbt: number; usedFreeLimit: number; paid: number }
+}
+
 const PLAN_PIE_COLORS: Record<string, string> = {
   daily: '#EA580C',
   weekly: '#3B82F6',
@@ -1884,6 +1890,39 @@ function PWAUsersTab({ onViewProfile }: { onViewProfile: (u: AdminUserRow) => vo
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
+function StudyEngagementTab({ data, loading }: { data: StudyEngagementStats | null; loading: boolean }) {
+  if (loading && !data) return <div className="p-8 text-sm text-gray-500">Loading study engagement…</div>
+  if (!data) return <div className="p-8 text-sm text-gray-500">Study engagement data is unavailable. Use Refresh to try again.</div>
+  const cards = [
+    { label: 'Active (7 days)', value: data.active.sevenDays.toLocaleString(), note: 'Study actions in the last 7 days' },
+    { label: 'Active (30 days)', value: data.active.thirtyDays.toLocaleString(), note: 'Study actions in the last 30 days' },
+    { label: 'Active as % of users', value: `${data.active.percentOfUsers}%`, note: `${data.active.sevenDays.toLocaleString()} of ${data.funnel.signedUp.toLocaleString()} users` },
+  ]
+  const funnel = [
+    ['Signed up', data.funnel.signedUp],
+    ['Created a StudyPath', data.funnel.createdStudyPath],
+    ['Took a CBT test', data.funnel.tookCbt],
+    ['Used up the free limit', data.funnel.usedFreeLimit],
+    ['Paid', data.funnel.paid],
+  ] as const
+  return <div className="space-y-6">
+    <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 sm:p-6">
+      <div className="mb-4"><h2 className="text-lg font-bold">Active Users</h2><p className="text-sm text-gray-500">StudyPath creation or progress, question generator CBT tests, or flashcard reviews.</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {cards.map((card) => <div key={card.label} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4"><div className="text-sm text-gray-500">{card.label}</div><div className="mt-1 text-3xl font-black text-[#5b4cf5]">{card.value}</div><div className="mt-1 text-xs text-gray-500">{card.note}</div></div>)}
+      </div>
+    </section>
+    <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 sm:p-6">
+      <div className="mb-4"><h2 className="text-lg font-bold">StudyPaths</h2><p className="text-sm text-gray-500">{data.studyPaths.users.toLocaleString()} users · {data.studyPaths.percentOfUsers}% of all users</p></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-gray-50 dark:bg-gray-800 text-xs uppercase text-gray-500"><tr>{['Name or email', 'StudyPaths', 'Nodes completed', 'Last activity', 'Plan'].map((h) => <th key={h} className="px-3 py-3">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100 dark:divide-gray-800">{data.studyPaths.rows.map((row) => <tr key={row.userId}><td className="px-3 py-3"><span className="block font-semibold">{row.name || row.email}</span>{row.name && <span className="text-xs text-gray-500">{row.email}</span>}</td><td className="px-3 py-3">{row.studyPaths}</td><td className="px-3 py-3">{row.nodesCompleted}</td><td className="px-3 py-3">{row.lastActivity ? format(new Date(row.lastActivity), 'MMM d, yyyy · h:mm a') : '—'}</td><td className="px-3 py-3"><span className={`rounded-full px-2 py-1 text-xs font-bold ${row.plan === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>{row.plan}</span></td></tr>)}{data.studyPaths.rows.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-500">No StudyPaths created yet.</td></tr>}</tbody></table></div>
+    </section>
+    <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 sm:p-6">
+      <div className="mb-4"><h2 className="text-lg font-bold">Study funnel</h2><p className="text-sm text-gray-500">User counts at each milestone.</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">{funnel.map(([label, count], index) => <div key={label} className="rounded-xl border border-gray-100 dark:border-gray-700 p-4"><div className="text-xs font-semibold text-gray-500">{index + 1}. {label}</div><div className="mt-2 text-2xl font-black">{count.toLocaleString()}</div></div>)}</div>
+    </section>
+  </div>
+}
+
 const SIDEBAR = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
@@ -1893,6 +1932,7 @@ const SIDEBAR = [
   { id: 'paywall', label: 'Paywall Events', icon: Lock },
   { id: 'campaigns', label: 'Campaigns', icon: Mail },
   { id: 'analytics', label: 'Platform Analytics', icon: TrendingUp },
+  { id: 'engagement', label: 'Active Users & StudyPaths', icon: UserCheck },
 ] as const
 
 const EMPTY_STATS: DashboardStatsV2 = {
@@ -2239,6 +2279,20 @@ export default function AdminDashboardPage() {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUserItem[]>([])
   const [monitoringFeed, setMonitoringFeed] = useState<FeedItem[]>([])
   const [monitoringLoading, setMonitoringLoading] = useState(false)
+  const [engagement, setEngagement] = useState<StudyEngagementStats | null>(null)
+  const [engagementLoading, setEngagementLoading] = useState(false)
+
+  const fetchEngagement = async () => {
+    setEngagementLoading(true)
+    try {
+      const res = await apiClient.get('/admin/study-engagement-stats')
+      setEngagement(res.data as StudyEngagementStats)
+    } catch {
+      setEngagement(null)
+    } finally {
+      setEngagementLoading(false)
+    }
+  }
 
   const fetchDashboard = async () => {
     try {
@@ -2262,7 +2316,7 @@ export default function AdminDashboardPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([fetchDashboard(), fetchMonitoring()])
+    await Promise.all([fetchDashboard(), fetchMonitoring(), fetchEngagement()])
     setLastRefreshed(new Date())
     setTimeout(() => setRefreshing(false), 600)
   }
@@ -2295,7 +2349,7 @@ export default function AdminDashboardPage() {
       setLoading(false)
       return
     }
-    Promise.all([fetchDashboard(), fetchMonitoring()]).finally(() => setLoading(false))
+    Promise.all([fetchDashboard(), fetchMonitoring(), fetchEngagement()]).finally(() => setLoading(false))
   }, [user])
 
   useEffect(() => {
@@ -2425,6 +2479,7 @@ export default function AdminDashboardPage() {
             {activeTab === 'paywall' && <PaywallEventsTab />}
             {activeTab === 'campaigns' && <AdminCampaignsTab />}
             {activeTab === 'analytics' && <AdminAnalyticsTab stats={stats} />}
+            {activeTab === 'engagement' && <StudyEngagementTab data={engagement} loading={engagementLoading} />}
           </main>
 
           {selectedUser && (
