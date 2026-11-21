@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import GuestSignupModal from "@/components/GuestSignupModal"
-import { useAuthStore } from "@/lib/store/authStore"
+import { getFirebaseToken, useAuthStore } from "@/lib/store/authStore"
+import { triggerUpgradeModal } from "@/lib/upgradeHandler"
 import {
   DEFAULT_TOPIC,
   SAMPLE_TOPICS,
@@ -334,8 +335,15 @@ function LessonLoopContent() {
     if (!node || !topic?.topicId || isRegenerating) return
     setIsRegenerating(true)
     try {
-      const response = await fetch("/api/study-path/" + encodeURIComponent(topic.topicId) + "/node/" + node.id + "/regenerate", { method: "POST", headers: { "Content-Type": "application/json" } })
+      const token = await getFirebaseToken()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (token) headers.Authorization = `Bearer ${token}`
+      const response = await fetch("/api/study-path/" + encodeURIComponent(topic.topicId) + "/node/" + node.id + "/regenerate", { method: "POST", headers })
       const payload = await response.json()
+      if (response.status === 403 && payload?.showUpgrade) {
+        triggerUpgradeModal(payload?.code === "AI_LIMIT_REACHED" ? "ai" : "study_map")
+        return
+      }
       if (!response.ok || !payload?.node) throw new Error(payload?.message || "Quiz regeneration failed")
       const fresh = payload.node as LearningNode
       const saved = localStorage.getItem("studyhelp_active_topic")

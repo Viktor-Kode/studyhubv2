@@ -46,10 +46,11 @@ export async function startStudyMapGeneration(file: File, title?: string): Promi
     throw new Error('Failed to parse server response.')
   }
 
-  if (res.status === 403 && (initData as any).code === 'PAYWALL_TRIGGERED') {
-    openPaywallModal('study_map')
-    const err = new Error('PAYWALL_TRIGGERED')
-    ;(err as any).code = 'PAYWALL_TRIGGERED'
+  if (res.status === 403 && ((initData as any).code === 'PAYWALL_TRIGGERED' || (initData as any).showUpgrade)) {
+    openPaywallModal((initData as any).code === 'AI_LIMIT_REACHED' ? 'ai' : 'study_map')
+    const code = (initData as any).code || 'PAYWALL_TRIGGERED'
+    const err = new Error(code)
+    ;(err as any).code = code
     throw err
   }
 
@@ -263,6 +264,9 @@ export async function claimAnonymousStudyPath(
   })
 
   const data = await res.json().catch(() => ({}))
+  if (res.status === 403 && data?.showUpgrade) {
+    openPaywallModal(data?.code === 'AI_LIMIT_REACHED' ? 'ai' : 'study_map')
+  }
   return {
     success: res.ok,
     alreadyClaimed: Boolean(data?.alreadyClaimed),

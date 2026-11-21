@@ -24,6 +24,7 @@ type ActivityDrawerUser = {
   avatar?: string
   aiUsageCount?: number
   aiUsageLimit?: number
+  aiCredits?: number
 }
 
 interface DayTimelineItem {
@@ -282,7 +283,7 @@ export function UserActivityDrawer({ userId, onClose }: { userId: string; onClos
               <div className="drawer-meta-item">
                 <span className="meta-label">AI Used</span>
                 <span>
-                  {data.user.aiUsageCount ?? 0}/{data.user.aiUsageLimit ?? 0}
+                  {data.user.aiUsageCount ?? 0}/{(data.user.aiUsageLimit ?? 0) + (data.user.aiCredits ?? 0)}
                 </span>
               </div>
               <div className="drawer-meta-item">
