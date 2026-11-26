@@ -155,7 +155,10 @@ export default function DashboardLayout({
             <div className="sp-app-shell">
                 <StudySidebar />
 
-                <main className="sp-app-main pt-0 min-w-0 w-full max-w-full overflow-x-hidden">
+                <main
+                    className="sp-app-main pt-0 min-w-0 w-full max-w-full overflow-x-hidden"
+                    style={isStudentDashboard ? { background: isDark ? '#0a0e1a' : '#f6f7fb' } : undefined}
+                >
                     {isOffline && (
                         <div className="mx-3 sm:mx-5 md:mx-6 mt-3 sm:mt-5 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm animate-pulse">
                             <span className="text-base leading-none">⚡</span>

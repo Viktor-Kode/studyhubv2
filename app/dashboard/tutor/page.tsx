@@ -101,19 +101,23 @@ export default function AiTutorPage() {
 
   useEffect(() => {
     const viewport = window.visualViewport
-    const updateHeight = () => {
+    const updateViewport = () => {
       const height = viewport?.height || window.innerHeight
+      const top = viewport?.offsetTop || 0
       document.documentElement.style.setProperty('--ai-tutor-viewport-height', `${Math.round(height)}px`)
+      document.documentElement.style.setProperty('--ai-tutor-viewport-top', `${Math.round(top)}px`)
     }
 
-    updateHeight()
-    window.addEventListener('resize', updateHeight)
-    viewport?.addEventListener('resize', updateHeight)
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    viewport?.addEventListener('resize', updateViewport)
+    viewport?.addEventListener('scroll', updateViewport)
 
     return () => {
-      window.removeEventListener('resize', updateHeight)
-      viewport?.removeEventListener('resize', updateHeight)
+      window.removeEventListener('resize', updateViewport)
+      viewport?.removeEventListener('resize', updateViewport)
       document.documentElement.style.removeProperty('--ai-tutor-viewport-height')
+      document.documentElement.style.removeProperty('--ai-tutor-viewport-top')
     }
   }, [])
 
@@ -439,8 +443,11 @@ export default function AiTutorPage() {
       `}</style>
 
       <div
-        className="flex w-full max-w-full overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans relative"
-        style={{ height: 'var(--ai-tutor-viewport-height, 100dvh)' }}
+        className="fixed inset-x-0 flex w-full max-w-full overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans relative"
+        style={{
+          top: 'var(--ai-tutor-viewport-top, 0px)',
+          height: 'var(--ai-tutor-viewport-height, 100dvh)',
+        }}
       >
 
         {/* ===== SIDEBAR OVERLAY (mobile) ===== */}
