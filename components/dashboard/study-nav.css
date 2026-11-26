@@ -8,10 +8,23 @@
   display: flex;
   align-items: stretch;
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+}
+
+/* iOS Safari's expanding browser chrome should not resize dashboard content
+   while the student is scrolling. Keep the dashboard scroll natural and firm. */
+@supports (-webkit-touch-callout: none) {
+  html:has(.sp-app-shell) {
+    scroll-behavior: auto;
+    overscroll-behavior-y: none;
+  }
+
+  body:has(.sp-app-shell) {
+    overscroll-behavior-y: none;
+  }
 }
 
 .sp-app-main {
@@ -88,7 +101,7 @@ html:not(.dark) .sp-bottom-nav {
   top: 0;
   left: 0;
   bottom: 0;
-  height: 100dvh;
+  height: 100svh;
   overflow-y: auto;
   z-index: 30;
   box-sizing: border-box;

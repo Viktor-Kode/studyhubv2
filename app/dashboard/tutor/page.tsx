@@ -79,7 +79,8 @@ export default function AiTutorPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const chatFeedRef = useRef<HTMLDivElement | null>(null)
+  const autoFollowRef = useRef(true)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -88,8 +89,38 @@ export default function AiTutorPage() {
   }, [])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!autoFollowRef.current) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const feed = chatFeedRef.current
+      if (feed) feed.scrollTop = feed.scrollHeight
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [messages, loading])
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    const updateHeight = () => {
+      const height = viewport?.height || window.innerHeight
+      document.documentElement.style.setProperty('--ai-tutor-viewport-height', `${Math.round(height)}px`)
+    }
+
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+    viewport?.addEventListener('resize', updateHeight)
+
+    return () => {
+      window.removeEventListener('resize', updateHeight)
+      viewport?.removeEventListener('resize', updateHeight)
+      document.documentElement.style.removeProperty('--ai-tutor-viewport-height')
+    }
+  }, [])
+
+  const handleFeedScroll = () => {
+    const feed = chatFeedRef.current
+    if (!feed) return
+    autoFollowRef.current = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 96
+  }
 
   useEffect(() => {
     if (messages.length === 0) return
@@ -148,6 +179,7 @@ export default function AiTutorPage() {
       const data = await res.json()
       if (data.success) {
         const session: ChatSessionFull = data.session
+        autoFollowRef.current = true
         setMessages(session.messages || [])
         setSessionId(session.sessionId)
         setSubject(session.subject || '')
@@ -177,6 +209,7 @@ export default function AiTutorPage() {
 
   const startNewChat = useCallback(() => {
     void saveCurrentChat()
+    autoFollowRef.current = true
     setMessages([])
     setSessionId(null)
     setSubject('')
@@ -186,7 +219,10 @@ export default function AiTutorPage() {
     setExtractedText('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
-      textareaRef.current.focus()
+      // Avoid popping open the iPhone keyboard just because a new chat was created.
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        textareaRef.current.focus()
+      }
     }
   }, [messages, sessionId, subject])
 
@@ -248,6 +284,7 @@ export default function AiTutorPage() {
           timestamp: new Date(),
           files: files.map(f => f.name)
         }
+        autoFollowRef.current = true
         setMessages(prev => [...prev, uploadUserMsg])
 
         // Automatically trigger AI acknowledgment
@@ -292,6 +329,7 @@ export default function AiTutorPage() {
       textareaRef.current.style.height = 'auto'
     }
     setLoading(true)
+    autoFollowRef.current = true
 
     const userMsg: ChatMessage = {
       role: 'user',
@@ -399,7 +437,10 @@ export default function AiTutorPage() {
         }
       `}</style>
 
-      <div className="flex h-[100dvh] w-screen overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans relative">
+      <div
+        className="flex w-full max-w-full overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans relative"
+        style={{ height: 'var(--ai-tutor-viewport-height, 100dvh)' }}
+      >
 
         {/* ===== SIDEBAR OVERLAY (mobile) ===== */}
         <div
@@ -488,7 +529,7 @@ export default function AiTutorPage() {
         <main className="flex-1 flex flex-col min-h-0 bg-[#f6f7fb] dark:bg-[#0a0e1a] overflow-hidden">
 
           {/* Chat Header */}
-          <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-white/90 dark:bg-[#111a2e]/90 backdrop-blur-md">
+          <header className="relative z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-white/90 dark:bg-[#111a2e]/90 backdrop-blur-md">
             <div className="flex items-center gap-3 min-w-0">
               <a
                 href="/dashboard/student"
@@ -519,7 +560,11 @@ export default function AiTutorPage() {
           </header>
 
           {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scrollbar-thin">
+          <div
+            ref={chatFeedRef}
+            onScroll={handleFeedScroll}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 sm:p-6 space-y-8 scrollbar-thin [-webkit-overflow-scrolling:touch]"
+          >
 
             {/* AI Welcome State */}
             {messages.length === 0 && (
@@ -634,7 +679,6 @@ export default function AiTutorPage() {
               </div>
             )}
 
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Bar */}
