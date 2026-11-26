@@ -20,7 +20,6 @@ import {
   FiChevronDown,
   FiLock,
   FiPlay,
-  FiZap,
   FiBookOpen,
   FiHome,
   FiMap,
@@ -40,7 +39,8 @@ import {
   FiMessageCircle,
   FiLogOut,
   FiMoreHorizontal,
-  FiArrowRight
+  FiArrowRight,
+  FiBell
 } from 'react-icons/fi'
 import { FaFire } from 'react-icons/fa'
 import { IoSparklesSharp } from 'react-icons/io5'
@@ -306,15 +306,15 @@ export default function StudentDashboardPage() {
     ? Math.max(0, topic.nodes.length - (previewStart + previewNodes.length) + 1)
     : 0
 
-  const todayDayIndex = (new Date().getDay() + 6) % 7
+  const todayDayIndex = new Date().getDay()
   const weekDays = [
-    { label: 'M', name: 'Mon', index: 0 },
-    { label: 'T', name: 'Tue', index: 1 },
-    { label: 'W', name: 'Wed', index: 2 },
-    { label: 'T', name: 'Thu', index: 3 },
-    { label: 'F', name: 'Fri', index: 4 },
-    { label: 'S', name: 'Sat', index: 5 },
-    { label: 'S', name: 'Sun', index: 6 },
+    { label: 'S', name: 'Sun', index: 0, activityIndex: 6 },
+    { label: 'M', name: 'Mon', index: 1, activityIndex: 0 },
+    { label: 'T', name: 'Tue', index: 2, activityIndex: 1 },
+    { label: 'W', name: 'Wed', index: 3, activityIndex: 2 },
+    { label: 'T', name: 'Thu', index: 4, activityIndex: 3 },
+    { label: 'F', name: 'Fri', index: 5, activityIndex: 4 },
+    { label: 'S', name: 'Sat', index: 6, activityIndex: 5 },
   ]
 
   return (
@@ -326,7 +326,9 @@ export default function StudentDashboardPage() {
                   <div className="sr-hello"><small>{greeting},</small><h1>{firstName}</h1></div>
                   <div className="sr-pills">
                     <div className="sr-pill fire"><FaFire /><span>{realStats.streak}</span></div>
-                    <div className="sr-pill xp"><FiZap /><span>{realStats.xp.toLocaleString()}</span></div>
+                    <Link href="/dashboard/notifications" className="sr-pill alerts" aria-label="Notifications" title="Notifications">
+                      <FiBell />
+                    </Link>
                   </div>
                 </header>
 
@@ -483,7 +485,7 @@ export default function StudentDashboardPage() {
                     <div className="sr-week-row">
                       {weekDays.map((d) => {
                         const isToday = d.index === todayDayIndex
-                        const isDone = realStats.weekDaysActive.includes(d.index) || (isToday && realStats.dailyGoalXp > 0)
+                        const isDone = realStats.weekDaysActive.includes(d.activityIndex) || (isToday && realStats.dailyGoalXp > 0)
                         return (
                           <div
                             className={`sr-day ${isToday ? 'today' : ''}`}
