@@ -69,6 +69,7 @@ export default function AiTutorPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [subject, setSubject] = useState('')
 
   // Document context upload states
@@ -108,6 +109,10 @@ export default function AiTutorPage() {
       document.documentElement.style.setProperty('--ai-tutor-viewport-top', `${Math.round(top)}px`)
     }
 
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
     updateViewport()
     window.addEventListener('resize', updateViewport)
     viewport?.addEventListener('resize', updateViewport)
@@ -118,6 +123,8 @@ export default function AiTutorPage() {
       viewport?.removeEventListener('resize', updateViewport)
       document.documentElement.style.removeProperty('--ai-tutor-viewport-height')
       document.documentElement.style.removeProperty('--ai-tutor-viewport-top')
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
     }
   }, [])
 
@@ -443,7 +450,7 @@ export default function AiTutorPage() {
       `}</style>
 
       <div
-        className="fixed inset-x-0 flex w-full max-w-full overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans relative"
+        className="fixed inset-x-0 flex w-full max-w-full overflow-hidden bg-[#f6f7fb] text-slate-900 dark:bg-[#0a0e1a] dark:text-slate-100 font-sans"
         style={{
           top: 'var(--ai-tutor-viewport-top, 0px)',
           height: 'var(--ai-tutor-viewport-height, 100dvh)',
@@ -537,7 +544,7 @@ export default function AiTutorPage() {
         <main className="flex-1 flex flex-col min-h-0 bg-[#f6f7fb] dark:bg-[#0a0e1a] overflow-hidden">
 
           {/* Chat Header */}
-          <header className="relative z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-white/90 dark:bg-[#111a2e]/90 backdrop-blur-md">
+          <header className="ai-tutor-header relative z-20 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0 min-h-[56px] bg-white/90 dark:bg-[#111a2e]/90 backdrop-blur-md">
             <div className="flex items-center gap-3 min-w-0">
               <a
                 href="/dashboard/student"
@@ -712,7 +719,7 @@ export default function AiTutorPage() {
           </div>
 
           {/* Input Bar */}
-          <div className="flex-shrink-0 bg-transparent px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+          <div className={`flex-shrink-0 bg-transparent px-3 ${keyboardOpen ? 'pt-1 pb-1' : 'pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]'}`}>
             <div className="max-w-4xl mx-auto">
 
             {/* File status tag */}
@@ -757,6 +764,8 @@ export default function AiTutorPage() {
                 <textarea
                   ref={textareaRef}
                   value={input}
+                  onFocus={() => setKeyboardOpen(true)}
+                  onBlur={() => setKeyboardOpen(false)}
                   onChange={(e) => {
                     setInput(e.target.value)
                     e.target.style.height = 'auto'
@@ -786,7 +795,7 @@ export default function AiTutorPage() {
               </div>
 
               {/* Suggestion Chips */}
-              <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              <div className={`${keyboardOpen ? 'hidden' : 'flex'} items-center gap-2 mt-2 overflow-x-auto pb-1`} style={{ scrollbarWidth: 'none' }}>
                 <button
                   onClick={() => void sendMessage("Generate quiz on this topic")}
                   className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-white/60 bg-white dark:bg-[#111a2e] hover:bg-green-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-1 rounded-full transition duration-200 whitespace-nowrap flex-shrink-0"

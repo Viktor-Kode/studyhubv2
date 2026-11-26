@@ -3,6 +3,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .ai-tutor-header {
+      padding-top: max(56px, env(safe-area-inset-top)) !important;
+    }
+  }
+}
+
 
 :root {
   /* Semantic Tokens for Tailwind & Components */
