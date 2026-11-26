@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api/client'
 import { formatDistanceToNow } from 'date-fns'
 import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 type Notification = {
   _id: string
@@ -41,6 +42,7 @@ const NOTIF_COLORS: Record<string, string> = {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -78,12 +80,27 @@ export default function NotificationsPage() {
     }
   }
 
-  const handleNotifClick = (notif: Notification) => {
-    if (notif.link) {
-      const href = notif.link.startsWith('http')
-        ? notif.link
-        : notif.link
-      window.location.href = href
+  const handleNotifClick = async (notif: Notification) => {
+    if (!notif.isRead) {
+      try {
+        await apiClient.post(`/notifications/mark-read/${notif._id}`)
+        setNotifications(current => current.map(item => item._id === notif._id ? { ...item, isRead: true } : item))
+        setUnreadCount(current => Math.max(0, current - 1))
+      } catch {
+        toast.error('Could not mark notification as read')
+      }
+    }
+    if (!notif.link) return
+    try {
+      const target = new URL(notif.link, window.location.origin)
+      if (target.protocol !== 'https:' && target.protocol !== 'http:') return
+      if (target.origin === window.location.origin) {
+        router.push(`${target.pathname}${target.search}${target.hash}`)
+      } else if (target.protocol === 'https:') {
+        window.open(target.href, '_blank', 'noopener,noreferrer')
+      }
+    } catch {
+      toast.error('This notification has an invalid destination')
     }
   }
 
@@ -179,13 +196,18 @@ export default function NotificationsPage() {
           {!loading && displayed.map(n => (
             <div
               key={n._id}
-              role={n.link ? 'button' : 'article'}
-              tabIndex={n.link ? 0 : undefined}
-              onClick={() => n.link && handleNotifClick(n)}
-              onKeyDown={e => e.key === 'Enter' && n.link && handleNotifClick(n)}
-              className={`relative flex items-start gap-4 p-4 rounded-2xl border transition-all ${
+              role="button"
+              tabIndex={0}
+              onClick={() => void handleNotifClick(n)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  void handleNotifClick(n)
+                }
+              }}
+              className={`relative flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer hover:shadow-md ${
                 NOTIF_COLORS[n.type] || 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800'
-              } ${n.link ? 'cursor-pointer hover:shadow-md' : ''} ${!n.isRead ? 'shadow-sm' : 'opacity-75'}`}
+              } ${!n.isRead ? 'shadow-sm' : 'opacity-75'}`}
             >
               {/* Unread dot */}
               {!n.isRead && (

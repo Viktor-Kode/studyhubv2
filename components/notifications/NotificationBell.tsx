@@ -76,18 +76,30 @@ export default function NotificationBell() {
   }
 
   const handleOpen = () => {
-    if (!open && unreadCount > 0) {
-      void markAllRead()
-    }
     setOpen((o) => !o)
   }
 
-  const handleNotifClick = (notif: { link?: string }) => {
+  const handleNotifClick = async (notif: { _id: string; isRead: boolean; link?: string }) => {
+    if (!notif.isRead) {
+      try {
+        await apiClient.post(`/notifications/mark-read/${notif._id}`)
+        setNotifications((prev) => prev.map((item) => item._id === notif._id ? { ...item, isRead: true } : item))
+        setUnreadCount((count) => Math.max(0, count - 1))
+      } catch (err) {
+        console.error(err)
+      }
+    }
     if (notif.link) {
-      const href = notif.link.startsWith('http')
-        ? notif.link
-        : `${window.location.origin}${notif.link.startsWith('/') ? '' : '/'}${notif.link}`
-      window.location.href = href
+      try {
+        const target = new URL(notif.link, window.location.origin)
+        if (target.protocol === 'https:' && target.origin !== window.location.origin) {
+          window.open(target.href, '_blank', 'noopener,noreferrer')
+        } else if (target.origin === window.location.origin) {
+          window.location.assign(`${target.pathname}${target.search}${target.hash}`)
+        }
+      } catch (err) {
+        console.error('Invalid notification destination', err)
+      }
     }
     setOpen(false)
   }
@@ -131,11 +143,11 @@ export default function NotificationBell() {
               <div
                 key={n._id}
                 className={`notif-item ${!n.isRead ? 'unread' : ''}`}
-                onClick={() => handleNotifClick(n)}
+                onClick={() => void handleNotifClick(n)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    handleNotifClick(n)
+                    void handleNotifClick(n)
                   }
                 }}
                 role="button"
@@ -153,6 +165,7 @@ export default function NotificationBell() {
               </div>
             ))}
           </div>
+          <a href="/dashboard/notifications" className="notif-view-all">View all notifications</a>
         </div>
       )}
     </div>

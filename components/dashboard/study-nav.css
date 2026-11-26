@@ -269,7 +269,7 @@ html:not(.dark) .sp-nav-support-icon.whatsapp {
   border-top: 1px solid var(--nav-border);
   z-index: 50;
   padding: 8px 8px calc(14px + env(safe-area-inset-bottom, 0px));
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   transition: background-color 0.2s ease, border-color 0.2s ease;
   box-sizing: border-box;
 }
@@ -310,24 +310,8 @@ html:not(.dark) .sp-nav-support-icon.whatsapp {
   transition: color 0.15s ease;
 }
 
-.sp-bottom-nav-item:nth-child(1) {
-  grid-column: 1;
-}
-
-.sp-bottom-nav-item:nth-child(2) {
-  grid-column: 2;
-}
-
-.sp-bottom-nav-item:nth-child(3) {
-  grid-column: 3;
-}
-
-.sp-bottom-nav-item:nth-child(4) {
-  grid-column: 4;
-}
-
-.sp-bottom-nav-item:nth-child(5) {
-  grid-column: 5;
+.sp-bottom-nav-item {
+  font-size: 10px;
 }
 
 .sp-bottom-nav-item.active {

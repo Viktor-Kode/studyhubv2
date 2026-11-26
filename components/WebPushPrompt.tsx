@@ -8,6 +8,7 @@ export default function WebPushPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [iosInstallHint, setIosInstallHint] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -23,8 +24,8 @@ export default function WebPushPrompt() {
       if (dismissedAt && Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return;
       try {
         const { apiClient } = await import('@/lib/api/client');
-        const response = await apiClient.get('/settings');
-        if (response.data?.notificationPrefs?.studyReminders) return;
+        const response = await apiClient.get('/notifications/status');
+        if (response.data?.pushEnabled) return;
       } catch { /* keep the prompt available if preferences cannot be loaded */ }
 
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -41,18 +42,22 @@ export default function WebPushPrompt() {
 
   const handleEnable = async () => {
     setLoading(true);
+    setError('');
     try {
       const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-      if (permission !== 'granted') return;
+      if (permission !== 'granted') {
+        setError(permission === 'denied' ? 'Notifications are blocked in your browser settings.' : 'Allow notifications to turn on study reminders.');
+        return;
+      }
       const registration = await navigator.serviceWorker.ready;
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) throw new Error('VAPID public key not found');
+      const { getWebPushPublicKey, base64ToUint8Array } = await import('@/lib/services/webPush');
+      const vapidKey = await getWebPushPublicKey();
 
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey)
+          applicationServerKey: base64ToUint8Array(vapidKey)
         });
       }
 
@@ -65,6 +70,7 @@ export default function WebPushPrompt() {
       localStorage.removeItem(`studyhelp_push_prompt_dismissed_at:${userKey}`);
     } catch (err) {
       console.error('Error enabling notifications:', err);
+      setError(err instanceof Error ? err.message : 'Could not enable notifications. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -107,20 +113,10 @@ export default function WebPushPrompt() {
                 Not now
               </button>
             </div>
+            {error && <p role="alert" className="mt-3 text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
 }

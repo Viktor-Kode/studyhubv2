@@ -852,15 +852,9 @@ function NotificationsSection({ user, onSaved }: any) {
             }
         })
 
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then((registration) => registration.pushManager.getSubscription())
-                    .then((subscription) => setPushEnabled(Boolean(subscription)))
-                    .catch(() => setPushEnabled(false))
-            } else {
-                setPushEnabled(false)
-            }
-        }
+        apiClient.get('/notifications/status')
+            .then(res => setPushEnabled(Boolean(res.data?.pushEnabled)))
+            .catch(() => setPushEnabled(false))
     }, [])
 
     const toggle = (key: string) => {
@@ -877,52 +871,56 @@ function NotificationsSection({ user, onSaved }: any) {
         }
     }
 
-    const handleTestPush = async () => {
+    const handlePushToggle = async () => {
         if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
             toast.error('Notifications are not supported in this browser.');
             return;
         }
 
         try {
-            if (Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') return;
-            }
-
-            if (Notification.permission === 'denied') {
-                alert('Notifications are blocked. Please enable them in your browser settings.');
+            setLoading(true);
+            if (pushEnabled) {
+                await apiClient.post('/notifications/disable');
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) await subscription.unsubscribe();
+                setPushEnabled(false);
+                toast.success('Push notifications turned off.');
                 return;
             }
 
-            setLoading(true);
+            if (Notification.permission === 'default') {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    toast.error('Allow notifications in your browser to enable push alerts.');
+                    return;
+                }
+            }
+
+            if (Notification.permission === 'denied') {
+                toast.error('Notifications are blocked. Enable them in your browser settings.');
+                return;
+            }
 
             const registration = await navigator.serviceWorker.ready;
             let subscription = await registration.pushManager.getSubscription();
 
             if (!subscription) {
-                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-                if (!vapidKey) {
-                    toast.error('Configuration error: VAPID key missing.');
-                    setLoading(false);
-                    return;
-                }
+                const { getWebPushPublicKey, base64ToUint8Array } = await import('@/lib/services/webPush');
+                const vapidKey = await getWebPushPublicKey();
 
                 subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                    applicationServerKey: base64ToUint8Array(vapidKey)
                 });
-
-                setPushEnabled(true);
-                toast.success('Subscription saved!');
             }
 
             await apiClient.post('/notifications/subscribe', {
                 subscription,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || prefs.timezone,
             });
-
-            await apiClient.post('/notifications/test-push');
-            toast.success('Test notification sent!');
+            setPushEnabled(true);
+            toast.success('Push notifications enabled.');
         } catch (err: any) {
             console.error('Push Flow Error:', err);
             toast.error(err.response?.data?.error || 'Notification setup failed. Try again.');
@@ -960,9 +958,9 @@ function NotificationsSection({ user, onSaved }: any) {
                     </div>
                     <Toggle
                         checked={pushEnabled}
-                        onChange={pushEnabled ? undefined : handleTestPush}
-                        disabled={pushEnabled}
-                        ariaLabel="Enable push notifications"
+                        onChange={handlePushToggle}
+                        disabled={loading}
+                        ariaLabel="Enable or disable push notifications"
                     />
                 </div>
 
@@ -978,7 +976,21 @@ function NotificationsSection({ user, onSaved }: any) {
                     </div>
                     <button
                         type="button"
-                        onClick={handleTestPush}
+                        onClick={async () => {
+                            if (!pushEnabled) {
+                                toast.error('Enable push notifications first.');
+                                return;
+                            }
+                            try {
+                                setLoading(true);
+                                await apiClient.post('/notifications/test-push');
+                                toast.success('Test notification sent!');
+                            } catch (err: any) {
+                                toast.error(err.response?.data?.error || 'Could not send a test notification.');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
                         disabled={loading}
                         className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
                             pushEnabled
@@ -986,7 +998,7 @@ function NotificationsSection({ user, onSaved }: any) {
                                 : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                         }`}
                     >
-                        {loading ? 'Sending...' : pushEnabled ? 'Send Test Notification' : 'Enable Notifications First'}
+                        {loading ? 'Please wait…' : pushEnabled ? 'Send Test Notification' : 'Enable Notifications First'}
                     </button>
                 </div>
             </div>
@@ -1094,17 +1106,6 @@ function NotificationsSection({ user, onSaved }: any) {
             </div>
         </div>
     )
-}
-
-function urlBase64ToUint8Array(base64String: string) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
 }
 
 // ─── Appearance Section ──────────────────────────────────────────────────────

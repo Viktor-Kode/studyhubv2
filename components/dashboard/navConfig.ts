@@ -4,7 +4,8 @@ import {
   FiFileText,
   FiHome,
   FiBarChart2,
-  FiUser
+  FiUser,
+  FiBell
 } from 'react-icons/fi'
 
 export interface DashboardNavItem {
@@ -18,6 +19,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { href: '/dashboard/notes-history', label: 'Notes', icon: FiFileText },
   { href: '/dashboard/student', label: 'Home', icon: FiHome },
   { href: '/dashboard/analytics', label: 'Analytics', icon: FiBarChart2 },
+  { href: '/dashboard/notifications', label: 'Alerts', icon: FiBell },
   { href: '/dashboard/settings', label: 'Profile', icon: FiUser }
 ]
 
