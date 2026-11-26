@@ -466,7 +466,7 @@ export default function StudentDashboardPage() {
 
                   {showGoalPicker && (
                     <div className="sr-goal-presets" aria-label="Select daily target">
-                      {[20, 30, 50, 100, 150].map((preset) => (
+                      {[50, 100, 200, 300, 500].map((preset) => (
                         <button
                           key={preset}
                           type="button"
