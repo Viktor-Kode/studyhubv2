@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import type { AppRole } from '@/lib/firebase-auth'
-import { FiLoader } from 'react-icons/fi'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -37,13 +36,50 @@ export default function ProtectedRoute({ children, allowedRoles, allowGuest = fa
     }
   }, [isLoading, isAuthenticated, user, allowedRoles, allowGuest, router])
 
-  // Show spinner while waiting for auth state
+  // Keep the page layout present while Firebase restores the signed-in user.
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <FiLoader className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading…</p>
+      <div
+        className="min-h-screen w-full bg-[#f6f7fb] p-4 sm:p-6 dark:bg-[#0a0e1a]"
+        role="status"
+        aria-label="Loading page"
+        aria-busy="true"
+      >
+        <span className="sr-only">Loading page</span>
+        <div className="mx-auto max-w-6xl animate-pulse space-y-6 motion-reduce:animate-none">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-7 w-44 rounded-lg bg-slate-200 dark:bg-slate-800" />
+              <div className="h-4 w-64 max-w-[70vw] rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+            </div>
+            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="h-24 rounded-2xl bg-white dark:bg-[#111a2e]" />
+            <div className="hidden h-24 rounded-2xl bg-white dark:bg-[#111a2e] sm:block" />
+            <div className="hidden h-24 rounded-2xl bg-white dark:bg-[#111a2e] sm:block" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-h-[280px] rounded-2xl bg-white p-5 dark:bg-[#111a2e] sm:min-h-[360px]">
+              <div className="mb-6 h-5 w-40 rounded-md bg-slate-200 dark:bg-slate-800" />
+              <div className="space-y-3">
+                <div className="h-4 w-full rounded-md bg-slate-100 dark:bg-slate-800/80" />
+                <div className="h-4 w-11/12 rounded-md bg-slate-100 dark:bg-slate-800/80" />
+                <div className="h-4 w-4/5 rounded-md bg-slate-100 dark:bg-slate-800/80" />
+                <div className="mt-7 h-28 rounded-xl bg-slate-100 dark:bg-slate-800/80" />
+              </div>
+            </div>
+            <div className="hidden min-h-[280px] rounded-2xl bg-white p-5 dark:bg-[#111a2e] lg:block">
+              <div className="mb-6 h-5 w-32 rounded-md bg-slate-200 dark:bg-slate-800" />
+              <div className="space-y-4">
+                <div className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800/80" />
+                <div className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800/80" />
+                <div className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800/80" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
