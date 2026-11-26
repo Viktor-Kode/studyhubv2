@@ -1,5 +1,15 @@
 const path = require('path');
 
+const backendConnectOrigins = new Set(['https://studyhelp-zyqw.onrender.com']);
+for (const configuredUrl of [process.env.NEXT_PUBLIC_API_URL, process.env.NEXT_PUBLIC_BACKEND_URL]) {
+  if (!configuredUrl) continue;
+  try {
+    backendConnectOrigins.add(new URL(configuredUrl.trim()).origin);
+  } catch {
+    // Ignore unset or malformed optional API URLs; the fallback remains allowed.
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Allow either NEXT_PUBLIC_FIREBASE_VAPID_KEY or VITE_FIREBASE_VAPID_KEY (Vite-style) in CI/Vercel
@@ -60,7 +70,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://js.paystack.co https://pagead2.googlesyndication.com https://va.vercel-scripts.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com https://api.dicebear.com https://res.cloudinary.com https://*.google.com https://*.googlesyndication.com",
-              "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.cloud.google.com https://api.cloudinary.com https://vitals.vercel-insights.com wss://*.firebaseio.com https://cdn.jsdelivr.net https://unpkg.com https://tessdata.projectnaptha.com",
+              `connect-src 'self' ${[...backendConnectOrigins].join(' ')} https://*.firebaseio.com https://*.googleapis.com https://*.cloud.google.com https://api.cloudinary.com https://vitals.vercel-insights.com wss://*.firebaseio.com https://cdn.jsdelivr.net https://unpkg.com https://tessdata.projectnaptha.com`,
               "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://mozilla.github.io",
               "font-src 'self' https://fonts.gstatic.com",
               "worker-src 'self' blob: https://cdn.jsdelivr.net https://unpkg.com",
