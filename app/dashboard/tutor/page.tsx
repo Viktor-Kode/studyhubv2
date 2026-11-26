@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { getFirebaseToken, useAuthStore } from '@/lib/store/authStore'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import {
@@ -609,7 +610,7 @@ export default function AiTutorPage() {
                       ) : (
                         <div className="prose prose-slate dark:prose-invert max-w-none prose-p:leading-8 prose-p:mb-4 prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-3 prose-strong:font-bold prose-ul:my-4 prose-ol:my-4 prose-li:my-1">
                           <ReactMarkdown
-                            remarkPlugins={[remarkMath]}
+                            remarkPlugins={[remarkGfm, remarkMath]}
                             rehypePlugins={[rehypeKatex]}
                             components={{
                               p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
@@ -623,6 +624,28 @@ export default function AiTutorPage() {
                                 <div className="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-600 dark:border-[#34d399] px-3.5 py-2.5 rounded-r-lg my-2 text-slate-800 dark:text-slate-100">
                                   {children}
                                 </div>
+                              ),
+                              table: ({ children }) => (
+                                <div className="my-4 max-w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+                                  <table className="w-full min-w-[520px] border-collapse text-left text-sm leading-relaxed">
+                                    {children}
+                                  </table>
+                                </div>
+                              ),
+                              thead: ({ children }) => (
+                                <thead className="bg-green-50 text-slate-800 dark:bg-green-500/10 dark:text-slate-100">
+                                  {children}
+                                </thead>
+                              ),
+                              th: ({ children }) => (
+                                <th className="border-b border-slate-200 px-3 py-2.5 font-semibold dark:border-white/10 sm:px-4">
+                                  {children}
+                                </th>
+                              ),
+                              td: ({ children }) => (
+                                <td className="border-b border-slate-100 px-3 py-2.5 align-top dark:border-white/5 sm:px-4">
+                                  {children}
+                                </td>
                               ),
                             }}
                           >
