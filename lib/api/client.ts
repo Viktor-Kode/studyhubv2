@@ -2,8 +2,14 @@ import axios from 'axios'
 import { getFirebaseToken } from '@/lib/store/authStore'
 import { triggerUpgradeModal } from '@/lib/upgradeHandler'
 
-// Always use the internal Next.js proxy to forward requests to the backend
-const API_BASE_URL = '/api/backend'
+// Use the hosted backend directly from the browser. The API allows the local
+// frontend origin, and this avoids requiring the Next.js dev server to make
+// outbound network requests just to proxy ordinary API calls.
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL
+const normalizedApiUrl = configuredApiUrl?.trim().replace(/\/+$/, '')
+const API_BASE_URL = normalizedApiUrl
+  ? /\/api$/i.test(normalizedApiUrl) ? normalizedApiUrl : `${normalizedApiUrl}/api`
+  : 'https://studyhelp-zyqw.onrender.com/api'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

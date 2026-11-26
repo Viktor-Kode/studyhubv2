@@ -16,7 +16,7 @@ import {
 } from "@/lib/data/studyPath"
 import "../lesson-loop.css"
 import ThemeToggle from "@/components/ThemeToggle"
-import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap, FiMaximize2 } from "react-icons/fi"
+import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiCheck, FiBookOpen, FiX, FiAward, FiZap, FiMaximize2, FiVolume2, FiVolumeX } from "react-icons/fi"
 import { updateStudyPathNode } from "@/src/services/api"
 
 interface SlideDef {
@@ -149,6 +149,8 @@ function LessonLoopContent() {
   const [streak, setStreak] = useState(12)
   const [hasCompleted, setHasCompleted] = useState(false)
   const [signupModalOpen, setSignupModalOpen] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
   const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
@@ -159,6 +161,19 @@ function LessonLoopContent() {
     window.addEventListener("keydown", closeOnEscape)
     return () => window.removeEventListener("keydown", closeOnEscape)
   }, [sourceImageExpanded])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+    const updateVoices = () => setAvailableVoices(window.speechSynthesis.getVoices())
+    updateVoices()
+    window.speechSynthesis.addEventListener("voiceschanged", updateVoices)
+    window.speechSynthesis.cancel()
+    setIsSpeaking(false)
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", updateVoices)
+      window.speechSynthesis.cancel()
+    }
+  }, [nodeId, slideIdx])
 
   // Read stored user stats
   useEffect(() => {
@@ -419,6 +434,51 @@ function LessonLoopContent() {
   const breakdownSlide = node.breakdown?.[currentSlide.breakdownPart ?? 0]
   const lessonKeyConcepts = node.keyConcepts || []
   const nextNodeTitle = node.nextNodeTitle || nextNode?.title || (nextNode ? `Lesson ${nextNode.id}` : null)
+  const spokenText = (() => {
+    switch (currentSlide.type) {
+      case "assessment_intro":
+        return [node.title, "Unit assessment", node.summary, "Answer each question correctly to advance. Tap next to begin."].filter(Boolean).join(". ")
+      case "source":
+        return [node.title, "From your document", ...(node.sourceFacts || [])].filter(Boolean).join(". ")
+      case "breakdown":
+        if (currentSlide.legacyFallback) return [node.title, "Lesson recap", node.summary || node.lessonContent?.paragraphs?.[0]].filter(Boolean).join(". ")
+        return [node.title, breakdownSlide?.heading, breakdownSlide?.body, currentSlide.breakdownPart === 1 ? breakdownSlide?.memoryTip : ""].filter(Boolean).join(". ")
+      case "key_concepts":
+        return [node.title, "Key concepts", ...lessonKeyConcepts].filter(Boolean).join(". ")
+      default:
+        return ""
+    }
+  })()
+  const toggleReadAloud = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+    const text = spokenText.replace(/\*\*(.*?)\*\*/g, "$1").replace(/[*_`#]/g, "").replace(/\s+/g, " ").trim()
+    if (!text) return
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = "en-NG"
+    utterance.rate = 0.95
+    const englishVoices = availableVoices.filter((voice) => voice.lang.toLowerCase().startsWith("en-"))
+    const preferredVoice = englishVoices
+      .map((voice) => ({
+        voice,
+        score:
+          (/neural|natural/i.test(voice.name) ? 5 : 0)
+          + (/online|cloud/i.test(voice.name) ? 3 : 0)
+          + (voice.localService === false ? 2 : 0)
+          + (/aria|jenny|sonia|ava|samantha|google us english/i.test(voice.name) ? 1 : 0)
+          + (voice.lang.toLowerCase().startsWith("en-ng") ? 1 : 0),
+      }))
+      .sort((left, right) => right.score - left.score)[0]?.voice
+    if (preferredVoice) utterance.voice = preferredVoice
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+    window.speechSynthesis.speak(utterance)
+    setIsSpeaking(true)
+  }
 
   // Determine if NEXT is disabled
   const isNextDisabled =
@@ -479,6 +539,18 @@ function LessonLoopContent() {
                   />
                 ))}
               </div>
+              {currentSlide.type !== "quiz" && currentSlide.type !== "reward" && spokenText && (
+                <button
+                  type="button"
+                  className={`ll-audio-toggle${isSpeaking ? " active" : ""}`}
+                  onClick={toggleReadAloud}
+                  aria-label={isSpeaking ? "Stop reading aloud" : "Read this page aloud"}
+                  aria-pressed={isSpeaking}
+                  title={isSpeaking ? "Stop reading aloud" : "Read this page aloud"}
+                >
+                  {isSpeaking ? <FiVolumeX size={18} /> : <FiVolume2 size={18} />}
+                </button>
+              )}
             </div>
 
             {currentSlide.type !== "reward" && currentSlide.badge && (

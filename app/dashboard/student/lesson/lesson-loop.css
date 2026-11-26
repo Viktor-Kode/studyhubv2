@@ -58,6 +58,20 @@
 }
 .ll-close-btn:hover { background: #1E293B; border-color: #475569; color: #FFFFFF; }
 .ll-close-btn:focus-visible { outline: 3px solid #2EE59D; outline-offset: 3px; }
+.ll-audio-toggle {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2B3A55;
+  border-radius: 11px;
+  background: #0F172A;
+  color: #AAB8CA;
+  cursor: pointer;
+}
+.ll-audio-toggle:hover, .ll-audio-toggle.active { border-color: #2EE59D; color: #2EE59D; background: #10271F; }
+.ll-audio-toggle:focus-visible { outline: 3px solid #2EE59D; outline-offset: 3px; }
 
 .ll-progress-bar {
   flex: 1;
