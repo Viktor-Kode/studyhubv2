@@ -5,6 +5,8 @@
   background: #f6f7fb;
   font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
+html.dark:has(.sr-page),
+html.dark:has(.sr-page) body,
 html.dark .sr-page { background: #0a0e1a; }
 
 .sr-frame {
