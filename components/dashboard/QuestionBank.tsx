@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { FiFileText, FiX, FiUpload, FiCheckCircle, FiXCircle, FiClock, FiLoader, FiCode, FiAlertTriangle, FiRefreshCw, FiFile, FiEdit3, FiSave, FiList, FiLink, FiCamera, FiTrash2, FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import { BiBrain, BiMessageRoundedDots } from 'react-icons/bi'
 import { HiOutlineLightBulb } from 'react-icons/hi'
-import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview, extractDocumentText } from '@/lib/api/quizApi'
+import { chatWithTutor, deleteQuizSession, deleteTutorChatSession, generateQuiz, generateGapQuiz, generateStudyNotes, getTutorChatHistory, getTutorChatSession, Question, saveStudyNote, saveTutorChatSession, TutorChatMessage, TutorChatSessionPreview, extractDocumentText } from '@/lib/api/quizApi'
 import { cbtApi } from '@/lib/api/cbt'
 import { apiClient } from '@/lib/api/client'
 import { getFirebaseToken } from '@/lib/store/authStore'
@@ -140,9 +140,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   const [extractedText, setExtractedText] = useState('')
   const [manualText, setManualText] = useState('')
   const [amount, setAmount] = useState<number | string>(5)
-  const [questionType, setQuestionType] = useState('multiple-choice')
+  const [questionType, setQuestionType] = useState('fill-in-gap')
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [timerMinutes, setTimerMinutes] = useState<number>(0) // 0 = no timer
+  const [gapHint, setGapHint] = useState<'first-letter' | 'none'>('first-letter')
 
   const [generating, setGenerating] = useState(false)
   const [extracting, setExtracting] = useState(false)
@@ -755,6 +756,27 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
 
     try {
       const sourceName = uploadedFile?.name || fetchedTitle || 'Manual Entry'
+      if (questionType === 'fill-in-gap') {
+        const data = await generateGapQuiz({
+          text: contentToUse,
+          amount: Number(amount) || 5,
+          difficulty,
+          hintMode: gapHint,
+          fileName: sourceName,
+        })
+        sessionStorage.setItem('qgen_gap_quiz_v1', JSON.stringify({
+          questions: data.questions,
+          sessionId: data.sessionId,
+          sourceName,
+          questionType,
+          difficulty,
+          timerMinutes,
+          gapHint,
+          startedAt: new Date().toISOString(),
+        }))
+        router.push('/dashboard/question-bank/gap-quiz')
+        return
+      }
       const data = await generateQuiz(
           contentToUse,
           Number(amount) || 5,
@@ -957,8 +979,8 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
   return (
     <div className={`space-y-8 w-full max-w-full overflow-hidden ${className}`}>
       {/* Quiz Generation Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 ${questionType === 'fill-in-gap' ? 'gap-setup-card' : ''}`}>
+        <div className={`flex flex-wrap justify-between items-center gap-4 mb-6 ${questionType === 'fill-in-gap' ? 'gap-setup-header' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
               <BiBrain className="text-emerald-500 text-2xl" />
@@ -1027,9 +1049,10 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 gap-setup-grid">
           {/* Input Side */}
           <div className="space-y-4">
+            {questionType === 'fill-in-gap' && <h2 className="gap-setup-step-title">1 · ADD YOUR MATERIAL</h2>}
             {/* Source Tabs: Paste Text / Paste Link / Upload PDF */}
             <div className="qg-source-tabs">
               <button
@@ -1074,7 +1097,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; if (file) handleFileUpload(file) }}
-                  className={`relative border-2 border-dashed rounded-xl p-8 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[250px]
+                  className={`relative border-2 border-dashed rounded-xl p-8 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer min-h-[250px] ${questionType === 'fill-in-gap' ? 'gap-file-dropzone' : ''}
                   ${isDragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'}
                   ${uploadedFile ? 'border-solid border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/5' : ''}
                 `}
@@ -1263,28 +1286,36 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
           <div className="flex flex-col justify-between">
             <div className="space-y-4">
               {/* Row 1: Type + Amount */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                    Type
-                  </label>
-                  <select
-                    value={questionType}
-                    onChange={(e) => setQuestionType(e.target.value)}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
-                  >
-                    <option value="multiple-choice">MCQ</option>
-                    <option value="theory">Theory</option>
-                    <option value="fill-in-the-blank">Blanks</option>
-                    <option value="mixed">Mixed</option>
-                  </select>
+                  <h2 className={`gap-setup-step-title ${questionType === 'fill-in-gap' ? '' : 'question-step-light'}`}>2 · CHOOSE QUESTION TYPE</h2>
+                  <div className="gap-question-type-list">
+                    <button type="button" aria-pressed={questionType === 'multiple-choice'} onClick={() => setQuestionType('multiple-choice')} className={`gap-question-type-option ${questionType === 'multiple-choice' ? 'selected' : ''} ${questionType !== 'fill-in-gap' ? 'light' : ''}`}>
+                      <span className="gap-type-icon">☷</span><span className="min-w-0 text-left"><strong>Multiple choice</strong><small>Pick the right answer from four options.</small></span>
+                    </button>
+                    <button type="button" aria-pressed={questionType === 'fill-in-gap'} onClick={() => { setQuestionType('fill-in-gap'); if (![5, 10, 15, 20].includes(Number(amount))) setAmount(5) }} className={`gap-question-type-option ${questionType === 'fill-in-gap' ? 'selected' : ''} ${questionType !== 'fill-in-gap' ? 'light' : ''}`}>
+                      <span className="gap-type-icon">↔</span><span className="min-w-0 text-left"><strong>Fill in the gap</strong><small>Type the missing key term from your notes.</small></span><span className="gap-new-badge">NEW</span>
+                    </button>
+                    <button type="button" disabled className={`gap-question-type-option disabled ${questionType !== 'fill-in-gap' ? 'light' : ''}`}>
+                      <span className="gap-type-icon">☰</span><span className="min-w-0 text-left"><strong>Short answer</strong><small>Write a short answer and get feedback.</small></span><span className="gap-soon-badge">Soon</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                    Amount
+                    {questionType === 'fill-in-gap' ? 'Number of questions' : 'Amount'}
                   </label>
-                  <input
+                  {questionType === 'fill-in-gap' ? (
+                    <div className="grid grid-cols-4 gap-2">
+                      {[5, 10, 15, 20].map((count) => (
+                        <button key={count} type="button" onClick={() => setAmount(count)}
+                          className={`py-2.5 rounded-xl border text-sm font-bold transition-colors ${Number(amount) === count ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-gray-50 dark:bg-gray-900/60 border-blue-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'}`}>
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <input
                     type="text"
                     inputMode="numeric"
                     value={amount}
@@ -1301,9 +1332,24 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                       else setAmount(num);
                     }}
                     className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-base outline-none font-bold text-gray-900 dark:text-gray-100"
-                  />
+                  />}
                 </div>
               </div>
+
+              {questionType === 'fill-in-gap' && (
+                <div className="space-y-2">
+                  <h2 className="gap-setup-step-title">3 · CUSTOMISE</h2>
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Hint for each gap</label>
+                  <div className="flex gap-2">
+                    {([{ value: 'first-letter', label: 'First letter' }, { value: 'none', label: 'None' }] as const).map((hint) => (
+                      <button key={hint.value} type="button" onClick={() => setGapHint(hint.value)}
+                        className={`px-4 py-2 rounded-xl border text-sm font-bold ${gapHint === hint.value ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-gray-50 dark:bg-gray-900/60 border-blue-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'}`}>
+                        {hint.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Row 2: Difficulty + Timer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1312,7 +1358,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
                     Difficulty
                   </label>
-                  <select
+                  {questionType === 'fill-in-gap' ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(['easy', 'medium', 'hard'] as const).map((level) => (
+                        <button key={level} type="button" onClick={() => setDifficulty(level)} className={`gap-choice-pill ${difficulty === level ? 'active' : ''}`}>
+                          {level[0].toUpperCase() + level.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
                     className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
@@ -1320,7 +1374,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
-                  </select>
+                  </select>}
                 </div>
 
                 {/* Timer */}
@@ -1328,7 +1382,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                   <label className="block text-[11px] font-black uppercase tracking-widest text-gray-505 dark:text-gray-400 flex items-center gap-1">
                     <FiClock className="inline" /> Timer
                   </label>
-                  <select
+                  {questionType === 'fill-in-gap' ? (
+                    <div className="flex flex-wrap gap-2">
+                      {[0, 5, 10, 20].map((minutes) => (
+                        <button key={minutes} type="button" onClick={() => setTimerMinutes(minutes)} className={`gap-choice-pill ${timerMinutes === minutes ? 'active' : ''}`}>
+                          {minutes === 0 ? 'No timer' : `${minutes} min`}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <select
                     value={timerMinutes}
                     onChange={(e) => setTimerMinutes(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-blue-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/60 text-sm outline-none font-medium text-gray-900 dark:text-gray-100"
@@ -1341,7 +1403,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                     <option value={30}>30 minutes</option>
                     <option value={45}>45 minutes</option>
                     <option value={60}>60 minutes</option>
-                  </select>
+                  </select>}
                 </div>
               </div>
 
@@ -1358,7 +1420,7 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 </div>
               )}
 
-              {success && <div className="p-3 bg-emerald-50 text-emerald-605 text-xs rounded-xl font-medium">{success}</div>}
+              {success && <div role="status" className="qg-success-message p-3 text-xs rounded-xl font-semibold">{success}</div>}
 
               {warning && (
                 <div className="p-3 bg-amber-50 rounded-xl space-y-2">
@@ -1370,10 +1432,15 @@ export default function QuestionBank({ className = '' }: QuestionBankProps) {
                 </div>
               )}
 
+              {questionType === 'fill-in-gap' && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {amount} fill-in-the-gap questions · {difficulty[0].toUpperCase() + difficulty.slice(1)} · {gapHint === 'first-letter' ? 'first-letter hints' : 'no hints'}
+                </p>
+              )}
               <button
                 onClick={() => handleGenerate()}
                 disabled={generating || (inputMode === 'upload' && (!extractedText || extracting)) || (inputMode === 'manual' && manualText.trim().length < 50)}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                className={`w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm transition-all mt-4 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 ${questionType === 'fill-in-gap' ? 'gap-create-button' : ''}`}
               >
                 {generating
                   ? <><FiLoader className="animate-spin" /> Generating...</>

@@ -14,7 +14,7 @@ export default function QuestionBankPage() {
             Question Bank
           </h1>
           <p className="text-gray-600 dark:text-gray-400 break-words">
-            AI-generated practice questions based on your syllabus
+            Turn your own notes into practice questions.
           </p>
         </div>
         <Suspense fallback={<div>Loading...</div>}>

@@ -46,6 +46,54 @@ export interface QuizResponse {
     message?: string
 }
 
+export interface GapQuizQuestion {
+    _id: string
+    content: string
+    sourceQuote: string
+    sourceFileName: string
+    knowledgeDeepDive: string
+    hintFirstLetter: string
+    answerLength: number
+}
+
+async function gapRequest<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}/${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+        body: JSON.stringify(payload),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.message || data.error || 'Request failed. Please try again.')
+    return data as T
+}
+
+export const generateGapQuiz = (payload: {
+    text: string
+    amount: number
+    difficulty: 'easy' | 'medium' | 'hard'
+    hintMode: 'first-letter' | 'none'
+    fileName?: string
+}) => gapRequest<{ success: boolean; sessionId: string; questions: GapQuizQuestion[] }>('generate-gap', payload)
+
+export const checkGapAnswer = (payload: { sessionId: string; questionId: string; answer: string }) =>
+    gapRequest<{ success: boolean; result: 'correct' | 'almost' | 'wrong'; correctAnswer: string; typedAnswer: string }>('check-gap-answer', payload)
+
+export const finishGapQuiz = (payload: { sessionId: string; timeTaken: number }) =>
+    gapRequest<{
+        success: boolean
+        correctAnswers: number
+        totalQuestions: number
+        answers: Array<{
+            questionId: string
+            question: string
+            selectedAnswer: string
+            correctAnswer: string
+            explanation: string
+            isCorrect: boolean
+            result: 'correct' | 'almost' | 'wrong'
+        }>
+    }>('finish-gap-quiz', payload)
+
 export interface StudyNote {
     _id: string
     title: string
